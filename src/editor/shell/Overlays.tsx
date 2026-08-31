@@ -1,12 +1,13 @@
 /**
  * Transient overlays: the toast, the template gallery and the shortcut sheet.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { useEditor } from "@/store/editor";
 import { TEMPLATES, type Template } from "@/templates";
+import { downloadProject, parseProjectFile, projectFileName } from "@/templates/share";
 import { EVENT_COUNT, SDK_VERSION } from "@/schema/events";
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
@@ -122,11 +123,30 @@ const DIFFICULTY_STYLE: Record<Template["difficulty"], string> = {
 function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
     const load = useEditor((s) => s.load);
     const toast = useEditor((s) => s.toast);
+    const project = useEditor((s) => s.project);
+    const fileInput = useRef<HTMLInputElement>(null);
 
     const apply = (template: Template) => {
         load(template.build(), { clearHistory: true });
         onOpenChange(false);
         toast(`Loaded “${template.name}”.`, "ok");
+    };
+
+    const exportCurrent = () => {
+        const name = downloadProject(project);
+        toast(`Saved “${name}” — send it to anyone with the editor.`, "ok");
+    };
+
+    const onImportFile = async (file: File) => {
+        const text = await file.text();
+        const result = parseProjectFile(text);
+        if (!result.ok) {
+            toast(result.error, "danger");
+            return;
+        }
+        load(result.project, { clearHistory: true });
+        onOpenChange(false);
+        toast(`Imported “${result.project.mod.name || result.project.mod.id}”.`, "ok");
     };
 
     return (
@@ -159,9 +179,36 @@ function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
                     </button>
                 ))}
             </div>
-            <p className="border-t border-line px-4 py-2.5 font-mono text-[10px] text-ink-4">
-                {TEMPLATES.length} templates · {EVENT_COUNT} game events · SDK {SDK_VERSION}
-            </p>
+            {/* Share work-in-progress quests, or build a personal template library. */}
+            <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+                <button type="button" className="btn-default" onClick={exportCurrent} title={projectFileName(project)}>
+                    <Icon name="download" size={13} />
+                    Export current quest
+                </button>
+                <button
+                    type="button"
+                    className="btn-default"
+                    onClick={() => fileInput.current?.click()}
+                >
+                    <Icon name="upload" size={13} />
+                    Import a quest file
+                </button>
+                <input
+                    ref={fileInput}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    aria-label="Import a quest project file"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void onImportFile(file);
+                        e.target.value = "";
+                    }}
+                />
+                <span className="ml-auto font-mono text-[10px] text-ink-4">
+                    {TEMPLATES.length} templates · {EVENT_COUNT} events · SDK {SDK_VERSION}
+                </span>
+            </div>
         </Modal>
     );
 }

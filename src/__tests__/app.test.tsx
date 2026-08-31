@@ -114,6 +114,10 @@ describe("editor shell", () => {
         await user.click(screen.getByRole("button", { name: /^Templates$/i }));
         expect(await screen.findByRole("heading", { name: "Start from a template" })).toBeInTheDocument();
 
+        // Share controls live in the same dialog.
+        expect(screen.getByRole("button", { name: /export current quest/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /import a quest file/i })).toBeInTheDocument();
+
         await user.click(screen.getByRole("button", { name: /Simple Linear Wi-Fi Hack/i }));
 
         const quest = selectActiveQuest(useEditor.getState())!;

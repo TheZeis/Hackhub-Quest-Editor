@@ -25,7 +25,7 @@ import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
-import { categoryOf, nodeTypeDef } from "@/schema/registry";
+import { categoryOf, nodeTypeDef, CATEGORY_HEX } from "@/schema/registry";
 import { HANDLE_STYLE } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
 
@@ -243,7 +243,9 @@ function CanvasInner() {
                     zoomable
                     nodeColor={(n) => {
                         const doc = (n.data as { doc?: { type: NodeType } })?.doc;
-                        return doc ? categoryOf(doc.type).color : "#333";
+                        // Hex, not var(): the minimap paints SVG `fill` attributes,
+                        // where CSS variables never resolve (see CATEGORY_HEX).
+                        return doc ? CATEGORY_HEX[categoryOf(doc.type).id] : "#333";
                     }}
                     nodeStrokeWidth={0}
                     maskColor="rgba(8, 9, 13, 0.72)"

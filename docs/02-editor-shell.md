@@ -337,3 +337,34 @@ the card, over the summary lines. Two-part fix:
 
 Cards were also given a fixed `w-60` width so columns are predictable for the layout
 and the gutter has room for the labels. Column gap widened to 360px accordingly.
+
+---
+
+## 12. Feedback round three: chrome bugs, share, and a hint QA pass
+
+**Inspector collapse button covered the "Node" tab.** It was pinned `top-left` of the
+inspector, exactly on the first tab. Moved to the right of the tab bar, where the row
+is empty.
+
+**The minimap showed only the grey viewport rect.** React Flow paints minimap node
+rects with an SVG `fill` *attribute*, and the category colours were CSS variables —
+`fill="var(--…)"` never resolves, so every node drew as nothing. Added `CATEGORY_HEX`
+(the same values as the `--color-cat-*` tokens) and made the minimap use it.
+
+**Template import/export.** New `src/templates/share.ts`: `downloadProject()` writes
+the whole `ProjectDocument` as `<mod-id>.quest-editor.json`; `parseProjectFile()`
+validates an imported file against `ProjectSchema` and rejects it with a readable
+reason (never half-loads). Both buttons live in the Templates dialog. Round-trip and
+rejection are unit-tested.
+
+**Hint QA pass** — reading every popout as a player, not a programmer:
+
+- Fixed two *swapped* hints: `mail → To` had the files hint, and `files → target` had a
+  stray action hint.
+- `Set quest data → Value` now states plainly that any text is accepted and nothing
+  there can error (answering "should this be a dropdown?": no — it is free text plus
+  `{{data.name}}` inserts, and the hint now says so).
+- Objective hints softened from rules to suggestions ("Nudge, don't solve" → "as
+  gentle or as cryptic as you want").
+- Removed internal references a player can't act on ("Step 3", `Shell.addCommandData`),
+  and jargon like `unlocksAfter`, "regular expression", "reverse shell".

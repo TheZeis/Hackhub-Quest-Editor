@@ -71,9 +71,12 @@ export default function App() {
                         </button>
                     ) : (
                         <>
+                            {/* The collapse control lives at the right of the tab
+                                bar — at the left it sat on top of the "Node" tab
+                                and made it unclickable. */}
                             <button
                                 type="button"
-                                className="btn-icon absolute top-2 left-2 z-10"
+                                className="btn-icon absolute top-1.5 right-2 z-10"
                                 onClick={() => setUi({ inspectorCollapsed: true })}
                                 title="Hide inspector"
                                 aria-label="Hide inspector"

@@ -99,15 +99,32 @@ export type FieldDef =
 /* ── Categories ──────────────────────────────────────────────────────────── */
 
 export const CATEGORIES = [
-    { id: "entry", label: "Quest lifecycle", color: "var(--color-cat-entry)", icon: "play" },
-    { id: "objective", label: "Objectives", color: "var(--color-cat-objective)", icon: "target" },
-    { id: "trigger", label: "Triggers", color: "var(--color-cat-trigger)", icon: "zap" },
-    { id: "world", label: "World building", color: "var(--color-cat-world)", icon: "globe" },
-    { id: "comms", label: "Communication", color: "var(--color-cat-comms)", icon: "message" },
-    { id: "reply", label: "Player replies", color: "var(--color-cat-reply)", icon: "keyboard" },
-    { id: "effect", label: "Effects", color: "var(--color-cat-effect)", icon: "sparkle" },
-    { id: "flow", label: "Flow control", color: "var(--color-cat-flow)", icon: "branch" },
+    { id: "entry", label: "Quest lifecycle", color: "var(--color-cat-entry)", hex: "#a78bfa", icon: "play" },
+    { id: "objective", label: "Objectives", color: "var(--color-cat-objective)", hex: "#fbbf24", icon: "target" },
+    { id: "trigger", label: "Triggers", color: "var(--color-cat-trigger)", hex: "#22d3ee", icon: "zap" },
+    { id: "world", label: "World building", color: "var(--color-cat-world)", hex: "#34d399", icon: "globe" },
+    { id: "comms", label: "Communication", color: "var(--color-cat-comms)", hex: "#f472b6", icon: "message" },
+    { id: "reply", label: "Player replies", color: "var(--color-cat-reply)", hex: "#fb923c", icon: "keyboard" },
+    { id: "effect", label: "Effects", color: "var(--color-cat-effect)", hex: "#60a5fa", icon: "sparkle" },
+    { id: "flow", label: "Flow control", color: "var(--color-cat-flow)", hex: "#94a3b8", icon: "branch" },
 ] as const;
+
+/**
+ * Concrete hex values, for the one consumer that cannot use CSS variables: the
+ * React Flow minimap draws node rects with an SVG `fill` *attribute*, and
+ * `fill="var(--…)"` does not resolve — the map went blank. Mirrors the
+ * `--color-cat-*` theme tokens.
+ */
+export const CATEGORY_HEX: Record<CategoryId, string> = {
+    entry: "#a78bfa",
+    objective: "#fbbf24",
+    trigger: "#22d3ee",
+    world: "#34d399",
+    comms: "#f472b6",
+    reply: "#fb923c",
+    effect: "#60a5fa",
+    flow: "#94a3b8",
+};
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
 
@@ -143,13 +160,13 @@ const userFields: FieldDef[] = [
     { kind: "text", key: "firstName", hint: "Shown on the account's profile page and in whois results.", label: "First name" },
     { kind: "text", key: "lastName", hint: "Shown on the account's profile page and in whois results.", label: "Last name" },
     { kind: "text", key: "emailAddress", hint: "The account's e-mail address. Useful as a lead the player can mail.", label: "E-mail", mono: true },
-    { kind: "toggle", key: "acceptReverseTCP", hint: "Lets the player open a reverse shell back into this account. Only enable it when the quest needs one.", label: "Accepts reverse TCP" },
+    { kind: "toggle", key: "acceptReverseTCP", hint: "Lets the player open a connection from this account back to their own machine. Turn on only if your quest needs it.", label: "Accepts reverse TCP" },
 ];
 
 const vulnFields: FieldDef[] = [
     {
         kind: "select",
-        key: "type", hint: "The vulnerability class. It drives what nuclei and sqlmap report when they scan this machine.",
+        key: "type", hint: "The kind of weakness this machine has. The in-game scanners report it when the player probes the machine.",
         label: "Type",
         options: VULNERABILITY_TYPES.map((t) => ({ value: t, label: t })),
     },
@@ -313,9 +330,9 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         sources: [doneOut, unlockOut],
         hook: "declarative",
         fields: [
-            { kind: "text", key: "name", label: "Identifier", mono: true, hint: "Unique within the quest. Used by triggers and unlocksAfter." },
-            { kind: "textarea", key: "description", hint: "The line shown in the player's quest journal. Keep it an instruction, not a puzzle.", label: "Shown to the player", rows: 2 },
-            { kind: "textarea", key: "hint", hint: "Revealed when the player asks for a hint. Nudge, don't solve.", label: "Hint", rows: 2 },
+            { kind: "text", key: "name", label: "Identifier", mono: true, hint: "A short unique name for this objective so other nodes can refer to it. Lowercase with dashes reads well." },
+            { kind: "textarea", key: "description", hint: "The line shown in the player's quest journal. A clear instruction tends to read well, but any wording that fits your quest works.", label: "Shown to the player", rows: 2 },
+            { kind: "textarea", key: "hint", hint: "Revealed only if the player asks for help. As gentle or as cryptic as you want it to be.", label: "Hint", rows: 2 },
             { kind: "textarea", key: "info", hint: "Extra detail in the journal's expanded view. Good for lore or background.", label: "Extra info", rows: 2 },
             { kind: "text", key: "terminalCommand", hint: "Suggested command shown in the journal. It runs nothing — it is a copy-pasteable nudge.", label: "Suggested command", mono: true },
             { kind: "toggle", key: "hidden", hint: "Keep the objective out of the journal until another objective unlocks it. Use for twists.", label: "Hidden until unlocked" },
@@ -387,7 +404,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [
             { kind: "text", key: "ssid", hint: "The network name shown in the in-game Wi-Fi list.", label: "Network name (SSID)", mono: true },
-            { kind: "text", key: "password", label: "WPA passphrase", mono: true, hint: "The player recovers this via handshake capture." },
+            { kind: "text", key: "password", label: "WPA passphrase", mono: true, hint: "The passphrase the player must discover. Make sure some node in your quest reveals it." },
             { kind: "number", key: "signal", label: "Signal strength", min: 0, max: 3, hint: "Also drives how long joining takes." },
             { kind: "text", key: "model", label: "Router model", mono: true, hint: "Enables the in-game `fern` recovery route. Leave blank to disable it." },
             {
@@ -492,7 +509,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 kind: "list",
                 key: "vulnerabilities",
                 label: "Vulnerabilities",
-                hint: "These drive what `nuclei` and `sqlmap` report.",
+                hint: "Weaknesses on the host behind this name. In-game scanners report them when the player probes it.",
                 addLabel: "Add vulnerability",
                 itemTitle: (v) => String(v.type),
                 fields: vulnFields,
@@ -532,7 +549,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "select",
-                key: "target", hint: "Add creates files; Delete removes them.",
+                key: "target", hint: "Choose whose filesystem to write to: the player's own machine, or a remote device you created.",
                 label: "Where",
                 options: [
                     { value: "player", label: "The player's PC" },
@@ -567,7 +584,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 kind: "select",
                 key: "command",
                 label: "Tool",
-                hint: "Shell.addCommandData — what the tool prints when the player runs it on this input.",
+                hint: "Pick the in-game command this overrides, like nmap or whois. When the player runs it on your input, they see your text instead of the usual result.",
                 options: [
                     { value: "nmap", label: "nmap" },
                     { value: "hydra", label: "hydra" },
@@ -585,7 +602,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "text", key: "input", label: "Keyed by", mono: true, tokens: true, hint: "The IP or domain the player passes. hydra/ssh/ftp use user + target instead." },
             { kind: "text", key: "inputUser", hint: "Only match when the player ran the command against this user.", label: "User", mono: true },
             { kind: "text", key: "inputTarget", hint: "Only match when the player ran the command against this host.", label: "Target", mono: true, tokens: true },
-            { kind: "textarea", key: "dataText", label: "Response", mono: true, rows: 8, hint: "Edited through a shape-aware builder in Step 3." },
+            { kind: "textarea", key: "dataText", label: "Response", mono: true, rows: 8, hint: "The exact text the tool prints. Paste real-looking output — the player sees it word for word." },
             { kind: "toggle", key: "removeOnComplete", hint: "Stop intercepting the command when the quest ends.", label: "Remove when the quest ends" },
         ],
         create: () => seed(ToolResponseNodeDataSchema),
@@ -601,7 +618,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [
             { kind: "text", key: "from", hint: "The sender address. Make it a domain the player might look up — it is a lead.", label: "From", mono: true },
-            { kind: "text", key: "to", label: "To", mono: true, hint: "Whose filesystem this writes to: the player's own machine, or a remote device." },
+            { kind: "text", key: "to", label: "To", mono: true, hint: "Who the mail is addressed to. Leave it blank to send it to the player." },
             { kind: "text", key: "subject", hint: "The subject line in the player's inbox.", label: "Subject" },
             { kind: "textarea", key: "content", label: "Body", rows: 8, tokens: true, hint: "The body of the mail. HTML tags are rendered as written, so <b> and <p> work." },
             { kind: "toggle", key: "replyable", hint: "Let the player answer. Their reply arrives as an event you can trigger on.", label: "The player can reply" },
@@ -623,7 +640,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "branch", label: "Branch", mono: true, hint: "Dialog trees are authored in the call editor (Step 3)." },
+            { kind: "text", key: "branch", label: "Branch", mono: true, hint: "Which conversation this call plays. The lines themselves live in the quest's dialog, below." },
             { kind: "number", key: "startIndex", hint: "Which line of dialogue the call opens on. Use it to resume a conversation mid-script.", label: "Start at line", min: 0 },
         ],
         create: () => seed(CallNodeDataSchema),
@@ -743,7 +760,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "toggle", key: "mask", label: "Mask the input", hint: "Shown as *, like the built-in ssh and sudo prompts." },
             {
                 kind: "select",
-                key: "matchMode", hint: "Exactly equals compares the whole answer. Contains accepts it anywhere in the answer. Matches pattern treats the answer as a regular expression.",
+                key: "matchMode", hint: "Exactly equals checks the whole answer. Contains accepts it anywhere in what the player types. Matches pattern is for advanced authors who want to accept a whole family of answers at once.",
                 label: "Match",
                 options: [
                     { value: "exact", label: "Exactly equals" },
@@ -751,7 +768,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "regex", label: "Matches pattern" },
                 ],
             },
-            { kind: "text", key: "expected", hint: "The accepted answer, or the regular expression when matching by pattern.", label: "Expected answer", mono: true },
+            { kind: "text", key: "expected", hint: "The answer that counts as correct — or the pattern, if you chose “Matches pattern” above.", label: "Expected answer", mono: true },
             { kind: "toggle", key: "caseSensitive", hint: "Turn off to accept any capitalisation. Recommended unless case is part of the puzzle.", label: "Case sensitive" },
             { kind: "text", key: "successMessage", hint: "Printed on a match, then the green “Correct” socket fires.", label: "Success message" },
             { kind: "text", key: "failureMessage", hint: "Printed on a miss, then the red “Wrong” socket fires. The player can run the command again.", label: "Failure message" },
@@ -807,7 +824,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "textarea", key: "message", hint: "The text shown. {{runtime.tokens}} are substituted at play time.", label: "Message", rows: 2, tokens: true },
+            { kind: "textarea", key: "message", hint: "The text on the popup. Type {{data.name}} to insert a value you saved earlier.", label: "Message", rows: 2, tokens: true },
             {
                 kind: "select",
                 key: "variant", hint: "A notification is a persistent popup; a toast slides in and fades on its own.",
@@ -841,8 +858,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "key", hint: "The name you will read this back with, in a condition or a {{data.key}} token.", label: "Key", mono: true },
-            { kind: "text", key: "value", hint: "The value to store. {{runtime.tokens}} are substituted before it is saved.", label: "Value", mono: true, tokens: true },
+            { kind: "text", key: "key", hint: "A name you choose, like containerId. Use the same name later to read this value back.", label: "Key", mono: true },
+            { kind: "text", key: "value", hint: "Any text is fine — a word, a number, an address. It is just stored, so nothing here can error. You can also insert a live value by typing {{data.name}} for something you saved earlier.", label: "Value", mono: true, tokens: true },
         ],
         create: () => seed(SetDataNodeDataSchema),
     },
@@ -940,7 +957,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 fields: [{ kind: "text", key: "label", hint: "The value stored if this option is picked.", label: "Value" }],
                 newItem: () => ({ id: nanoid(8), label: "" }),
             },
-            { kind: "text", key: "storeAs", hint: "The quest data key the picked value is written to. Read it back with {{data.key}}.", label: "Store the result as", mono: true },
+            { kind: "text", key: "storeAs", hint: "A name you choose. The picked value is saved under it so you can read it back later with {{data.name}}.", label: "Store the result as", mono: true },
         ],
         create: () => seed(RandomPickNodeDataSchema),
     },
