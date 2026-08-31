@@ -63,14 +63,25 @@ function scenarioProject(): ProjectDocument {
     });
     const notifyOk = node("fx.notify", { message: "welcome" });
     const notifyBad = node("fx.notify", { message: "locked out" });
+    const obj2 = node("objective", { name: "vault", description: "Reach the vault" });
+    const ht = node("reply.hackertyper", {
+        surface: "website",
+        targetRef: "target.net",
+        text: "ACCESS GRANTED",
+        eventName: "", // must be generated from the node id
+    });
+    const notifyGranted = node("fx.notify", { message: "granted" });
 
-    quest.graph.nodes = [entry, mail, net, obj, trig, input, notifyOk, notifyBad];
+    quest.graph.nodes = [entry, mail, net, obj, trig, input, notifyOk, notifyBad, obj2, ht, notifyGranted];
     quest.graph.edges = [
         edge(entry.id, mail.id, "flow"),
         edge(entry.id, net.id, "flow"),
+        edge(entry.id, input.id, "flow"),
+        edge(mail.id, obj2.id, "flow"),
         edge(trig.id, obj.id, "condition", "trigger", "trigger"),
         edge(input.id, notifyOk.id, "flow", "out"),
         edge(input.id, notifyBad.id, "flow", "failure"),
+        edge(ht.id, notifyGranted.id, "flow"),
     ];
 
     project.websites.push({
@@ -126,6 +137,11 @@ function stubSdk(calls: string[], listeners: [string, (d: unknown) => void][]) {
     return sdk;
 }
 
+/** Flush every pending promise chain the interpreter may have started. */
+const settle = async () => {
+    for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 0));
+};
+
 function runMod(modJs: string, sdk: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     new Function("require", "module", "exports", modJs)((name: string) => {
@@ -162,9 +178,14 @@ describe("compile", () => {
         const q = new reg.quests[0]();
         expect(q.Name).toBe("heist");
         q.OnStart();
-        await new Promise((r) => setTimeout(r, 10)); // flow steps are promise-chained
+        await settle(); // flow steps are promise-chained
         expect(calls).toContain("net:10.0.0.14");
         expect(calls).toContain("sendMail:0");
+        // flow reaching an objective ticks it off …
+        expect(calls).toContain("complete:vault");
+        // … but the flow PAUSES at the input node until the player answers
+        expect(calls).not.toContain("notify:welcome");
+        expect(calls).not.toContain("notify:locked out");
 
         // the trigger's declarative condition evaluates against the payload
         q.OnObjectivesStart();
@@ -199,6 +220,31 @@ describe("compile", () => {
         expect(calls.join(" ")).toContain(".wrong");
         expect(calls).toContain("notify:locked out");
         expect(calls).toContain("err:nope");
+    });
+
+    it("hackertyper reveal resumes the flow and mounts a widget page", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        const { files } = compileProject(scenarioProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const reg = (sdk as any).__registered;
+        const q = new reg.quests[0]();
+        q.OnObjectivesStart();
+
+        // the generated event name resumes the flow out of the hackertyper node
+        const htListener = listeners.find(([ev]) => ev.startsWith("QE.ht."));
+        expect(htListener, "no listener for the generated hackertyper event").toBeTruthy();
+        htListener![1]({});
+        await settle();
+        expect(calls).toContain("notify:granted");
+
+        // the widget page exists on the target site, hidden from search, emitting once
+        const site = new reg.websites[0]();
+        const widget = site.Pages.find((p: { path: string }) => p.path.startsWith("/qe/ht/"));
+        expect(widget.seo).toBe(false);
+        expect(widget.html).toContain(htListener![0]);
+        expect(widget.html).toContain("done=true");
     });
 
     it("websites compile with hidden pages out of the search index", () => {
@@ -244,7 +290,7 @@ describe("reference template through the compiler", () => {
             q.OnStart();
             q.OnObjectivesStart();
         }
-        await new Promise((r) => setTimeout(r, 20));
+        await settle();
         for (const WC of reg.websites) new WC();
         for (const CC of reg.commands) new CC();
         // no exception anywhere = every node type survives the interpreter

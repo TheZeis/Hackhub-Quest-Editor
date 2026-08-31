@@ -61,6 +61,12 @@ var __QE = (function () {
 
 function __qeRegisterProject(sdk, PROJECT) {
 
+    /* The event a hackertyper node emits when fully revealed: the field the
+       player filled in, or a generated one (the inspector promises this). */
+    function __qeHtEvent(n) {
+        return n.data.eventName && n.data.eventName.trim() ? n.data.eventName.trim() : "QE.ht." + n.id;
+    }
+
     /* ── one quest ─────────────────────────────────────────────────────── */
     function registerQuest(qd) {
         var g = qd.graph;
@@ -252,16 +258,25 @@ function __qeRegisterProject(sdk, PROJECT) {
                     return next();
                 case "flow.delay":
                     return __QE.sleep(d.ms).then(next);
-                case "trigger.event":
                 case "objective":
+                    /* When the story flow reaches an objective, tick it off.
+                       (Objectives with a trigger event complete via the SDK
+                       declarative trigger instead.) */
+                    if (d.name && questRef && questRef.completeObjective) questRef.completeObjective(d.name);
+                    return next();
+                case "trigger.event":
                 case "entry.start":
                 case "entry.load":
                 case "entry.complete":
                 case "entry.abandon":
-                case "reply.input":
-                case "reply.hackertyper":
                 case "comms.tweet":
                     return next();
+                case "reply.input":
+                case "reply.hackertyper":
+                    /* The player has to act before the story continues: the
+                       flow pauses here and is resumed by the terminal command
+                       (reply.input) or the reveal listener (hackertyper). */
+                    return Promise.resolve();
                 default:
                     return next();
             }
@@ -336,6 +351,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                     g.nodes
                         .filter(function (n) { return n.type === "entry.load"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
+                    g.nodes
+                        .filter(function (n) {
+                            return n.type === "reply.hackertyper" &&
+                                g.edges.some(function (e) { return e.source === n.id && e.kind === "flow"; });
+                        })
+                        .forEach(function (n) {
+                            self.Events.on(__qeHtEvent(n), function () {
+                                flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: {}, vars: {} }, 0); });
+                            });
+                        });
                     g.nodes
                         .filter(function (n) {
                             if (n.type !== "trigger.event") return false;
@@ -457,7 +482,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 html: [
                     "<!DOCTYPE html><html><head><style>body{background:#000;color:#0f0;font-family:monospace;padding:24px}</style></head><body>",
                     "<h3>" + (h.node.data.heading || "") + "</h3><pre id='t'></pre>",
-                    "<script>var s=" + JSON.stringify(h.node.data.text) + ";var i=0;document.addEventListener('keydown',function(){i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i>=s.length){HackhubSDK.Events.emit(" + JSON.stringify(h.node.data.eventName) + ",{});}});</" + "script>",
+                    "<script>var s=" + JSON.stringify(h.node.data.text) + ";var i=0;var done=false;document.addEventListener('keydown',function(){if(done)return;i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i>=s.length){done=true;HackhubSDK.Events.emit(" + JSON.stringify(__qeHtEvent(h.node)) + ",{});}});</" + "script>",
                     "</body></html>",
                 ].join(""),
             });

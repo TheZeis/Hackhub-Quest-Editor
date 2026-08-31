@@ -18,6 +18,17 @@ export function loadDraft(): ProjectDocument | null {
         const raw = localStorage.getItem(KEY);
         if (!raw) return null;
         const parsed: unknown = migrateProject(JSON.parse(raw));
+        // Sanity-check the envelope *before* schema parsing: every top-level
+        // field has a zod default, so an unrelated JSON object would otherwise
+        // "validate" as a blank project and silently wipe the user's draft.
+        if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            (parsed as { kind?: unknown }).kind !== "hackhub-quest-editor/project"
+        ) {
+            console.warn("[quest-editor] discarded a draft with an unknown shape.");
+            return null;
+        }
         const result = ProjectSchema.safeParse(parsed);
         if (!result.success) {
             console.warn("[quest-editor] discarded an invalid draft:", result.error.issues);

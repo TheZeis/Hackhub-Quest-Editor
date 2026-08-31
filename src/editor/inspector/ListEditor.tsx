@@ -76,7 +76,7 @@ export function ListEditor({
                                 onClick={() => move(index, -1)}
                                 disabled={index === 0}
                                 title="Move up"
-                                aria-label="Move up"
+                                aria-label="Move item up"
                             >
                                 <Icon name="chevronDown" size={10} className="rotate-180" />
                             </button>
@@ -86,7 +86,7 @@ export function ListEditor({
                                 onClick={() => move(index, 1)}
                                 disabled={index === items.length - 1}
                                 title="Move down"
-                                aria-label="Move down"
+                                aria-label="Move item down"
                             >
                                 <Icon name="chevronDown" size={10} />
                             </button>

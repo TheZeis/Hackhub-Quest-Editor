@@ -559,3 +559,47 @@ creates the subnet and sends the mail, trigger conditions evaluate against
 event payloads, and input commands branch on the typed answer. The full
 reference template (every node type) compiles and runs through the
 interpreter. 289 tests green.
+
+---
+
+## Addendum — Round 15: full QA sweep (code + UI/UX)
+
+**Method:** two passes. (1) Code QA: whole-suite reruns for flake detection,
+a cross-cutting invariants suite (`src/__tests__/qa.test.tsx`: registry
+completeness, defaults round-tripping through zod, crash-free summaries,
+every template compiling **and its emitted mod.js running**, hostile-text
+compilation, corrupted-draft autosave), plus an end-to-end read of the
+round-14 compiler. (2) UI/UX QA: a whole-app smoke suite
+(`src/__tests__/appSmoke.test.tsx`) that mounts the real `App`, walks every
+top-bar surface, exercises canvas render + undo, and fails on any
+console.error/warn; plus accessibility and design-token audits.
+
+**Bugs found and fixed:**
+
+- **Compiled mods could not complete objectives.** `completeObjective` was
+  never called — objectives only completed via declarative triggers. Flow
+  reaching an objective node now ticks it off.
+- **`reply.input` didn't wait for the player.** Flow arriving at the node
+  immediately followed the "Correct" path; it now pauses and is resumed by
+  the generated terminal command (Correct/Wrong handles included).
+- **Hackertyper flow-outs were dead** and the widget re-emitted its event on
+  every keypress after completion. Reveal now resumes the flow (listener
+  registered in `OnObjectivesStart`) and emits exactly once.
+- **Blank hackertyper event names** emitted `""` despite the inspector
+  promising a generated name; both widget and listener now use
+  `QE.ht.<nodeId>` when blank.
+- **Autosave silently swallowed foreign data:** any JSON object parsed as a
+  blank project (all fields have zod defaults), quietly replacing a draft.
+  The draft envelope (`kind`) is now sanity-checked before schema parsing.
+- **Flaky test hardening:** compiler tests used fixed 10–20 ms flushes; they
+  now settle deterministically (observed failure on a cold run).
+- **A11y:** ListEditor move buttons had `title` but no accessible name.
+
+**Audit results (no action needed):** all custom design tokens used in TSX
+are defined in `@theme`; every icon-only button and search/file input has an
+accessible name; every Radix dialog has Title+Description; no div-onClick
+anti-patterns; destructive canvas actions are undo-covered and site deletion
+is confirm-gated.
+
+**Verification:** 298/298 tests (13 files), `tsc --noEmit` clean, production
+build OK.
