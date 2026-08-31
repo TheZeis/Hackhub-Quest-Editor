@@ -133,6 +133,61 @@ describe("editor shell", () => {
         expect(selectActiveQuest(useEditor.getState())!.graph.nodes).toHaveLength(before);
     });
 
+    it("hangs an explanation off every labelled field", async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await user.click(screen.getByRole("button", { name: /^Manual input$/i }));
+        const added = selectActiveQuest(useEditor.getState())!.graph.nodes.at(-1)!;
+        act(() => {
+            useEditor.getState().select({ nodeIds: [added.id], edgeIds: [] });
+        });
+
+        const inspector = screen.getByRole("complementary", { name: "Inspector" });
+        const labels = await within(inspector).findAllByRole("button", {
+            name: /^What does “.+” do\?$/,
+        });
+
+        // Radix will not open a tooltip under jsdom, so this asserts the wiring
+        // rather than the popup. That every field has a hint at all is covered by
+        // the registry suite, which is the guarantee that actually matters.
+        expect(labels.length).toBeGreaterThanOrEqual(6);
+        expect(labels.map((l) => l.getAttribute("aria-label"))).toContain(
+            'What does “Expected answer” do?',
+        );
+    });
+
+    it("rearranges the canvas with Tidy up", async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await user.click(screen.getByRole("button", { name: /^Notify$/i }));
+        const added = selectActiveQuest(useEditor.getState())!.graph.nodes.at(-1)!;
+        act(() => {
+            useEditor.getState().updateNodeData(added.id, {});
+            useEditor.getState().setNodePositions({ [added.id]: { x: -9999, y: -9999 } });
+        });
+
+        await user.click(screen.getByRole("button", { name: /tidy up/i }));
+
+        const moved = selectActiveQuest(useEditor.getState())!.graph.nodes.find(
+            (nd) => nd.id === added.id,
+        )!;
+        expect(moved.position).not.toEqual({ x: -9999, y: -9999 });
+        expect(moved.position.x).toBeGreaterThanOrEqual(0);
+    });
+
+    it("warns on the canvas about an objective with no trigger", async () => {
+        const user = userEvent.setup();
+        render(<App />);
+
+        await user.click(screen.getByRole("button", { name: /^Objective$/i }));
+
+        // The badge names the problem; the node itself carries the explanation.
+        expect(await screen.findByText(/1 blocking/i)).toBeInTheDocument();
+        expect(screen.getByText("No trigger")).toBeInTheDocument();
+    });
+
     it("persists the draft to localStorage", async () => {
         const user = userEvent.setup();
         render(<App />);

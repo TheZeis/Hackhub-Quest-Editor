@@ -30,8 +30,14 @@ export interface HandleSpec {
     label: string;
 }
 
+/**
+ * Socket and wire styling, keyed by connection kind.
+ *
+ * Four well-separated hues and none of them grey: a socket you cannot see is a
+ * socket you cannot grab, and "flow" is the wire an author draws most often.
+ */
 export const HANDLE_STYLE: Record<EdgeKind, { color: string; label: string; dash?: string }> = {
-    flow: { color: "var(--color-ink-4)", label: "Then" },
+    flow: { color: "var(--color-cat-effect)", label: "Then" },
     condition: { color: "var(--color-cat-trigger)", label: "When" },
     unlock: { color: "var(--color-cat-objective)", label: "Unlocks", dash: "6 4" },
     data: { color: "var(--color-cat-entry)", label: "Data", dash: "2 4" },

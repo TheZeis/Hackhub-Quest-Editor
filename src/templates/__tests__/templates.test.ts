@@ -10,11 +10,19 @@ import { EdgeSchema, canConnect, type EdgeKind } from "@/schema/edges";
 import { nodeTypeDef, NODE_TYPES_REGISTRY } from "@/schema/registry";
 import { summarize } from "@/editor/canvas/summarize";
 import { getTemplate, TEMPLATES } from "@/templates";
+import { analyseGraph } from "@/analysis/graph";
 
 describe("template registry", () => {
     it("ships the templates named in the plan", () => {
-        expect(TEMPLATES.map((t) => t.id)).toEqual(["blank", "hello-hack", "wifi-hack"]);
+        expect(TEMPLATES.map((t) => t.id)).toEqual([
+            "blank",
+            "hello-hack",
+            "wifi-hack",
+            "investigation",
+            "reference",
+        ]);
         expect(getTemplate("wifi-hack")?.name).toBe("Simple Linear Wi-Fi Hack");
+        expect(getTemplate("reference")?.difficulty).toBe("Reference");
         expect(getTemplate("nope")).toBeUndefined();
     });
 
@@ -87,34 +95,56 @@ describe("template registry", () => {
         }
     });
 
-    it.each(TEMPLATES)("%s: reaches every node from an entry point", (template) => {
-        for (const quest of template.build().quests) {
-            const starts = quest.graph.nodes
-                .filter((n) => n.type.startsWith("entry."))
-                .map((n) => n.id);
-            // Triggers and standalone declarative nodes are legal to leave
-            // unwired, so only flow-reachable types are required to be reached.
-            const reachable = new Set<string>();
-            const queue = [...starts];
-            while (queue.length > 0) {
-                const id = queue.pop()!;
-                if (reachable.has(id)) continue;
-                reachable.add(id);
-                for (const edge of quest.graph.edges) {
-                    if (edge.source === id) queue.push(edge.target);
-                }
+    // Uses the shipped analysis rather than a copy of it, so the test and the
+    // canvas badge cannot drift apart.
+    it.each(TEMPLATES.filter((t) => t.difficulty !== "Reference"))(
+        "%s: has no unreachable nodes",
+        (template) => {
+            for (const quest of template.build().quests) {
+                const analysis = analyseGraph(quest.graph.nodes, quest.graph.edges);
+                const unreachable = analysis.issues
+                    .filter((i) => i.label === "Unreachable")
+                    .map((i) => i.nodeId);
+                expect(unreachable, `unreachable: ${unreachable.join(", ")}`).toEqual([]);
             }
-            for (const node of quest.graph.nodes) {
-                const def = nodeTypeDef(node.type);
-                const isIslandAllowed =
-                    node.type.startsWith("trigger.") ||
-                    node.type === "objective" ||
-                    def.targets.length === 0;
-                expect(
-                    isIslandAllowed || reachable.has(node.id),
-                    `${node.type} (${node.id}) is unreachable from any entry point`,
-                ).toBe(true);
+        },
+    );
+
+    it.each(TEMPLATES.filter((t) => t.difficulty !== "Reference"))(
+        "%s: has no objective the player can never complete",
+        (template) => {
+            for (const quest of template.build().quests) {
+                const analysis = analyseGraph(quest.graph.nodes, quest.graph.edges);
+                const blocked = analysis.issues.filter((i) => i.severity === "danger");
+                expect(blocked.map((i) => i.detail), JSON.stringify(blocked)).toEqual([]);
             }
+        },
+    );
+
+    // The reference sheet is deliberately unwired: it is a field catalogue, not a
+    // story, so "unreachable" is not a defect there.
+    it("reference: puts every node type on the canvas", () => {
+        const reference = getTemplate("reference")!.build();
+        const types = reference.quests[0].graph.nodes.map((n) => n.type);
+
+        // Every registered type is represented.
+        expect(new Set(types).size).toBe(32);
+
+        // Sticky notes double as row headers, so they are the one repeat.
+        const counts = new Map<string, number>();
+        for (const type of types) counts.set(type, (counts.get(type) ?? 0) + 1);
+        for (const [type, count] of counts) {
+            if (type !== "flow.note") expect(count, `${type} appears ${count} times`).toBe(1);
+        }
+    });
+
+    it("reference: every node still parses with its example data", () => {
+        for (const node of getTemplate("reference")!.build().quests[0].graph.nodes) {
+            const result = NodeSchema.safeParse(node);
+            expect(
+                result.success,
+                `${node.type}: ${JSON.stringify(result.success ? null : result.error.issues)}`,
+            ).toBe(true);
         }
     });
 });

@@ -8,11 +8,14 @@ import { useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
+import { HANDLE_STYLE, type EdgeKind } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
 import { summarize } from "./summarize";
 
 export interface GraphNodeData extends Record<string, unknown> {
     doc: NodeDoc;
+    /** The most serious problem the analysis found with this node, if any. */
+    issue?: { label: string; detail: string; severity: "warn" | "danger" };
 }
 
 export type GraphRFNode = Node<GraphNodeData, "qe">;
@@ -27,6 +30,7 @@ function socketTop(index: number, count: number): string {
 
 export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const doc = data.doc;
+    const issue = data.issue;
     const def = nodeTypeDef(doc.type);
     const category = categoryOf(doc.type);
     const lines = useMemo(() => summarize(doc).filter(Boolean), [doc]);
@@ -53,7 +57,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-lg border bg-surface shadow-node",
+                "relative rounded-lg border bg-surface shadow-node",
                 "transition-[border-color,box-shadow] duration-150",
                 selected ? "border-transparent ring-2" : "border-line hover:border-line-strong",
             )}
@@ -66,9 +70,27 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                     : undefined
             }
         >
+            {/* problem badge — the shortest possible route from "something is
+                wrong" to "here is what and why" */}
+            {issue && (
+                <span
+                    title={issue.detail}
+                    className={
+                        "absolute -top-2 -right-2 z-10 flex items-center gap-1 rounded-full border px-1.5 py-0.5 " +
+                        "text-[9.5px] font-semibold tracking-wide uppercase shadow-node " +
+                        (issue.severity === "danger"
+                            ? "border-danger/50 bg-danger/90 text-void"
+                            : "border-warn/50 bg-warn/90 text-void")
+                    }
+                >
+                    <Icon name="alert" size={9} />
+                    {issue.label}
+                </span>
+            )}
+
             {/* category accent */}
             <span
-                className="absolute inset-y-0 left-0 w-[3px]"
+                className="absolute inset-y-0 left-0 w-[3px] rounded-l-[7px]"
                 style={{ background: category.color }}
                 aria-hidden
             />
@@ -105,38 +127,87 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 </div>
             )}
 
-            {/* target sockets (left) */}
+            {/* Sockets. `data-kind` drives the colour, and each carries the
+                handle's plain-English name as a native tooltip so the author
+                learns what a socket means by hovering it. */}
             {def.targets.map((handle, i) => (
                 <Handle
                     key={handle.id}
                     id={handle.id}
                     type="target"
                     position={Position.Left}
+                    data-kind={handle.kind}
+                    title={handle.label}
                     style={{ top: socketTop(i, def.targets.length) }}
                 />
             ))}
 
-            {/* source sockets (right) */}
             {def.sources.map((handle, i) => (
                 <Handle
                     key={handle.id}
                     id={handle.id}
                     type="source"
                     position={Position.Right}
+                    data-kind={handle.kind}
+                    title={handle.label}
                     style={{ top: socketTop(i, def.sources.length) }}
                 />
             ))}
 
-            {/* socket labels */}
-            {def.sources.length > 1 && (
-                <div className="pointer-events-none absolute inset-y-0 right-2.5 flex flex-col justify-center gap-1 pr-0.5">
-                    {def.sources.map((h) => (
-                        <span key={h.id} className="text-right font-mono text-[9px] tracking-wide text-ink-4 uppercase">
-                            {h.label}
-                        </span>
-                    ))}
-                </div>
-            )}
+            {/* Socket labels, positioned on the same rule as the sockets
+                themselves so a label always sits next to its own dot. Only shown
+                when a side has more than one socket — otherwise it is obvious. */}
+            {def.targets.length > 1 &&
+                def.targets.map((h, i) => (
+                    <SocketLabel
+                        key={h.id}
+                        side="left"
+                        top={socketTop(i, def.targets.length)}
+                        kind={h.kind}
+                    >
+                        {h.label}
+                    </SocketLabel>
+                ))}
+            {def.sources.length > 1 &&
+                def.sources.map((h, i) => (
+                    <SocketLabel
+                        key={h.id}
+                        side="right"
+                        top={socketTop(i, def.sources.length)}
+                        kind={h.kind}
+                    >
+                        {h.label}
+                    </SocketLabel>
+                ))}
         </div>
+    );
+}
+
+function SocketLabel({
+    side,
+    top,
+    kind,
+    children,
+}: {
+    side: "left" | "right";
+    top: string;
+    kind: EdgeKind;
+    children: React.ReactNode;
+}) {
+    return (
+        <span
+            className={cn(
+                "pointer-events-none absolute -translate-y-1/2 rounded px-1 py-px",
+                "font-mono text-[8.5px] leading-tight tracking-wide uppercase",
+                side === "left" ? "left-1.5" : "right-1.5",
+            )}
+            style={{
+                top,
+                color: HANDLE_STYLE[kind].color,
+                background: "color-mix(in srgb, var(--color-surface) 88%, transparent)",
+            }}
+        >
+            {children}
+        </span>
     );
 }

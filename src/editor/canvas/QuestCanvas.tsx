@@ -21,6 +21,8 @@ import {
 import { useCallback, useMemo, useRef } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
+import { analyseGraph, summariseIssues } from "@/analysis/graph";
+import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
 import { HANDLE_STYLE } from "@/schema/edges";
@@ -50,7 +52,25 @@ function CanvasInner() {
     const select = useEditor((s) => s.select);
     const selection = useEditor((s) => s.selection);
     const setViewport = useEditor((s) => s.setViewport);
+    const applyLayout = useEditor((s) => s.applyLayout);
     const { screenToFlowPosition } = useReactFlow();
+
+    // Analysis is cheap and pure, so it can run on every render.
+    const analysis = useMemo(
+        () => analyseGraph(quest?.graph.nodes ?? [], quest?.graph.edges ?? []),
+        [quest],
+    );
+    const issuesByNode = useMemo(() => {
+        const map = new Map<string, { label: string; detail: string; severity: "warn" | "danger" }>();
+        for (const issue of analysis.issues) {
+            // Worst issue wins if a node has several.
+            const existing = map.get(issue.nodeId);
+            if (!existing || (existing.severity === "warn" && issue.severity === "danger")) {
+                map.set(issue.nodeId, issue);
+            }
+        }
+        return map;
+    }, [analysis]);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const nodes = useMemo<GraphRFNode[]>(
@@ -59,10 +79,10 @@ function CanvasInner() {
                 id: doc.id,
                 type: "qe" as const,
                 position: doc.position,
-                data: { doc },
+                data: { doc, issue: issuesByNode.get(doc.id) },
                 selected: selection.nodeIds.includes(doc.id),
             })),
-        [quest, selection.nodeIds],
+        [quest, selection.nodeIds, issuesByNode],
     );
 
     const edges = useMemo<TypedRFEdge[]>(() => {
@@ -241,9 +261,36 @@ function CanvasInner() {
                 />
             </ReactFlow>
 
+            {/* Canvas actions */}
+            <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                <button
+                    type="button"
+                    className="btn-default pointer-events-auto"
+                    onClick={applyLayout}
+                    disabled={!quest || quest.graph.nodes.length === 0}
+                    title="Arrange the graph left to right, by how far each node sits from its entry point"
+                >
+                    <Icon name="branch" size={13} />
+                    Tidy up
+                </button>
+                <span
+                    className={
+                        "pointer-events-none rounded-md border px-2 py-1 text-[10.5px] " +
+                        (analysis.issues.some((i) => i.severity === "danger")
+                            ? "border-danger/40 bg-danger/10 text-danger"
+                            : analysis.issues.length > 0
+                              ? "border-warn/40 bg-warn/10 text-warn"
+                              : "border-line bg-surface/90 text-ink-4")
+                    }
+                    title={analysis.issues.map((i) => i.detail).join("\n\n") || "Nothing looks wrong."}
+                >
+                    {summariseIssues(analysis)}
+                </span>
+            </div>
+
             {/* Socket legend */}
             <div className="pointer-events-none absolute top-3 right-3 flex flex-col gap-1 rounded-md border border-line bg-surface/90 px-2.5 py-2 backdrop-blur">
-                {(["flow", "condition", "unlock"] as const).map((kind) => (
+                {(["flow", "condition", "unlock", "data"] as const).map((kind) => (
                     <div key={kind} className="flex items-center gap-2">
                         <span
                             className="block h-0 w-5 rounded"

@@ -14,6 +14,7 @@ import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { ProjectSchema, createProject, createQuest } from "@/schema/project";
 import { nodeTypeDef } from "@/schema/registry";
+import { layeredLayout } from "@/analysis/graph";
 import { canConnect, type EdgeKind } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
 import type { Position, Viewport } from "@/schema/common";
@@ -73,6 +74,8 @@ export interface EditorStore {
     setNodePosition: (nodeId: string, position: Position) => void;
     setNodePositions: (positions: Record<string, Position>) => void;
     removeNodes: (ids: string[]) => void;
+    /** Re-arrange the active quest into a readable left-to-right layout. */
+    applyLayout: () => void;
 
     /* edges */
     connect: (edge: {
@@ -341,6 +344,22 @@ export const useEditor = create<EditorStore>()((set, get) => {
                     (e) => !doomed.has(e.source) && !doomed.has(e.target),
                 );
             }),
+
+        applyLayout: () => {
+            const project = get().project;
+            const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+            if (!quest) return;
+            const positions = layeredLayout(quest.graph.nodes, quest.graph.edges);
+            if (Object.keys(positions).length === 0) return;
+            mutate((next) => {
+                const q = next.quests.find((x) => x.id === quest.id);
+                if (!q) return;
+                for (const node of q.graph.nodes) {
+                    const position = positions[node.id];
+                    if (position) node.position = position;
+                }
+            });
+        },
 
         connect: ({ source, sourceHandle, target, targetHandle }) => {
             const project = get().project;

@@ -77,7 +77,12 @@ export type ConditionList = z.infer<typeof ConditionListSchema>;
    ─────────────────────────────────────────────────────────────────────── */
 
 export const AttachmentSchema = z.object({
-    id: z.string(),
+    /**
+     * Optional on purpose: the inspector writes an attachment as a nested
+     * section (`attachment.name`, …), not as a list row, so nothing supplies an
+     * id. The compiler derives one from the owning node's id.
+     */
+    id: z.string().optional(),
     name: z.string(),
     extension: z.string().default("txt"),
     content: z.string().default(""),

@@ -24,6 +24,7 @@ import {
     nodeTypeDef,
     NODE_TYPES_REGISTRY,
     paletteGroups,
+    type FieldDef,
     type NodeTypeDef,
 } from "@/schema/registry";
 
@@ -70,6 +71,47 @@ describe("registry ↔ node union", () => {
         for (const group of groups) {
             expect(group.types.length).toBeGreaterThan(0);
             expect(group.category.label.length).toBeGreaterThan(0);
+        }
+    });
+});
+
+describe("field explanations", () => {
+    /** Every field an author can see, flattened out of sections and lists. */
+    function allFields(fields: FieldDef[]): FieldDef[] {
+        return fields.flatMap((field) => {
+            if (field.kind === "section") return allFields(field.fields);
+            if (field.kind === "list") return [field, ...allFields(field.fields)];
+            return [field];
+        });
+    }
+
+    const editable = ALL_TYPES.flatMap((type) =>
+        allFields(nodeTypeDef(type).fields).filter(
+            (f) => f.kind !== "note" && f.kind !== "section",
+        ),
+    );
+
+    it("gives every editable field an explanation", () => {
+        // This is the "what am I supposed to type here" guarantee. A field with
+        // no hint is a field a non-coder has to guess at.
+        const bare: FieldDef[] = editable.filter(
+            (f) => !("hint" in f) || !f.hint,
+        );
+        expect(
+            bare.map((f) => ("key" in f ? f.key : f.kind)),
+            `${bare.length} fields have no hint`,
+        ).toEqual([]);
+        expect(editable.length).toBeGreaterThan(100);
+    });
+
+    it("writes hints as sentences, not label echoes", () => {
+        for (const field of editable) {
+            const hint = "hint" in field ? field.hint : undefined;
+            if (!hint) continue;
+            // Long enough to say something, short enough to read in a tooltip.
+            expect(hint.length, hint).toBeGreaterThan(24);
+            expect(hint.length, hint).toBeLessThan(260);
+            expect(/[.!?]$/.test(hint), hint).toBe(true);
         }
     });
 });

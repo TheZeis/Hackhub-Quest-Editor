@@ -244,23 +244,54 @@
     font-size: 13px;
 }
 
+/* ── Sockets ─────────────────────────────────────────────────────────────
+   Two sizes on purpose. The visible dot is 13px; an invisible ::before
+   widens the grab area to ~36px so drawing a wire does not need a steady
+   hand. The pseudo-element extends the hit box without changing the element
+   React Flow measures, so edges still anchor on the dot's centre.
+   ─────────────────────────────────────────────────────────────────────── */
 .react-flow__handle {
-    width: 9px;
-    height: 9px;
-    background: var(--color-surface-3);
-    border: 1.5px solid var(--color-line-strong);
+    width: 13px;
+    height: 13px;
+    min-width: 13px;
+    min-height: 13px;
+    background: var(--color-surface);
+    border: 2.5px solid var(--color-line-strong);
     border-radius: 999px;
     transition:
-        transform 0.12s ease,
         border-color 0.12s ease,
-        background 0.12s ease;
+        background 0.12s ease,
+        box-shadow 0.12s ease;
 }
 
+.react-flow__handle::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 999px;
+}
+
+/* Colour by connection kind, so a socket announces what it accepts. */
+.react-flow__handle[data-kind="flow"] {
+    border-color: var(--color-cat-effect);
+}
+.react-flow__handle[data-kind="condition"] {
+    border-color: var(--color-cat-trigger);
+}
+.react-flow__handle[data-kind="unlock"] {
+    border-color: var(--color-cat-objective);
+}
+.react-flow__handle[data-kind="data"] {
+    border-color: var(--color-cat-entry);
+}
+
+/* No `transform` on hover: React Flow owns it for centring, and overriding it
+   would knock the socket off its anchor. A ring reads just as well. */
 .react-flow__handle:hover,
 .react-flow__handle.connecting {
     background: var(--color-accent);
     border-color: var(--color-accent);
-    transform: scale(1.35);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .react-flow__handle.connectionindicator {
@@ -270,6 +301,12 @@
 .react-flow__handle.valid {
     background: var(--color-ok);
     border-color: var(--color-ok);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ok) 28%, transparent);
+}
+
+.react-flow__handle.invalid {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
 .react-flow__edge-path {

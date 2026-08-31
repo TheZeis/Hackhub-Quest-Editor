@@ -116,6 +116,7 @@ const DIFFICULTY_STYLE: Record<Template["difficulty"], string> = {
     Beginner: "border-ok/30 bg-ok/10 text-ok",
     Intermediate: "border-warn/30 bg-warn/10 text-warn",
     Advanced: "border-danger/30 bg-danger/10 text-danger",
+    Reference: "border-accent/30 bg-accent-soft text-accent",
 };
 
 function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {

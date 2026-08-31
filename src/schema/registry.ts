@@ -130,59 +130,59 @@ const io = { targets: [inFlow], sources: [outFlow] };
 /* ── Reusable field groups ───────────────────────────────────────────────── */
 
 const portFields: FieldDef[] = [
-    { kind: "number", key: "external", label: "External port", min: 0, max: 65535 },
-    { kind: "number", key: "internal", label: "Internal port", min: 0, max: 65535 },
-    { kind: "text", key: "service", label: "Service", placeholder: "ssh", mono: true },
-    { kind: "text", key: "version", label: "Version", placeholder: "OpenSSH 8.9", mono: true },
+    { kind: "number", key: "external", hint: "The port number as seen from outside. This is what nmap reports and what the player connects to.", label: "External port", min: 0, max: 65535 },
+    { kind: "number", key: "internal", hint: "The port the service actually listens on inside the machine. Leave equal to the external port unless you are deliberately redirecting.", label: "Internal port", min: 0, max: 65535 },
+    { kind: "text", key: "service", hint: "What nmap prints next to the port, e.g. http, ssh, ftp, mysql. Free text — it is a label, not a real service.", label: "Service", placeholder: "ssh", mono: true },
+    { kind: "text", key: "version", hint: "The banner nmap -sV prints, e.g. \"Apache 2.4.41\". Leave blank to omit the version line.", label: "Version", placeholder: "OpenSSH 8.9", mono: true },
     { kind: "toggle", key: "active", label: "Open", hint: "Closed ports show as filtered to nmap." },
 ];
 
 const userFields: FieldDef[] = [
-    { kind: "text", key: "username", label: "Username", mono: true },
+    { kind: "text", key: "username", hint: "The login name for ssh, ftp or a web login page.", label: "Username", mono: true },
     { kind: "text", key: "password", label: "Password", mono: true, hint: "Leave blank to let the game pick one." },
-    { kind: "text", key: "firstName", label: "First name" },
-    { kind: "text", key: "lastName", label: "Last name" },
-    { kind: "text", key: "emailAddress", label: "E-mail", mono: true },
-    { kind: "toggle", key: "acceptReverseTCP", label: "Accepts reverse TCP" },
+    { kind: "text", key: "firstName", hint: "Shown on the account's profile page and in whois results.", label: "First name" },
+    { kind: "text", key: "lastName", hint: "Shown on the account's profile page and in whois results.", label: "Last name" },
+    { kind: "text", key: "emailAddress", hint: "The account's e-mail address. Useful as a lead the player can mail.", label: "E-mail", mono: true },
+    { kind: "toggle", key: "acceptReverseTCP", hint: "Lets the player open a reverse shell back into this account. Only enable it when the quest needs one.", label: "Accepts reverse TCP" },
 ];
 
 const vulnFields: FieldDef[] = [
     {
         kind: "select",
-        key: "type",
+        key: "type", hint: "The vulnerability class. It drives what nuclei and sqlmap report when they scan this machine.",
         label: "Type",
         options: VULNERABILITY_TYPES.map((t) => ({ value: t, label: t })),
     },
-    { kind: "text", key: "version", label: "Version", placeholder: "optional", mono: true },
+    { kind: "text", key: "version", hint: "The affected component's version, e.g. \"WordPress 5.8\". Cosmetic unless a trigger matches on it.", label: "Version", placeholder: "optional", mono: true },
 ];
 
 const ruleFields: FieldDef[] = [
-    { kind: "number", key: "port", label: "Port", min: 0, max: 65535 },
+    { kind: "number", key: "port", hint: "The port this rule applies to.", label: "Port", min: 0, max: 65535 },
     { kind: "toggle", key: "allowed", label: "Allowed", hint: "Off means the port is blocked by the firewall." },
-    { kind: "text", key: "source", label: "Source", placeholder: "*", mono: true },
-    { kind: "text", key: "destination", label: "Destination", placeholder: "*", mono: true },
+    { kind: "text", key: "source", hint: "Which source addresses the rule matches. `*` means anywhere; write a single IP to narrow it.", label: "Source", placeholder: "*", mono: true },
+    { kind: "text", key: "destination", hint: "Which destination addresses the rule matches. `*` means this machine.", label: "Destination", placeholder: "*", mono: true },
     { kind: "toggle", key: "locked", label: "Locked", hint: "The player cannot remove a locked rule." },
 ];
 
 const fileFields: FieldDef[] = [
-    { kind: "text", key: "name", label: "Name", mono: true },
-    { kind: "text", key: "extension", label: "Extension", placeholder: "txt", mono: true },
-    { kind: "toggle", key: "isFolder", label: "Folder" },
-    { kind: "toggle", key: "hidden", label: "Hidden" },
-    { kind: "textarea", key: "data", label: "Contents", mono: true, rows: 4 },
+    { kind: "text", key: "name", hint: "The file or folder name, exactly as it appears in ls.", label: "Name", mono: true },
+    { kind: "text", key: "extension", hint: "The extension, e.g. txt, log, conf. Leave blank for folders.", label: "Extension", placeholder: "txt", mono: true },
+    { kind: "toggle", key: "isFolder", hint: "Mark this entry as a directory rather than a file.", label: "Folder" },
+    { kind: "toggle", key: "hidden", hint: "Prefix the name with a dot so a plain ls does not show it.", label: "Hidden" },
+    { kind: "textarea", key: "data", hint: "The file's contents. This is where clues live — a config file, a log excerpt, a leaked password.", label: "Contents", mono: true, rows: 4 },
 ];
 
 const kisscordMsgFields: FieldDef[] = [
-    { kind: "textarea", key: "content", label: "Message", rows: 3, tokens: true },
-    { kind: "toggle", key: "isMine", label: "Sent by the player" },
-    { kind: "number", key: "delayMs", label: "Delay (ms)", min: 0, step: 100 },
+    { kind: "textarea", key: "content", hint: "The message text. Markdown works: **bold**, *italic*, `code`, and links.", label: "Message", rows: 3, tokens: true },
+    { kind: "toggle", key: "isMine", hint: "Send it from the player's own account instead of the contact's.", label: "Sent by the player" },
+    { kind: "number", key: "delayMs", hint: "Pause in milliseconds before this message appears. Use it to pace a conversation.", label: "Delay (ms)", min: 0, step: 100 },
 ];
 
 const weechatMsgFields: FieldDef[] = [
-    { kind: "textarea", key: "content", label: "Message", rows: 3, tokens: true },
+    { kind: "textarea", key: "content", hint: "The line printed in the IRC channel.", label: "Message", rows: 3, tokens: true },
     { kind: "text", key: "username", label: "Username", mono: true, hint: "Ignored when sent by the player." },
-    { kind: "toggle", key: "isMine", label: "Sent by the player" },
-    { kind: "number", key: "delayMs", label: "Delay (ms)", min: 0, step: 100 },
+    { kind: "toggle", key: "isMine", hint: "Send the line from the player's own nick.", label: "Sent by the player" },
+    { kind: "number", key: "delayMs", hint: "Pause in milliseconds before this line appears.", label: "Delay (ms)", min: 0, step: 100 },
 ];
 
 /**
@@ -249,7 +249,7 @@ const entryFields: FieldDef[] = [
     {
         kind: "note",
         tone: "info",
-        text: "Everything wired below this node runs in that lifecycle hook. Event listeners belong under “Objectives start”, never under “Quest start” — they are wiped on reload.",
+        text: "Each lifecycle node is an independent starting point — they never connect to each other. Wire the chain that should run when this moment happens. Event listeners belong under “On start & reload”; anything wired to “On quest claim” is wiped when the player reloads.",
     },
 ];
 
@@ -257,8 +257,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "entry.start": {
         type: "entry.start",
         category: "entry",
-        label: "Quest start",
-        blurb: "Runs once, when the quest is claimed",
+        label: "On quest claim",
+        blurb: "Runs once, when the player accepts. Setup goes here.",
         icon: "flag",
         targets: [],
         sources: [outFlow],
@@ -269,8 +269,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "entry.load": {
         type: "entry.load",
         category: "entry",
-        label: "Objectives start",
-        blurb: "Runs on claim and on every game load",
+        label: "On start & reload",
+        blurb: "Runs on claim and every load. Listeners go here.",
         icon: "refresh",
         targets: [],
         sources: [outFlow],
@@ -281,8 +281,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "entry.complete": {
         type: "entry.complete",
         category: "entry",
-        label: "Quest complete",
-        blurb: "Runs when every objective is done",
+        label: "On quest complete",
+        blurb: "Runs once every objective is done. Rewards go here.",
         icon: "check",
         targets: [],
         sources: [outFlow],
@@ -293,8 +293,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "entry.abandon": {
         type: "entry.abandon",
         category: "entry",
-        label: "Quest abandoned",
-        blurb: "Runs when the player gives up",
+        label: "On quest abandoned",
+        blurb: "Runs if the player gives up. Cleanup goes here.",
         icon: "x",
         targets: [],
         sources: [outFlow],
@@ -314,11 +314,11 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "declarative",
         fields: [
             { kind: "text", key: "name", label: "Identifier", mono: true, hint: "Unique within the quest. Used by triggers and unlocksAfter." },
-            { kind: "textarea", key: "description", label: "Shown to the player", rows: 2 },
-            { kind: "textarea", key: "hint", label: "Hint", rows: 2 },
-            { kind: "textarea", key: "info", label: "Extra info", rows: 2 },
-            { kind: "text", key: "terminalCommand", label: "Suggested command", mono: true },
-            { kind: "toggle", key: "hidden", label: "Hidden until unlocked" },
+            { kind: "textarea", key: "description", hint: "The line shown in the player's quest journal. Keep it an instruction, not a puzzle.", label: "Shown to the player", rows: 2 },
+            { kind: "textarea", key: "hint", hint: "Revealed when the player asks for a hint. Nudge, don't solve.", label: "Hint", rows: 2 },
+            { kind: "textarea", key: "info", hint: "Extra detail in the journal's expanded view. Good for lore or background.", label: "Extra info", rows: 2 },
+            { kind: "text", key: "terminalCommand", hint: "Suggested command shown in the journal. It runs nothing — it is a copy-pasteable nudge.", label: "Suggested command", mono: true },
+            { kind: "toggle", key: "hidden", hint: "Keep the objective out of the journal until another objective unlocks it. Use for twists.", label: "Hidden until unlocked" },
         ],
         create: () => seed(ObjectiveDataSchema),
     },
@@ -351,14 +351,15 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             {
                 kind: "select",
                 key: "ipMode",
+                hint: "Random allocates a fresh address each playthrough via Network.randomIp(). Fixed keeps what you typed — use it when another node refers to this IP by hand.",
                 label: "Router IP",
                 options: [
                     { value: "random", label: "Random public IP", hint: "Allocated per playthrough via Network.randomIp()" },
                     { value: "fixed", label: "Fixed IP" },
                 ],
             },
-            { kind: "deviceTree", key: "device", label: "Devices" },
-            { kind: "toggle", key: "destroyOnComplete", label: "Tear down when the quest ends" },
+            { kind: "deviceTree", key: "device", hint: "The router at the root of the network, plus everything behind it. Routers and splitters carry children; firewalls carry rules.", label: "Devices" },
+            { kind: "toggle", key: "destroyOnComplete", hint: "Remove the whole network when the quest ends, so it does not clutter later playthroughs.", label: "Tear down when the quest ends" },
         ],
         create: () =>
             seed(NetworkNodeDataSchema, {
@@ -385,13 +386,13 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "ssid", label: "Network name (SSID)", mono: true },
+            { kind: "text", key: "ssid", hint: "The network name shown in the in-game Wi-Fi list.", label: "Network name (SSID)", mono: true },
             { kind: "text", key: "password", label: "WPA passphrase", mono: true, hint: "The player recovers this via handshake capture." },
             { kind: "number", key: "signal", label: "Signal strength", min: 0, max: 3, hint: "Also drives how long joining takes." },
             { kind: "text", key: "model", label: "Router model", mono: true, hint: "Enables the in-game `fern` recovery route. Leave blank to disable it." },
             {
                 kind: "list",
-                key: "users",
+                key: "users", hint: "Accounts on the access point's own system. Their files land in /home/<username>/.",
                 label: "Router accounts",
                 addLabel: "Add account",
                 itemTitle: (u) => String(u.username ?? "account"),
@@ -400,15 +401,15 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             },
             {
                 kind: "list",
-                key: "ports",
+                key: "ports", hint: "Open ports on the access point itself.",
                 label: "Router ports",
                 addLabel: "Add port",
                 itemTitle: (p) => `${p.external}/${p.service ?? "?"}`,
                 fields: portFields,
                 newItem: () => ({ id: nanoid(8), external: 80, internal: 80, active: true, service: "http" }),
             },
-            { kind: "deviceTree", key: "children", label: "Devices behind the access point" },
-            { kind: "toggle", key: "destroyOnComplete", label: "Tear down when the quest ends" },
+            { kind: "deviceTree", key: "children", hint: "Machines reachable through this access point. Add a router here to build a second network hop.", label: "Devices behind the access point" },
+            { kind: "toggle", key: "destroyOnComplete", hint: "Remove the access point when the quest ends.", label: "Tear down when the quest ends" },
         ],
         create: () => seed(WifiNodeDataSchema, { ssid: "NEIGHBOUR_5Ghz", password: "letmein123" }),
     },
@@ -422,17 +423,17 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "ip", label: "Protected IP", mono: true, tokens: true },
+            { kind: "text", key: "ip", hint: "The machine these rules protect. Use {{data.targetIp}} to refer to a randomly-allocated router.", label: "Protected IP", mono: true, tokens: true },
             {
                 kind: "list",
-                key: "rule",
+                key: "rule", hint: "Rules are evaluated in order; the first match wins.",
                 label: "Rule",
                 addLabel: "Add rule",
                 itemTitle: (r) => `${r.allowed ? "Allow" : "Block"} ${r.port}`,
                 fields: ruleFields,
                 newItem: () => ({ id: nanoid(8), allowed: false, port: 22, source: "*" }),
             },
-            { kind: "toggle", key: "removeOnComplete", label: "Remove when the quest ends" },
+            { kind: "toggle", key: "removeOnComplete", hint: "Drop the firewall when the quest ends so the machine is reachable afterwards.", label: "Remove when the quest ends" },
         ],
         create: () =>
             seed(FirewallNodeDataSchema, {
@@ -454,6 +455,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             {
                 kind: "select",
                 key: "action",
+                hint: "Open makes an existing port reachable. Close blocks it. Add creates a new service; Remove deletes it entirely.",
                 label: "Action",
                 options: [
                     { value: "open", label: "Open" },
@@ -462,11 +464,11 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "remove", label: "Remove" },
                 ],
             },
-            { kind: "number", key: "port.external", label: "External port", min: 0, max: 65535 },
-            { kind: "number", key: "port.internal", label: "Internal port", min: 0, max: 65535 },
-            { kind: "text", key: "port.service", label: "Service", mono: true },
-            { kind: "toggle", key: "port.active", label: "Open" },
-            { kind: "toggle", key: "restoreOnComplete", label: "Restore when the quest ends" },
+            { kind: "number", key: "port.external", hint: "The port number as seen from outside — what nmap reports.", label: "External port", min: 0, max: 65535 },
+            { kind: "number", key: "port.internal", hint: "The port the service listens on inside the machine.", label: "Internal port", min: 0, max: 65535 },
+            { kind: "text", key: "port.service", hint: "What nmap prints next to the port, e.g. http, ssh, mysql.", label: "Service", mono: true },
+            { kind: "toggle", key: "port.active", hint: "Turn off to make the port appear closed.", label: "Open" },
+            { kind: "toggle", key: "restoreOnComplete", hint: "Put the port back the way it was when the quest ends.", label: "Restore when the quest ends" },
         ],
         create: () =>
             seed(PortNodeDataSchema, {
@@ -484,8 +486,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "domain", label: "Domain", mono: true },
-            { kind: "text", key: "ip", label: "Resolves to", mono: true, tokens: true },
+            { kind: "text", key: "domain", hint: "The hostname the player types, e.g. vault.corp-internal.net.", label: "Domain", mono: true },
+            { kind: "text", key: "ip", hint: "The address it resolves to. nslookup and dig will report this.", label: "Resolves to", mono: true, tokens: true },
             {
                 kind: "list",
                 key: "vulnerabilities",
@@ -496,7 +498,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 fields: vulnFields,
                 newItem: () => ({ id: nanoid(8), type: "SQL_INJECTION" }),
             },
-            { kind: "toggle", key: "removeOnComplete", label: "Remove when the quest ends" },
+            { kind: "toggle", key: "removeOnComplete", hint: "Drop the DNS entry when the quest ends.", label: "Remove when the quest ends" },
         ],
         create: () => seed(DomainNodeDataSchema),
     },
@@ -510,11 +512,11 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "host", label: "Host IP", mono: true, tokens: true },
-            { kind: "text", key: "user", label: "Username", mono: true },
-            { kind: "text", key: "password", label: "Password", mono: true },
+            { kind: "text", key: "host", hint: "The address the player points a database client at.", label: "Host IP", mono: true, tokens: true },
+            { kind: "text", key: "user", hint: "The login sqlmap or a client uses.", label: "Username", mono: true },
+            { kind: "text", key: "password", hint: "The password. Give the player a way to find it — a config file, a leaked dump, a cracked hash.", label: "Password", mono: true },
             { kind: "note", tone: "info", text: "Table editing arrives with the full data inspector in Step 3." },
-            { kind: "toggle", key: "removeOnComplete", label: "Remove when the quest ends" },
+            { kind: "toggle", key: "removeOnComplete", hint: "Drop the database when the quest ends.", label: "Remove when the quest ends" },
         ],
         create: () => seed(DatabaseNodeDataSchema, { host: "", user: "admin", password: "secret123" }),
     },
@@ -530,7 +532,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "select",
-                key: "target",
+                key: "target", hint: "Add creates files; Delete removes them.",
                 label: "Where",
                 options: [
                     { value: "player", label: "The player's PC" },
@@ -538,10 +540,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 ],
             },
             { kind: "text", key: "ip", label: "Device IP", mono: true, tokens: true, hint: "Only used for a remote device." },
-            { kind: "text", key: "parentPath", label: "Parent folder", mono: true, placeholder: "~/" },
+            { kind: "text", key: "parentPath", hint: "Where the files are mounted. Folders named etc, home, logs or lib are merged into the existing ones rather than replacing them.", label: "Parent folder", mono: true, placeholder: "~/" },
             {
                 kind: "list",
-                key: "files",
+                key: "files", hint: "The files and folders to create. A folder named etc, home, logs or lib merges with the machine's existing one.",
                 label: "Files",
                 addLabel: "Add file",
                 itemTitle: (f, i) => (f.isFolder ? `📁 ${f.name}` : String(f.name ?? `file ${i + 1}`)),
@@ -581,10 +583,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 ],
             },
             { kind: "text", key: "input", label: "Keyed by", mono: true, tokens: true, hint: "The IP or domain the player passes. hydra/ssh/ftp use user + target instead." },
-            { kind: "text", key: "inputUser", label: "User", mono: true },
-            { kind: "text", key: "inputTarget", label: "Target", mono: true, tokens: true },
+            { kind: "text", key: "inputUser", hint: "Only match when the player ran the command against this user.", label: "User", mono: true },
+            { kind: "text", key: "inputTarget", hint: "Only match when the player ran the command against this host.", label: "Target", mono: true, tokens: true },
             { kind: "textarea", key: "dataText", label: "Response", mono: true, rows: 8, hint: "Edited through a shape-aware builder in Step 3." },
-            { kind: "toggle", key: "removeOnComplete", label: "Remove when the quest ends" },
+            { kind: "toggle", key: "removeOnComplete", hint: "Stop intercepting the command when the quest ends.", label: "Remove when the quest ends" },
         ],
         create: () => seed(ToolResponseNodeDataSchema),
     },
@@ -598,15 +600,15 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "from", label: "From", mono: true },
-            { kind: "text", key: "to", label: "To", mono: true, hint: "Defaults to the player." },
-            { kind: "text", key: "subject", label: "Subject" },
-            { kind: "textarea", key: "content", label: "Body", rows: 8, tokens: true, hint: "HTML is rendered." },
-            { kind: "toggle", key: "replyable", label: "The player can reply" },
+            { kind: "text", key: "from", hint: "The sender address. Make it a domain the player might look up — it is a lead.", label: "From", mono: true },
+            { kind: "text", key: "to", label: "To", mono: true, hint: "Whose filesystem this writes to: the player's own machine, or a remote device." },
+            { kind: "text", key: "subject", hint: "The subject line in the player's inbox.", label: "Subject" },
+            { kind: "textarea", key: "content", label: "Body", rows: 8, tokens: true, hint: "The body of the mail. HTML tags are rendered as written, so <b> and <p> work." },
+            { kind: "toggle", key: "replyable", hint: "Let the player answer. Their reply arrives as an event you can trigger on.", label: "The player can reply" },
             { kind: "section", label: "Attachment", fields: [
-                { kind: "text", key: "attachment.name", label: "File name", mono: true },
-                { kind: "text", key: "attachment.extension", label: "Extension", mono: true },
-                { kind: "textarea", key: "attachment.content", label: "Contents", mono: true, rows: 3 },
+                { kind: "text", key: "attachment.name", hint: "The attachment's filename, without the extension.", label: "File name", mono: true },
+                { kind: "text", key: "attachment.extension", hint: "The file extension, e.g. txt, pdf, log. The game picks the viewer from this.", label: "Extension", mono: true },
+                { kind: "textarea", key: "attachment.content", hint: "The attachment's contents. For a PDF or image, this is a path to a file you export alongside the mod.", label: "Contents", mono: true, rows: 3 },
             ] },
         ],
         create: () => seed(MailNodeDataSchema, { from: "handler@anon.mail" }),
@@ -622,7 +624,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [
             { kind: "text", key: "branch", label: "Branch", mono: true, hint: "Dialog trees are authored in the call editor (Step 3)." },
-            { kind: "number", key: "startIndex", label: "Start at line", min: 0 },
+            { kind: "number", key: "startIndex", hint: "Which line of dialogue the call opens on. Use it to resume a conversation mid-script.", label: "Start at line", min: 0 },
         ],
         create: () => seed(CallNodeDataSchema),
     },
@@ -660,12 +662,12 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "host", label: "Server host", mono: true, placeholder: "irc.darknet.org" },
-            { kind: "text", key: "password", label: "Password", mono: true, hint: "The player connects with: weechat <host> <password>" },
-            { kind: "toggle", key: "registerServer", label: "Register the server" },
+            { kind: "text", key: "host", hint: "The IRC server the player connects to.", label: "Server host", mono: true, placeholder: "irc.darknet.org" },
+            { kind: "text", key: "password", label: "Password", mono: true, hint: "The player connects with: weechat <host> <password>." },
+            { kind: "toggle", key: "registerServer", hint: "Register the server with WeeChat so it appears in the player's server list automatically.", label: "Register the server" },
             {
                 kind: "list",
-                key: "messages",
+                key: "messages", hint: "The channel log, top to bottom.",
                 label: "Messages",
                 addLabel: "Add message",
                 itemTitle: (m, i) => `${m.username ?? "you"}: ${String(m.content ?? "").slice(0, 30) || `message ${i + 1}`}`,
@@ -685,13 +687,13 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "accountId", label: "Account", mono: true },
-            { kind: "textarea", key: "content", label: "Tweet", rows: 4 },
-            { kind: "number", key: "likes", label: "Likes", min: 0 },
-            { kind: "number", key: "comments", label: "Comments", min: 0 },
-            { kind: "number", key: "shares", label: "Shares", min: 0 },
-            { kind: "number", key: "views", label: "Views", min: 0 },
-            { kind: "text", key: "postedAgo", label: "Posted", placeholder: "2 days" },
+            { kind: "text", key: "accountId", hint: "Which Twotter account posts this. The account must be declared on the quest.", label: "Account", mono: true },
+            { kind: "textarea", key: "content", hint: "The post body, with the same formatting Twotter supports.", label: "Tweet", rows: 4 },
+            { kind: "number", key: "likes", hint: "Starting like count. Cosmetic, but it sells the fiction.", label: "Likes", min: 0 },
+            { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },
+            { kind: "number", key: "shares", hint: "How many reposts the post already shows. Cosmetic, but it sells the fiction.", label: "Shares", min: 0 },
+            { kind: "number", key: "views", hint: "How many views the post already shows. Cosmetic, but it sells the fiction.", label: "Views", min: 0 },
+            { kind: "text", key: "postedAgo", hint: "How old the post looks, e.g. \"3h\" or \"2d\".", label: "Posted", placeholder: "2 days" },
         ],
         create: () => seed(TweetNodeDataSchema),
     },
@@ -708,7 +710,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "note", tone: "info", text: "HackHub has no engine primitive for this, so the editor emits a small HTML surface that runs the effect and emits a custom event when the string is revealed." },
             {
                 kind: "select",
-                key: "surface",
+                key: "surface", hint: "Where the widget lives: a page on a website, a desktop app, or a phone app.",
                 label: "Rendered as",
                 options: [
                     { value: "website", label: "A website page" },
@@ -716,10 +718,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "phoneApp", label: "A phone app" },
                 ],
             },
-            { kind: "text", key: "targetRef", label: "Website host or app name", mono: true },
-            { kind: "textarea", key: "text", label: "Text to reveal", mono: true, rows: 5 },
-            { kind: "text", key: "heading", label: "Heading" },
-            { kind: "number", key: "charsPerKeypress", label: "Characters per keypress", min: 1, max: 20 },
+            { kind: "text", key: "targetRef", hint: "Which page or app hosts the widget. Must match a website host or app name elsewhere in this mod.", label: "Website host or app name", mono: true },
+            { kind: "textarea", key: "text", hint: "The text that types itself out while the player mashes keys. Make it look like real output — that is the whole illusion.", label: "Text to reveal", mono: true, rows: 5 },
+            { kind: "text", key: "heading", hint: "The heading above the typing area.", label: "Heading" },
+            { kind: "number", key: "charsPerKeypress", hint: "How many characters each keypress reveals. Higher feels faster and less fiddly.", label: "Characters per keypress", min: 1, max: 20 },
             { kind: "text", key: "eventName", label: "Custom event", mono: true, hint: "Left blank, one is generated from the node id." },
         ],
         create: () => seed(HackertyperNodeDataSchema, { text: "ACCESS GRANTED — decrypting payload…" }),
@@ -735,13 +737,13 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onObjectivesStart",
         fields: [
             { kind: "note", tone: "info", text: "Compiles to a custom terminal command using tools.prompt(). Wire the green “Correct” socket for success and the red “Wrong” socket for failure." },
-            { kind: "text", key: "commandName", label: "Command name", mono: true, placeholder: "decrypt" },
-            { kind: "text", key: "commandDescription", label: "Help text" },
-            { kind: "text", key: "prompt", label: "Prompt", placeholder: "Passphrase >" },
+            { kind: "text", key: "commandName", hint: "The terminal command the player runs, e.g. decrypt. It appears in help output.", label: "Command name", mono: true, placeholder: "decrypt" },
+            { kind: "text", key: "commandDescription", hint: "The one-line description shown next to the command in help.", label: "Help text" },
+            { kind: "text", key: "prompt", hint: "The text printed before the cursor, e.g. \"Passphrase >\".", label: "Prompt", placeholder: "Passphrase >" },
             { kind: "toggle", key: "mask", label: "Mask the input", hint: "Shown as *, like the built-in ssh and sudo prompts." },
             {
                 kind: "select",
-                key: "matchMode",
+                key: "matchMode", hint: "Exactly equals compares the whole answer. Contains accepts it anywhere in the answer. Matches pattern treats the answer as a regular expression.",
                 label: "Match",
                 options: [
                     { value: "exact", label: "Exactly equals" },
@@ -749,10 +751,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "regex", label: "Matches pattern" },
                 ],
             },
-            { kind: "text", key: "expected", label: "Expected answer", mono: true },
-            { kind: "toggle", key: "caseSensitive", label: "Case sensitive" },
-            { kind: "text", key: "successMessage", label: "Success message" },
-            { kind: "text", key: "failureMessage", label: "Failure message" },
+            { kind: "text", key: "expected", hint: "The accepted answer, or the regular expression when matching by pattern.", label: "Expected answer", mono: true },
+            { kind: "toggle", key: "caseSensitive", hint: "Turn off to accept any capitalisation. Recommended unless case is part of the puzzle.", label: "Case sensitive" },
+            { kind: "text", key: "successMessage", hint: "Printed on a match, then the green “Correct” socket fires.", label: "Success message" },
+            { kind: "text", key: "failureMessage", hint: "Printed on a miss, then the red “Wrong” socket fires. The player can run the command again.", label: "Failure message" },
         ],
         create: () =>
             seed(ManualInputNodeDataSchema, {
@@ -773,10 +775,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "number", key: "amount", label: "Amount", min: 0 },
-            { kind: "text", key: "description", label: "Description" },
-            { kind: "text", key: "fromIBAN", label: "From IBAN", mono: true },
-            { kind: "text", key: "fromName", label: "From name" },
+            { kind: "number", key: "amount", hint: "Credits deposited into the player's bank account.", label: "Amount", min: 0 },
+            { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
+            { kind: "text", key: "fromIBAN", hint: "The sending account, shown in the transfer details.", label: "From IBAN", mono: true },
+            { kind: "text", key: "fromName", hint: "The sender's name on the statement.", label: "From name" },
         ],
         create: () => seed(PayNodeDataSchema, { amount: 1000, description: "Job payment" }),
     },
@@ -790,8 +792,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "number", key: "amount", label: "Amount", min: 0 },
-            { kind: "text", key: "description", label: "Description" },
+            { kind: "number", key: "amount", hint: "Credits taken from the player's account.", label: "Amount", min: 0 },
+            { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
         ],
         create: () => seed(PayNodeDataSchema, { amount: 100, description: "Purchase" }),
     },
@@ -805,10 +807,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "textarea", key: "message", label: "Message", rows: 2, tokens: true },
+            { kind: "textarea", key: "message", hint: "The text shown. {{runtime.tokens}} are substituted at play time.", label: "Message", rows: 2, tokens: true },
             {
                 kind: "select",
-                key: "variant",
+                key: "variant", hint: "A notification is a persistent popup; a toast slides in and fades on its own.",
                 label: "Style",
                 options: [
                     { value: "notify", label: "Notification popup" },
@@ -817,7 +819,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             },
             {
                 kind: "select",
-                key: "tone",
+                key: "tone", hint: "Sets the colour and icon: info, success, warning or error.",
                 label: "Tone",
                 options: [
                     { value: "info", label: "Info" },
@@ -839,8 +841,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "key", label: "Key", mono: true },
-            { kind: "text", key: "value", label: "Value", mono: true, tokens: true },
+            { kind: "text", key: "key", hint: "The name you will read this back with, in a condition or a {{data.key}} token.", label: "Key", mono: true },
+            { kind: "text", key: "value", hint: "The value to store. {{runtime.tokens}} are substituted before it is saved.", label: "Value", mono: true, tokens: true },
         ],
         create: () => seed(SetDataNodeDataSchema),
     },
@@ -853,7 +855,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         icon: "link",
         ...io,
         hook: "onStart",
-        fields: [{ kind: "text", key: "questName", label: "Quest", mono: true }],
+        fields: [{ kind: "text", key: "questName", hint: "The identifier of the quest to start next. It must exist in this mod or another installed one.", label: "Quest", mono: true }],
         create: () => seed(ClaimQuestNodeDataSchema, { questName: "" }),
     },
 
@@ -865,7 +867,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         icon: "terminal",
         ...io,
         hook: "onStart",
-        fields: [{ kind: "text", key: "command", label: "Command", mono: true, tokens: true }],
+        fields: [{ kind: "text", key: "command", hint: "The command executed in the player's terminal, as if they had typed it.", label: "Command", mono: true, tokens: true }],
         create: () => seed(ShellExecNodeDataSchema),
     },
 
@@ -878,8 +880,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "articleId", label: "Article", mono: true },
-            { kind: "text", key: "category", label: "Category" },
+            { kind: "text", key: "articleId", hint: "The in-game article to open.", label: "Article", mono: true },
+            { kind: "text", key: "category", hint: "The handbook section the article sits under.", label: "Category" },
         ],
         create: () => seed(HandbookNodeDataSchema),
     },
@@ -896,14 +898,14 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "select",
-                key: "source",
+                key: "source", hint: "Test against the payload of the event that fired, or against quest data you stored earlier.",
                 label: "Test against",
                 options: [
                     { value: "event", label: "The triggering event payload" },
                     { value: "data", label: "Quest data" },
                 ],
             },
-            { kind: "conditions", key: "conditions", label: "Take the “Yes” path when" },
+            { kind: "conditions", key: "conditions", hint: "All clauses must hold for the “Yes” path. Otherwise the “No” path runs.", label: "Take the “Yes” path when" },
         ],
         create: () => seed(BranchNodeDataSchema),
     },
@@ -916,7 +918,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         icon: "clock",
         ...io,
         hook: "onStart",
-        fields: [{ kind: "number", key: "ms", label: "Milliseconds", min: 0, step: 100 }],
+        fields: [{ kind: "number", key: "ms", hint: "How long to wait, in milliseconds. 1000 is one second.", label: "Milliseconds", min: 0, step: 100 }],
         create: () => seed(DelayNodeDataSchema),
     },
 
@@ -931,14 +933,14 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "list",
-                key: "options",
+                key: "options", hint: "One of these is picked at random and stored. Add as many as you like.",
                 label: "Options",
                 addLabel: "Add option",
                 itemTitle: (o, i) => String(o.label ?? `option ${i + 1}`),
-                fields: [{ kind: "text", key: "label", label: "Value" }],
+                fields: [{ kind: "text", key: "label", hint: "The value stored if this option is picked.", label: "Value" }],
                 newItem: () => ({ id: nanoid(8), label: "" }),
             },
-            { kind: "text", key: "storeAs", label: "Store the result as", mono: true },
+            { kind: "text", key: "storeAs", hint: "The quest data key the picked value is written to. Read it back with {{data.key}}.", label: "Store the result as", mono: true },
         ],
         create: () => seed(RandomPickNodeDataSchema),
     },
@@ -953,8 +955,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         sources: [],
         hook: "declarative",
         fields: [
-            { kind: "textarea", key: "text", label: "Note", rows: 6 },
-            { kind: "number", key: "width", label: "Width", min: 160, max: 640, step: 20 },
+            { kind: "textarea", key: "text", hint: "Shown on the canvas only. Notes are never exported into the mod.", label: "Note", rows: 6 },
+            { kind: "number", key: "width", hint: "How wide the note is on the canvas, in pixels.", label: "Width", min: 160, max: 640, step: 20 },
         ],
         create: () => seed(NoteNodeDataSchema, { text: "" }),
     },

@@ -228,3 +228,87 @@ bases (`field-input`, `btn`, `btn-ghost`) are declared with `@utility` in
 
 The registry entries for all of these already exist; Step 3 replaces their generic
 `list`-of-messages fields with purpose-built editors.
+
+---
+
+## 10. Visual feedback round
+
+After the first look at the running editor, three problems were reported and fixed.
+They are recorded here because each one points at a rule worth keeping.
+
+### Sockets were too small to grab
+
+Two causes, only one of them cosmetic:
+
+1. The node card had `overflow-hidden`. React Flow places handles *straddling* the
+   border, so the outer half of every socket — and half its hit area — was clipped.
+2. The visible dot was 9px with no extra hit area.
+
+Fix: drop `overflow-hidden` (the accent bar rounds itself instead), size the dot at
+13px, and widen the grab area with an invisible `::before { inset: -12px }`. The
+pseudo-element extends the hit box **without changing the element React Flow
+measures**, so edges still anchor on the dot's centre.
+
+Hover feedback uses a `box-shadow` ring rather than `transform: scale()` — React Flow
+owns the handle's transform for centring, and overriding it knocks the socket off its
+anchor.
+
+Sockets are now coloured by connection kind, and `flow` moved off grey to blue: a
+socket you cannot see is a socket you cannot grab, and flow is the wire an author
+draws most often.
+
+### The flow read as four unrelated fragments
+
+The real problem was that the four lifecycle nodes *are* four unrelated roots, and
+nothing said so. Changes:
+
+- **Renamed** to state when they fire: *On quest claim*, *On start & reload*,
+  *On quest complete*, *On quest abandoned*.
+- **The entry-point note now says the thing people get wrong**: they never connect to
+  each other, and listeners belong under *On start & reload*.
+- **Templates only include the entry points they use.** An empty lifecycle node is
+  noise a beginner has to reason about. The blank template keeps all four plus a note,
+  deliberately unconnected, to teach that before it becomes a bug.
+- **A pure analysis layer** (`src/analysis/graph.ts`) flags the problems that are
+  actually fatal: an objective with no trigger (blocking), an unreachable node, a
+  branch or manual-input outcome that goes nowhere, an unused entry point. It renders
+  as a badge on the offending node and a count on the canvas. Step 4's export report
+  reuses it verbatim.
+- **A "Tidy up" button** runs a deterministic layered layout (depth from the roots
+  becomes the column) so the graph always reads left to right.
+
+One subtlety worth keeping: the reachability BFS must seed from `entry.*` **and**
+`trigger.event` **and** `objective`. An objective is activated by whatever fires into
+its trigger socket, not by a lifecycle node — seeding only from `entry.*` flagged every
+objective-led chain as unreachable.
+
+### There was no answer to "what do I type here?"
+
+147 fields, 27 explanations. Both halves were fixed:
+
+- **Every field now has a hint** — 140 hints across the registry, each saying what the
+  *game* does with the value rather than restating the label. A test enforces it:
+  `gives every editable field an explanation` fails the build if a new field ships
+  bare, and a second test rejects hints that are too short to say anything or too long
+  to read in a tooltip.
+- **Hints moved behind an ⓘ tooltip** on the field label. Printed under every field
+  they made the inspector a wall of grey text; behind a tooltip all 140 cost nothing
+  vertically.
+- **A "Node Reference" template** puts all 32 node types on one canvas, filled with
+  example input, laid out by category. It is the fallback for anyone who would rather
+  look at a filled-in example than read a tooltip.
+
+### Bugs this round caught
+
+| Bug | Caught by |
+|---|---|
+| `AttachmentSchema.id` was required but the inspector writes attachments as a nested section, so no id was ever supplied — an author adding an attachment produced an invalid document | templates suite (`ZodError` on `attachment.id`) |
+| The registry's `create()` seeds device/rule ids with `nanoid()`, so **templates were not deterministic** — which would also break Step 4's byte-identical codegen | `builds deterministically` |
+| `quest.dataKeys` is an array of `{ key, type }`, not strings | templates suite |
+| Reachability seeded only from `entry.*`, flagging every objective-led chain | `reaches every node from an entry point` |
+| The generator script's hint-inserter mistook a hint on a select *option* for the field's own, silently skipping `ipMode` and `action` | the new hint-coverage test |
+
+The last one is worth naming: a script that edits 140 places in a 990-line file by line
+surgery corrupted the file twice before it worked. The version that shipped does one
+provably-local thing — insert after a field's own `key:` — and is idempotent. See
+`reference/add-hints.py`.

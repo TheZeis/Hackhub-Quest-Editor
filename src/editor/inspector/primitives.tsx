@@ -7,9 +7,17 @@
  */
 import type { ReactNode } from "react";
 import * as Switch from "@radix-ui/react-switch";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 
+/**
+ * A labelled control with its explanation behind an ⓘ.
+ *
+ * Hints used to print under every field, which made the inspector a wall of
+ * grey text and still left most fields unexplained. Behind a tooltip, every one
+ * of the ~150 fields can carry a real explanation at zero vertical cost.
+ */
 export function FieldShell({
     label,
     hint,
@@ -26,13 +34,55 @@ export function FieldShell({
     return (
         <div className={cn("px-3 py-2", className)}>
             {label && (
-                <label className="field-label" htmlFor={htmlFor}>
-                    {label}
-                </label>
+                <div className="mb-1.5 flex items-center gap-1">
+                    <label className="field-label mb-0" htmlFor={htmlFor}>
+                        {label}
+                    </label>
+                    {hint && <HintBadge label={label} hint={hint} />}
+                </div>
             )}
             {children}
-            {hint && <p className="field-hint">{hint}</p>}
+            {/* A hint with no label has nowhere to hang a badge — keep it inline. */}
+            {!label && hint && <p className="field-hint">{hint}</p>}
         </div>
+    );
+}
+
+/** The ⓘ that opens a field's explanation. */
+export function HintBadge({ label, hint }: { label: string; hint: string }) {
+    return (
+        <Tooltip.Provider delayDuration={120} skipDelayDuration={400}>
+            <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                    <button
+                        type="button"
+                        aria-label={`What does “${label}” do?`}
+                        className="-my-1 flex size-4 shrink-0 items-center justify-center rounded-full
+                                   text-ink-4 transition-colors
+                                   hover:bg-surface-3 hover:text-accent
+                                   data-[state=delayed-open]:bg-surface-3 data-[state=delayed-open]:text-accent"
+                    >
+                        <Icon name="info" size={11} />
+                    </button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                    <Tooltip.Content
+                        side="left"
+                        align="start"
+                        sideOffset={8}
+                        collisionPadding={12}
+                        className="z-50 max-w-[280px] rounded-lg border border-line bg-surface-2
+                                   px-2.5 py-2 text-[11.5px] leading-relaxed text-ink-2 shadow-panel"
+                    >
+                        <span className="mb-0.5 block text-[10px] font-semibold tracking-wider text-ink-4 uppercase">
+                            {label}
+                        </span>
+                        {hint}
+                        <Tooltip.Arrow className="fill-line" />
+                    </Tooltip.Content>
+                </Tooltip.Portal>
+            </Tooltip.Root>
+        </Tooltip.Provider>
     );
 }
 
