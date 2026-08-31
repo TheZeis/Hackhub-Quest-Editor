@@ -122,7 +122,8 @@ export function WebsiteBuilderDialog({
                                                     {t.blurb}
                                                 </span>
                                                 <span className="mt-1.5 block font-mono text-[10px] text-ink-4">
-                                                    {made.host} · {made.pages.length} pages ·{" "}
+                                                    {made.host} · {made.pages.length} page
+                                                    {made.pages.length === 1 ? "" : "s"} ·{" "}
                                                     {made.pages.filter((p) => !p.seo).length} hidden
                                                 </span>
                                             </button>

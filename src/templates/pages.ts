@@ -256,121 +256,6 @@ strong.red{background:#ffe4e6}
         }),
     },
     {
-        id: "agency",
-        label: "Public agency site",
-        blurb: "A naza-grade agency homepage: dark hero, orbit SVG, missions, newsroom, staff directory, portal login.",
-        make: () => ({
-            title: "NAZA — National Aeronautics & Space Administration",
-            path: "/",
-            seo: true,
-            content: `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NAZA — Explore the unknown</title>
-<style>
-:root{--space:#0b1026;--space2:#131a3a;--blue:#0b3d91;--red:#fc3d21;--ink:#e8ecf8;--mut:#9aa5c4;--line:#232c52}
-*{box-sizing:border-box;margin:0}
-body{font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--space);color:var(--ink)}
-a{color:#8fb3ff}
-header{position:sticky;top:0;background:rgba(11,16,38,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);z-index:5}
-.nav{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:12px 20px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:2px}
-nav{margin-left:auto;display:flex;gap:18px;font-size:13px}
-nav a{color:var(--mut);text-decoration:none}
-nav a:hover{color:#fff}
-.hero{background:radial-gradient(1200px 500px at 80% -10%,#1b2a6b 0%,transparent 60%),var(--space);padding:70px 20px 80px}
-.hero-in{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
-.hero h1{font-size:44px;line-height:1.1;font-weight:800}
-.hero h1 em{color:var(--red);font-style:normal}
-.hero p{margin:16px 0 24px;color:var(--mut);max-width:520px}
-.btn{display:inline-block;background:var(--red);color:#fff;font-weight:700;padding:11px 22px;border-radius:4px;text-decoration:none;font-size:14px}
-.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);margin-left:10px}
-main{max-width:1080px;margin:0 auto;padding:56px 20px}
-h2.sec{font-size:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
-h2.sec::after{content:"";display:block;width:44px;height:3px;background:var(--red);margin-top:6px}
-p.sub{color:var(--mut);margin:10px 0 26px}
-.missions{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.m{background:var(--space2);border:1px solid var(--line);border-radius:10px;padding:20px}
-.m .st{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:99px;padding:3px 10px}
-.st.fly{background:#12315e;color:#8fb3ff}.st.dev{background:#3a2a12;color:#fbbf24}.st.done{background:#123320;color:#4ade80}
-.m h3{font-size:15px;margin:12px 0 6px}
-.m p{font-size:13px;color:var(--mut)}
-.news{display:grid;gap:10px}
-.n{display:flex;gap:16px;background:var(--space2);border:1px solid var(--line);border-radius:10px;padding:16px 20px}
-.n .d{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--mut);white-space:nowrap;padding-top:2px}
-.n h3{font-size:14.5px}
-.n p{font-size:13px;color:var(--mut)}
-.staff{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.s{background:var(--space2);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
-.s .ava{width:52px;height:52px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;margin:0 auto 10px}
-.s h3{font-size:13.5px}.s .r{font-size:11.5px;color:var(--mut);margin:3px 0 8px}.s a{font-size:11px}
-.portal{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;background:var(--space2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.portal .l{padding:28px}
-.portal h3{font-size:16px;margin-bottom:6px}
-.portal p{font-size:13px;color:var(--mut)}
-.portal .r{padding:28px;background:#0d1330;border-left:1px solid var(--line)}
-.portal input{width:100%;background:var(--space);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:9px 12px;margin-bottom:10px;font-size:13px}
-.portal .deny{color:var(--red);font-size:12px;margin-top:8px;font-weight:600}
-footer{border-top:1px solid var(--line);color:var(--mut);font-size:12.5px;padding:26px 20px;margin-top:56px}
-.foot{max-width:1080px;margin:0 auto;display:flex;gap:20px;flex-wrap:wrap}
-</style>
-</head>
-<body>
-<header><div class="nav">
-  <span class="logo"><svg width="30" height="30" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="10" fill="#0b3d91"/><ellipse cx="24" cy="24" rx="21" ry="8" stroke="#fc3d21" stroke-width="2" transform="rotate(-18 24 24)"/><circle cx="38" cy="15" r="2.5" fill="#e8ecf8"/></svg>NAZA</span>
-  <nav><a href="/">Home</a><a href="/missions">Missions</a><a href="/newsroom">Newsroom</a><a href="/people">People</a><a href="/portal">Employee portal</a></nav>
-</div></header>
-<div class="hero"><div class="hero-in">
-  <div>
-    <h1>Explore the unknown. <em>Build what's next.</em></h1>
-    <p>The National Aeronautics &amp; Space Administration charts orbit, climate and deep space — for everyone, everywhere.</p>
-    <a class="btn" href="/missions">Current missions</a><a class="btn ghost" href="/newsroom">Newsroom</a>
-  </div>
-  <svg viewBox="0 0 200 160" fill="none" aria-hidden="true"><circle cx="100" cy="80" r="34" fill="#0b3d91"/><circle cx="100" cy="80" r="34" stroke="#27407c"/><ellipse cx="100" cy="80" rx="86" ry="30" stroke="#2a3560" stroke-width="1.5" transform="rotate(-16 100 80)"/><ellipse cx="100" cy="80" rx="62" ry="22" stroke="#232c52" transform="rotate(-16 100 80)"/><circle cx="168" cy="52" r="4" fill="#fc3d21"/><circle cx="46" cy="102" r="3" fill="#8fb3ff"/></svg>
-</div></div>
-<main>
-  <h2 class="sec">Missions</h2>
-  <p class="sub">Three programmes, one mandate: go, learn, return.</p>
-  <div class="missions">
-    <div class="m"><span class="st fly">In flight</span><h3>HELIOS-7</h3><p>Solar polar orbiter measuring flare weather; perihelion pass due next month.</p></div>
-    <div class="m"><span class="st dev">In development</span><h3>DEEP FERRY</h3><p>Reusable tug for cislunar logistics. Static fire campaign at Pad 39-C.</p></div>
-    <div class="m"><span class="st done">Complete</span><h3>GLASS SEA</h3><p>Four-year ocean-salinity mapper; data set public in the archive.</p></div>
-  </div>
-  <h2 class="sec" style="margin-top:48px">Newsroom</h2>
-  <p class="sub">Briefings and releases, newest first.</p>
-  <div class="news">
-    <div class="n"><span class="d">2026-08-12</span><div><h3>Routine IT security audit scheduled</h3><p>Internal systems, including the employee portal, undergo a routine audit this quarter. External access unchanged.</p></div></div>
-    <div class="n"><span class="d">2026-07-30</span><div><h3>HELIOS-7 returns first polar imagery</h3><p>The coronal imager resolved a filament eruption in unprecedented detail.</p></div></div>
-  </div>
-  <h2 class="sec" style="margin-top:48px">Leadership directory</h2>
-  <p class="sub">Public contact list for press and partners.</p>
-  <div class="staff">
-    <div class="s"><div class="ava">AR</div><h3>Dr. A. Reyes</h3><p class="r">Administrator</p><a href="mailto:a.reyes@naza.gov">a.reyes@naza.gov</a></div>
-    <div class="s"><div class="ava">KT</div><h3>K. Tanaka</h3><p class="r">Deputy, Operations</p><a href="mailto:k.tanaka@naza.gov">k.tanaka@naza.gov</a></div>
-    <div class="s"><div class="ava">LB</div><h3>L. Brandt</h3><p class="r">Chief Information Officer</p><a href="mailto:l.brandt@naza.gov">l.brandt@naza.gov</a></div>
-    <div class="s"><div class="ava">OS</div><h3>O. Sefu</h3><p class="r">Press Office</p><a href="mailto:press@naza.gov">press@naza.gov</a></div>
-  </div>
-  <!-- ops note: temp passwords for portal resets follow month-favourite-planet, e.g. "august-mars" -->
-  <div class="portal">
-    <div class="l"><h3>Employee portal</h3><p>Staff sign in with your agency account. Contractors use the badge kiosk instead.</p></div>
-    <div class="r">
-      <input type="text" placeholder="user@naza.gov" aria-label="portal user">
-      <input type="password" placeholder="password" aria-label="portal password">
-      <button class="btn" type="button">Sign in</button>
-      <p class="deny">Access denied — this mirror does not authenticate.</p>
-    </div>
-  </div>
-</main>
-<footer><div class="foot">
-  <span>NAZA · an agency of the in-game public</span>
-  <span>Find us on Twotter @naza · Kisscord “NAZA Community” · WeeChat #naza</span>
-</div></footer>
-</body>
-</html>`,
-        }),
-    },
-    {
         id: "substack-home",
         label: "Newsletter landing page",
         blurb: "Substack-style publication: serif column, subscribe box, latest posts.",
@@ -731,6 +616,12 @@ ol.steps li::before{content:counter(s);position:absolute;left:0;top:2px;width:30
 </html>`,
         }),
     },
+    {
+        id: "agency",
+        label: "Public agency site (NAZA)",
+        blurb: "The community-built naza.gov mirror: gov bar, orbit hero, missions, newsroom, staff directory, and a portal that always denies.",
+        make: () => ({ title: "NAZA homepage", path: "/", seo: true, content: nazaHtml }),
+    },
 ];
 
 /* ── whole-site starters ─────────────────────────────────────────────────── */
@@ -764,20 +655,9 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
     },
     {
         id: "agency",
-        label: "Public agency site",
-        blurb: "A believable space-agency homepage with missions, newsroom, staff directory and a dead employee portal — plus a hidden memo.",
-        make: () => {
-            const status = pageFrom("status");
-            return {
-                host: "naza.gov",
-                name: "NAZA",
-                pages: [
-                    pageFrom("agency"),
-                    { ...status, content: status.content.replaceAll("Meridian Capital", "NAZA") },
-                    pageFrom("hidden-leak"),
-                ],
-            };
-        },
+        label: "Public agency site (NAZA)",
+        blurb: "The community-built naza.gov mirror, verbatim — gov bar, orbit hero, missions, newsroom, staff directory, dead employee portal.",
+        make: () => ({ host: "naza.gov", name: "NAZA", pages: [pageFrom("agency")] }),
     },
     {
         id: "leak",
@@ -824,6 +704,7 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
 /* ── starter for blank sites ─────────────────────────────────────────────── */
 
 import { BASE_CSS } from "@/editor/websites/pageDoc";
+import nazaHtml from "@/editor/websites/naza-homepage.html?raw";
 
 /** The first page of a blank website: styled, with obvious placeholder copy. */
 export const STARTER_PAGE = `<!doctype html>

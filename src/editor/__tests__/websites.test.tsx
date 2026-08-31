@@ -72,16 +72,22 @@ describe("template quality", () => {
     it("every page template is a complete, self-contained styled document", () => {
         for (const t of PAGE_TEMPLATES) {
             const made = t.make();
-            expect(made.content, t.id).toContain("<!doctype html>");
+            expect(made.content.toLowerCase(), t.id).toContain("<!doctype html>");
             expect(made.content, t.id).toContain("<style>");
             expect(made.content, t.id).toContain("</html>");
-            // No external requests: the game's web views have no internet.
-            expect(made.content, t.id).not.toMatch(/https?:\/\//);
+            // No external *resources*: the game's web views have no internet.
+            // (Prose mentions of "https://" and SVG xmlns are not fetches.)
+            expect(made.content, t.id).not.toMatch(/(src|href)="https?:\/\//);
+            expect(made.content, t.id).not.toMatch(/@import|url\(https?:\/\//);
         }
         for (const s of SITE_TEMPLATES) {
             const made = s.make();
             expect(made.pages.length, s.id).toBeGreaterThan(0);
         }
+        // The Public agency template is the community naza page, verbatim.
+        const agency = PAGE_TEMPLATES.find((t) => t.id === "agency")!.make();
+        expect(agency.content).toContain("Zero-Gravity Administration");
+        expect(agency.content).toContain("<script>");
     });
 });
 

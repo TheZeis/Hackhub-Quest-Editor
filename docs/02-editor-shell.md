@@ -460,3 +460,11 @@ Site templates are no longer an empty-state-only affair: the sites column "+"
 opens a picker offering blank plus every site template at any time, and each
 page has a **Duplicate** button so one designed page can seed several
 (`path` + `-copy`, selected immediately).
+
+**The community naza page is now the Public agency template, verbatim.** The
+author committed `src/editor/websites/naza-homepage.html` to the branch; the
+`agency` page template and site template import it with `?raw`, so that file is
+the single source of truth (the earlier hand-built placeholder is gone). The
+"no external resources" test now bans resource URLs (`src=`/`href=`/`@import`/
+`url(...)`) rather than the string "http", since prose and the SVG xmlns are
+not fetches.
