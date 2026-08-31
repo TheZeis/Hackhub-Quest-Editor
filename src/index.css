@@ -1,0 +1,304 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+/* ─────────────────────────────────────────────────────────────────────
+   Quest Mod Editor — design tokens
+
+   A dark, terminal-adjacent palette that stays professional: near-black
+   surfaces with a cool blue undertone, one cyan accent for interaction,
+   and a fixed hue per node category so the canvas reads at a glance.
+   ───────────────────────────────────────────────────────────────────── */
+
+@theme {
+    /* Surfaces */
+    --color-void: #08090d;
+    --color-canvas: #0c0e13;
+    --color-surface: #12141b;
+    --color-surface-2: #171a22;
+    --color-surface-3: #1e222c;
+    --color-line: #262b37;
+    --color-line-strong: #343a49;
+
+    /* Text */
+    --color-ink: #e8eaf1;
+    --color-ink-2: #b3b9c9;
+    --color-ink-3: #7d8496;
+    --color-ink-4: #565d6e;
+
+    /* Accent */
+    --color-accent: #22d3ee;
+    --color-accent-dim: #0e7490;
+    --color-accent-soft: rgba(34, 211, 238, 0.12);
+
+    /* Semantic */
+    --color-ok: #34d399;
+    --color-warn: #fbbf24;
+    --color-danger: #f87171;
+
+    /* Node categories — one hue each, used for node chrome + edges */
+    --color-cat-entry: #a78bfa;
+    --color-cat-objective: #fbbf24;
+    --color-cat-trigger: #22d3ee;
+    --color-cat-world: #34d399;
+    --color-cat-comms: #f472b6;
+    --color-cat-reply: #fb923c;
+    --color-cat-effect: #60a5fa;
+    --color-cat-flow: #94a3b8;
+
+    /* Type */
+    --font-sans:
+        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, sans-serif;
+    --font-mono:
+        ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+        monospace;
+
+    /* Radii */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* Shadows */
+    --shadow-node: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    --shadow-panel: 0 12px 40px -12px rgb(0 0 0 / 0.8);
+}
+
+@layer base {
+    * {
+        border-color: var(--color-line);
+    }
+
+    html,
+    body,
+    #root {
+        height: 100%;
+    }
+
+    body {
+        margin: 0;
+        background: var(--color-canvas);
+        color: var(--color-ink);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        overscroll-behavior: none;
+    }
+
+    /* Firefox */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-line-strong) transparent;
+    }
+
+    /* WebKit */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-line-strong);
+        border: 3px solid transparent;
+        background-clip: content-box;
+        border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-ink-4);
+        background-clip: content-box;
+    }
+
+    ::selection {
+        background: var(--color-accent-soft);
+        color: var(--color-ink);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+        border-radius: var(--radius-xs);
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+        font: inherit;
+        color: inherit;
+    }
+}
+
+/* Shared control bases. Declared as real Tailwind v4 utilities (not plain
+   `@layer components` classes) so that the component classes below can
+   `@apply` them — Tailwind v4 only resolves `@apply` against utilities. */
+@utility field-input {
+    @apply w-full rounded-md border border-line bg-surface-2 px-2.5 py-1.5
+           text-ink placeholder:text-ink-4
+           transition-colors
+           hover:border-line-strong
+           focus:border-accent focus:outline-none;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md
+           px-2.5 py-1.5 text-[12.5px] font-medium
+           transition-colors select-none
+           disabled:pointer-events-none disabled:opacity-40;
+}
+
+@utility btn-ghost {
+    @apply btn text-ink-3 hover:bg-surface-2 hover:text-ink;
+}
+
+@layer components {
+    /* ── Form controls ─────────────────────────────────────────────── */
+    .field-input-mono {
+        @apply field-input font-mono text-[12px];
+    }
+
+    .field-textarea {
+        @apply field-input resize-y leading-relaxed;
+        min-height: 64px;
+    }
+
+    .field-label {
+        @apply mb-1.5 block text-[11px] font-medium tracking-wide text-ink-3 uppercase;
+    }
+
+    .field-hint {
+        @apply mt-1.5 text-[11px] leading-snug text-ink-4;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────────────── */
+    .btn-primary {
+        @apply btn bg-accent text-void hover:bg-accent/85;
+    }
+
+    .btn-default {
+        @apply btn border border-line bg-surface-2 text-ink-2
+               hover:border-line-strong hover:bg-surface-3 hover:text-ink;
+    }
+
+    .btn-danger {
+        @apply btn border border-danger/30 bg-danger/10 text-danger
+               hover:bg-danger/20;
+    }
+
+    .btn-icon {
+        @apply btn-ghost size-7 rounded-md p-0;
+    }
+
+    /* ── Surfaces ──────────────────────────────────────────────────── */
+    .panel {
+        @apply border border-line bg-surface;
+    }
+
+    .panel-header {
+        @apply flex h-9 shrink-0 items-center gap-2 border-b border-line
+               px-3 text-[11px] font-semibold tracking-wider text-ink-3 uppercase;
+    }
+
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5
+               text-[11px] font-medium;
+    }
+
+    .kbd {
+        @apply inline-flex h-[18px] min-w-[18px] items-center justify-center
+               rounded border border-line-strong bg-surface-2 px-1
+               font-mono text-[10px] text-ink-3;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   React Flow overrides — the library ships a light theme; retune it to
+   match the editor rather than fighting it with wrapper divs.
+   ───────────────────────────────────────────────────────────────────── */
+
+.react-flow {
+    --xy-background-color: var(--color-canvas);
+    --xy-edge-stroke: var(--color-line-strong);
+    --xy-edge-stroke-selected: var(--color-accent);
+    --xy-minimap-background-color: var(--color-surface);
+    --xy-minimap-mask-background-color: rgb(8 9 13 / 0.7);
+    --xy-controls-button-background-color: var(--color-surface-2);
+    --xy-controls-button-background-color-hover: var(--color-surface-3);
+    --xy-controls-button-color: var(--color-ink-2);
+    --xy-controls-button-color-hover: var(--color-ink);
+    --xy-controls-button-border-color: var(--color-line);
+    --xy-attribution-background-color: transparent;
+    --xy-selection-background-color: var(--color-accent-soft);
+    --xy-selection-border: 1px dashed var(--color-accent);
+}
+
+.react-flow__attribution {
+    display: none;
+}
+
+.react-flow__node {
+    font-family: var(--font-sans);
+    font-size: 13px;
+}
+
+.react-flow__handle {
+    width: 9px;
+    height: 9px;
+    background: var(--color-surface-3);
+    border: 1.5px solid var(--color-line-strong);
+    border-radius: 999px;
+    transition:
+        transform 0.12s ease,
+        border-color 0.12s ease,
+        background 0.12s ease;
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connecting {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: scale(1.35);
+}
+
+.react-flow__handle.connectionindicator {
+    cursor: crosshair;
+}
+
+.react-flow__handle.valid {
+    background: var(--color-ok);
+    border-color: var(--color-ok);
+}
+
+.react-flow__edge-path {
+    stroke-width: 1.75;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke-width: 2.5;
+}
+
+.react-flow__connection-path {
+    stroke: var(--color-accent);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+}
+
+.react-flow__minimap {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.react-flow__controls {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-node);
+}
+
+.react-flow__controls-button {
+    border-bottom: 1px solid var(--color-line);
+}

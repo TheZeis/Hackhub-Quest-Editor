@@ -1,0 +1,179 @@
+/**
+ * The game-event picker.
+ *
+ * Shows all 92 events with their *real* payload fields (from the generated
+ * catalogue, not the stale docs table), so the author can see what they are able
+ * to test against before writing a condition.
+ */
+import { useMemo, useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
+import { cn } from "@/lib/cn";
+import { Icon } from "@/components/Icon";
+import {
+    EVENT_COUNT,
+    SDK_VERSION,
+    eventLabel,
+    getEvent,
+    groupedEvents,
+    isKnownEvent,
+    payloadFields,
+} from "@/schema/events";
+
+export function EventPicker({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+
+    const groups = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        const all = groupedEvents();
+        if (!q) return all;
+        return all
+            .map((g) => ({
+                ...g,
+                events: g.events.filter(
+                    (e) =>
+                        e.name.toLowerCase().includes(q) ||
+                        eventLabel(e.name).toLowerCase().includes(q) ||
+                        e.payload.toLowerCase().includes(q),
+                ),
+            }))
+            .filter((g) => g.events.length > 0);
+    }, [query]);
+
+    const selected = value ? getEvent(value) : undefined;
+    const isCustom = value !== "" && !isKnownEvent(value);
+
+    return (
+        <Popover.Root open={open} onOpenChange={setOpen}>
+            <Popover.Trigger asChild>
+                <button type="button" className="field-input flex items-center justify-between gap-2 text-left">
+                    <span className="min-w-0 flex-1">
+                        {value === "" ? (
+                            <span className="text-ink-4">Choose an event…</span>
+                        ) : (
+                            <>
+                                <span className="block truncate font-mono text-[12px] text-ink">
+                                    {value}
+                                </span>
+                                <span className="block truncate text-[10.5px] text-ink-4">
+                                    {selected ? eventLabel(value) : "custom event"}
+                                </span>
+                            </>
+                        )}
+                    </span>
+                    <Icon name="chevronDown" size={13} className="shrink-0 text-ink-4" />
+                </button>
+            </Popover.Trigger>
+
+            <Popover.Portal>
+                <Popover.Content
+                    align="start"
+                    sideOffset={6}
+                    className="z-50 w-[340px] overflow-hidden rounded-lg border border-line bg-surface shadow-panel"
+                >
+                    <div className="flex items-center justify-between border-b border-line px-3 py-1.5">
+                        <span className="text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
+                            {EVENT_COUNT} game events · SDK {SDK_VERSION}
+                        </span>
+                    </div>
+
+                    <div className="border-b border-line p-2">
+                        <div className="relative">
+                            <Icon
+                                name="search"
+                                size={13}
+                                className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-ink-4"
+                            />
+                            <input
+                                autoFocus
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Search events and payload fields"
+                                aria-label="Search events"
+                                className="field-input pl-7 text-[12px]"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="max-h-[320px] overflow-y-auto py-1">
+                        {groups.length === 0 && (
+                            <p className="px-3 py-6 text-center text-[11.5px] text-ink-4">
+                                No event matches “{query}”.
+                            </p>
+                        )}
+                        {groups.map((group) => (
+                            <section key={group.group} className="mb-1">
+                                <h5 className="px-3 py-1 text-[10px] font-semibold tracking-wider text-ink-4 uppercase">
+                                    {group.label}
+                                </h5>
+                                {group.events.map((event) => (
+                                    <button
+                                        key={event.name}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(event.name);
+                                            setOpen(false);
+                                        }}
+                                        className={cn(
+                                            "flex w-full flex-col gap-0.5 px-3 py-1.5 text-left transition-colors",
+                                            "hover:bg-surface-2",
+                                            value === event.name && "bg-accent-soft",
+                                        )}
+                                    >
+                                        <span className="flex items-baseline gap-2">
+                                            <span className="font-mono text-[11.5px] text-ink">
+                                                {event.name}
+                                            </span>
+                                            <span className="truncate text-[10.5px] text-ink-4">
+                                                {eventLabel(event.name)}
+                                            </span>
+                                        </span>
+                                        <span className="truncate font-mono text-[10px] text-ink-4">
+                                            {event.payload}
+                                        </span>
+                                    </button>
+                                ))}
+                            </section>
+                        ))}
+                    </div>
+
+                    <div className="border-t border-line p-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onChange(query.trim() || "MyMod.CustomEvent");
+                                setOpen(false);
+                            }}
+                            className="btn-default w-full text-[11.5px]"
+                        >
+                            <Icon name="plus" size={12} />
+                            Use custom event “{query.trim() || "MyMod.CustomEvent"}”
+                        </button>
+                    </div>
+                </Popover.Content>
+            </Popover.Portal>
+
+            {isCustom && (
+                <p className="field-hint">
+                    Custom event — emit it from a website, app or terminal command with
+                    <code className="mx-1 rounded bg-surface-2 px-1 font-mono text-[10px]">
+                        HackhubSDK.Events.emit("{value}")
+                    </code>
+                </p>
+            )}
+            {selected && (
+                <p className="field-hint">
+                    Payload:{" "}
+                    <code className="font-mono text-[10px] text-ink-3">{selected.payload}</code>
+                    {payloadFields(selected.payload).length === 0 && " (no fields)"}
+                </p>
+            )}
+        </Popover.Root>
+    );
+}

@@ -1,0 +1,216 @@
+/**
+ * Transient overlays: the toast, the template gallery and the shortcut sheet.
+ */
+import { useEffect } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { cn } from "@/lib/cn";
+import { Icon } from "@/components/Icon";
+import { useEditor } from "@/store/editor";
+import { TEMPLATES, type Template } from "@/templates";
+import { EVENT_COUNT, SDK_VERSION } from "@/schema/events";
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+
+const TONE_STYLE = {
+    info: "border-line bg-surface text-ink-2",
+    ok: "border-ok/40 bg-ok/10 text-ok",
+    warn: "border-warn/40 bg-warn/10 text-warn",
+    danger: "border-danger/40 bg-danger/10 text-danger",
+} as const;
+
+export function Toast() {
+    const toast = useEditor((s) => s.ui.toast);
+    const setUi = useEditor((s) => s.setUi);
+
+    useEffect(() => {
+        if (!toast) return;
+        const timer = setTimeout(() => setUi({ toast: null }), 4200);
+        return () => clearTimeout(timer);
+    }, [toast, setUi]);
+
+    if (!toast) return null;
+
+    return (
+        <div
+            role="status"
+            aria-live="polite"
+            className={cn(
+                "pointer-events-auto fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2",
+                "rounded-lg border px-3 py-2 text-[12.5px] shadow-panel",
+                TONE_STYLE[toast.tone],
+            )}
+        >
+            <Icon
+                name={toast.tone === "info" ? "info" : toast.tone === "ok" ? "check" : "alert"}
+                size={14}
+                className="shrink-0"
+            />
+            <span>{toast.message}</span>
+            <button
+                type="button"
+                className="btn-icon size-5"
+                onClick={() => setUi({ toast: null })}
+                aria-label="Dismiss"
+            >
+                <Icon name="x" size={11} />
+            </button>
+        </div>
+    );
+}
+
+/* ── Shared modal chrome ─────────────────────────────────────────────────── */
+
+function Modal({
+    open,
+    onOpenChange,
+    title,
+    subtitle,
+    children,
+    width = "w-[560px]",
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;
+    subtitle?: string;
+    children: React.ReactNode;
+    width?: string;
+}) {
+    return (
+        <Dialog.Root open={open} onOpenChange={onOpenChange}>
+            <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 z-40 bg-void/70 backdrop-blur-[2px]" />
+                <Dialog.Content
+                    className={cn(
+                        "fixed top-1/2 left-1/2 z-50 max-h-[80vh] -translate-x-1/2 -translate-y-1/2",
+                        "overflow-hidden rounded-xl border border-line bg-surface shadow-panel",
+                        width,
+                    )}
+                >
+                    <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
+                        <div>
+                            <Dialog.Title className="text-[14px] font-semibold text-ink">
+                                {title}
+                            </Dialog.Title>
+                            {subtitle && (
+                                <Dialog.Description className="mt-0.5 text-[11.5px] text-ink-4">
+                                    {subtitle}
+                                </Dialog.Description>
+                            )}
+                        </div>
+                        <Dialog.Close asChild>
+                            <button type="button" className="btn-icon" aria-label="Close">
+                                <Icon name="x" size={14} />
+                            </button>
+                        </Dialog.Close>
+                    </div>
+                    <div className="max-h-[calc(80vh-58px)] overflow-y-auto">{children}</div>
+                </Dialog.Content>
+            </Dialog.Portal>
+        </Dialog.Root>
+    );
+}
+
+/* ── Templates ───────────────────────────────────────────────────────────── */
+
+const DIFFICULTY_STYLE: Record<Template["difficulty"], string> = {
+    Beginner: "border-ok/30 bg-ok/10 text-ok",
+    Intermediate: "border-warn/30 bg-warn/10 text-warn",
+    Advanced: "border-danger/30 bg-danger/10 text-danger",
+};
+
+function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+    const load = useEditor((s) => s.load);
+    const toast = useEditor((s) => s.toast);
+
+    const apply = (template: Template) => {
+        load(template.build(), { clearHistory: true });
+        onOpenChange(false);
+        toast(`Loaded “${template.name}”.`, "ok");
+    };
+
+    return (
+        <Modal
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Start from a template"
+            subtitle="Replaces the current project. Your draft is autosaved, but not versioned — export before experimenting."
+        >
+            <div className="grid gap-2 p-3 sm:grid-cols-2">
+                {TEMPLATES.map((template) => (
+                    <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => apply(template)}
+                        className="flex flex-col gap-2 rounded-lg border border-line bg-surface-2/40 p-3 text-left transition-colors hover:border-accent/40 hover:bg-surface-2"
+                    >
+                        <div className="flex items-start justify-between gap-2">
+                            <h3 className="text-[13px] font-semibold text-ink">{template.name}</h3>
+                            <span className={cn("chip shrink-0", DIFFICULTY_STYLE[template.difficulty])}>
+                                {template.difficulty}
+                            </span>
+                        </div>
+                        <p className="text-[11.5px] leading-relaxed text-ink-3">
+                            {template.description}
+                        </p>
+                        <span className="mt-auto font-mono text-[10px] text-ink-4">
+                            {template.nodeCount} nodes
+                        </span>
+                    </button>
+                ))}
+            </div>
+            <p className="border-t border-line px-4 py-2.5 font-mono text-[10px] text-ink-4">
+                {TEMPLATES.length} templates · {EVENT_COUNT} game events · SDK {SDK_VERSION}
+            </p>
+        </Modal>
+    );
+}
+
+/* ── Shortcuts ───────────────────────────────────────────────────────────── */
+
+const SHORTCUTS: { keys: string[]; action: string }[] = [
+    { keys: ["Ctrl", "Z"], action: "Undo" },
+    { keys: ["Ctrl", "Shift", "Z"], action: "Redo" },
+    { keys: ["Ctrl", "S"], action: "Save the draft now" },
+    { keys: ["Delete"], action: "Delete the selected nodes or wires" },
+    { keys: ["Shift", "click"], action: "Add to the selection" },
+    { keys: ["drag from palette"], action: "Place a node" },
+    { keys: ["click a node"], action: "Add it at the viewport centre" },
+    { keys: ["Esc"], action: "Clear the selection" },
+];
+
+function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+    return (
+        <Modal
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Keyboard shortcuts"
+            width="w-[420px]"
+        >
+            <ul className="divide-y divide-line">
+                {SHORTCUTS.map((shortcut) => (
+                    <li key={shortcut.action} className="flex items-center justify-between gap-4 px-4 py-2">
+                        <span className="text-[12px] text-ink-2">{shortcut.action}</span>
+                        <span className="flex shrink-0 items-center gap-1">
+                            {shortcut.keys.map((key) => (
+                                <kbd key={key} className="kbd">
+                                    {key}
+                                </kbd>
+                            ))}
+                        </span>
+                    </li>
+                ))}
+            </ul>
+        </Modal>
+    );
+}
+
+export function Overlays() {
+    const modal = useEditor((s) => s.ui.modal);
+    const setUi = useEditor((s) => s.setUi);
+    return (
+        <>
+            <TemplatesDialog open={modal === "templates"} onOpenChange={(o) => setUi({ modal: o ? "templates" : null })} />
+            <ShortcutsDialog open={modal === "shortcuts"} onOpenChange={(o) => setUi({ modal: o ? "shortcuts" : null })} />
+        </>
+    );
+}

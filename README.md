@@ -11,14 +11,30 @@ export a complete, game-ready mod project as a `.zip`.
 
 ## Status
 
-**Step 1 of 4 — analysis & architecture. Complete.**
+**Step 2 of 4 complete — the editor runs.**
 
 | Step | Deliverable | Status |
 |---|---|---|
 | **1** | Schema analysis, tech stack, architecture | ✅ [docs/01-analysis-and-architecture.md](docs/01-analysis-and-architecture.md) |
-| **2** | Scaffolding + node editor canvas | ⬜ |
+| **2** | Scaffolding + node editor canvas | ✅ [docs/02-editor-shell.md](docs/02-editor-shell.md) |
 | **3** | Website Builder + conversation editors | ⬜ |
 | **4** | Export engine + templates | ⬜ |
+
+---
+
+## Run it
+
+```bash
+npm install
+npm run dev          # http://localhost:5173
+
+npm run typecheck    # tsc --noEmit
+npm test             # 200 tests (vitest)
+npm run build        # typecheck + vite build → dist/
+```
+
+Drag a node from the left onto the canvas, wire its sockets, and edit it on the right.
+Start from a template with the **Templates** button in the top bar.
 
 ---
 
@@ -48,11 +64,31 @@ foundation for everything that follows. The three findings that shape the whole 
 
 ```
 docs/
-  01-analysis-and-architecture.md   # Step 1 deliverable — schema, stack, architecture
+  01-analysis-and-architecture.md   # Step 1 — schema, stack, architecture
+  02-editor-shell.md                # Step 2 — contracts the rest of the build extends
 reference/
   generate-event-catalogue.mjs      # parses the SDK's index.d.ts → event palette data
   hackhub-events.json               # all 92 events with verified payloads (generated)
+src/
+  schema/                           # the ProjectDocument model (Zod) — the product's spine
+    registry.ts                     #   one description per node type: palette, handles,
+                                    #   inspector fields and lifecycle hook all read this
+    events.ts                       #   the 92-event catalogue, with real payloads
+  store/                            # Zustand + Immer: undo/redo, autosave
+  editor/
+    canvas/                         # React Flow surface, typed nodes and edges
+    palette/                        # searchable node library
+    inspector/                      # registry-driven field renderer, event + condition
+                                    #   pickers, list and network-device editors
+    shell/                          # top bar, quest tabs, status bar, overlays
+  templates/                        # starter quests (deterministic builds)
 ```
+
+**One table drives four subsystems.** Every node type is described once in
+`NODE_TYPES_REGISTRY`; the palette, the canvas handles, the inspector form and the
+compiler all read that description. Adding a node type is a single registry entry —
+no component changes. See
+[docs/02 §2](docs/02-editor-shell.md#2-the-schema-is-the-product).
 
 ### Regenerating the event catalogue
 
