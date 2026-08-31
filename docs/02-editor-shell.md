@@ -528,3 +528,34 @@ wrong-answer line, and a wrong route (try again / end / the node's new Wrong
 output). The phone preview gained a replay button. Saved projects with the old
 node types migrate automatically (`schema/migrate.ts`). The reference template
 and counts now know 29 node types.
+
+---
+
+## Addendum — Round 14: Step 4 export compiler
+
+**Export dialog (top bar → "Export mod").** Compiles the whole project into a
+build-free HackHub mod folder and downloads it as a zip:
+
+- `manifest.json` — id/name/version/author/description, `apiVersion: 1`, and a
+  **permissions list computed from the graph** (network/mail/shell/events/ui/
+  bank — only what the nodes actually need).
+- `dist/mod.js` — the mod the game loads directly. It embeds the project as
+  JSON plus a small interpreter (plain ES2020, no build step for the player):
+  quests register with Objectives (unlock edges → `unlocksAfter`, trigger
+  events → declarative `trigger.condition`), mails/dialogs/chats/tweets,
+  websites with `seo:false` pages staying out of the search index (the
+  dirhunter hiding place), and typed-answer moments becoming terminal
+  commands (`qe-…`) that emit `QE.<id>.ok` / `.wrong` events for your graph.
+- `src/index.ts`, `package.json`, `esbuild.config.mjs`, `tsconfig.json`,
+  `README.md` — for power users who want to rebuild/extend the mod.
+
+**Export-time advice (never blocking):** standalone world.port/files/firewall/
+domain/database and handbook nodes, phone input commands, Kisscord uploads,
+and unlisted pages each surface a plain-language note in the dialog.
+
+**Verification:** `src/compiler/__tests__/compile.test.ts` evals the emitted
+`mod.js` against a stub SDK — quests/websites/commands register, `OnStart`
+creates the subnet and sends the mail, trigger conditions evaluate against
+event payloads, and input commands branch on the typed answer. The full
+reference template (every node type) compiles and runs through the
+interpreter. 289 tests green.

@@ -162,9 +162,7 @@ export function TopBar() {
             <button
                 type="button"
                 className="btn-primary"
-                onClick={() =>
-                    toast("Export lands in Step 4 — the compiler is not wired up yet.", "warn")
-                }
+                onClick={() => setUi({ modal: "mod" })}
                 title="Compile this project into a HackHub mod package"
             >
                 <Icon name="download" size={13} />
