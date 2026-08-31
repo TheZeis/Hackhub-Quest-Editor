@@ -196,12 +196,15 @@ function buildWifiHack(): ProjectDocument {
     const load = makeNode("entry.load", { x: 0, y: 300 });
     const complete = makeNode("entry.complete", { x: 0, y: 600 });
 
-    const briefing = makeNode("comms.mail", { x: 300, y: 0 }, {
-        from: "handler@anon.mail",
-        subject: "Small job — the apartment next door",
-        content:
-            "<p>There is an access point called <b>NEIGHBOUR_5Ghz</b> two walls away. Get on it, then get onto the machine behind it. Payment on delivery.</p>",
-        replyable: false,
+    const briefing = makeNode("comms.dialogue", { x: 300, y: 0 }, {
+        kind: "mail",
+        mail: {
+            from: "handler@anon.mail",
+            subject: "Small job — the apartment next door",
+            content:
+                "<p>There is an access point called <b>NEIGHBOUR_5Ghz</b> two walls away. Get on it, then get onto the machine behind it. Payment on delivery.</p>",
+            replyable: false,
+        },
     });
 
     const wifi = makeNode("world.wifi", { x: 600, y: 0 }, {
@@ -384,49 +387,68 @@ function buildInvestigation(): ProjectDocument {
     });
 
     /* ── briefing, re-sent on every load ────────────────────────────────── */
-    const mail = makeNode("comms.mail", { x: 320, y: 450 }, {
-        from: "r.okafor@protonmail.com",
-        subject: "You were recommended to me",
-        content:
-            "<p>I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.</p><p>The intranet is at <b>intranet.meridian-capital.net</b>. Find your own way in — I cannot be seen helping.</p>",
-        replyable: true,
-        attachment: { name: "shift-roster", extension: "txt", content: "Night shift: 02:00-06:00. Badge logs disabled during maintenance windows." },
+    const mail = makeNode("comms.dialogue", { x: 320, y: 450 }, {
+        kind: "mail",
+        mail: {
+            from: "r.okafor@protonmail.com",
+            subject: "You were recommended to me",
+            content:
+                "<p>I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.</p><p>The intranet is at <b>intranet.meridian-capital.net</b>. Find your own way in — I cannot be seen helping.</p>",
+            replyable: true,
+            attachment: { name: "shift-roster", extension: "txt", content: "Night shift: 02:00-06:00. Badge logs disabled during maintenance windows." },
+        },
     });
-    const kisscord = makeNode("comms.kisscord", { x: 640, y: 450 }, {
-        contactId: "r.okafor",
-        messages: [
-            {
-                id: "m1",
-                content: "Did you get my mail? Keep it off the company channel.",
-                isMine: false,
-                delayMs: 0,
-            },
-            {
-                id: "m2",
-                content: "I'm not asking you to steal anything. Just the ledger export.",
-                isMine: false,
-                delayMs: 2200,
-            },
-            {
-                id: "m3",
-                content: "There's a maintenance page on the intranet. It isn't linked from anywhere. That's your way in.",
-                isMine: false,
-                delayMs: 2600,
-                locked: true,
-                unlocksAfter: ["recon"],
-            },
-        ],
+    const kisscord = makeNode("comms.dialogue", { x: 640, y: 450 }, {
+        kind: "kisscord",
+        kisscord: {
+            contactId: "r.okafor",
+            messages: [
+                {
+                    id: "m1",
+                    content: "Did you get my mail? Keep it off the company channel.",
+                    isMine: false,
+                    delayMs: 0,
+                    playerAction: "none",
+                    playerText: "",
+                    unlocksAfter: [],
+                },
+                {
+                    id: "m2",
+                    content: "I'm not asking you to steal anything. Just the ledger export.",
+                    isMine: false,
+                    delayMs: 2200,
+                    playerAction: "none",
+                    playerText: "",
+                    unlocksAfter: [],
+                },
+                {
+                    id: "m3",
+                    content: "There's a maintenance page on the intranet. It isn't linked from anywhere. That's your way in.",
+                    isMine: false,
+                    delayMs: 2600,
+                    playerAction: "none",
+                    playerText: "",
+                    unlocksAfter: ["recon"],
+                },
+            ],
+        },
     });
-    const weechat = makeNode("comms.weechat", { x: 640, y: 700 }, {
-        host: "irc.meridian-capital.net",
-        password: "guest",
-        registerServer: true,
-        messages: [
-            { id: "w1", content: "nightly batch starts at 02:00, logs purge at 06:00", username: "sysop", isMine: false, delayMs: 0 },
-            { id: "w2", content: "reminder: maintenance window = badge logs off", username: "sysop", isMine: false, delayMs: 1800 },
-        ],
+    const weechat = makeNode("comms.dialogue", { x: 640, y: 700 }, {
+        kind: "weechat",
+        weechat: {
+            host: "irc.meridian-capital.net",
+            password: "guest",
+            registerServer: true,
+            messages: [
+                { id: "w1", content: "nightly batch starts at 02:00, logs purge at 06:00", username: "sysop", isMine: false, delayMs: 0, playerAction: "none", playerText: "" },
+                { id: "w2", content: "reminder: maintenance window = badge logs off", username: "sysop", isMine: false, delayMs: 1800, playerAction: "none", playerText: "" },
+            ],
+        },
     });
-    const call = makeNode("comms.call", { x: 320, y: 700 }, { branch: "default", startIndex: 0 });
+    const call = makeNode("comms.dialogue", { x: 320, y: 700 }, {
+        kind: "phone",
+        phone: { branch: "default", startIndex: 0 },
+    });
 
     /* ── objectives ─────────────────────────────────────────────────────── */
     const recon = makeNode("objective", { x: 980, y: 150 }, {
@@ -733,34 +755,15 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             "Starting Nmap 7.94 ( https://nmap.org )\nNmap scan report for 10.0.0.14\nHost is up (0.0021s latency).\nPORT   STATE SERVICE VERSION\n22/tcp open  ssh     OpenSSH 8.9\n80/tcp open  http    Apache 2.4.41\n\nNmap done: 1 IP address (1 host up) scanned in 1.84 seconds",
         removeOnComplete: true,
     },
-    "comms.mail": {
-        from: "shift.foreman@docknet.internal",
-        to: "player@mail.local",
-        subject: "Re: container MSKU-4471",
-        content:
-            "<p>That container was never logged. Do not ask about it on the company channel.</p>",
-        replyable: true,
-        attachment: {
-            name: "shift-roster",
-            extension: "txt",
-            content: "Night shift 02:00-06:00. Badge logs disabled during maintenance.",
+    "comms.dialogue": {
+        kind: "kisscord",
+        kisscord: {
+            contactId: "shift.foreman",
+            messages: [
+                { id: "m1", content: "You're asking about 4471. Stop.", isMine: false, delayMs: 0, playerAction: "none", playerText: "", unlocksAfter: [] },
+                { id: "m2", content: "Fine. The manifest is in /var/log/. You didn't get it from me.", isMine: false, delayMs: 2400, playerAction: "none", playerText: "", unlocksAfter: [] },
+            ],
         },
-    },
-    "comms.call": { branch: "default", startIndex: 0 },
-    "comms.kisscord": {
-        contactId: "shift.foreman",
-        messages: [
-            { id: "m1", content: "You're asking about 4471. Stop.", isMine: false, delayMs: 0 },
-            { id: "m2", content: "Fine. The manifest is in /var/log/. You didn't get it from me.", isMine: false, delayMs: 2400 },
-        ],
-    },
-    "comms.weechat": {
-        host: "irc.docknet.internal",
-        password: "guest",
-        registerServer: true,
-        messages: [
-            { id: "w1", content: "nightly batch at 02:00, logs purge at 06:00", username: "sysop", isMine: false, delayMs: 0 },
-        ],
     },
     "comms.tweet": {
         accountId: "dockwatch",
@@ -950,7 +953,7 @@ export const TEMPLATES: Template[] = [
         description:
             "Every node type on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 40,
+        nodeCount: 37,
         build: buildReference,
     },
 ];

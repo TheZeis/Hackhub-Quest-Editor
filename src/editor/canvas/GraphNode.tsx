@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
+import { selectActiveQuest, useEditor } from "@/store/editor";
 import { HANDLE_STYLE, type EdgeKind } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
 import { summarize } from "./summarize";
@@ -33,7 +34,8 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const issue = data.issue;
     const def = nodeTypeDef(doc.type);
     const category = categoryOf(doc.type);
-    const lines = useMemo(() => summarize(doc).filter(Boolean), [doc]);
+    const quest = useEditor(selectActiveQuest);
+    const lines = useMemo(() => summarize(doc, quest ?? undefined).filter(Boolean), [doc, quest]);
     const [hovered, setHovered] = useState(false);
     const connecting = useConnection((c) => c.inProgress);
 

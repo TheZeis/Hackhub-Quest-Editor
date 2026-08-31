@@ -14,9 +14,9 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import type { EdgeKind, HandleSpec } from "./edges";
 import {
+    DialogueNodeDataSchema,
     BranchNodeDataSchema,
-    CallNodeDataSchema,
-    ClaimQuestNodeDataSchema,
+ClaimQuestNodeDataSchema,
     DatabaseNodeDataSchema,
     DelayNodeDataSchema,
     DomainNodeDataSchema,
@@ -25,8 +25,6 @@ import {
     FirewallNodeDataSchema,
     HandbookNodeDataSchema,
     HackertyperNodeDataSchema,
-    KisscordNodeDataSchema,
-    MailNodeDataSchema,
     ManualInputNodeDataSchema,
     NetworkNodeDataSchema,
     NotifyNodeDataSchema,
@@ -39,8 +37,7 @@ import {
     ToolResponseNodeDataSchema,
     TriggerEventDataSchema,
     TweetNodeDataSchema,
-    WeeChatNodeDataSchema,
-    WifiNodeDataSchema,
+WifiNodeDataSchema,
     NoteNodeDataSchema,
     type NodeDoc,
     type NodeType,
@@ -595,71 +592,17 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(ToolResponseNodeDataSchema),
     },
 
-    "comms.mail": {
-        type: "comms.mail",
+    "comms.dialogue": {
+        type: "comms.dialogue",
         category: "comms",
-        label: "Send e-mail",
-        blurb: "A message in the player's inbox",
-        icon: "mail",
-        ...io,
-        hook: "onStart",
-        fields: [
-            { kind: "text", key: "from", hint: "The sender address. Make it a domain the player might look up — it is a lead.", label: "From", mono: true },
-            { kind: "text", key: "to", label: "To", mono: true, hint: "Who the mail is addressed to. Leave it blank to send it to the player." },
-            { kind: "text", key: "subject", hint: "The subject line in the player's inbox.", label: "Subject" },
-            { kind: "textarea", key: "content", label: "Body", rows: 8, tokens: true, hint: "The body of the mail. HTML tags are rendered as written, so <b> and <p> work." },
-            { kind: "toggle", key: "replyable", hint: "Let the player answer. Their reply arrives as an event you can trigger on.", label: "The player can reply" },
-            { kind: "section", label: "Attachment", fields: [
-                { kind: "text", key: "attachment.name", hint: "The attachment's filename, without the extension.", label: "File name", mono: true },
-                { kind: "text", key: "attachment.extension", hint: "The file extension, e.g. txt, pdf, log. The game picks the viewer from this.", label: "Extension", mono: true },
-                { kind: "textarea", key: "attachment.content", hint: "The attachment's contents. For a PDF or image, this is a path to a file you export alongside the mod.", label: "Contents", mono: true, rows: 3 },
-            ] },
-        ],
-        create: () => seed(MailNodeDataSchema, { from: "handler@anon.mail" }),
-    },
-
-    "comms.call": {
-        type: "comms.call",
-        category: "comms",
-        label: "Phone call",
-        blurb: "Start a branching dialog",
-        icon: "phone",
-        ...io,
-        hook: "onStart",
-        fields: [
-            { kind: "number", key: "startIndex", hint: "Which line of dialogue the call opens on. Use it to resume a conversation mid-script.", label: "Start at line", min: 0 },
-        ],
-        create: () => seed(CallNodeDataSchema),
-    },
-
-    "comms.kisscord": {
-        type: "comms.kisscord",
-        category: "comms",
-        label: "Kisscord messages",
-        blurb: "A DM chain that drip-feeds",
+        label: "Dialogue",
+        blurb: "A conversation with the player — phone call, Kisscord, e-mail or WeeChat",
         icon: "message",
-        ...io,
+        targets: [inFlow],
+        sources: [outFlow, failureOut],
         hook: "onStart",
-        fields: [
-            { kind: "text", key: "contactId", label: "Contact", mono: true, hint: "A Kisscord NPC registered by this quest." },
-        ],
-        create: () => seed(KisscordNodeDataSchema),
-    },
-
-    "comms.weechat": {
-        type: "comms.weechat",
-        category: "comms",
-        label: "WeeChat messages",
-        blurb: "An IRC channel conversation",
-        icon: "hash",
-        ...io,
-        hook: "onStart",
-        fields: [
-            { kind: "text", key: "host", hint: "The IRC server the player connects to.", label: "Server host", mono: true, placeholder: "irc.darknet.org" },
-            { kind: "text", key: "password", label: "Password", mono: true, hint: "The player connects with: weechat <host> <password>." },
-            { kind: "toggle", key: "registerServer", hint: "Register the server with WeeChat so it appears in the player's server list automatically.", label: "Register the server" },
-        ],
-        create: () => seed(WeeChatNodeDataSchema, { host: "irc.darknet.org", password: "secret123" }),
+        fields: [],
+        create: () => seed(DialogueNodeDataSchema),
     },
 
     "comms.tweet": {

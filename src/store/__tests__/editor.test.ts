@@ -211,7 +211,7 @@ describe("nodes", () => {
         fresh();
         const briefing = useEditor
             .getState()
-            .project.quests[0].graph.nodes.find((n) => n.type === "comms.mail")!;
+            .project.quests[0].graph.nodes.find((n) => n.type === "comms.dialogue")!;
         const attached = useEditor
             .getState()
             .project.quests[0].graph.edges.filter(

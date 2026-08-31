@@ -90,11 +90,36 @@ export const AttachmentSchema = z.object({
 export type Attachment = z.infer<typeof AttachmentSchema>;
 
 /** A Kisscord message in a chain. Mirrors `KisscordMessageDefinition`. */
+/**
+ * A moment where the conversation stops and the player must act: type a
+ * specific answer (with a failure route), "type" a scripted message
+ * hackertyper-style, or upload a file.
+ */
+export const PlayerInputSchema = z.object({
+    expected: z.string().default(""),
+    matchMode: z.enum(["exact", "contains", "regex"]).default("exact"),
+    caseSensitive: z.boolean().default(false),
+    /** Shown when the player's answer does not match and they may retry. */
+    failureText: z.string().default(""),
+    /** retry = ask again, end = the conversation dies, wrong = the node's Wrong output. */
+    wrongRoute: z.enum(["retry", "end", "wrong"]).default("retry"),
+});
+export type PlayerInput = z.infer<typeof PlayerInputSchema>;
+
 export const KisscordMessageSchema = z.object({
     id: z.string(),
     content: z.string().default(""),
     isMine: z.boolean().default(false),
     delayMs: z.number().default(0),
+    /**
+     * none = an NPC message. send = the player "types" `playerText`
+     * (hackertyper-style). upload = the player attaches a file. input = the
+     * player types a free answer that is checked against `input`.
+     */
+    playerAction: z.enum(["none", "send", "upload", "input"]).default("none"),
+    playerText: z.string().default(""),
+    upload: AttachmentSchema.optional(),
+    input: PlayerInputSchema.optional(),
     /**
      * Objective ids that must all complete before this message (and everything
      * after it) appears. The SDK pauses the chain at the first gated message and
@@ -111,6 +136,10 @@ export const WeeChatMessageSchema = z.object({
     username: z.string().optional(),
     isMine: z.boolean().default(false),
     delayMs: z.number().default(0),
+    /** none = a channel line. send = the player "types" `playerText`. input = free answer checked against `input`. */
+    playerAction: z.enum(["none", "send", "input"]).default("none"),
+    playerText: z.string().default(""),
+    input: PlayerInputSchema.optional(),
 });
 export type WeeChatMessage = z.infer<typeof WeeChatMessageSchema>;
 
@@ -134,6 +163,8 @@ export const DialogSpeechSchema = z.object({
     isEnd: z.boolean().default(false),
     timeout: z.number().optional(),
     options: z.array(DialogOptionSchema).default([]),
+    /** When set, the call waits for the player to type an answer after this line. */
+    input: PlayerInputSchema.optional(),
 });
 export type DialogSpeech = z.infer<typeof DialogSpeechSchema>;
 
@@ -277,11 +308,14 @@ export const MailNodeDataSchema = z.object({
     replyable: z.boolean().default(false),
     attachment: AttachmentSchema.optional(),
 });
+export type MailNodeData = z.infer<typeof MailNodeDataSchema>;
 
 export const CallNodeDataSchema = z.object({
     branch: z.string().default("default"),
     startIndex: z.number().default(0),
 });
+
+
 
 export const KisscordNodeDataSchema = z.object({
     contactId: z.string().default(""),
@@ -304,6 +338,23 @@ export const TweetNodeDataSchema = z.object({
     shares: z.number().optional(),
     views: z.number().optional(),
     postedAgo: z.string().optional(),
+});
+
+/**
+ * The general dialogue node: one node, four flavours. The payload for every
+ * flavour lives on the node; `kind` selects which one the editor shows and the
+ * game plays. Phone scripts additionally live on the quest (`dialog`) so call
+ * nodes can share branches — `phone.branch` names the one this node plays.
+ */
+export const DialogueKindSchema = z.enum(["phone", "kisscord", "mail", "weechat"]);
+export type DialogueKind = z.infer<typeof DialogueKindSchema>;
+
+export const DialogueNodeDataSchema = z.object({
+    kind: DialogueKindSchema.default("phone"),
+    phone: CallNodeDataSchema.default({ branch: "default", startIndex: 0 }),
+    kisscord: KisscordNodeDataSchema.default({ contactId: "", messages: [] }),
+    mail: MailNodeDataSchema.default({ from: "", subject: "", content: "", replyable: false }),
+    weechat: WeeChatNodeDataSchema.default({ host: "", password: "", registerServer: true, messages: [] }),
 });
 
 /**
@@ -425,10 +476,7 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("world.database", DatabaseNodeDataSchema),
     node("world.files", FilesNodeDataSchema),
     node("world.toolResponse", ToolResponseNodeDataSchema),
-    node("comms.mail", MailNodeDataSchema),
-    node("comms.call", CallNodeDataSchema),
-    node("comms.kisscord", KisscordNodeDataSchema),
-    node("comms.weechat", WeeChatNodeDataSchema),
+    node("comms.dialogue", DialogueNodeDataSchema),
     node("comms.tweet", TweetNodeDataSchema),
     node("reply.hackertyper", HackertyperNodeDataSchema),
     node("reply.input", ManualInputNodeDataSchema),

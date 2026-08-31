@@ -33,6 +33,8 @@ export interface UiState {
     paletteCollapsed: boolean;
     /** Set while a modal (templates, export, settings) is open. */
     modal: null | "templates" | "mod" | "shortcuts" | "websites" | "dialogues";
+    /** While set, the dialogues modal edits this node instead of listing all. */
+    dialogueNode: string | null;
     toast: { id: string; message: string; tone: ToastTone } | null;
 }
 
@@ -163,7 +165,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
     return {
         project: createProject(),
         selection: { nodeIds: [], edgeIds: [] },
-        ui: { inspectorCollapsed: false, paletteCollapsed: false, modal: null, toast: null },
+        ui: { inspectorCollapsed: false, paletteCollapsed: false, modal: null, dialogueNode: null, toast: null },
         past: [],
         future: [],
         hydrated: false,

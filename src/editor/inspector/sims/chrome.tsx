@@ -13,12 +13,15 @@ export function SimFrame({
     caption,
     children,
     className,
+    action,
 }: {
     /** The in-game app being simulated, shown as a window title. */
     app: string;
     caption: string;
     children: ReactNode;
     className?: string;
+    /** Optional control rendered at the right of the title bar (e.g. replay). */
+    action?: ReactNode;
 }) {
     return (
         <div className="mx-3 mt-3 overflow-hidden rounded-lg border border-line">
@@ -32,6 +35,7 @@ export function SimFrame({
                     {app}
                 </span>
                 <span className="ml-auto truncate text-[10px] text-ink-4">{caption}</span>
+                {action}
             </div>
             <div className={cn("bg-[#0b0d12]", className)}>{children}</div>
         </div>

@@ -5,9 +5,48 @@
  * type gets a plain-English digest of its own data. Returning `null` means "show
  * nothing but the header".
  */
-import type { NodeDoc } from "@/schema/nodes";
+import type { DialogueKind, NodeDoc } from "@/schema/nodes";
+import type { QuestDoc } from "@/schema/project";
 import { eventLabel } from "@/schema/events";
 import { DEVICE_TYPE_LABELS } from "@/schema/common";
+
+export const DIALOGUE_KIND_LABELS: Record<DialogueKind, string> = {
+    phone: "Phone call",
+    kisscord: "Kisscord chat",
+    mail: "E-Mail",
+    weechat: "WeeChat",
+};
+
+/** The first words of the first line of a dialogue node's script, per flavour. */
+export function dialogueFirstLine(
+    d: Loose,
+    quest?: Pick<QuestDoc, "dialog"> | null,
+): string {
+    switch (d.kind) {
+        case "phone": {
+            const branch =
+                quest?.dialog.find((b) => b.name === d.phone?.branch) ?? quest?.dialog[0];
+            return branch?.lines[0]?.text ?? "";
+        }
+        case "kisscord": {
+            const m = (d.kisscord?.messages as Loose[])?.[0];
+            if (!m) return "";
+            if (m.playerAction === "send") return m.playerText || "";
+            if (m.playerAction === "upload") return `uploads ${m.upload?.name || "a file"}`;
+            if (m.playerAction === "input") return "types an answer";
+            return m.content || "";
+        }
+        case "mail":
+            return d.mail?.subject ?? "";
+        case "weechat": {
+            const m = (d.weechat?.messages as Loose[])?.[0];
+            if (!m) return "";
+            return m.playerAction === "send" ? m.playerText || "" : m.content || "";
+        }
+        default:
+            return "";
+    }
+}
 
 function clip(text: string, max = 46): string {
     const flat = text.replace(/\s+/g, " ").trim();
@@ -33,7 +72,7 @@ function deviceLine(d: { ip: string; type: string; children?: unknown[]; ports?:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Loose = Record<string, any>;
 
-export function summarize(node: NodeDoc): string[] {
+export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
     const d = node.data as Loose;
     switch (node.type) {
         case "entry.start":
@@ -125,28 +164,17 @@ export function summarize(node: NodeDoc): string[] {
                 d.input ? `on ${d.input}` : d.inputTarget ? `on ${d.inputTarget}` : "no input key yet",
             ];
 
-        case "comms.mail":
+        case "comms.dialogue": {
+            const first = dialogueFirstLine(d, quest);
+            const count =
+                d.kind === "phone"
+                    ? (quest?.dialog.find((b) => b.name === d.phone?.branch) ?? quest?.dialog[0])?.lines.length ?? 0
+                    : d.kind === "mail"
+                      ? 1
+                      : ((d.kind === "kisscord" ? d.kisscord?.messages : d.weechat?.messages) as unknown[] | undefined)?.length ?? 0;
             return [
-                d.from ? `From ${d.from}` : "no sender yet",
-                d.subject ? clip(String(d.subject), 50) : "no subject yet",
-            ];
-
-        case "comms.call":
-            return [`branch “${d.branch || "default"}”`];
-
-        case "comms.kisscord": {
-            const msgs = d.messages as { isMine?: boolean }[] | undefined;
-            return [
-                d.contactId ? `with ${d.contactId}` : "no contact yet",
-                msgs?.length ? `${msgs.length} message${msgs.length === 1 ? "" : "s"}` : "no messages yet",
-            ];
-        }
-
-        case "comms.weechat": {
-            const msgs = d.messages as unknown[] | undefined;
-            return [
-                d.host ? String(d.host) : "no host yet",
-                msgs?.length ? `${msgs.length} message${msgs.length === 1 ? "" : "s"}` : "no messages yet",
+                `${DIALOGUE_KIND_LABELS[d.kind as DialogueKind] ?? "Dialogue"} · ${count} line${count === 1 ? "" : "s"}`,
+                first ? clip(String(first)) : "empty conversation",
             ];
         }
 

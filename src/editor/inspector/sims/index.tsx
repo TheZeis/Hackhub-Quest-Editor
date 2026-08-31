@@ -4,16 +4,10 @@
  */
 import type { ComponentType } from "react";
 import type { NodeDoc, NodeType } from "@/schema/nodes";
-import { CallEditor } from "./CallEditor";
-import { KisscordEditor } from "./KisscordEditor";
-import { MailSim } from "./MailSim";
-import { WeeChatEditor } from "./WeeChatEditor";
+import { DialogueNodeEditor } from "./DialogueNodeEditor";
 
 type SimEditor = ComponentType<{ node: NodeDoc }>;
 
 export const NODE_SIM_EDITORS: Partial<Record<NodeType, SimEditor>> = {
-    "comms.kisscord": KisscordEditor as SimEditor,
-    "comms.weechat": WeeChatEditor as SimEditor,
-    "comms.mail": MailSim as SimEditor,
-    "comms.call": CallEditor as SimEditor,
+    "comms.dialogue": DialogueNodeEditor as SimEditor,
 };

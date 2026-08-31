@@ -6,6 +6,7 @@
  * rather than half-applied — a corrupt draft must never wedge the editor.
  */
 import { ProjectSchema, type ProjectDocument } from "@/schema/project";
+import { migrateProject } from "@/schema/migrate";
 import { PROJECT_SCHEMA_VERSION } from "@/schema/common";
 import { useEditor } from "./editor";
 
@@ -16,7 +17,7 @@ export function loadDraft(): ProjectDocument | null {
     try {
         const raw = localStorage.getItem(KEY);
         if (!raw) return null;
-        const parsed: unknown = JSON.parse(raw);
+        const parsed: unknown = migrateProject(JSON.parse(raw));
         const result = ProjectSchema.safeParse(parsed);
         if (!result.success) {
             console.warn("[quest-editor] discarded an invalid draft:", result.error.issues);

@@ -107,8 +107,28 @@ export function CallPreview({
         setIndex((i) => Math.min(option.nextIndex ?? i + 1, branch.lines.length - 1));
     };
 
+    const replay = () => {
+        setIndex(Math.min(startIndex, Math.max(branch.lines.length - 1, 0)));
+        setEnded(false);
+    };
+
     return (
-        <SimFrame app="Phone" caption="call preview — tap to play" className="p-3">
+        <SimFrame
+            app="Phone"
+            caption="call preview — tap to play"
+            className="p-3"
+            action={
+                <button
+                    type="button"
+                    className="btn-icon size-5 shrink-0 rounded"
+                    title="Restart the preview from the first line"
+                    aria-label="Replay preview"
+                    onClick={replay}
+                >
+                    <Icon name="refresh" size={11} />
+                </button>
+            }
+        >
             <div className="mx-auto flex max-h-64 w-full max-w-60 flex-col items-center gap-2 overflow-y-auto rounded-xl border border-line/60 bg-[#12151d] p-3">
                 <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
                     <Icon name="phone" size={16} />
@@ -144,6 +164,11 @@ export function CallPreview({
                             )}
                             {(line.isEnd || index === branch.lines.length - 1) && line.options.length === 0 && (
                                 <p className="text-[10px] text-ink-4">— call ends —</p>
+                            )}
+                            {line.input && (
+                                <div className="w-full rounded-md border border-line/70 bg-surface-2 px-2 py-1 text-center text-[10px] text-ink-4">
+                                    ✍ the call waits for the player's typed answer
+                                </div>
                             )}
                         </div>
                     </>
@@ -232,6 +257,88 @@ export function LineCard({
                 checked={line.isEnd}
                 onChange={(isEnd) => onPatch({ isEnd })}
             />
+            <Toggle
+                label="Player types a reply"
+                hint="After this line the call waits for a typed answer — a password, a code name, anything. Wrong answers follow the route you pick below."
+                checked={line.input != null}
+                onChange={(on) =>
+                    onPatch({
+                        input: on
+                            ? { expected: "", matchMode: "exact", caseSensitive: false, failureText: "", wrongRoute: "retry" }
+                            : undefined,
+                    })
+                }
+            />
+            {line.input && (
+                <div className="grid gap-2 rounded-md border border-line/70 bg-surface p-2">
+                    <FieldShell
+                        label="Expected answer"
+                        hint="What counts as correct. Leave blank to accept anything (the call just moves on)."
+                    >
+                        <TextInput
+                            ariaLabel={`Expected answer ${index + 1}`}
+                            value={line.input.expected}
+                            onChange={(expected) => onPatch({ input: { ...line.input!, expected } })}
+                            mono
+                            placeholder="e.g. treyes3419"
+                        />
+                    </FieldShell>
+                    <div className="grid grid-cols-2 gap-2">
+                        <FieldShell label="Matching">
+                            <SelectInput
+                                ariaLabel={`Matching ${index + 1}`}
+                                value={line.input.matchMode}
+                                onChange={(matchMode) =>
+                                    onPatch({ input: { ...line.input!, matchMode: matchMode as "exact" | "contains" | "regex" } })
+                                }
+                                options={[
+                                    { value: "exact", label: "Exact match" },
+                                    { value: "contains", label: "Contains" },
+                                    { value: "regex", label: "Pattern (regex)" },
+                                ]}
+                            />
+                        </FieldShell>
+                        <FieldShell label="Case">
+                            <SelectInput
+                                ariaLabel={`Case ${index + 1}`}
+                                value={line.input.caseSensitive ? "sensitive" : "ignore"}
+                                onChange={(v) => onPatch({ input: { ...line.input!, caseSensitive: v === "sensitive" } })}
+                                options={[
+                                    { value: "ignore", label: "Ignore case" },
+                                    { value: "sensitive", label: "Case sensitive" },
+                                ]}
+                            />
+                        </FieldShell>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <FieldShell
+                            label="On a wrong answer"
+                            hint="Retry lets the player try again, end hangs up, and Wrong fires this node's Wrong output so the quest can branch."
+                        >
+                            <SelectInput
+                                ariaLabel={`Wrong answer route ${index + 1}`}
+                                value={line.input.wrongRoute}
+                                onChange={(wrongRoute) =>
+                                    onPatch({ input: { ...line.input!, wrongRoute: wrongRoute as "retry" | "end" | "wrong" } })
+                                }
+                                options={[
+                                    { value: "retry", label: "Let them try again" },
+                                    { value: "end", label: "Hang up" },
+                                    { value: "wrong", label: "Node's Wrong output" },
+                                ]}
+                            />
+                        </FieldShell>
+                        <FieldShell label="Wrong-answer line" hint="Said to the player when the answer doesn't match.">
+                            <TextInput
+                                ariaLabel={`Wrong answer line ${index + 1}`}
+                                value={line.input.failureText}
+                                onChange={(failureText) => onPatch({ input: { ...line.input!, failureText } })}
+                                placeholder="Sorry, that's not it."
+                            />
+                        </FieldShell>
+                    </div>
+                </div>
+            )}
 
             <div className="rounded-md border border-line/70 bg-surface p-2">
                 <div className="mb-1.5 flex items-center justify-between">

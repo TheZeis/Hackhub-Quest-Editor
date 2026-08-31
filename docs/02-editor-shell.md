@@ -514,3 +514,17 @@ dialogue editor (branch scripts, choices, phone preview) was extracted into a
 shared `BranchScriptEditor` and now has a top-level home: a **Dialogues**
 button in the top bar opens it for the active quest without placing a call
 node first; the phone node inspector uses the same editor.
+
+**Round thirteen: the general dialogue node.** The four separate comms nodes
+(phone call, Kisscord, e-mail, WeeChat) are now one palette entry —
+**Dialogue** — whose inspector card shows its flavour and the first words of
+its first line, and opens the dialogue editor. Inside, a type selector opens
+the matching interface: phone (quest-shared branches, choices, typed replies
+with wrong-answer routes), Kisscord (DM chain with objective gating, player
+sends hackertyper-style, file uploads, typed answers), mail (compose +
+attachment + reading view), WeeChat (IRC log with typed answers). Every
+"player types" moment takes an expected answer, match mode, case, a
+wrong-answer line, and a wrong route (try again / end / the node's new Wrong
+output). The phone preview gained a replay button. Saved projects with the old
+node types migrate automatically (`schema/migrate.ts`). The reference template
+and counts now know 29 node types.
