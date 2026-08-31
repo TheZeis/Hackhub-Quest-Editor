@@ -468,3 +468,18 @@ the single source of truth (the earlier hand-built placeholder is gone). The
 "no external resources" test now bans resource URLs (`src=`/`href=`/`@import`/
 `url(...)`) rather than the string "http", since prose and the SVG xmlns are
 not fetches.
+
+**Round ten: scans, row actions, and a highlighted code view.** Uploaded
+single-file sites (like the naza page) keep their contents invisible to the
+builder's page list, so the workspace now carries a **Document scan** panel:
+`scanDocument()` reports internal path links missing from the site (with a
+*Create N missing pages* stub action), in-page anchor sections ("these jump to
+sections inside this page" — naza's `#missions`/`#portal` nav is section-based,
+not multi-page), HTML comments with the first snippet shown (the classic
+view-source clue, e.g. naza's temp-password ops note), and script/form counts.
+The duplicate and delete buttons moved off the workspace toolbar onto each page
+row, revealed on hover: duplicate as before, delete red with a Radix
+AlertDialog confirm ("Do you really want to delete this page?"). The code view
+gained Prism syntax highlighting (transparent textarea over a highlighted
+`<pre>`, synced scroll) and a **Format** button that lazy-loads
+`prettier/standalone` + the html plugin.

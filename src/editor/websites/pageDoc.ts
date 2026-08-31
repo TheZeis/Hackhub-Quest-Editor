@@ -66,3 +66,56 @@ export function splitDocument(html: string): SplitDoc {
 }
 
 export const joinDocument = (parts: SplitDoc, body: string) => parts.head + body + parts.tail;
+
+/* ── uploaded-document scan ─────────────────────────────────────────────────
+   Authors bring finished HTML (often LLM-written, single-file). The scan makes
+   what's inside visible to the builder: which paths it links to (so missing
+   sub-pages can be created), which in-page sections it navigates to, and the
+   classic hiding places — HTML comments, hidden elements, scripts, forms.
+   ─────────────────────────────────────────────────────────────────────── */
+
+export interface PageScan {
+    /** Internal path links (`href="/…"`), de-duplicated, query stripped. */
+    linkedPaths: string[];
+    /** Anchor navigation (`href="#…"`), de-duplicated, bare "#" dropped. */
+    anchors: string[];
+    /** Element ids present in the document (anchor targets that exist). */
+    ids: string[];
+    /** HTML comment bodies, trimmed. */
+    comments: string[];
+    scripts: number;
+    forms: number;
+    /** hidden attributes, display:none styles, type="hidden" inputs. */
+    hiddenBits: number;
+}
+
+export function scanDocument(html: string): PageScan {
+    const linkedPaths = new Set<string>();
+    const anchors = new Set<string>();
+    const ids = new Set<string>();
+    const comments: string[] = [];
+
+    for (const m of html.matchAll(/href\s*=\s*"([^"]*)"/gi)) {
+        const href = m[1].trim();
+        if (href.startsWith("#")) {
+            if (href.length > 1) anchors.add(href.slice(1));
+        } else if (href.startsWith("/") && !href.startsWith("//")) {
+            linkedPaths.add(href.split(/[?#]/)[0] || "/");
+        }
+    }
+    for (const m of html.matchAll(/id\s*=\s*"([^"]+)"/gi)) ids.add(m[1]);
+    for (const m of html.matchAll(/<!--([\s\S]*?)-->/g)) {
+        const body = m[1].trim();
+        if (body) comments.push(body);
+    }
+
+    return {
+        linkedPaths: [...linkedPaths],
+        anchors: [...anchors],
+        ids: [...ids],
+        comments,
+        scripts: (html.match(/<script[\s>]/gi) ?? []).length,
+        forms: (html.match(/<form[\s>]/gi) ?? []).length,
+        hiddenBits: (html.match(/type\s*=\s*"hidden"|\shidden(?=[\s>/])|display\s*:\s*none/gi) ?? []).length,
+    };
+}

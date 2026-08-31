@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CodePageEditor, VisualPageEditor } from "@/editor/websites/pageEditor";
 import { isFullDocument, joinDocument, splitDocument, wrapFragment } from "@/editor/websites/pageDoc";
@@ -181,7 +181,7 @@ describe("website builder dialog", () => {
 
         render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
         const before = useEditor.getState().project.websites[0].pages.length;
-        await user.click(screen.getByRole("button", { name: "Duplicate page" }));
+        await user.click(screen.getAllByRole("button", { name: /^Duplicate page/ })[0]);
 
         const pages = useEditor.getState().project.websites[0].pages;
         expect(pages).toHaveLength(before + 1);
@@ -214,6 +214,91 @@ describe("website builder dialog", () => {
 
         await user.type(code, "<!-- planted clue: 74 68 65 -->");
         expect(useEditor.getState().project.websites[0].pages[0].content).toContain("planted clue");
+    });
+
+    it("deleting from a page row asks first and only removes on confirm", async () => {
+        const user = userEvent.setup();
+        const site = createWebsite({
+            pages: [createPage({ path: "/keep", title: "Keep" }), createPage({ path: "/doomed", title: "Doomed" })],
+        });
+        act(() => useEditor.getState().addWebsite(site));
+
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        await user.click(screen.getByRole("button", { name: "Delete page /doomed" }));
+
+        // the confirm dialog shows before anything is deleted
+        expect(screen.getByText("Do you really want to delete this page?")).toBeInTheDocument();
+        expect(useEditor.getState().project.websites[0].pages).toHaveLength(2);
+
+        await user.click(screen.getByRole("button", { name: "Cancel" }));
+        expect(useEditor.getState().project.websites[0].pages).toHaveLength(2);
+
+        await user.click(screen.getByRole("button", { name: "Delete page /doomed" }));
+        await user.click(screen.getByRole("button", { name: "Delete page" }));
+        const paths = useEditor.getState().project.websites[0].pages.map((p) => p.path);
+        expect(paths).toEqual(["/keep"]);
+    });
+
+    it("scans uploaded documents for referenced pages and easter eggs", async () => {
+        const user = userEvent.setup();
+        const { scanDocument } = await import("@/editor/websites/pageDoc");
+
+        const uploaded = [
+            '<!doctype html><html><body><a href="/vault">v</a><a href="/vault">dup</a>',
+            '<a href="#top">t</a><div id="top">top</div><form><input type="hidden" value="74"></form>',
+            "<!-- temp password: hunter2 --><script>go()</script></body></html>",
+        ].join("");
+        const scan = scanDocument(uploaded);
+        expect(scan.linkedPaths).toEqual(["/vault"]);
+        expect(scan.anchors).toEqual(["top"]);
+        expect(scan.comments).toEqual(["temp password: hunter2"]);
+        expect(scan.scripts).toBe(1);
+        expect(scan.forms).toBe(1);
+        expect(scan.hiddenBits).toBe(1);
+
+        const site = createWebsite();
+        act(() => useEditor.getState().addWebsite(site));
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        act(() => useEditor.getState().updatePage(site.id, site.pages[0].id, { content: uploaded }));
+
+        expect(await screen.findByText(/don't exist yet/)).toBeInTheDocument();
+        expect(screen.getByText("/vault")).toBeInTheDocument();
+        expect(screen.getByText(/temp password: hunter2/)).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /Create 1 missing page/ }));
+        const pages = useEditor.getState().project.websites[0].pages;
+        expect(pages).toHaveLength(2);
+        expect(pages.map((p) => p.path).sort()).toEqual(["/", "/vault"]);
+    });
+
+    it("the naza agency page scans as a single-file site with sections and a comment clue", async () => {
+        const { SITE_TEMPLATES } = await import("@/templates/pages");
+        const { scanDocument } = await import("@/editor/websites/pageDoc");
+        const agency = SITE_TEMPLATES.find((t) => t.id === "agency")!.make();
+        const scan = scanDocument(agency.pages[0].content);
+        expect(scan.linkedPaths).toEqual([]);
+        expect(scan.anchors).toContain("missions");
+        expect(scan.anchors).toContain("portal");
+        expect(scan.comments.length).toBeGreaterThanOrEqual(1);
+        expect(scan.scripts).toBeGreaterThanOrEqual(1);
+    });
+
+    it("code view offers a Format button that pretty-prints the document", async () => {
+        const user = userEvent.setup();
+        const site = createWebsite();
+        act(() => useEditor.getState().addWebsite(site));
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        await user.click(screen.getByRole("button", { name: "code" }));
+
+        const code = screen.getByLabelText("HTML code for /") as HTMLTextAreaElement;
+        await user.clear(code);
+        await user.type(code, '<!doctype html><html><body><div><p>a</p><p>b</p></div></body></html>');
+        await user.click(screen.getByRole("button", { name: /Format/ }));
+
+        await waitFor(() => {
+            const value = (screen.getByLabelText("HTML code for /") as HTMLTextAreaElement).value;
+            expect(value).toMatch(/\n\s+<p>a<\/p>/);
+        });
     });
 
     it("loads a finished html file, wrapping bare fragments", async () => {

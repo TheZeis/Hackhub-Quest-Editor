@@ -10,7 +10,10 @@
  * LLM-written sites.
  */
 import { useMemo, useRef } from "react";
+import type { UIEvent } from "react";
+import Prism from "prismjs";
 import { cn } from "@/lib/cn";
+import { useEditor } from "@/store/editor";
 import { joinDocument, splitDocument } from "./pageDoc";
 
 const INLINE = [
@@ -165,6 +168,11 @@ export function VisualPageEditor({
     );
 }
 
+/**
+ * The code view: a transparent textarea over a Prism-highlighted copy of the
+ * same text, so you edit real HTML with live syntax colours. "Format" runs
+ * prettier over the whole document.
+ */
 export function CodePageEditor({
     doc,
     onChange,
@@ -174,20 +182,78 @@ export function CodePageEditor({
     onChange: (fullDocument: string) => void;
     ariaLabel: string;
 }) {
+    const preRef = useRef<HTMLPreElement>(null);
+    const toast = useEditor((s) => s.toast);
+    const highlighted = useMemo(
+        () => Prism.highlight(doc, Prism.languages.markup, "markup"),
+        [doc],
+    );
+
+    const syncScroll = (e: UIEvent<HTMLTextAreaElement>) => {
+        const pre = preRef.current;
+        if (pre) {
+            pre.scrollTop = e.currentTarget.scrollTop;
+            pre.scrollLeft = e.currentTarget.scrollLeft;
+        }
+    };
+
+    const format = async () => {
+        try {
+            const [standalone, htmlPlugin] = await Promise.all([
+                import("prettier/standalone"),
+                import("prettier/plugins/html"),
+            ]);
+            const out = await standalone.format(doc, {
+                parser: "html",
+                plugins: [htmlPlugin.default],
+            });
+            onChange(out);
+            toast("Formatted.", "ok");
+        } catch {
+            toast("Couldn't format this document — check for unclosed tags.", "warn");
+        }
+    };
+
+    const editorClasses =
+        "p-3 font-mono text-[11.5px] leading-relaxed whitespace-pre [tab-size:2]";
+
     return (
         <div className="grid gap-1.5">
-            <textarea
-                value={doc}
-                onChange={(e) => onChange(e.target.value)}
-                aria-label={ariaLabel}
-                spellCheck={false}
-                className="h-[48vh] w-full resize-y rounded-lg border border-line bg-[#0b0d12] p-3 font-mono text-[11.5px] leading-relaxed text-ink-2 focus:border-accent focus:outline-none"
-            />
-            <p className="text-[10.5px] leading-relaxed text-ink-4">
-                The complete document — styles, scripts and comments included — exactly as it
-                will ship. Keep it self-contained: the game's web views resolve relative assets
-                from the mod itself and never reach the internet.
-            </p>
+            <div className="relative h-[48vh] overflow-hidden rounded-lg border border-line bg-[#0b0d12]">
+                <pre
+                    ref={preRef}
+                    aria-hidden
+                    className={cn(
+                        "codeview pointer-events-none absolute inset-0 m-0 overflow-hidden text-ink-2",
+                        editorClasses,
+                    )}
+                >
+                    <code dangerouslySetInnerHTML={{ __html: `${highlighted}\n` }} />
+                </pre>
+                <textarea
+                    value={doc}
+                    onChange={(e) => onChange(e.target.value)}
+                    onScroll={syncScroll}
+                    aria-label={ariaLabel}
+                    spellCheck={false}
+                    wrap="off"
+                    className={cn(
+                        "absolute inset-0 h-full w-full resize-none overflow-auto bg-transparent text-transparent caret-[#e8eaf1] selection:bg-accent-soft focus:outline-none",
+                        editorClasses,
+                    )}
+                />
+            </div>
+            <div className="flex items-start gap-3">
+                <button type="button" className="btn-default shrink-0" onClick={format}>
+                    ✨ Format
+                </button>
+                <p className="text-[10.5px] leading-relaxed text-ink-4">
+                    The complete document — styles, scripts and comments included — exactly as
+                    it will ship, with live syntax highlighting. Keep it self-contained: the
+                    game's web views resolve relative assets from the mod itself and never
+                    reach the internet.
+                </p>
+            </div>
         </div>
     );
 }

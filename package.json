@@ -17,6 +17,7 @@
     "gen:events": "node reference/generate-event-catalogue.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-popover": "^1.1.15",
@@ -29,6 +30,7 @@
     "clsx": "^2.1.1",
     "immer": "^11.1.18",
     "nanoid": "^5.1.6",
+    "prismjs": "^1.30.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.5.4",
@@ -42,6 +44,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.18.0",
+    "@types/prismjs": "^1.26.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",

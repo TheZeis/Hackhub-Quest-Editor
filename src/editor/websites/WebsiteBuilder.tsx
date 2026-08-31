@@ -4,7 +4,8 @@
  * the dirhunter hiding places — the builder says so plainly instead of making
  * authors learn `seo:false`.
  */
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
@@ -12,7 +13,7 @@ import { FieldShell, TextInput, Toggle } from "@/editor/inspector/primitives";
 import { createPage, createWebsite } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 import { PAGE_TEMPLATES, SITE_TEMPLATES } from "@/templates/pages";
-import { isFullDocument, wrapFragment } from "./pageDoc";
+import { isFullDocument, scanDocument, wrapFragment } from "./pageDoc";
 import { CodePageEditor, VisualPageEditor } from "./pageEditor";
 
 export function WebsiteBuilderDialog({
@@ -37,6 +38,7 @@ export function WebsiteBuilderDialog({
     const [sitePicker, setSitePicker] = useState(false);
     /** Bumped when content changes outside the visual editor, so it remounts fresh. */
     const [outsideRev, setOutsideRev] = useState(0);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
     const htmlFileRef = useRef<HTMLInputElement>(null);
     const toast = useEditor((s) => s.toast);
 
@@ -44,7 +46,18 @@ export function WebsiteBuilderDialog({
     const pages = [...(site?.pages ?? [])].sort((a, b) => a.path.localeCompare(b.path));
     const page = site?.pages.find((p) => p.id === pageId) ?? pages[0];
 
+    const scan = useMemo(
+        () => (page ? scanDocument(page.content) : null),
+        [page?.content, page?.id],
+    );
+    const missingPaths = useMemo(
+        () => (scan ? scan.linkedPaths.filter((lp) => !pages.some((pg) => pg.path === lp)) : []),
+        [scan, pages],
+    );
+    const deleteTarget = site?.pages.find((p) => p.id === deleteId) ?? null;
+
     return (
+        <>
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 z-40 bg-void/70 backdrop-blur-[2px]" />
@@ -312,25 +325,59 @@ export function WebsiteBuilderDialog({
                                 )}
                                 <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
                                     {pages.map((p) => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => setPageId(p.id)}
-                                            className={cn(
-                                                "mb-1 block w-full rounded-md border px-2.5 py-1.5 text-left",
-                                                page && p.id === page.id
-                                                    ? "border-accent/50 bg-accent-soft text-ink"
-                                                    : "border-transparent text-ink-3 hover:bg-surface-2",
-                                            )}
-                                        >
-                                            <span className="flex items-center gap-1.5">
-                                                {!p.seo && <Icon name="lock" size={10} className="shrink-0 text-warn" />}
-                                                <span className="truncate font-mono text-[11px]">{p.path}</span>
-                                            </span>
-                                            <span className="block truncate text-[10px] text-ink-4">
-                                                {p.title || "untitled"}
-                                            </span>
-                                        </button>
+                                        <div key={p.id} className="group relative mb-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPageId(p.id)}
+                                                className={cn(
+                                                    "block w-full rounded-md border px-2.5 py-1.5 text-left",
+                                                    page && p.id === page.id
+                                                        ? "border-accent/50 bg-accent-soft text-ink"
+                                                        : "border-transparent text-ink-3 hover:bg-surface-2",
+                                                )}
+                                            >
+                                                <span className="flex items-center gap-1.5">
+                                                    {!p.seo && <Icon name="lock" size={10} className="shrink-0 text-warn" />}
+                                                    <span className="truncate font-mono text-[11px]">{p.path}</span>
+                                                </span>
+                                                <span className="block truncate text-[10px] text-ink-4">
+                                                    {p.title || "untitled"}
+                                                </span>
+                                            </button>
+                                            <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5 opacity-0 shadow transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                                                <button
+                                                    type="button"
+                                                    className="btn-icon"
+                                                    title="Duplicate page"
+                                                    aria-label={`Duplicate page ${p.path}`}
+                                                    onClick={() => {
+                                                        const copy = createPage({
+                                                            title: `${p.title} (copy)`,
+                                                            path: p.path.endsWith("/")
+                                                                ? `${p.path}copy`
+                                                                : `${p.path}-copy`,
+                                                            seo: p.seo,
+                                                            content: p.content,
+                                                            template: p.template,
+                                                        });
+                                                        addPage(site.id, copy);
+                                                        setPageId(copy.id);
+                                                        setOutsideRev((r) => r + 1);
+                                                    }}
+                                                >
+                                                    <Icon name="copy" size={12} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-icon bg-danger/15 text-danger hover:bg-danger hover:text-white"
+                                                    title="Delete page"
+                                                    aria-label={`Delete page ${p.path}`}
+                                                    onClick={() => setDeleteId(p.id)}
+                                                >
+                                                    <Icon name="trash" size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -393,40 +440,6 @@ export function WebsiteBuilderDialog({
                                                 {site.host}
                                                 {page.path}
                                             </span>
-                                            <button
-                                                type="button"
-                                                className="btn-icon text-ink-4 hover:text-ink"
-                                                title="Duplicate page"
-                                                aria-label="Duplicate page"
-                                                onClick={() => {
-                                                    const copy = createPage({
-                                                        title: `${page.title} (copy)`,
-                                                        path: page.path.endsWith("/")
-                                                            ? `${page.path}copy`
-                                                            : `${page.path}-copy`,
-                                                        seo: page.seo,
-                                                        content: page.content,
-                                                        template: page.template,
-                                                    });
-                                                    addPage(site.id, copy);
-                                                    setPageId(copy.id);
-                                                    setOutsideRev((r) => r + 1);
-                                                }}
-                                            >
-                                                <Icon name="copy" size={13} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="btn-icon text-ink-4 hover:text-danger"
-                                                title="Delete page"
-                                                aria-label="Delete page"
-                                                onClick={() => {
-                                                    removePage(site.id, page.id);
-                                                    setPageId(null);
-                                                }}
-                                            >
-                                                <Icon name="trash" size={13} />
-                                            </button>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-2 border-b border-line px-3 py-2">
@@ -456,6 +469,102 @@ export function WebsiteBuilderDialog({
                                             checked={page.seo}
                                             onChange={(seo) => updatePage(site.id, page.id, { seo })}
                                         />
+
+                                        {scan && (
+                                            <div className="border-b border-line px-3 py-2">
+                                                <p className="mb-1 flex items-center gap-1.5 text-[10.5px] font-semibold text-ink-2">
+                                                    <Icon name="search" size={11} className="text-accent" />
+                                                    Document scan
+                                                </p>
+                                                <div className="grid gap-1 text-[10.5px] leading-relaxed text-ink-3">
+                                                    {missingPaths.length > 0 && (
+                                                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                                            <span>
+                                                                Links to {missingPaths.length} page
+                                                                {missingPaths.length === 1 ? "" : "s"} that don't
+                                                                exist yet:
+                                                            </span>
+                                                            {missingPaths.slice(0, 6).map((mp) => (
+                                                                <span key={mp} className="rounded bg-surface-2 px-1 font-mono">
+                                                                    {mp}
+                                                                </span>
+                                                            ))}
+                                                            {missingPaths.length > 6 && <span>…</span>}
+                                                            <button
+                                                                type="button"
+                                                                className="btn-default"
+                                                                onClick={() => {
+                                                                    for (const mp of missingPaths) {
+                                                                        const seg = mp.split("/").filter(Boolean).pop() ?? "page";
+                                                                        const title =
+                                                                            seg.charAt(0).toUpperCase() + seg.slice(1);
+                                                                        addPage(
+                                                                            site.id,
+                                                                            createPage({
+                                                                                title,
+                                                                                path: mp,
+                                                                                seo: true,
+                                                                                content: wrapFragment(
+                                                                                    `<h1>${title}</h1><p>Replace this placeholder with the real page.</p>`,
+                                                                                    title,
+                                                                                ),
+                                                                            }),
+                                                                        );
+                                                                    }
+                                                                    toast(
+                                                                        `Created ${missingPaths.length} placeholder page${missingPaths.length === 1 ? "" : "s"}.`,
+                                                                        "ok",
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Create {missingPaths.length} missing page
+                                                                {missingPaths.length === 1 ? "" : "s"}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {scan.anchors.length > 0 && (
+                                                        <p>
+                                                            Section links:{" "}
+                                                            <span className="font-mono text-ink-4">
+                                                                {scan.anchors.map((a) => `#${a}`).join(" ")}
+                                                            </span>{" "}
+                                                            — these jump to sections inside this page, not to
+                                                            separate pages.
+                                                        </p>
+                                                    )}
+                                                    {scan.comments.length > 0 && (
+                                                        <p>
+                                                            {scan.comments.length} HTML comment
+                                                            {scan.comments.length === 1 ? "" : "s"} (view-source clue
+                                                            {scan.comments.length === 1 ? "" : "s"}):{" "}
+                                                            <code className="rounded bg-surface-2 px-1 font-mono text-accent">
+                                                                {scan.comments[0].slice(0, 120)}
+                                                                {scan.comments[0].length > 120 ? "…" : ""}
+                                                            </code>
+                                                        </p>
+                                                    )}
+                                                    {(scan.scripts > 0 || scan.forms > 0) && (
+                                                        <p>
+                                                            {scan.scripts > 0 &&
+                                                                `${scan.scripts} script${scan.scripts === 1 ? "" : "s"} — runs only in Preview.`}
+                                                            {scan.scripts > 0 && scan.forms > 0 && " "}
+                                                            {scan.forms > 0 &&
+                                                                `${scan.forms} form${scan.forms === 1 ? "" : "s"}.`}
+                                                        </p>
+                                                    )}
+                                                    {missingPaths.length === 0 &&
+                                                        scan.anchors.length === 0 &&
+                                                        scan.comments.length === 0 &&
+                                                        scan.scripts === 0 &&
+                                                        scan.forms === 0 && (
+                                                            <p className="text-ink-4">
+                                                                No hidden content or page links detected in this
+                                                                document.
+                                                            </p>
+                                                        )}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="min-h-0 flex-1 overflow-y-auto p-3">
                                             {mode === "visual" && (
@@ -498,6 +607,40 @@ export function WebsiteBuilderDialog({
                 </Dialog.Content>
             </Dialog.Portal>
         </Dialog.Root>
+
+        <AlertDialog.Root open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
+            <AlertDialog.Portal>
+                <AlertDialog.Overlay className="fixed inset-0 z-[60] bg-void/70 backdrop-blur-[2px]" />
+                <AlertDialog.Content className="fixed top-1/2 left-1/2 z-[70] w-[min(400px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface p-4 shadow-panel">
+                    <AlertDialog.Title className="text-[13px] font-semibold text-ink">
+                        Do you really want to delete this page?
+                    </AlertDialog.Title>
+                    <AlertDialog.Description className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                        <span className="font-mono text-ink-2">
+                            {site?.host}
+                            {deleteTarget?.path}
+                        </span>{" "}
+                        will be removed from the site. This can be undone with the editor's
+                        undo.
+                    </AlertDialog.Description>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <AlertDialog.Cancel className="btn-default">Cancel</AlertDialog.Cancel>
+                        <AlertDialog.Action
+                            className="btn-danger"
+                            onClick={() => {
+                                if (site && deleteId) {
+                                    removePage(site.id, deleteId);
+                                    if (pageId === deleteId) setPageId(null);
+                                }
+                            }}
+                        >
+                            Delete page
+                        </AlertDialog.Action>
+                    </div>
+                </AlertDialog.Content>
+            </AlertDialog.Portal>
+        </AlertDialog.Root>
+        </>
     );
 }
 

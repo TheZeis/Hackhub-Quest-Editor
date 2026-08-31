@@ -351,3 +351,20 @@
     border-left: 3px solid var(--color-line); color: var(--color-ink-3);
 }
 .webpage-mail a { color: var(--color-accent); }
+
+/* ── code view syntax colours (Prism, un-themed core) ───────────────────── */
+.codeview .token.comment, .codeview .token.prolog, .codeview .token.doctype,
+.codeview .token.cdata { color: #5d6678; font-style: italic; }
+.codeview .token.punctuation { color: #8a93a8; }
+.codeview .token.tag, .codeview .token.keyword { color: #6ec9f0; }
+.codeview .token.attr-name, .codeview .token.namespace,
+.codeview .token.deleted, .codeview .token.property { color: #ffc978; }
+.codeview .token.attr-value, .codeview .token.string,
+.codeview .token.char, .codeview .token.builtin, .codeview .token.inserted {
+    color: #98d982;
+}
+.codeview .token.operator, .codeview .token.entity, .codeview .token.url,
+.codeview .token.variable { color: #d8b4e2; }
+.codeview .token.selector, .codeview .token.atrule, .codeview .token.function {
+    color: #b9a6f0;
+}
