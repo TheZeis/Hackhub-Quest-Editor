@@ -346,10 +346,13 @@ and the gutter has room for the labels. Column gap widened to 360px accordingly.
 inspector, exactly on the first tab. Moved to the right of the tab bar, where the row
 is empty.
 
-**The minimap showed only the grey viewport rect.** React Flow paints minimap node
-rects with an SVG `fill` *attribute*, and the category colours were CSS variables —
-`fill="var(--…)"` never resolves, so every node drew as nothing. Added `CATEGORY_HEX`
-(the same values as the `--color-cat-*` tokens) and made the minimap use it.
+**The minimap showed only the grey viewport rect.** First guess (CSS variables in an
+SVG fill) was wrong — React Flow sets the minimap fill through `style`, where `var()`
+resolves fine. The real cause: the MiniMap only draws a node whose *user-node* carries
+dimensions, and dimensions arrive as `dimensions` changes in `onNodesChange`, which we
+discarded. So every minimap rect bailed out at `nodeHasDimensions`. The canvas now folds
+those measurements back into the nodes it hands React Flow (transient state, not saved
+to the document), and the minimap paints one coloured rect per node.
 
 **Template import/export.** New `src/templates/share.ts`: `downloadProject()` writes
 the whole `ProjectDocument` as `<mod-id>.quest-editor.json`; `parseProjectFile()`
@@ -373,3 +376,11 @@ rejection are unit-tested.
 descriptors, 104 of them inputs — and all 104 carry a hint**; the 8 without are
 informational note/section rows. The remaining jargon scan now returns only intentional
 in-game command names (`fern`) and the Discord-style formatting note.
+
+**Layout: keep wired pairs together.** `layeredLayout` seeded each column with the
+author's order and never reordered, so a node could land rows away from the one feeding
+it (e.g. *On quest complete → Pay the player*), and long crossing wires made the graph
+look more tangled than it is. The columns are now refined with four barycenter sweeps
+(pull each node towards the mean row of its neighbours, right then left), with the
+author's order as seed and tiebreak. Deterministic as before; the investigation
+template now places both flagged pairs on the same row.

@@ -160,9 +160,10 @@ const COLUMN_GAP = 360;
 const ROW_GAP = 160;
 
 /**
- * A layered layout: depth from the roots becomes the column, and order within a
- * column is kept close to the author's own so "tidy up" rearranges rather than
- * scrambles.
+ * A layered layout: depth from the roots becomes the column, and a few
+ * barycenter sweeps order the rows so wired-together nodes sit next to each
+ * other instead of scattering (author order seeds the sweeps and breaks ties,
+ * so "tidy up" rearranges rather than scrambles).
  *
  * Deterministic — the same graph always produces the same positions, which is
  * what makes it safe to offer as a one-click action.
@@ -171,9 +172,12 @@ export function layeredLayout(nodes: NodeDoc[], edges: EdgeDoc[]): Record<string
     if (nodes.length === 0) return {};
 
     const incoming = new Map<string, EdgeDoc[]>();
+    const outgoing = new Map<string, EdgeDoc[]>();
     for (const edge of edges) {
         if (!incoming.has(edge.target)) incoming.set(edge.target, []);
         incoming.get(edge.target)!.push(edge);
+        if (!outgoing.has(edge.source)) outgoing.set(edge.source, []);
+        outgoing.get(edge.source)!.push(edge);
     }
 
     // Longest-path depth, so a node sits to the right of everything feeding it.
@@ -194,24 +198,57 @@ export function layeredLayout(nodes: NodeDoc[], edges: EdgeDoc[]): Record<string
 
     for (const node of nodes) depthOf(node.id);
 
-    // Group by column, preserving the author's original order within it.
-    const columns = new Map<number, NodeDoc[]>();
+    // Group by column, seeding each with the author's original order.
+    const maxDepth = Math.max(...nodes.map((n) => depth.get(n.id) ?? 0));
+    const columns: NodeDoc[][] = Array.from({ length: maxDepth + 1 }, () => []);
+    const columnOf = new Map<string, NodeDoc[]>();
     for (const node of nodes) {
-        const d = depth.get(node.id) ?? 0;
-        if (!columns.has(d)) columns.set(d, []);
-        columns.get(d)!.push(node);
+        const column = columns[depth.get(node.id) ?? 0];
+        column.push(node);
+        columnOf.set(node.id, column);
+    }
+
+    // Row within a column, normalised so rows compare across columns of
+    // different heights.
+    const row = new Map<string, number>();
+    const reindex = (column: NodeDoc[]) => column.forEach((n, i) => row.set(n.id, i));
+    columns.forEach(reindex);
+    const norm = (id: string) => (row.get(id)! + 0.5) / columnOf.get(id)!.length;
+    const barycentre = (ids: string[]) =>
+        ids.length === 0
+            ? undefined
+            : ids.reduce((sum, id) => sum + norm(id), 0) / ids.length;
+
+    // Crossing reduction: sweep right, pulling each node towards the mean row
+    // of what feeds it, then sweep left doing the same with what it feeds.
+    // Nodes without neighbours on the far side keep their row.
+    const sweep = (neighbours: (id: string) => string[], from: number, to: number, step: number) => {
+        for (let d = from; d !== to + step; d += step) {
+            const column = columns[d];
+            column
+                .map((n, i) => ({ n, i, key: barycentre(neighbours(n.id)) ?? norm(n.id) }))
+                .sort((a, b) => a.key - b.key || a.i - b.i)
+                .forEach((entry, i) => {
+                    column[i] = entry.n;
+                });
+            reindex(column);
+        }
+    };
+    for (let pass = 0; pass < 4; pass++) {
+        sweep((id) => (incoming.get(id) ?? []).map((e) => e.source), 1, maxDepth, 1);
+        sweep((id) => (outgoing.get(id) ?? []).map((e) => e.target), maxDepth - 1, 0, -1);
     }
 
     // Centre each column on the canvas so the graph does not drift downwards.
-    const tallest = Math.max(...[...columns.values()].map((c) => c.length));
+    const tallest = Math.max(...columns.map((c) => c.length));
     const positions: Record<string, Position> = {};
 
-    for (const [d, column] of columns) {
+    columns.forEach((column, d) => {
         const offset = ((tallest - column.length) * ROW_GAP) / 2;
         column.forEach((node, i) => {
             positions[node.id] = { x: d * COLUMN_GAP, y: Math.round(offset + i * ROW_GAP) };
         });
-    }
+    });
 
     return positions;
 }

@@ -174,6 +174,24 @@ describe("layeredLayout", () => {
         expect(positions[a.id].y).not.toBe(positions[b.id].y);
     });
 
+    it("keeps a wired pair side by side instead of scattering it", () => {
+        // Authored in an order that disagrees with the wiring: without crossing
+        // reduction "pay" would land a row away from the only node feeding it.
+        const done = node("entry.complete");
+        const claim = node("entry.start");
+        const setup = node("fx.notify");
+        const pay = node("fx.pay");
+
+        const positions = layeredLayout(
+            [done, claim, setup, pay],
+            [edge(claim, "out", setup, "in"), edge(done, "out", pay, "in")],
+        );
+
+        expect(positions[pay.id].x).toBe(positions[setup.id].x);
+        expect(positions[pay.id].y).toBe(positions[done.id].y);
+        expect(positions[setup.id].y).toBe(positions[claim.id].y);
+    });
+
     it("is deterministic and never recurses forever on a cycle", () => {
         const a = node("fx.notify");
         const b = node("fx.pay");

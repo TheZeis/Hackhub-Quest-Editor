@@ -18,7 +18,7 @@ import {
     type NodeTypes,
     type EdgeTypes,
 } from "@xyflow/react";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
@@ -74,6 +74,12 @@ function CanvasInner() {
     }, [analysis]);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
+    // React Flow reports a node's measured size as a "dimensions" change. The
+    // MiniMap only draws nodes whose user-node carries dimensions, so fold the
+    // measurements back into the nodes we hand React Flow. Transient UI state —
+    // never part of the saved document, and never a history entry.
+    const [measured, setMeasured] = useState<Record<string, { width: number; height: number }>>({});
+
     const nodes = useMemo<GraphRFNode[]>(
         () =>
             (quest?.graph.nodes ?? []).map((doc) => ({
@@ -82,8 +88,9 @@ function CanvasInner() {
                 position: doc.position,
                 data: { doc, issue: issuesByNode.get(doc.id) },
                 selected: selection.nodeIds.includes(doc.id),
+                measured: measured[doc.id],
             })),
-        [quest, selection.nodeIds, issuesByNode],
+        [quest, selection.nodeIds, issuesByNode, measured],
     );
 
     const edges = useMemo<TypedRFEdge[]>(() => {
@@ -147,17 +154,21 @@ function CanvasInner() {
         (changes: NodeChange<GraphRFNode>[]) => {
             const positions: Record<string, { x: number; y: number }> = {};
             const removed: string[] = [];
+            const dims: Record<string, { width: number; height: number }> = {};
 
             for (const change of changes) {
                 if (change.type === "position" && change.position) {
                     positions[change.id] = change.position;
                 } else if (change.type === "remove") {
                     removed.push(change.id);
+                } else if (change.type === "dimensions" && change.dimensions) {
+                    dims[change.id] = change.dimensions;
                 }
             }
 
             if (Object.keys(positions).length > 0) setNodePositions(positions);
             if (removed.length > 0) removeNodes(removed);
+            if (Object.keys(dims).length > 0) setMeasured((prev) => ({ ...prev, ...dims }));
             // Fold the whole batch onto the running selection — see applyChanges.
             if (altersSelection(changes)) {
                 select({ nodeIds: nextSelection(selection.nodeIds, changes), edgeIds: [] });
@@ -243,8 +254,8 @@ function CanvasInner() {
                     zoomable
                     nodeColor={(n) => {
                         const doc = (n.data as { doc?: { type: NodeType } })?.doc;
-                        // Hex, not var(): the minimap paints SVG `fill` attributes,
-                        // where CSS variables never resolve (see CATEGORY_HEX).
+                        // Concrete hex per category, matching the node cards'
+                        // accent stripe (see CATEGORY_HEX).
                         return doc ? CATEGORY_HEX[categoryOf(doc.type).id] : "#333";
                     }}
                     nodeStrokeWidth={0}
