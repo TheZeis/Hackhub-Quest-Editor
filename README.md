@@ -29,7 +29,7 @@ npm install
 npm run dev          # http://localhost:5173
 
 npm run typecheck    # tsc --noEmit
-npm test             # 243 tests (vitest)
+npm test             # 264 tests (vitest)
 npm run build        # typecheck + vite build → dist/
 ```
 
