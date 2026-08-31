@@ -20,6 +20,7 @@ import {
 } from "@xyflow/react";
 import { useCallback, useMemo, useRef } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
+import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
@@ -146,29 +147,21 @@ function CanvasInner() {
         (changes: NodeChange<GraphRFNode>[]) => {
             const positions: Record<string, { x: number; y: number }> = {};
             const removed: string[] = [];
-            let nodeIds: string[] | null = null;
 
             for (const change of changes) {
-                switch (change.type) {
-                    case "position":
-                        if (change.position) positions[change.id] = change.position;
-                        break;
-                    case "remove":
-                        removed.push(change.id);
-                        break;
-                    case "select":
-                        nodeIds = change.selected
-                            ? [...new Set([...selection.nodeIds, change.id])]
-                            : selection.nodeIds.filter((id) => id !== change.id);
-                        break;
-                    default:
-                        break;
+                if (change.type === "position" && change.position) {
+                    positions[change.id] = change.position;
+                } else if (change.type === "remove") {
+                    removed.push(change.id);
                 }
             }
 
             if (Object.keys(positions).length > 0) setNodePositions(positions);
             if (removed.length > 0) removeNodes(removed);
-            if (nodeIds) select({ nodeIds, edgeIds: [] });
+            // Fold the whole batch onto the running selection — see applyChanges.
+            if (altersSelection(changes)) {
+                select({ nodeIds: nextSelection(selection.nodeIds, changes), edgeIds: [] });
+            }
         },
         [removeNodes, select, selection.nodeIds, setNodePositions],
     );
@@ -176,17 +169,13 @@ function CanvasInner() {
     const onEdgesChange = useCallback(
         (changes: EdgeChange<TypedRFEdge>[]) => {
             const removed: string[] = [];
-            let edgeIds: string[] | null = null;
             for (const change of changes) {
                 if (change.type === "remove") removed.push(change.id);
-                else if (change.type === "select") {
-                    edgeIds = change.selected
-                        ? [...new Set([...selection.edgeIds, change.id])]
-                        : selection.edgeIds.filter((id) => id !== change.id);
-                }
             }
             if (removed.length > 0) removeEdges(removed);
-            if (edgeIds) select({ nodeIds: [], edgeIds });
+            if (altersSelection(changes)) {
+                select({ nodeIds: [], edgeIds: nextSelection(selection.edgeIds, changes) });
+            }
         },
         [removeEdges, select, selection.edgeIds],
     );
