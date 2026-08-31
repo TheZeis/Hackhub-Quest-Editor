@@ -447,3 +447,16 @@ Consequences in the builder:
   already bring (dark hero, orbit SVG, missions with status tags, newsroom, staff
   directory, dead employee portal). Site templates: Corporate, Public agency,
   Leak archive. Blank sites start from a styled starter page, not a bare fragment.
+
+**Template repertoire round two.** Three more site templates, each built from new
+page designs so authors get references, not just more of the same: a
+Substack-style **newsletter blog** (landing with subscribe box, full article,
+hidden drafts page), a Reddit-style **forum** (front page with vote rails whose
+top post opens into its own nested comment thread), and a **recipe site**
+(card-grid home plus full recipe page with ingredients panel and numbered
+method). That makes 6 site templates over 13 page templates.
+
+Site templates are no longer an empty-state-only affair: the sites column "+"
+opens a picker offering blank plus every site template at any time, and each
+page has a **Duplicate** button so one designed page can seed several
+(`path` + `-copy`, selected immediately).

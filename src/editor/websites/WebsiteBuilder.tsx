@@ -34,6 +34,7 @@ export function WebsiteBuilderDialog({
     const [pageId, setPageId] = useState<string | null>(null);
     const [mode, setMode] = useState<"visual" | "code" | "preview">("visual");
     const [picker, setPicker] = useState(false);
+    const [sitePicker, setSitePicker] = useState(false);
     /** Bumped when content changes outside the visual editor, so it remounts fresh. */
     const [outsideRev, setOutsideRev] = useState(0);
     const htmlFileRef = useRef<HTMLInputElement>(null);
@@ -141,17 +142,59 @@ export function WebsiteBuilderDialog({
                                     <button
                                         type="button"
                                         className="btn-icon"
-                                        title="New website"
-                                        aria-label="New website"
-                                        onClick={() => {
-                                            const w = createWebsite({ host: `site-${websites.length + 1}.net` });
-                                            addWebsite(w);
-                                            setSiteId(w.id);
-                                        }}
+                                        title="Add website (blank or template)"
+                                        aria-label="Add website"
+                                        onClick={() => setSitePicker((p) => !p)}
                                     >
                                         <Icon name="plus" size={13} />
                                     </button>
                                 </div>
+                                {sitePicker && (
+                                    <div className="border-b border-line bg-surface-2/60 p-2">
+                                        <p className="mb-1 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
+                                            New site from
+                                        </p>
+                                        <div className="grid gap-1">
+                                            <button
+                                                type="button"
+                                                className="rounded-md border border-line px-2 py-1 text-left text-[11px] text-ink-2 hover:bg-surface-3"
+                                                onClick={() => {
+                                                    const w = createWebsite();
+                                                    addWebsite(w);
+                                                    setSiteId(w.id);
+                                                    setPageId(null);
+                                                    setSitePicker(false);
+                                                }}
+                                            >
+                                                Blank website
+                                            </button>
+                                            {SITE_TEMPLATES.map((t) => (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    className="rounded-md border border-line px-2 py-1 text-left hover:bg-surface-3"
+                                                    onClick={() => {
+                                                        const made = t.make();
+                                                        const w = createWebsite({
+                                                            host: made.host,
+                                                            name: made.name,
+                                                            pages: made.pages.map((pg) => createPage(pg)),
+                                                        });
+                                                        addWebsite(w);
+                                                        setSiteId(w.id);
+                                                        setPageId(null);
+                                                        setSitePicker(false);
+                                                    }}
+                                                >
+                                                    <span className="block text-[11px] text-ink-2">{t.label}</span>
+                                                    <span className="block text-[10px] leading-snug text-ink-4">
+                                                        {t.blurb}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
                                     {websites.map((w) => (
                                         <button
@@ -349,6 +392,28 @@ export function WebsiteBuilderDialog({
                                                 {site.host}
                                                 {page.path}
                                             </span>
+                                            <button
+                                                type="button"
+                                                className="btn-icon text-ink-4 hover:text-ink"
+                                                title="Duplicate page"
+                                                aria-label="Duplicate page"
+                                                onClick={() => {
+                                                    const copy = createPage({
+                                                        title: `${page.title} (copy)`,
+                                                        path: page.path.endsWith("/")
+                                                            ? `${page.path}copy`
+                                                            : `${page.path}-copy`,
+                                                        seo: page.seo,
+                                                        content: page.content,
+                                                        template: page.template,
+                                                    });
+                                                    addPage(site.id, copy);
+                                                    setPageId(copy.id);
+                                                    setOutsideRev((r) => r + 1);
+                                                }}
+                                            >
+                                                <Icon name="copy" size={13} />
+                                            </button>
                                             <button
                                                 type="button"
                                                 className="btn-icon text-ink-4 hover:text-danger"

@@ -142,6 +142,48 @@ describe("website builder dialog", () => {
         expect(site.pages.find((p) => !p.seo)!.path).toBe("/files/internal/q3-audit");
     });
 
+    it("loads more site templates any time via the add-site picker", async () => {
+        const user = userEvent.setup();
+        const first = createWebsite();
+        act(() => useEditor.getState().addWebsite(first));
+
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        await user.click(screen.getByRole("button", { name: "Add website" }));
+
+        // The whole repertoire is offered, not just on the empty state.
+        expect(screen.getByRole("button", { name: /newsletter blog/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /forum front page/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /recipe site/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /recipe site/i }));
+        const sites = useEditor.getState().project.websites;
+        expect(sites).toHaveLength(2);
+        const recipe = sites.find((w) => w.host === "butterandbramble.com")!;
+        expect(recipe.pages).toHaveLength(2);
+        expect(recipe.pages[0].content).toContain("Butter");
+    });
+
+    it("duplicates a page so authors can reuse a base design", async () => {
+        const user = userEvent.setup();
+        const { SITE_TEMPLATES } = await import("@/templates/pages");
+        const corp = SITE_TEMPLATES.find((t) => t.id === "corp")!.make();
+        act(() =>
+            useEditor.getState().addWebsite(
+                createWebsite({ host: corp.host, name: corp.name, pages: corp.pages.map((pg) => createPage(pg)) }),
+            ),
+        );
+
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        const before = useEditor.getState().project.websites[0].pages.length;
+        await user.click(screen.getByRole("button", { name: "Duplicate page" }));
+
+        const pages = useEditor.getState().project.websites[0].pages;
+        expect(pages).toHaveLength(before + 1);
+        const copy = pages.find((pg) => pg.path === "/copy")!;
+        expect(copy.title).toBe("Home (copy)");
+        expect(copy.content).toContain("Meridian Capital");
+    });
+
     it("edits page meta fields", async () => {
         const user = userEvent.setup();
         const site = createWebsite();
