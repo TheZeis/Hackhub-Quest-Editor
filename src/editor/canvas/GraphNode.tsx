@@ -3,8 +3,8 @@
  * through it, so card chrome, socket layout and selection styling stay consistent
  * and new node types need no new component.
  */
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { useMemo } from "react";
+import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
@@ -34,6 +34,13 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const def = nodeTypeDef(doc.type);
     const category = categoryOf(doc.type);
     const lines = useMemo(() => summarize(doc).filter(Boolean), [doc]);
+    const [hovered, setHovered] = useState(false);
+    const connecting = useConnection((c) => c.inProgress);
+
+    // Socket names are useful exactly when you are about to wire something. At
+    // rest they are clutter that competes with the node's own summary, so they
+    // only appear on hover, selection, or while a wire is being dragged.
+    const showLabels = selected || hovered || connecting;
 
     const isNote = doc.type === "flow.note";
 
@@ -56,8 +63,10 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
 
     return (
         <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
             className={cn(
-                "relative rounded-lg border bg-surface shadow-node",
+                "relative w-60 rounded-lg border bg-surface shadow-node",
                 "transition-[border-color,box-shadow] duration-150",
                 selected ? "border-transparent ring-2" : "border-line hover:border-line-strong",
             )}
@@ -154,10 +163,11 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 />
             ))}
 
-            {/* Socket labels, positioned on the same rule as the sockets
-                themselves so a label always sits next to its own dot. Only shown
-                when a side has more than one socket — otherwise it is obvious. */}
-            {def.targets.length > 1 &&
+            {/* Socket names, on the same vertical rule as their dot but OUTSIDE
+                the card so they never sit on top of the node's own text. Shown
+                only on hover / selection / while a wire is being dragged. */}
+            {showLabels &&
+                def.targets.length > 1 &&
                 def.targets.map((h, i) => (
                     <SocketLabel
                         key={h.id}
@@ -168,7 +178,8 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                         {h.label}
                     </SocketLabel>
                 ))}
-            {def.sources.length > 1 &&
+            {showLabels &&
+                def.sources.length > 1 &&
                 def.sources.map((h, i) => (
                     <SocketLabel
                         key={h.id}
@@ -197,14 +208,17 @@ function SocketLabel({
     return (
         <span
             className={cn(
-                "pointer-events-none absolute -translate-y-1/2 rounded px-1 py-px",
+                "pointer-events-none absolute whitespace-nowrap rounded px-1 py-px",
                 "font-mono text-[8.5px] leading-tight tracking-wide uppercase",
-                side === "left" ? "left-1.5" : "right-1.5",
             )}
             style={{
                 top,
                 color: HANDLE_STYLE[kind].color,
-                background: "color-mix(in srgb, var(--color-surface) 88%, transparent)",
+                background: "color-mix(in srgb, var(--color-canvas) 82%, transparent)",
+                // Sit in the gutter beside the card, vertically centred on the dot.
+                ...(side === "left"
+                    ? { right: "100%", marginRight: 10, transform: "translateY(-50%)" }
+                    : { left: "100%", marginLeft: 10, transform: "translateY(-50%)" }),
             }}
         >
             {children}

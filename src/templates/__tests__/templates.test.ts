@@ -44,6 +44,30 @@ describe("template registry", () => {
         expect(JSON.stringify(template.build())).toBe(JSON.stringify(template.build()));
     });
 
+    // The exact defect reported from the screenshot: two cards on top of each
+    // other. Cards are w-60 (240px) and roughly 100-120px tall, so use a generous
+    // box and fail if any two intersect.
+    const NODE_W = 240;
+    const NODE_H = 120;
+
+    it.each(TEMPLATES)("%s: no two nodes overlap", (template) => {
+        for (const quest of template.build().quests) {
+            const nodes = quest.graph.nodes;
+            for (let a = 0; a < nodes.length; a += 1) {
+                for (let b = a + 1; b < nodes.length; b += 1) {
+                    const p = nodes[a].position;
+                    const q = nodes[b].position;
+                    const overlapX = Math.abs(p.x - q.x) < NODE_W;
+                    const overlapY = Math.abs(p.y - q.y) < NODE_H;
+                    expect(
+                        overlapX && overlapY,
+                        `${nodes[a].id} overlaps ${nodes[b].id} at (${p.x},${p.y})/(${q.x},${q.y})`,
+                    ).toBe(false);
+                }
+            }
+        }
+    });
+
     it.each(TEMPLATES)("%s: has unique node ids", (template) => {
         for (const quest of template.build().quests) {
             const ids = quest.graph.nodes.map((n) => n.id);

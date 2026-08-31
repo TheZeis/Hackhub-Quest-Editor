@@ -10,6 +10,7 @@ import { createProject, createQuest, type ProjectDocument } from "@/schema/proje
 import { NODE_TYPES_REGISTRY, nodeTypeDef } from "@/schema/registry";
 import type { NodeDoc, NodeType } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
+import { layeredLayout } from "@/analysis/graph";
 
 let counter = 0;
 function resetIds() {
@@ -57,6 +58,20 @@ function makeEdge(
         targetHandle,
         kind: sourceKind,
     };
+}
+
+/**
+ * Run the same deterministic layered layout the canvas' "Tidy up" button uses, so
+ * a template never opens with two cards on top of each other. Only applied when
+ * the graph has wires — the reference sheet is a deliberate grid.
+ */
+function applyLayout(quest: ReturnType<typeof createQuest>): void {
+    if (quest.graph.edges.length === 0) return;
+    const positions = layeredLayout(quest.graph.nodes, quest.graph.edges);
+    for (const node of quest.graph.nodes) {
+        const position = positions[node.id];
+        if (position) node.position = position;
+    }
 }
 
 /** A trigger wired to the objective it completes — the most common pair. */
@@ -155,6 +170,8 @@ function buildHelloHack(): ProjectDocument {
             scan.edge,
         ],
     };
+
+    applyLayout(quest);
 
     return createProject({ quests: [quest], editor: { activeQuestId: quest.id, viewports: {} } });
 }
@@ -259,6 +276,8 @@ function buildWifiHack(): ProjectDocument {
             t3.edge,
         ],
     };
+
+    applyLayout(quest);
 
     return createProject({
         mod: {
@@ -587,6 +606,8 @@ function buildInvestigation(): ProjectDocument {
             makeEdge(abandon, "out", cleanup, "in"),
         ],
     };
+
+    applyLayout(quest);
 
     return createProject({
         mod: {

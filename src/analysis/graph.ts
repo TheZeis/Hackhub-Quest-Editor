@@ -154,8 +154,10 @@ export function summariseIssues(analysis: GraphAnalysis): string {
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
 
-const COLUMN_GAP = 300;
-const ROW_GAP = 150;
+// Card is w-60 (240px); the column gap leaves room for the socket-name
+// labels that render in the gutter when a node is hovered.
+const COLUMN_GAP = 360;
+const ROW_GAP = 160;
 
 /**
  * A layered layout: depth from the roots becomes the column, and order within a

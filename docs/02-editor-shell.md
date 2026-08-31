@@ -312,3 +312,28 @@ The last one is worth naming: a script that edits 140 places in a 990-line file 
 surgery corrupted the file twice before it worked. The version that shipped does one
 provably-local thing — insert after a field's own `key:` — and is idempotent. See
 `reference/add-hints.py`.
+
+---
+
+## 11. Screenshot round two: overlap and label clutter
+
+A look at the branching template surfaced two defects.
+
+**Nodes overlapped.** The hand-written template positions put a trigger node almost
+exactly on top of a world node (`domain` at 640,160 vs the nmap trigger at 660,150).
+Hand-written coordinates are exactly as fragile as they look, so the templates now
+build their positions with the *same* `layeredLayout()` the canvas' Tidy up button
+uses — applied whenever a graph has wires. The reference sheet stays a deliberate
+grid. A regression test fails if any two template nodes' bounding boxes intersect.
+
+**Socket labels sat on top of the node's own text.** The labels were rendered inside
+the card, over the summary lines. Two-part fix:
+
+1. They now render in the **gutter outside the card**, vertically centred on their
+   dot, so they can never cover the node's content.
+2. They are only shown **on hover, on selection, or while a wire is being dragged**
+   (`useConnection().inProgress`). At rest the coloured dot and the legend are
+   enough; the names appear precisely when you are about to use them.
+
+Cards were also given a fixed `w-60` width so columns are predictable for the layout
+and the gutter has room for the labels. Column gap widened to 360px accordingly.
