@@ -139,6 +139,11 @@ export function TopBar() {
                 Templates
             </button>
 
+            <button type="button" className="btn-default" onClick={() => setUi({ modal: "websites" })}>
+                <Icon name="globe" size={13} />
+                <span className="hidden lg:inline">Websites</span>
+            </button>
+
             <button type="button" className="btn-default" onClick={() => setUi({ modal: "shortcuts" })}>
                 <Icon name="sliders" size={13} />
                 <span className="hidden lg:inline">Shortcuts</span>

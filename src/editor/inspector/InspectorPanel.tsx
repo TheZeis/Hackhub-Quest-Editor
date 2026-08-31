@@ -11,6 +11,7 @@ import { categoryOf, nodeTypeDef } from "@/schema/registry";
 import { selectActiveQuest, selectSelectedNode, useEditor } from "@/store/editor";
 import { Field } from "./Field";
 import { FieldShell, NumberInput, SelectInput, TextArea, TextInput, Toggle } from "./primitives";
+import { NODE_SIM_EDITORS } from "./sims";
 
 const TABS = [
     { value: "node", label: "Node" },
@@ -78,6 +79,7 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
 
     const def = nodeTypeDef(node.type);
     const category = categoryOf(node.type);
+    const SimEditor = NODE_SIM_EDITORS[node.type];
 
     return (
         <div className="pb-8">
@@ -109,6 +111,8 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
                     <Icon name="trash" size={14} />
                 </button>
             </div>
+
+            {SimEditor && <SimEditor node={node} />}
 
             <div className="pt-1">
                 {def.fields.map((field, i) => (

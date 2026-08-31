@@ -384,3 +384,39 @@ look more tangled than it is. The columns are now refined with four barycenter s
 (pull each node towards the mean row of its neighbours, right then left), with the
 author's order as seed and tiebreak. Deterministic as before; the investigation
 template now places both flagged pairs on the same row.
+
+---
+
+## 13. Step 3 — messaging simulators and the website builder
+
+**Communication nodes now edit inside a live, game-styled preview** instead of a
+bare field list:
+
+- **Kisscord** — a DM window: NPC bubbles left, the player's right, lock chips on
+  gated messages. The script editor below paces lines (delay in seconds), flips
+  sender, and gates any message behind quest objectives with tappable chips
+  (the SDK pauses the chain at the first gated message and resumes on completion).
+- **WeeChat** — an IRC terminal log (`[hh:mm] <nick> line`), with username, delay
+  and sender per line.
+- **Mail** — an inbox reading view (subject, from/to, rendered HTML body,
+  attachment chip) above the existing fields.
+- **Phone call** — the dialog tree itself, with a tappable phone preview. Branches
+  live on the quest (several call nodes can share a script); each line has speaker,
+  text, timeout and end-of-call, and player choices can continue, jump to a line,
+  switch branch, or hang up. The preview plays the script so authors can feel the
+  conversation before shipping it.
+
+**Website builder** (`Websites` in the top bar): a mod-level site list, per-site
+pages, and an edit/preview workspace. Pages are WYSIWYG — a contentEditable surface
+styled like the rendered page (bold/italic/underline, headings, quote, lists,
+links) storing HTML, previewed inside a fake in-game browser with the real
+`host + path` in the address bar. Five ready-made page templates ship, including a
+**hidden clue page** that starts unlisted in a deep sub-directory.
+
+The dirhunter contract is surfaced as one honest toggle: **"Listed in the in-game
+search"**. Off means the page stays routable but leaves the search index — exactly
+what `dirhunter` brute-forces — and both the page list (lock glyph) and the preview
+(a banner) say so plainly.
+
+Websites live on the project document (`project.websites`), shared by all quests;
+the Step 4 compiler will write each page to the mod's website output verbatim.

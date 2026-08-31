@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { original, produce } from "immer";
 import { nanoid } from "nanoid";
-import type { ProjectDocument, QuestDoc, ModDoc } from "@/schema/project";
+import type { ProjectDocument, QuestDoc, ModDoc, WebsiteDoc, WebPageDoc } from "@/schema/project";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { ProjectSchema, createProject, createQuest } from "@/schema/project";
@@ -32,7 +32,7 @@ export interface UiState {
     inspectorCollapsed: boolean;
     paletteCollapsed: boolean;
     /** Set while a modal (templates, export, settings) is open. */
-    modal: null | "templates" | "mod" | "shortcuts";
+    modal: null | "templates" | "mod" | "shortcuts" | "websites";
     toast: { id: string; message: string; tone: ToastTone } | null;
 }
 
@@ -85,6 +85,14 @@ export interface EditorStore {
         targetHandle: string;
     }) => boolean;
     removeEdges: (ids: string[]) => void;
+
+    /* websites */
+    addWebsite: (website: WebsiteDoc) => void;
+    removeWebsite: (id: string) => void;
+    updateWebsite: (id: string, patch: Partial<Omit<WebsiteDoc, "pages">>) => void;
+    addPage: (websiteId: string, page: WebPageDoc) => void;
+    updatePage: (websiteId: string, pageId: string, patch: Partial<WebPageDoc>) => void;
+    removePage: (websiteId: string, pageId: string) => void;
 
     /* ui */
     select: (selection: Selection) => void;
@@ -286,6 +294,43 @@ export const useEditor = create<EditorStore>()((set, get) => {
             mutate((project) => {
                 const quest = project.quests.find((q) => q.id === id);
                 if (quest) Object.assign(quest, patch);
+            }),
+
+        /* websites — the builder dialog writes through these */
+        addWebsite: (website) =>
+            mutate((project) => {
+                project.websites.push(website);
+            }),
+
+        removeWebsite: (id) =>
+            mutate((project) => {
+                project.websites = project.websites.filter((w) => w.id !== id);
+            }),
+
+        updateWebsite: (id, patch) =>
+            mutate((project) => {
+                const site = project.websites.find((w) => w.id === id);
+                if (site) Object.assign(site, patch);
+            }),
+
+        addPage: (websiteId, page) =>
+            mutate((project) => {
+                const site = project.websites.find((w) => w.id === websiteId);
+                if (site) site.pages.push(page);
+            }),
+
+        updatePage: (websiteId, pageId, patch) =>
+            mutate((project) => {
+                const page = project.websites
+                    .find((w) => w.id === websiteId)
+                    ?.pages.find((p) => p.id === pageId);
+                if (page) Object.assign(page, patch);
+            }),
+
+        removePage: (websiteId, pageId) =>
+            mutate((project) => {
+                const site = project.websites.find((w) => w.id === websiteId);
+                if (site) site.pages = site.pages.filter((p) => p.id !== pageId);
             }),
 
         setViewport: (questId, viewport) =>

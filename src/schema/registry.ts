@@ -189,19 +189,6 @@ const fileFields: FieldDef[] = [
     { kind: "textarea", key: "data", hint: "The file's contents. This is where clues live — a config file, a log excerpt, a leaked password.", label: "Contents", mono: true, rows: 4 },
 ];
 
-const kisscordMsgFields: FieldDef[] = [
-    { kind: "textarea", key: "content", hint: "The message text. Discord-style formatting works: **bold**, *italic*, and links.", label: "Message", rows: 3, tokens: true },
-    { kind: "toggle", key: "isMine", hint: "Send it from the player's own account instead of the contact's.", label: "Sent by the player" },
-    { kind: "number", key: "delayMs", hint: "Pause in milliseconds before this message appears. Use it to pace a conversation.", label: "Delay (ms)", min: 0, step: 100 },
-];
-
-const weechatMsgFields: FieldDef[] = [
-    { kind: "textarea", key: "content", hint: "The line printed in the IRC channel.", label: "Message", rows: 3, tokens: true },
-    { kind: "text", key: "username", label: "Username", mono: true, hint: "Ignored when sent by the player." },
-    { kind: "toggle", key: "isMine", hint: "Send the line from the player's own nick.", label: "Sent by the player" },
-    { kind: "number", key: "delayMs", hint: "Pause in milliseconds before this line appears.", label: "Delay (ms)", min: 0, step: 100 },
-];
-
 /**
  * Reusable field groups, exported so the network device editor can render the
  * same port/user/rule/vulnerability controls the node inspectors use.
@@ -640,7 +627,6 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "branch", label: "Branch", mono: true, hint: "Which conversation this call plays. The lines themselves live in the quest's dialog, below." },
             { kind: "number", key: "startIndex", hint: "Which line of dialogue the call opens on. Use it to resume a conversation mid-script.", label: "Start at line", min: 0 },
         ],
         create: () => seed(CallNodeDataSchema),
@@ -656,16 +642,6 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [
             { kind: "text", key: "contactId", label: "Contact", mono: true, hint: "A Kisscord NPC registered by this quest." },
-            {
-                kind: "list",
-                key: "messages",
-                label: "Messages",
-                hint: "The chain pauses at the first gated message and resumes once its objectives complete — reloads included.",
-                addLabel: "Add message",
-                itemTitle: (m, i) => `${m.isMine ? "You" : "NPC"}: ${String(m.content ?? "").slice(0, 34) || `message ${i + 1}`}`,
-                fields: kisscordMsgFields,
-                newItem: () => ({ id: nanoid(8), content: "", isMine: false, delayMs: 1000, unlocksAfter: [] }),
-            },
         ],
         create: () => seed(KisscordNodeDataSchema),
     },
@@ -682,15 +658,6 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "text", key: "host", hint: "The IRC server the player connects to.", label: "Server host", mono: true, placeholder: "irc.darknet.org" },
             { kind: "text", key: "password", label: "Password", mono: true, hint: "The player connects with: weechat <host> <password>." },
             { kind: "toggle", key: "registerServer", hint: "Register the server with WeeChat so it appears in the player's server list automatically.", label: "Register the server" },
-            {
-                kind: "list",
-                key: "messages", hint: "The channel log, top to bottom.",
-                label: "Messages",
-                addLabel: "Add message",
-                itemTitle: (m, i) => `${m.username ?? "you"}: ${String(m.content ?? "").slice(0, 30) || `message ${i + 1}`}`,
-                fields: weechatMsgFields,
-                newItem: () => ({ id: nanoid(8), content: "", username: "informant", isMine: false, delayMs: 1000 }),
-            },
         ],
         create: () => seed(WeeChatNodeDataSchema, { host: "irc.darknet.org", password: "secret123" }),
     },

@@ -40,6 +40,39 @@ export const ModSchema = z.object({
 });
 export type ModDoc = z.infer<typeof ModSchema>;
 
+/* ── Websites ──────────────────────────────────────────────────────────────
+   The WYSIWYG website builder's model. A mod ships any number of sites; each
+   page compiles to an HTML file under the site's host. Pages with `seo:false`
+   stay routable but leave the in-game search index — the dirhunter hiding
+   place (docs/01 §1.4).
+   ─────────────────────────────────────────────────────────────────────── */
+
+export const WebPageSchema = z.object({
+    id: z.string(),
+    /** Path on the host, e.g. `/` or `/about/team`. Sub-directories are fine. */
+    path: z.string().default("/"),
+    title: z.string().default(""),
+    /**
+     * Listed in the in-game search index. Turn off to hide a clue page from
+     * search while keeping it reachable by URL (what `dirhunter` brute-forces).
+     */
+    seo: z.boolean().default(true),
+    /** Which ready-made template the page started from, for provenance. */
+    template: z.string().optional(),
+    /** WYSIWYG body, stored as HTML. */
+    content: z.string().default(""),
+});
+export type WebPageDoc = z.infer<typeof WebPageSchema>;
+
+export const WebsiteSchema = z.object({
+    id: z.string(),
+    /** The host players type into the in-game browser, e.g. `meridian-capital.net`. */
+    host: z.string().default("example.net"),
+    name: z.string().default(""),
+    pages: z.array(WebPageSchema).default([]),
+});
+export type WebsiteDoc = z.infer<typeof WebsiteSchema>;
+
 /* ── Quest ───────────────────────────────────────────────────────────────── */
 
 export const EmployerSchema = z.object({
@@ -125,11 +158,25 @@ export const ProjectSchema = z.object({
     kind: z.literal("hackhub-quest-editor/project").default("hackhub-quest-editor/project"),
     mod: ModSchema.default({} as never),
     quests: z.array(QuestSchema).min(1, "a mod needs at least one quest").default([]),
+    /** Sites built with the website builder, shared by every quest in the mod. */
+    websites: z.array(WebsiteSchema).default([]),
     editor: EditorStateSchema.default({} as never),
 });
 export type ProjectDocument = z.infer<typeof ProjectSchema>;
 
 /* ── Factories ───────────────────────────────────────────────────────────── */
+
+export function createPage(partial: Partial<WebPageDoc> = {}): WebPageDoc {
+    return WebPageSchema.parse({ id: nanoid(10), ...partial });
+}
+
+export function createWebsite(partial: Partial<WebsiteDoc> = {}): WebsiteDoc {
+    return WebsiteSchema.parse({
+        id: nanoid(10),
+        pages: [createPage({ path: "/", title: "Home" })],
+        ...partial,
+    });
+}
 
 export function createQuest(partial: Partial<QuestDoc> = {}): QuestDoc {
     return QuestSchema.parse({ id: nanoid(10), ...partial });
