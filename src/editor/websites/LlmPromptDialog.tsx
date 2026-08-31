@@ -14,11 +14,11 @@ export function buildLlmPrompt(idea: string): string {
 
 HOW TO DELIVER
 - Build the site as separate pages: write ONE complete .html file per page, and tell me which path each file belongs to (for example: index.html for "/", news.html for "/news", staff.html for "/staff").
-- Aim for 3–6 pages total.
+- Aim for 1–6 pages total — a single page is fine for a small site, add sub-pages only where they earn their place.
 
 STRICT TECHNICAL RULES (the game's browser has NO internet)
 - Each file must be a complete document: <!DOCTYPE html>, <html>, a <head> with <title> and one <style> block, then <body>.
-- No external resources of any kind: no CDN links, no Google Fonts, no <link>, no <script src="...">, no external images. Use inline <style>, system fonts (Helvetica, Arial, Georgia, 'Courier New'), inline <svg> for logos and graphics, and CSS gradients instead of photos.
+- No external resources of any kind: no CDN links, no web fonts, no <link>, no <script src="...">, no external images. Use inline <style>, fonts that ship with the operating system, inline <svg> for logos and graphics, and CSS gradients instead of photos.
 - Copy the same <style>, header/navigation and footer into every page so the whole site looks consistent.
 - Pages must link to each other with plain paths like href="/news" — never file names, never full https:// URLs, and never "#" anchors for main navigation. Every link in the navigation must be one of the pages you deliver.
 - Small plain <script> blocks inside a page are allowed (buttons, fake forms, little effects).
@@ -27,11 +27,11 @@ CONTENT RULES
 - Write realistic, complete content — real-sounding articles, staff, products. No lorem ipsum, no placeholder text.
 - The site should feel like it already existed before the player found it.
 
-SECRETS (this is a hacking game)
-- Hide at least one secret as an HTML comment (<!-- like this -->) somewhere meaningful — a note a careless employee left behind.
-- Include ONE extra page that is NOT linked from the navigation — an admin panel, internal memo, or staff area — and tell me its path. Players find it with hacking tools, so it must exist but be undiscoverable by browsing.
+SECRETS (this is a hacking game — everything below is optional; the quest design decides)
+- You can hide one or more secrets as HTML comments (<!-- like this -->), or none at all — a note a careless employee left behind makes a great findable clue.
+- You can add one or more pages that are NOT linked from the navigation — an admin panel, internal memo, staff area — or none. Players discover such pages with hacking tools, so they must exist as files while staying undiscoverable by browsing. If you add any, tell me their paths.
 - If the site has a login form, make it look real; it never needs to actually log anyone in.
-- Sprinkle plausible clue material: staff names, employee IDs, dates, ticket numbers — things a player could turn into a password.
+- Plausible clue material — staff names, employee IDs, dates, ticket numbers — gives players things they could turn into passwords.
 
 MY WEBSITE IDEA
 ${idea.trim() || "(describe your website here — what it is, who runs it, what it sells or announces, and what secret it should hide)"}

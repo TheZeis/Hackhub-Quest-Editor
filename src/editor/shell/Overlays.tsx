@@ -9,6 +9,7 @@ import { useEditor } from "@/store/editor";
 import { TEMPLATES, type Template } from "@/templates";
 import { downloadProject, parseProjectFile, projectFileName } from "@/templates/share";
 import { WebsiteBuilderDialog } from "@/editor/websites/WebsiteBuilder";
+import { DialoguesDialog } from "./DialoguesDialog";
 import { EVENT_COUNT, SDK_VERSION } from "@/schema/events";
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
@@ -261,6 +262,7 @@ export function Overlays() {
             <TemplatesDialog open={modal === "templates"} onOpenChange={(o) => setUi({ modal: o ? "templates" : null })} />
             <ShortcutsDialog open={modal === "shortcuts"} onOpenChange={(o) => setUi({ modal: o ? "shortcuts" : null })} />
             <WebsiteBuilderDialog open={modal === "websites"} onOpenChange={(o) => setUi({ modal: o ? "websites" : null })} />
+            <DialoguesDialog open={modal === "dialogues"} onOpenChange={(o) => setUi({ modal: o ? "dialogues" : null })} />
         </>
     );
 }

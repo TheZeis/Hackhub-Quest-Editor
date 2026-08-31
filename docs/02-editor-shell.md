@@ -502,3 +502,15 @@ an **✨ AI website prompt** popout: describe the site, copy a generated prompt
 that teaches any LLM HackHub's quirks (one self-contained .html per page, no
 internet resources, real path links, one unlinked secret page), then Load HTML
 the results.
+
+**Round twelve: prompt advice not commandments, naza beauty fix, discoverable
+dialogues.** The AI prompt now says 1–6 pages, names no specific fonts (the LLM
+may pick any OS font), and every secret is optional advice ("you can…") since
+quest design decides. The naza pages' visual regression is fixed: the
+generator double-wrapped the stylesheet (`<style><style>`), which poisoned the
+first CSS rules — the `:root` variables died, turning the gov bar white-on-
+white and the type serif; all 8 pages now carry one clean style block. The
+dialogue editor (branch scripts, choices, phone preview) was extracted into a
+shared `BranchScriptEditor` and now has a top-level home: a **Dialogues**
+button in the top bar opens it for the active quest without placing a call
+node first; the phone node inspector uses the same editor.

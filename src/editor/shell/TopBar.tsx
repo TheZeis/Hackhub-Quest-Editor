@@ -139,6 +139,16 @@ export function TopBar() {
                 Templates
             </button>
 
+            <button
+                type="button"
+                className="btn-default"
+                onClick={() => setUi({ modal: "dialogues" })}
+                title="Write the quest's phone conversations"
+            >
+                <Icon name="phone" size={13} />
+                <span className="hidden lg:inline">Dialogues</span>
+            </button>
+
             <button type="button" className="btn-default" onClick={() => setUi({ modal: "websites" })}>
                 <Icon name="globe" size={13} />
                 <span className="hidden lg:inline">Websites</span>

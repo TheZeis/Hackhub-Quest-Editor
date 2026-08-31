@@ -17,7 +17,7 @@ const cut = (a, b) => {
     return src.slice(i, j);
 };
 
-const style = cut("<style>", "</style>");
+const style = src.slice(src.indexOf("<style>") + "<style>".length, src.indexOf("</style>"));
 const govBar = cut('<div class="gov-bar">', "<header>");
 const header = cut("<header>", "</header>");
 const footer = cut("<footer>", "</footer>");

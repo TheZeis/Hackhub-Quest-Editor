@@ -32,7 +32,7 @@ export interface UiState {
     inspectorCollapsed: boolean;
     paletteCollapsed: boolean;
     /** Set while a modal (templates, export, settings) is open. */
-    modal: null | "templates" | "mod" | "shortcuts" | "websites";
+    modal: null | "templates" | "mod" | "shortcuts" | "websites" | "dialogues";
     toast: { id: string; message: string; tone: ToastTone } | null;
 }
 

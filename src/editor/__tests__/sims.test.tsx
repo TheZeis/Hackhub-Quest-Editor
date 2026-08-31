@@ -175,3 +175,41 @@ describe("mail preview", () => {
         expect(screen.getByText(/handler@anon\.mail/)).toBeInTheDocument();
     });
 });
+
+describe("top-level dialogue editor", () => {
+    it("writes quest conversations without needing a call node on the canvas", async () => {
+        const user = userEvent.setup();
+        const { DialoguesDialog } = await import("@/editor/shell/DialoguesDialog");
+        render(<DialoguesDialog open onOpenChange={() => {}} />);
+
+        expect(useEditor.getState().project.quests[0].dialog).toHaveLength(0);
+        await user.click(screen.getByRole("button", { name: "New branch" }));
+        expect(useEditor.getState().project.quests[0].dialog).toHaveLength(1);
+
+        await user.click(screen.getByRole("button", { name: /Add line/ }));
+        await user.type(screen.getByLabelText("Line 1"), "We need your help again.");
+        await user.type(screen.getByLabelText("Speaker 1"), "Voss");
+
+        const dialog = useEditor.getState().project.quests[0].dialog;
+        expect(dialog[0].lines).toHaveLength(1);
+        expect(dialog[0].lines[0].text).toBe("We need your help again.");
+        expect(dialog[0].lines[0].speaker).toBe("Voss");
+
+        // the phone preview and the line card both render the scripted line
+        expect(screen.getAllByText(/We need your help again\./).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("is reachable from the top bar like the website builder", async () => {
+        const user = userEvent.setup();
+        const { TopBar } = await import("@/editor/shell/TopBar");
+        const { Overlays } = await import("@/editor/shell/Overlays");
+        render(
+            <>
+                <TopBar />
+                <Overlays />
+            </>,
+        );
+        await user.click(screen.getByRole("button", { name: /Dialogues/ }));
+        expect(screen.getByText("Dialogue editor")).toBeInTheDocument();
+    });
+});
