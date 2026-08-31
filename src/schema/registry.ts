@@ -190,7 +190,7 @@ const fileFields: FieldDef[] = [
 ];
 
 const kisscordMsgFields: FieldDef[] = [
-    { kind: "textarea", key: "content", hint: "The message text. Markdown works: **bold**, *italic*, `code`, and links.", label: "Message", rows: 3, tokens: true },
+    { kind: "textarea", key: "content", hint: "The message text. Discord-style formatting works: **bold**, *italic*, and links.", label: "Message", rows: 3, tokens: true },
     { kind: "toggle", key: "isMine", hint: "Send it from the player's own account instead of the contact's.", label: "Sent by the player" },
     { kind: "number", key: "delayMs", hint: "Pause in milliseconds before this message appears. Use it to pace a conversation.", label: "Delay (ms)", min: 0, step: 100 },
 ];
@@ -350,7 +350,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         sources: [whenOut],
         hook: "declarative",
         fields: [
-            { kind: "event", key: "event", label: "Game event", hint: "All 92 HackHub events, with their real payload fields." },
+            { kind: "event", key: "event", label: "Game event", hint: "All 92 HackHub events, listed with the details each one carries." },
             { kind: "conditions", key: "conditions", label: "Only when", hint: "Leave empty to fire on any occurrence." },
         ],
         create: () => seed(TriggerEventDataSchema),
@@ -368,10 +368,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             {
                 kind: "select",
                 key: "ipMode",
-                hint: "Random allocates a fresh address each playthrough via Network.randomIp(). Fixed keeps what you typed — use it when another node refers to this IP by hand.",
+                hint: "“Random” hands out a fresh address each time the quest is played. “Fixed” keeps the address you typed — use that when another node refers to it by hand.",
                 label: "Router IP",
                 options: [
-                    { value: "random", label: "Random public IP", hint: "Allocated per playthrough via Network.randomIp()" },
+                    { value: "random", label: "Random public IP", hint: "A fresh address each time the quest is played" },
                     { value: "fixed", label: "Fixed IP" },
                 ],
             },
@@ -915,7 +915,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "select",
-                key: "source", hint: "Test against the payload of the event that fired, or against quest data you stored earlier.",
+                key: "source", hint: "Test against the details of the event that fired, or against quest data you stored earlier.",
                 label: "Test against",
                 options: [
                     { value: "event", label: "The triggering event payload" },

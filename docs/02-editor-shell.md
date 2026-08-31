@@ -368,3 +368,8 @@ rejection are unit-tested.
   gentle or as cryptic as you want").
 - Removed internal references a player can't act on ("Step 3", `Shell.addCommandData`),
   and jargon like `unlocksAfter`, "regular expression", "reverse shell".
+
+**Hint coverage, measured.** A throwaway audit over the registry counted **112 field
+descriptors, 104 of them inputs — and all 104 carry a hint**; the 8 without are
+informational note/section rows. The remaining jargon scan now returns only intentional
+in-game command names (`fern`) and the Discord-style formatting note.
