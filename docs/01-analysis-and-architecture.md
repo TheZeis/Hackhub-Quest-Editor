@@ -368,13 +368,19 @@ auto-suggests realistic hidden paths, and offers to spawn the matching trigger n
 | **E-Mail** | `Quest.Mails` + `sendMail(i)`, and `Mail.send()` / `Mail.sendBounce()` / `Mail.registerTemplate()` | ✅ Rich: `from`, `to`, HTML body, `metadata`, `attachments[]` |
 | **Kisscord** | `Quest.KisscordChats` and/or `Kisscord.*` | ✅ `contactId` + ordered `messages[]` with `content`, `isMine`, `delayMs`, **`unlocksAfter`**, `onSent` |
 | **WeeChat** | `Quest.WeeChatChats` and/or `WeeChat.createServer(host, password)` | ✅ `host`, `messages[]` with `content`, `username`, `isMine`, `delayMs`, `onSent` |
-| Phone **text messages (SMS)** | **no SMS namespace exists** | ❌ **Gap — see below** |
+| Phone **text messages (SMS)** | **no SMS namespace exists** | ❌ **Dropped — see below** |
 | **Twotter** | `Quest.TwotterAccounts` / `Tweets`, `Twotter.*` | ✅ bonus channel |
 
-**The SMS gap, stated plainly.** Neither the published `index.d.ts` nor any docs page
-exposes an SMS/text-message API. The requested "Phone text messages" editor therefore
-cannot compile to a native SMS primitive, because there isn't one. It has to be
-mapped. §4.3 sets out the mapping and this is question 2 for the user.
+**The SMS gap — and its resolution.** Neither the published `index.d.ts` (all 2,898
+lines) nor any docs page exposes an SMS/text-message API. Phone *calls* exist
+(`Quest.Dialog` + `createDialog`); texts do not.
+
+The requested "Phone text messages" editor therefore **does not ship**. Rather than
+simulate SMS on top of Kisscord or fabricate a fake Messages app — both of which would
+look native in the editor and not be native in the game — the requirement is dropped
+and recorded here so it is not re-litigated later. The four conversation editors that
+*do* ship are **Phone calls, E-Mail, Kisscord and WeeChat**, each backed 1:1 by a real
+primitive, plus Twotter as a bonus channel. See [§8](#8-settled-decisions).
 
 **`unlocksAfter` on messages is the key progression mechanic** (SDK ≥ 0.18.0): the
 chain plays to the first gated message at quest start, then *pauses*, and resumes
@@ -601,7 +607,7 @@ the mod id and the node id so multi-mod installs cannot collide.
 
 | Concern | Choice | Why |
 |---|---|---|
-| **Runtime** | **Vite + React 18 + TypeScript (strict)** | This is a pure client-side authoring tool. Nothing needs SSR. Next.js would add a server runtime, RSC boundaries and a build step that buys us nothing and complicates an eventual Electron/Tauri shell. Vite gives instant HMR for a canvas app that re-renders constantly. |
+| **Runtime** | **Vite + React 18 + TypeScript (strict)** | A pure client-side authoring tool. Nothing needs SSR, so Next.js would add a server runtime, RSC boundaries and a build step that buy nothing here. Vite gives instant HMR for a canvas app that re-renders on every drag. |
 | **Node editor** | **`@xyflow/react`** (React Flow v12) | The requested library, and the right one: custom node types, custom edges, sub-flows/groups, minimap, controls, `onConnect` validation, hit-testable handles. We need *typed* handle validation (a trigger node may only accept a condition edge) which React Flow supports via `isValidConnection`. |
 | **State** | **Zustand + Immer**, single serialisable `ProjectDocument` | The whole project must be one JSON-serialisable object so undo/redo, autosave and round-trip import/export are trivial. Zustand + Immer gives immutable patches for free; a snapshot history stack gives undo/redo. |
 | **Schema validation** | **Zod** | One schema, used three ways: validate on import, drive the inspector forms, and generate the event/enum catalogues. Prevents "silently accepted a corrupt project". |
@@ -613,13 +619,13 @@ the mod id and the node id so multi-mod installs cannot collide.
 | **Testing** | **Vitest** (+ `@testing-library/react`) | The compiler is the highest-risk code in the product and is pure `ProjectDocument → string[]`. It gets snapshot + assertion tests. |
 | **Lint/format** | ESLint + Prettier, generated code emitted **Prettier-formatted** | Generated mod source must look hand-written. |
 | **IDs** | `nanoid` | Stable, short, collision-free node/objective/message ids. |
-| **Later, optional** | **Tauri** (preferred) or Electron wrapper | The app is a static bundle, so a desktop shell is a thin wrapper: same code, plus native "write directly to `mods/`" and file-watching. Not needed for v1. |
 
 **Rejected, with reasons:**
 - *Next.js* — no server requirement; adds complexity and a deployment target for a local tool.
 - *Redux* — heavier ceremony for no benefit over Zustand here; we need Immer patches, which Zustand+Immer already provides.
 - *Rete.js / Drawflow* — weaker custom-node ergonomics and smaller ecosystem than React Flow, which was also the requested library.
 - *A JSON-schema-driven form generator* — seductive but produces mediocre UX. The inspectors are hand-built per node type; Zod is used for validation and catalogue generation, not for form layout.
+- *Tauri / Electron desktop shell* — considered and **rejected as out of scope** (decision 1, §8). The app ships as a browser SPA whose export is a `.zip` download. Because nothing in the design assumes filesystem access, a desktop shell could still be added later without rework — but it is not on the roadmap.
 
 ### 4.2 Architecture
 
@@ -630,7 +636,7 @@ the mod id and the node id so multi-mod installs cannot collide.
 │  │ Node     │ │ Inspectors    │ │ Website      │ │ Conversation editors  │ │
 │  │ Canvas   │ │ (per node     │ │ Builder      │ │ Phone · Mail ·        │ │
 │  │ (XYFlow) │ │  type)        │ │ (WYSIWYG)    │ │ Kisscord · WeeChat ·  │ │
-│  │          │ │               │ │              │ │ SMS · Twotter         │ │
+│  │          │ │               │ │              │ │ Twotter               │ │
 │  └────┬─────┘ └──────┬────────┘ └──────┬───────┘ └───────────┬───────────┘ │
 └───────┼──────────────┼────────────────┼─────────────────────┼─────────────┘
         └──────────────┴───────┬────────┴─────────────────────┘
@@ -671,11 +677,13 @@ the mod id and the node id so multi-mod installs cannot collide.
    part that must be exhaustively tested.
 3. **Codegen is deterministic.** Same document in → byte-identical files out. No
    timestamps, no random ordering. This makes diffs meaningful and snapshots stable.
-4. **Every generated file carries a provenance header** (`// Generated by Quest Mod
-   Editor — edit in the editor, not here`) plus a machine-readable marker, and the
-   `ProjectDocument` is embedded in the export as
-   `.hackhub-quest-editor/project.json` so **an exported mod can be re-imported and
-   edited again**. Round-tripping is a launch requirement.
+4. **Every generated file carries a provenance header**
+   (`// Generated by Quest Mod Editor — do not edit; re-exporting overwrites this
+   file`) plus a machine-readable marker, and the `ProjectDocument` is embedded in the
+   export as `.hackhub-quest-editor/project.json` so **an exported mod can be
+   re-imported and edited again**. Round-tripping is a launch requirement.
+   Per decision 4 (§8), regeneration is unconditional: the compiler never reads prior
+   output, never merges, and never preserves hand-edits.
 
 ### 4.3 The graph model
 
@@ -768,6 +776,10 @@ the compiler renders them to the HTML string `WebsitePageDefinition.html` expect
 │   └── editor-version.json
 └── README.md                      # "drop dist/ into mods/<mod-id>/, or npm i && npm run build"
 ```
+
+Re-exporting a project **overwrites `src/` and the tooling files wholesale** (decision
+4, §8). `.hackhub-quest-editor/project.json` is the only durable state, and the export
+README states this in terms a non-coder will understand.
 
 Plus an **Export Report** shown in-app before download: inferred permissions and
 *why*, every emitted file, every asset path, every generated condition expression,
@@ -919,16 +931,32 @@ guide's payload entries would have produced trigger conditions that never fire.
 
 ---
 
-## 8. Open decisions
+## 8. Settled decisions
 
-Four decisions materially change the architecture and are put to the user before
-Step 2 begins:
+These four materially changed the architecture, so they were put to the project owner
+before Step 2 began. All four are now settled and the rest of this document reflects
+them.
 
-1. **Delivery form** — browser app with ZIP export, or a desktop shell that writes
-   straight into `mods/`?
-2. **SMS mapping** — there is no SMS API. Kisscord-backed, custom "Messages" phone
-   app, or author-selectable per conversation?
-3. **Mod granularity** — one mod per quest, or one mod containing a whole campaign of
-   quests?
-4. **Generated-code ownership** — always regenerate (project file is truth), or
-   preserve hand-edits in generated files?
+| # | Question | Decision | Consequence |
+|---|---|---|---|
+| 1 | **Delivery form** | **Browser app with ZIP export.** | Vite SPA, no server, JSZip packaging. A desktop shell is explicitly **out of scope** — not "later", out. The app must never assume filesystem access; export is a download, import is a file picker / drag-drop. |
+| 2 | **SMS** | **Dropped.** There is no SMS primitive, so no SMS editor ships. | The conversation editors are **Phone calls, E-Mail, Kisscord, WeeChat** (+ Twotter as a bonus channel). No simulated SMS surface, no mapping layer, no half-native fiction. The §2.8 gap stays documented so nobody re-litigates it. |
+| 3 | **Mod granularity** | **Many quests per mod, single-quest as the default new-project template.** | One `manifest.json`, 1..n quest canvases, shared websites/commands/apps, `QuestsToComplete` chaining between quests. New projects start with one quest so beginners never see multi-quest structure until they need it. |
+| 4 | **Generated-code ownership** | **The editor owns it — always regenerate.** | `project.json` is the single source of truth. Re-exporting overwrites `src/` wholesale. Generated files carry a `// Generated by Quest Mod Editor — do not edit` header, and the README in the export says so. No merge logic, no ejected files, no way to silently lose work. Round-trip import is therefore always safe. |
+
+### 8.1 What these decisions removed from scope
+
+- No Tauri/Electron wrapper, no native file writes, no file watching.
+- No SMS editor and no SMS-to-Kisscord bridge.
+- No generated-code merge/preserve/eject machinery.
+- No server component of any kind.
+
+### 8.2 What they made simpler
+
+- Export is a single pure function `ProjectDocument → Blob`. Trivially testable, and
+  identical in every environment.
+- Because regeneration is unconditional, the compiler needs no notion of "existing
+  file state" — no diffing, no user-edit detection, no conflict resolution.
+- Multi-quest support is a loop over quests plus a shared-asset registry, rather than a
+  different data model.
+

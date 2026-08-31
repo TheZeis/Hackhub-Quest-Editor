@@ -5,7 +5,7 @@ A visual, no-code editor for building **quest mods** for
 
 Non-coders design branching quests on a node canvas, build in-game websites in a
 WYSIWYG editor, script phone calls / e-mail / Kisscord / WeeChat conversations, and
-export a complete, game-ready mod project.
+export a complete, game-ready mod project as a `.zip`.
 
 ---
 
@@ -40,8 +40,7 @@ foundation for everything that follows. The three findings that shape the whole 
    [§7.2](docs/01-analysis-and-architecture.md#72-payloads-where-the-events-guide-page-is-wrong).
 
 3. **There is no SMS API.** Phone *calls* exist (`Quest.Dialog`); text messages do not.
-   The requested "phone text messages" editor has to be mapped onto a real primitive —
-   see the open decisions below.
+   So no SMS editor ships — see decision 2 below.
 
 ---
 
@@ -73,17 +72,19 @@ silently-wrong palette would be much worse than a failed regeneration.
 
 ---
 
-## Open decisions
+## Settled decisions
 
-Four decisions materially change the architecture and are being settled before Step 2
-begins:
+Four decisions materially changed the architecture. All four are settled; the details
+and their consequences are in
+[§8 of the architecture doc](docs/01-analysis-and-architecture.md#8-settled-decisions).
 
-1. **Delivery form** — browser app with ZIP export, or a desktop shell that writes
-   straight into the game's `mods/` folder?
-2. **SMS mapping** — Kisscord-backed, a custom "Messages" phone app, or
-   author-selectable per conversation?
-3. **Mod granularity** — one mod per quest, or one mod containing a whole campaign?
-4. **Generated-code ownership** — always regenerate, or preserve hand-edits?
+1. **Delivery** — **browser app, ZIP export.** Vite SPA, no server, no desktop shell.
+2. **SMS** — **dropped.** No native primitive exists, so no SMS editor ships. The
+   conversation editors are Phone calls, E-Mail, Kisscord and WeeChat (+ Twotter).
+3. **Granularity** — **many quests per mod**, with single-quest as the default
+   new-project template.
+4. **Generated code** — **the editor owns it.** Re-exporting overwrites `src/`;
+   `.hackhub-quest-editor/project.json` is the only durable state.
 
 ---
 
