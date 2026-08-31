@@ -52,15 +52,15 @@ describe("website builder dialog", () => {
         render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
 
         expect(screen.getByText("No websites yet.")).toBeInTheDocument();
-        await user.click(screen.getByRole("button", { name: /create your first website/i }));
+        await user.click(screen.getByRole("button", { name: /blank website/i }));
 
         // The starter site ships a home page.
-        expect(screen.getByLabelText("Site host")).toHaveValue("meridian-capital.net");
+        expect(screen.getByLabelText("Site host")).toHaveValue("example.net");
         expect(screen.getByText("/")).toBeInTheDocument();
 
         // Add a ready-made hidden clue page.
         await user.click(screen.getByRole("button", { name: "New page" }));
-        await user.click(screen.getByRole("button", { name: "Hidden clue page" }));
+        await user.click(screen.getByRole("button", { name: /hidden clue page/i }));
 
         const site = useEditor.getState().project.websites[0];
         const hidden = site.pages.find((p) => p.path === "/files/internal/q3-audit")!;
@@ -74,13 +74,35 @@ describe("website builder dialog", () => {
         // The preview shows the in-game browser with the hidden-page banner.
         await user.click(screen.getByRole("button", { name: "preview" }));
         expect(screen.getByText(/not in search results/i)).toBeInTheDocument();
-        expect(screen.getByText(/http:\/\/meridian-capital\.net\/files\/internal\/q3-audit/)).toBeInTheDocument();
+        expect(screen.getAllByText(/example\.net\/files\/internal\/q3-audit/).length).toBeGreaterThan(0);
         expect(screen.getByText(/offshore batch settles through/)).toBeInTheDocument();
 
         // Flip it listed and the banner goes away.
         await user.click(screen.getByRole("button", { name: "edit" }));
         await user.click(screen.getByRole("switch"));
         expect(useEditor.getState().project.websites[0].pages.find((p) => p.id === hidden.id)!.seo).toBe(true);
+    });
+
+    it("offers whole-site templates on the empty state", async () => {
+        const user = userEvent.setup();
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+
+        // Templates are visible before anything exists, blurbs and all.
+        const corp = screen.getByRole("button", { name: /corporate site/i });
+        expect(corp).toBeInTheDocument();
+        expect(screen.getByText(/hidden internal audit/i)).toBeInTheDocument();
+        expect(screen.getByText(/5 pages · 1 hidden/)).toBeInTheDocument();
+
+        await user.click(corp);
+
+        const site = useEditor.getState().project.websites[0];
+        expect(site.host).toBe("meridian-capital.net");
+        expect(site.pages).toHaveLength(5);
+        expect(site.pages.filter((p) => !p.seo)).toHaveLength(1);
+
+        // The hidden page shows its lock glyph in the page list.
+        const hidden = site.pages.find((p) => !p.seo)!;
+        expect(hidden.path).toBe("/files/internal/q3-audit");
     });
 
     it("edits page meta fields", async () => {

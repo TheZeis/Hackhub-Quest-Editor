@@ -11,7 +11,7 @@ import { Icon } from "@/components/Icon";
 import { FieldShell, TextInput, Toggle } from "@/editor/inspector/primitives";
 import { createPage, createWebsite } from "@/schema/project";
 import { useEditor } from "@/store/editor";
-import { PAGE_TEMPLATES } from "@/templates/pages";
+import { PAGE_TEMPLATES, SITE_TEMPLATES } from "@/templates/pages";
 import { RichText } from "./RichText";
 
 export function WebsiteBuilderDialog({
@@ -66,21 +66,64 @@ export function WebsiteBuilderDialog({
                     </div>
 
                     {!site ? (
-                        <div className="flex flex-1 flex-col items-center justify-center gap-3">
-                            <Icon name="globe" size={26} className="text-ink-4" />
-                            <p className="text-[12.5px] text-ink-4">No websites yet.</p>
-                            <button
-                                type="button"
-                                className="btn-primary"
-                                onClick={() => {
-                                    const w = createWebsite({ host: "meridian-capital.net", name: "Meridian Capital" });
-                                    addWebsite(w);
-                                    setSiteId(w.id);
-                                }}
-                            >
-                                <Icon name="plus" size={13} />
-                                Create your first website
-                            </button>
+                        <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                            <div className="mx-auto max-w-xl">
+                                <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+                                    <Icon name="globe" size={26} className="text-ink-4" />
+                                    <p className="text-[13px] font-medium text-ink-2">No websites yet.</p>
+                                    <p className="text-[11.5px] text-ink-4">
+                                        Start blank, or from a ready-made site.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn-default w-full justify-center"
+                                    onClick={() => {
+                                        const w = createWebsite();
+                                        addWebsite(w);
+                                        setSiteId(w.id);
+                                    }}
+                                >
+                                    <Icon name="plus" size={12} />
+                                    Blank website
+                                </button>
+                                <p className="mt-5 mb-1.5 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
+                                    Site templates
+                                </p>
+                                <div className="grid gap-2">
+                                    {SITE_TEMPLATES.map((t) => {
+                                        const made = t.make();
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    const w = createWebsite({
+                                                        host: made.host,
+                                                        name: made.name,
+                                                        pages: made.pages.map((p) => createPage(p)),
+                                                    });
+                                                    addWebsite(w);
+                                                    setSiteId(w.id);
+                                                    setPageId(null);
+                                                }}
+                                                className="rounded-lg border border-line bg-surface-2/60 p-3 text-left transition-colors hover:border-accent/50"
+                                            >
+                                                <span className="block text-[12.5px] font-semibold text-ink">
+                                                    {t.label}
+                                                </span>
+                                                <span className="mt-0.5 block text-[11px] leading-snug text-ink-4">
+                                                    {t.blurb}
+                                                </span>
+                                                <span className="mt-1.5 block font-mono text-[10px] text-ink-4">
+                                                    {made.host} · {made.pages.length} pages ·{" "}
+                                                    {made.pages.filter((p) => !p.seo).length} hidden
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="grid min-h-0 flex-1 grid-cols-[190px_230px_1fr]">
@@ -163,24 +206,23 @@ export function WebsiteBuilderDialog({
                                         />
                                     </FieldShell>
                                 </div>
-                                <div className="flex items-center justify-between px-3 py-2">
+                                <div className="flex items-center justify-between gap-2 px-3 py-2">
                                     <span className="text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
                                         Pages
                                     </span>
                                     <button
                                         type="button"
-                                        className="btn-icon"
-                                        title="New page"
-                                        aria-label="New page"
+                                        className="btn-default"
                                         onClick={() => setPicker((p) => !p)}
                                     >
-                                        <Icon name="plus" size={13} />
+                                        <Icon name="plus" size={11} />
+                                        New page
                                     </button>
                                 </div>
                                 {picker && (
                                     <div className="border-b border-line bg-surface-2/60 p-2">
                                         <p className="mb-1 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
-                                            Start from
+                                            Page templates
                                         </p>
                                         <div className="grid gap-1">
                                             <button
@@ -200,8 +242,7 @@ export function WebsiteBuilderDialog({
                                                 <button
                                                     key={t.id}
                                                     type="button"
-                                                    title={t.blurb}
-                                                    className="rounded-md border border-line px-2 py-1 text-left text-[11px] text-ink-2 hover:bg-surface-3"
+                                                    className="rounded-md border border-line px-2 py-1 text-left hover:bg-surface-3"
                                                     onClick={() => {
                                                         const made = t.make();
                                                         const p = createPage({ ...made, template: t.id });
@@ -211,7 +252,10 @@ export function WebsiteBuilderDialog({
                                                         setMode("edit");
                                                     }}
                                                 >
-                                                    {t.label}
+                                                    <span className="block text-[11px] text-ink-2">{t.label}</span>
+                                                    <span className="block text-[10px] leading-snug text-ink-4">
+                                                        {t.blurb}
+                                                    </span>
                                                 </button>
                                             ))}
                                         </div>

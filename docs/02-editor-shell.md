@@ -420,3 +420,10 @@ what `dirhunter` brute-forces — and both the page list (lock glyph) and the pr
 
 Websites live on the project document (`project.websites`), shared by all quests;
 the Step 4 compiler will write each page to the mod's website output verbatim.
+
+**Template discoverability fix.** The page templates originally sat behind an
+unlabeled "+" icon two clicks deep — opening the builder on a project with no
+sites showed nothing but "No websites yet." Now the empty state offers **site
+templates** ("Corporate site" with a hidden audit page, "Leak archive") next to a
+blank-site button, and the pages column has a labeled **New page** button whose
+picker lists the five page templates with blurbs.

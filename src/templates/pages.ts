@@ -10,6 +10,46 @@ export interface PageTemplate {
     make: () => { title: string; path: string; seo: boolean; content: string };
 }
 
+/** Whole-site starters: a host plus a set of pages built from PAGE_TEMPLATES. */
+export interface SiteTemplate {
+    id: string;
+    label: string;
+    blurb: string;
+    make: () => {
+        host: string;
+        name: string;
+        pages: { title: string; path: string; seo: boolean; content: string; template: string }[];
+    };
+}
+
+const pageFrom = (id: string) => {
+    const t = PAGE_TEMPLATES.find((x) => x.id === id)!;
+    return { ...t.make(), template: t.id };
+};
+
+export const SITE_TEMPLATES: SiteTemplate[] = [
+    {
+        id: "corp",
+        label: "Corporate site",
+        blurb: "Front page, team, status and contact — plus a hidden internal audit two directories deep for dirhunter to find.",
+        make: () => ({
+            host: "meridian-capital.net",
+            name: "Meridian Capital",
+            pages: ["corp-home", "team", "status", "contact", "hidden-leak"].map(pageFrom),
+        }),
+    },
+    {
+        id: "leak",
+        label: "Leak archive",
+        blurb: "A sparse public status page, with the real goods hidden in a sub-directory.",
+        make: () => ({
+            host: "archive.nightwire.net",
+            name: "Nightwire archive",
+            pages: ["status", "hidden-leak"].map(pageFrom),
+        }),
+    },
+];
+
 export const PAGE_TEMPLATES: PageTemplate[] = [
     {
         id: "corp-home",
