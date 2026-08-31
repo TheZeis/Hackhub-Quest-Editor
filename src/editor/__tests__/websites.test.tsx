@@ -1,14 +1,16 @@
 /**
- * Step 3 website builder: store actions plus the builder dialog end to end —
- * first site, templated pages, the dirhunter "unlisted" toggle, and the
- * WYSIWYG surface.
+ * Step 3 website builder: store actions, the builder dialog end to end, the
+ * code view, Load HTML, the isolated visual editor, and template quality.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RichText } from "@/editor/websites/RichText";
+import { CodePageEditor, VisualPageEditor } from "@/editor/websites/pageEditor";
+import { isFullDocument, joinDocument, splitDocument, wrapFragment } from "@/editor/websites/pageDoc";
 import { WebsiteBuilderDialog } from "@/editor/websites/WebsiteBuilder";
 import { createPage, createProject, createWebsite } from "@/schema/project";
+import { PAGE_TEMPLATES, SITE_TEMPLATES } from "@/templates/pages";
 import { useEditor } from "@/store/editor";
 
 beforeEach(() => {
@@ -34,7 +36,6 @@ describe("website store actions", () => {
         act(() => useEditor.getState().updateWebsite(site.id, { host: "other.example" }));
         expect(useEditor.getState().project.websites[0].host).toBe("other.example");
 
-        // One undo per action.
         act(() => useEditor.getState().undo());
         expect(useEditor.getState().project.websites[0].host).toBe("leak.example");
 
@@ -46,6 +47,44 @@ describe("website store actions", () => {
     });
 });
 
+describe("page documents", () => {
+    it("splits full documents and rejoins without touching the head", () => {
+        const doc = `<!doctype html><html><head><style>h1{color:red}</style></head><body><h1>Hi</h1></body></html>`;
+        expect(isFullDocument(doc)).toBe(true);
+        const parts = splitDocument(doc);
+        expect(parts.head).toContain("<style>h1{color:red}</style>");
+        expect(parts.body).toBe("<h1>Hi</h1>");
+        expect(joinDocument(parts, "<h1>Bye</h1>")).toContain("<h1>Bye</h1>");
+        expect(joinDocument(parts, "<h1>Bye</h1>")).toContain("<style>h1{color:red}</style>");
+    });
+
+    it("wraps fragments into a styled base document", () => {
+        expect(isFullDocument("<p>clue</p>")).toBe(false);
+        const wrapped = wrapFragment("<p>clue</p>", "Clue");
+        expect(wrapped).toContain("<!doctype html>");
+        expect(wrapped).toContain("<title>Clue</title>");
+        expect(wrapped).toContain("<p>clue</p>");
+        expect(splitDocument(wrapped).body).toContain("<p>clue</p>");
+    });
+});
+
+describe("template quality", () => {
+    it("every page template is a complete, self-contained styled document", () => {
+        for (const t of PAGE_TEMPLATES) {
+            const made = t.make();
+            expect(made.content, t.id).toContain("<!doctype html>");
+            expect(made.content, t.id).toContain("<style>");
+            expect(made.content, t.id).toContain("</html>");
+            // No external requests: the game's web views have no internet.
+            expect(made.content, t.id).not.toMatch(/https?:\/\//);
+        }
+        for (const s of SITE_TEMPLATES) {
+            const made = s.make();
+            expect(made.pages.length, s.id).toBeGreaterThan(0);
+        }
+    });
+});
+
 describe("website builder dialog", () => {
     it("walks from no sites to a hidden clue page", async () => {
         const user = userEvent.setup();
@@ -54,31 +93,33 @@ describe("website builder dialog", () => {
         expect(screen.getByText("No websites yet.")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: /blank website/i }));
 
-        // The starter site ships a home page.
         expect(screen.getByLabelText("Site host")).toHaveValue("example.net");
-        expect(screen.getByText("/")).toBeInTheDocument();
 
         // Add a ready-made hidden clue page.
         await user.click(screen.getByRole("button", { name: "New page" }));
-        await user.click(screen.getByRole("button", { name: /hidden clue page/i }));
+        await user.click(screen.getByRole("button", { name: /hidden internal memo/i }));
 
         const site = useEditor.getState().project.websites[0];
         const hidden = site.pages.find((p) => p.path === "/files/internal/q3-audit")!;
         expect(hidden.seo).toBe(false);
         expect(hidden.template).toBe("hidden-leak");
 
-        // Unlisted by template: the toggle is off and the hint explains dirhunter.
         const listing = screen.getByRole("switch");
         expect(listing).not.toBeChecked();
+
+        // The visual editor is an iframe running the page's own document.
+        const visual = screen.getByTitle("Visual editor for /files/internal/q3-audit");
+        expect(visual.getAttribute("srcdoc")).toContain("INTERNAL — DO NOT DISTRIBUTE");
 
         // The preview shows the in-game browser with the hidden-page banner.
         await user.click(screen.getByRole("button", { name: "preview" }));
         expect(screen.getByText(/not in search results/i)).toBeInTheDocument();
         expect(screen.getAllByText(/example\.net\/files\/internal\/q3-audit/).length).toBeGreaterThan(0);
-        expect(screen.getByText(/offshore batch settles through/)).toBeInTheDocument();
+        const preview = screen.getByTitle("Page preview");
+        expect(preview.getAttribute("srcdoc")).toContain("router 10.9.4.2");
 
         // Flip it listed and the banner goes away.
-        await user.click(screen.getByRole("button", { name: "edit" }));
+        await user.click(screen.getByRole("button", { name: "visual" }));
         await user.click(screen.getByRole("switch"));
         expect(useEditor.getState().project.websites[0].pages.find((p) => p.id === hidden.id)!.seo).toBe(true);
     });
@@ -87,10 +128,9 @@ describe("website builder dialog", () => {
         const user = userEvent.setup();
         render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
 
-        // Templates are visible before anything exists, blurbs and all.
         const corp = screen.getByRole("button", { name: /corporate site/i });
         expect(corp).toBeInTheDocument();
-        expect(screen.getByText(/hidden internal audit/i)).toBeInTheDocument();
+        expect(screen.getByText(/hidden internal memo/i)).toBeInTheDocument();
         expect(screen.getByText(/5 pages · 1 hidden/)).toBeInTheDocument();
 
         await user.click(corp);
@@ -99,10 +139,7 @@ describe("website builder dialog", () => {
         expect(site.host).toBe("meridian-capital.net");
         expect(site.pages).toHaveLength(5);
         expect(site.pages.filter((p) => !p.seo)).toHaveLength(1);
-
-        // The hidden page shows its lock glyph in the page list.
-        const hidden = site.pages.find((p) => !p.seo)!;
-        expect(hidden.path).toBe("/files/internal/q3-audit");
+        expect(site.pages.find((p) => !p.seo)!.path).toBe("/files/internal/q3-audit");
     });
 
     it("edits page meta fields", async () => {
@@ -115,33 +152,66 @@ describe("website builder dialog", () => {
         await user.type(screen.getByLabelText("Page path"), "/about");
         expect(useEditor.getState().project.websites[0].pages[0].path).toBe("/about");
     });
-});
 
-describe("rich text surface", () => {
-    it("renders existing content and routes the toolbar through execCommand", async () => {
+    it("code view exposes the full document for copy-paste", async () => {
         const user = userEvent.setup();
-        const exec = vi.fn(() => true);
-        Object.defineProperty(document, "execCommand", { value: exec, configurable: true });
+        const site = createWebsite();
+        act(() => useEditor.getState().addWebsite(site));
 
-        const onChange = vi.fn();
-        render(<RichText value="<p>hello</p>" onChange={onChange} ariaLabel="Page body" />);
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+        await user.click(screen.getByRole("button", { name: "code" }));
 
-        const surface = screen.getByRole("textbox", { name: "Page body" });
-        expect(surface.innerHTML).toBe("<p>hello</p>");
+        const code = screen.getByLabelText("HTML code for /") as HTMLTextAreaElement;
+        expect(code.value).toContain("<style>");
 
-        await user.click(screen.getByRole("button", { name: "Bold" }));
-        expect(exec).toHaveBeenCalledWith("bold", false, undefined);
-        expect(onChange).toHaveBeenCalled();
-
-        await user.click(screen.getByRole("button", { name: "Heading" }));
-        expect(exec).toHaveBeenCalledWith("formatBlock", false, "h1");
+        await user.type(code, "<!-- planted clue: 74 68 65 -->");
+        expect(useEditor.getState().project.websites[0].pages[0].content).toContain("planted clue");
     });
 
-    it("emits typed content", async () => {
+    it("loads a finished html file, wrapping bare fragments", async () => {
         const user = userEvent.setup();
-        const onChange = vi.fn();
-        render(<RichText value="" onChange={onChange} ariaLabel="Page body" />);
-        await user.type(screen.getByRole("textbox", { name: "Page body" }), "clue");
-        expect(onChange.mock.calls.at(-1)![0]).toContain("clue");
+        const site = createWebsite();
+        act(() => useEditor.getState().addWebsite(site));
+
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+
+        const full = new File(
+            ["<!doctype html><html><head><style>body{background:#000}</style></head><body><h1>leak</h1></body></html>"],
+            "leak.html",
+            { type: "text/html" },
+        );
+        await user.upload(screen.getByLabelText("Load HTML file"), full);
+        expect(useEditor.getState().project.websites[0].pages[0].content).toContain("<h1>leak</h1>");
+
+        const fragment = new File(["<p>just a body</p>"], "body.html", { type: "text/html" });
+        await user.upload(screen.getByLabelText("Load HTML file"), fragment);
+        const content = useEditor.getState().project.websites[0].pages[0].content;
+        expect(content).toContain("<!doctype html>");
+        expect(content).toContain("<p>just a body</p>");
+    });
+});
+
+describe("visual and code editors in isolation", () => {
+    it("visual editor is an isolated iframe with a toolbar and image inserter", () => {
+        render(
+            <VisualPageEditor doc="<p>y</p>" onChange={() => {}} ariaLabel="Visual editor for /" />,
+        );
+        const frame = screen.getByTitle("Visual editor for /");
+        expect(frame.getAttribute("srcdoc")).toBe("<p>y</p>");
+        expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
+        expect(screen.getByLabelText("Image file to insert")).toBeInTheDocument();
+        expect(screen.getByText(/images are embedded/)).toBeInTheDocument();
+    });
+
+    it("code editor is a plain textarea over the document", async () => {
+        const user = userEvent.setup();
+        function Harness() {
+            const [value, setValue] = useState("<p>a</p>");
+            return <CodePageEditor doc={value} onChange={setValue} ariaLabel="code" />;
+        }
+        render(<Harness />);
+        const code = screen.getByLabelText("code") as HTMLTextAreaElement;
+        await user.type(code, "more");
+        expect(code.value).toBe("<p>a</p>more");
     });
 });

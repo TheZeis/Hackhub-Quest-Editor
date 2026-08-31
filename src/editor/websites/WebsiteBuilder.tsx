@@ -4,7 +4,7 @@
  * the dirhunter hiding places — the builder says so plainly instead of making
  * authors learn `seo:false`.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
@@ -12,7 +12,8 @@ import { FieldShell, TextInput, Toggle } from "@/editor/inspector/primitives";
 import { createPage, createWebsite } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 import { PAGE_TEMPLATES, SITE_TEMPLATES } from "@/templates/pages";
-import { RichText } from "./RichText";
+import { isFullDocument, wrapFragment } from "./pageDoc";
+import { CodePageEditor, VisualPageEditor } from "./pageEditor";
 
 export function WebsiteBuilderDialog({
     open,
@@ -31,8 +32,12 @@ export function WebsiteBuilderDialog({
 
     const [siteId, setSiteId] = useState<string | null>(null);
     const [pageId, setPageId] = useState<string | null>(null);
-    const [mode, setMode] = useState<"edit" | "preview">("edit");
+    const [mode, setMode] = useState<"visual" | "code" | "preview">("visual");
     const [picker, setPicker] = useState(false);
+    /** Bumped when content changes outside the visual editor, so it remounts fresh. */
+    const [outsideRev, setOutsideRev] = useState(0);
+    const htmlFileRef = useRef<HTMLInputElement>(null);
+    const toast = useEditor((s) => s.toast);
 
     const site = websites.find((w) => w.id === siteId) ?? websites[0];
     const pages = [...(site?.pages ?? [])].sort((a, b) => a.path.localeCompare(b.path));
@@ -233,7 +238,7 @@ export function WebsiteBuilderDialog({
                                                     addPage(site.id, p);
                                                     setPageId(p.id);
                                                     setPicker(false);
-                                                    setMode("edit");
+                                                    setMode("visual");
                                                 }}
                                             >
                                                 Blank page
@@ -249,7 +254,7 @@ export function WebsiteBuilderDialog({
                                                         addPage(site.id, p);
                                                         setPageId(p.id);
                                                         setPicker(false);
-                                                        setMode("edit");
+                                                        setMode("visual");
                                                     }}
                                                 >
                                                     <span className="block text-[11px] text-ink-2">{t.label}</span>
@@ -290,9 +295,9 @@ export function WebsiteBuilderDialog({
                             <div className="flex min-h-0 flex-col">
                                 {page ? (
                                     <>
-                                        <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+                                        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
                                             <div className="flex rounded-md border border-line p-0.5">
-                                                {(["edit", "preview"] as const).map((m) => (
+                                                {(["visual", "code", "preview"] as const).map((m) => (
                                                     <button
                                                         key={m}
                                                         type="button"
@@ -306,6 +311,39 @@ export function WebsiteBuilderDialog({
                                                     </button>
                                                 ))}
                                             </div>
+                                            <button
+                                                type="button"
+                                                className="btn-default"
+                                                title="Replace this page with a finished .html file from disk"
+                                                onClick={() => htmlFileRef.current?.click()}
+                                            >
+                                                <Icon name="upload" size={11} />
+                                                Load HTML
+                                            </button>
+                                            <input
+                                                ref={htmlFileRef}
+                                                type="file"
+                                                accept=".html,.htm,text/html"
+                                                aria-label="Load HTML file"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    e.target.value = "";
+                                                    if (!file) return;
+                                                    const reader = new FileReader();
+                                                    reader.onload = () => {
+                                                        const text = String(reader.result ?? "");
+                                                        updatePage(site.id, page.id, {
+                                                            content: isFullDocument(text)
+                                                                ? text
+                                                                : wrapFragment(text, page.title || "Page"),
+                                                        });
+                                                        setOutsideRev((r) => r + 1);
+                                                        toast(`Loaded ${file.name}.`, "ok");
+                                                    };
+                                                    reader.readAsText(file);
+                                                }}
+                                            />
                                             <span className="ml-auto flex items-center gap-1.5 font-mono text-[10.5px] text-ink-4">
                                                 {!page.seo && <Icon name="lock" size={10} className="text-warn" />}
                                                 {site.host}
@@ -354,15 +392,31 @@ export function WebsiteBuilderDialog({
                                         />
 
                                         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                                            {mode === "edit" ? (
-                                                <RichText
-                                                    key={page.id}
-                                                    value={page.content}
+                                            {mode === "visual" && (
+                                                <VisualPageEditor
+                                                    key={`${page.id}:${outsideRev}`}
+                                                    doc={page.content}
                                                     onChange={(content) => updatePage(site.id, page.id, { content })}
-                                                    ariaLabel={`Page content for ${page.path}`}
+                                                    ariaLabel={`Visual editor for ${page.path}`}
                                                 />
-                                            ) : (
-                                                <BrowserPreview host={site.host} path={page.path} title={page.title} seo={page.seo} content={page.content} />
+                                            )}
+                                            {mode === "code" && (
+                                                <CodePageEditor
+                                                    doc={page.content}
+                                                    onChange={(content) => {
+                                                        updatePage(site.id, page.id, { content });
+                                                        setOutsideRev((r) => r + 1);
+                                                    }}
+                                                    ariaLabel={`HTML code for ${page.path}`}
+                                                />
+                                            )}
+                                            {mode === "preview" && (
+                                                <BrowserPreview
+                                                    host={site.host}
+                                                    path={page.path}
+                                                    seo={page.seo}
+                                                    content={page.content}
+                                                />
                                             )}
                                         </div>
                                     </>
@@ -385,13 +439,11 @@ export function WebsiteBuilderDialog({
 function BrowserPreview({
     host,
     path,
-    title,
     seo,
     content,
 }: {
     host: string;
     path: string;
-    title: string;
     seo: boolean;
     content: string;
 }) {
@@ -414,10 +466,11 @@ function BrowserPreview({
                     Not in search results — only a direct URL (or dirhunter) leads here.
                 </p>
             )}
-            <div
-                className="webpage max-h-[46vh] overflow-y-auto"
-                title={title}
-                dangerouslySetInnerHTML={{ __html: content || "<p><em>Empty page.</em></p>" }}
+            <iframe
+                title="Page preview"
+                srcDoc={content || "<p><em>Empty page.</em></p>"}
+                sandbox="allow-scripts"
+                className="block h-[52vh] w-full border-0 bg-white"
             />
         </div>
     );

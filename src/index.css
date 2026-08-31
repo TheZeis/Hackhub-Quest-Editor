@@ -340,52 +340,6 @@
     border-bottom: 1px solid var(--color-line);
 }
 
-/* ── Rendered website pages (WYSIWYG surface + player preview) ─────────── */
-/* Light, "real internet" typography on purpose: the page should look like a
-   site served by the in-game browser, not like the editor chrome. */
-.webpage {
-    background: #f4f5f8;
-    color: #232a36;
-    padding: 20px 22px;
-    font-size: 13px;
-    line-height: 1.65;
-}
-.webpage h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 0 0 10px;
-    line-height: 1.25;
-}
-.webpage h2 {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 16px 0 6px;
-}
-.webpage p {
-    margin: 0 0 10px;
-}
-.webpage ul,
-.webpage ol {
-    margin: 0 0 10px;
-    padding-left: 20px;
-}
-.webpage ul { list-style: disc; }
-.webpage ol { list-style: decimal; }
-.webpage li { margin: 2px 0; }
-.webpage a {
-    color: #0e7490;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-.webpage blockquote {
-    margin: 0 0 10px;
-    padding: 6px 12px;
-    border-left: 3px solid #c3c9d4;
-    background: #e9ebf0;
-    color: #4a5162;
-}
-.webpage strong { font-weight: 700; }
-
 /* The same typography, sized down for the mail reading pane. */
 .webpage-mail { font-size: 11.5px; line-height: 1.6; color: var(--color-ink-2); }
 .webpage-mail p { margin: 0 0 8px; }

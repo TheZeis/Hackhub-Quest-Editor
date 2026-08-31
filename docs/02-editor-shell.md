@@ -427,3 +427,23 @@ sites showed nothing but "No websites yet." Now the empty state offers **site
 templates** ("Corporate site" with a hidden audit page, "Leak archive") next to a
 blank-site button, and the pages column has a labeled **New page** button whose
 picker lists the five page templates with blurbs.
+
+**Pages are full HTML documents now.** Real sites — including the ones authors
+bring from LLMs — are self-contained documents with their own `<style>`, inline
+SVG and scripts; a fragment-only model made templates look like bland blog pages.
+Consequences in the builder:
+
+- The workspace has three modes. **Visual** renders the page's own document in an
+  isolated iframe with the body editable, so the page's CSS applies while editing
+  and can never leak into the builder; images inserted from disk are embedded as
+  data URIs because the game's web views have no internet. **Code** exposes the
+  complete document for copy-pasting html/css/js. **Preview** runs the document
+  (scripts included) inside a sandboxed iframe behind a fake browser bar.
+- **Load HTML** replaces the page with a finished `.html` file from disk; bare
+  fragments are wrapped in a styled base document.
+- Templates were rebuilt as believable sites: a corporate suite (front page with
+  hero and cards, team directory, status dashboard, contact), a deliberately plain
+  "printed memo" hidden page, and a space-agency homepage in the style authors
+  already bring (dark hero, orbit SVG, missions with status tags, newsroom, staff
+  directory, dead employee portal). Site templates: Corporate, Public agency,
+  Leak archive. Blank sites start from a styled starter page, not a bare fragment.

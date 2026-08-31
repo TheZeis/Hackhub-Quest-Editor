@@ -16,6 +16,7 @@ import {
 } from "./common";
 import { DialogBranchSchema, NodeSchema } from "./nodes";
 import { EdgeSchema } from "./edges";
+import { STARTER_PAGE } from "@/templates/pages";
 
 /* ── Mod ─────────────────────────────────────────────────────────────────── */
 
@@ -173,7 +174,7 @@ export function createPage(partial: Partial<WebPageDoc> = {}): WebPageDoc {
 export function createWebsite(partial: Partial<WebsiteDoc> = {}): WebsiteDoc {
     return WebsiteSchema.parse({
         id: nanoid(10),
-        pages: [createPage({ path: "/", title: "Home" })],
+        pages: [createPage({ path: "/", title: "Home", content: STARTER_PAGE })],
         ...partial,
     });
 }
