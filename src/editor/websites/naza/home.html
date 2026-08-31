@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>National Aerospace & Zero-Gravity Administration — NAZA</title>
+<style><style>
+  :root{
+    --blue: #123f91;
+    --blue-dark: #0b2a63;
+    --red: #e8422a;
+    --ink: #1b1b1b;
+    --grey: #5a6570;
+    --line: #d9dde2;
+    --bg: #ffffff;
+    --bg-soft: #f4f6f8;
+    --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; text-decoration:none; }
+  img,.ph{ display:block; }
+  .wrap{ max-width:1200px; margin:0 auto; padding:0 24px; }
+
+  /* ---------- gov utility bar ---------- */
+  .gov-bar{
+    background: var(--ink);
+    color:#fff;
+    font-size:12.5px;
+  }
+  .gov-bar .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 24px;
+  }
+  .gov-bar .flag{ display:flex; align-items:center; gap:8px; }
+  .gov-bar svg{ width:16px; height:11px; flex-shrink:0; }
+  .gov-bar button{
+    background:none; border:none; color:#fff; font-size:12.5px;
+    display:flex; align-items:center; gap:4px; cursor:pointer; font-family:var(--sans);
+  }
+  .gov-detail{
+    display:none;
+    background:#f4f6f8; color:var(--ink); border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .gov-detail.open{ display:block; }
+  .gov-detail .wrap{ display:flex; gap:36px; padding:18px 24px; }
+  .gov-detail .col{ max-width:320px; }
+  .gov-detail .col strong{ display:block; margin-bottom:4px; }
+  .gov-detail .col span{ color:var(--grey); }
+
+  /* ---------- header ---------- */
+  header{ border-bottom:1px solid var(--line); position:relative; z-index:30; background:#fff; }
+  .header-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 24px; gap:20px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-text{ font-weight:700; font-size:20px; letter-spacing:0.01em; }
+  .brand-text small{ display:block; font-weight:400; font-size:10px; color:var(--grey); letter-spacing:0.03em; }
+  .header-actions{ display:flex; align-items:center; gap:16px; }
+  .search-btn{
+    border:1px solid var(--line); background:#fff; border-radius:20px;
+    padding:8px 16px; font-size:13.5px; display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--grey);
+  }
+  .menu-toggle{ display:none; border:1px solid var(--line); background:#fff; border-radius:4px; padding:6px 10px; font-size:18px; cursor:pointer; }
+
+  nav.primary{ background: var(--blue); }
+  nav.primary .wrap{ display:flex; gap:2px; }
+  nav.primary a{
+    color:#fff; font-size:14px; font-weight:600; padding:13px 16px; display:block;
+    border-bottom:3px solid transparent;
+  }
+  nav.primary a:hover{ background: var(--blue-dark); border-color:var(--red); }
+
+  @media (max-width:900px){
+    nav.primary .wrap{ display:none; flex-direction:column; }
+    nav.primary .wrap.open{ display:flex; }
+    .menu-toggle{ display:inline-block; }
+    .search-btn span{ display:none; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    display:grid; grid-template-columns: 2fr 1fr; gap:0;
+    border-bottom:1px solid var(--line);
+  }
+  .hero-main{
+    position:relative;
+    min-height:440px;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12), transparent 55%),
+      radial-gradient(ellipse at 75% 70%, rgba(232,66,42,0.35), transparent 60%),
+      linear-gradient(135deg, #050a1a 0%, #0d1c3f 45%, #123f91 100%);
+    display:flex; align-items:flex-end;
+    padding:40px;
+  }
+  .hero-main::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.8), transparent),
+      radial-gradient(1px 1px at 35% 65%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 55% 20%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 68% 55%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 82% 30%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1.5px 1.5px at 90% 75%, rgba(255,255,255,0.5), transparent);
+  }
+  .hero-copy{ position:relative; color:#fff; max-width:640px; }
+  .hero-copy .eyebrow{
+    font-size:12px; font-weight:700; letter-spacing:0.06em; color:#ffb199;
+    margin-bottom:10px;
+  }
+  .hero-copy h1{ font-size:32px; line-height:1.2; margin:0 0 12px; font-weight:700; }
+  .hero-copy p{ font-size:14.5px; color:#d7ddec; margin:0 0 16px; max-width:56ch; }
+  .hero-copy .link{ font-size:14px; font-weight:700; color:#fff; border-bottom:2px solid var(--red); padding-bottom:2px; }
+
+  .hero-side{ display:flex; flex-direction:column; border-left:1px solid var(--line); }
+  .hero-side a{
+    padding:20px 22px; border-bottom:1px solid var(--line); flex:1;
+    display:flex; flex-direction:column; justify-content:center; gap:6px;
+  }
+  .hero-side a:last-child{ border-bottom:none; }
+  .hero-side a:hover{ background: var(--bg-soft); }
+  .hero-side .tag{ font-size:11px; font-weight:700; color:var(--red); letter-spacing:0.03em; }
+  .hero-side .headline{ font-size:14.5px; font-weight:600; line-height:1.35; }
+  .hero-side .meta{ font-size:12px; color:var(--grey); }
+
+  @media (max-width:860px){
+    .hero{ grid-template-columns:1fr; }
+    .hero-side{ border-left:none; border-top:1px solid var(--line); }
+  }
+
+  /* ---------- topic pills ---------- */
+  .topics{
+    display:flex; gap:10px; flex-wrap:wrap; padding:20px 0;
+  }
+  .topics a{
+    border:1px solid var(--line); border-radius:20px; padding:8px 16px;
+    font-size:13.5px; font-weight:600; color:var(--blue);
+  }
+  .topics a:hover{ background:var(--blue); color:#fff; border-color:var(--blue); }
+
+  /* ---------- section shell ---------- */
+  section.block{ padding:44px 0; border-top:1px solid var(--line); }
+  .block-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:26px; flex-wrap:wrap; gap:12px; }
+  .block-head h2{ font-size:24px; margin:0; font-weight:700; }
+  .block-head a{ font-size:13.5px; font-weight:700; color:var(--blue); }
+
+  /* ---------- news grid ---------- */
+  .news-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
+  @media (max-width:860px){ .news-grid{ grid-template-columns:1fr; } }
+  .news-card{ display:flex; flex-direction:column; gap:10px; }
+  .news-thumb{
+    height:160px; border-radius:4px;
+    background: linear-gradient(135deg, var(--thumb-a,#123f91), var(--thumb-b,#e8422a));
+  }
+  .news-card .tag{ font-size:11px; font-weight:700; color:var(--red); letter-spacing:0.03em; }
+  .news-card h3{ margin:0; font-size:16px; line-height:1.35; }
+  .news-card .meta{ font-size:12px; color:var(--grey); }
+
+  /* ---------- humans in space ---------- */
+  .his{ background: var(--bg-soft); }
+  .his-inner{ display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center; }
+  .his-inner p{ color:var(--grey); font-size:14.5px; max-width:52ch; }
+  .his-links{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .his-links a{
+    background:#fff; border:1px solid var(--line); border-radius:4px; padding:16px;
+    font-weight:600; font-size:14px;
+  }
+  .his-links a:hover{ border-color:var(--blue); }
+  @media (max-width:860px){ .his-inner{ grid-template-columns:1fr; } }
+
+  /* ---------- image of the day ---------- */
+  .iotd{ display:grid; grid-template-columns:1.3fr 1fr; gap:32px; align-items:center; }
+  .iotd-img{
+    height:280px; border-radius:4px;
+    background: radial-gradient(ellipse at 30% 30%, #3a5fc4, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, #e8422a, transparent 55%),
+                linear-gradient(160deg, #050a1a, #0d1c3f);
+    position:relative; overflow:hidden;
+  }
+  .iotd-img::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 60% 60%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 80% 20%, #fff, transparent),
+      radial-gradient(1px 1px at 40% 80%, #fff, transparent);
+  }
+  .iotd-copy .label{ font-size:12px; font-weight:700; color:var(--red); letter-spacing:0.03em; margin-bottom:8px; }
+  .iotd-copy h3{ font-size:19px; margin:0 0 10px; }
+  .iotd-copy p{ color:var(--grey); font-size:14px; margin:0 0 14px; }
+  @media (max-width:860px){ .iotd{ grid-template-columns:1fr; } }
+
+  /* ---------- newsletter ---------- */
+  .newsletter{
+    border-radius:6px;
+    background: linear-gradient(120deg, #0b2a63, #123f91 55%, #3a1f8f);
+    color:#fff; padding:40px; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .newsletter h2{ margin:0 0 8px; font-size:24px; }
+  .newsletter p{ margin:0 0 20px; color:#d7ddec; font-size:14.5px; }
+  .newsletter-form{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .newsletter-form input{
+    padding:11px 14px; border-radius:4px; border:none; width:280px; font-size:14px; font-family:var(--sans);
+  }
+  .newsletter-form button{
+    background: var(--red); color:#fff; border:none; padding:11px 22px;
+    border-radius:4px; font-weight:700; cursor:pointer; font-size:14px;
+  }
+  .newsletter .fine{ font-size:11.5px; color:#aab4cf; margin-top:12px; }
+
+  /* ---------- footer ---------- */
+  footer{ background: var(--bg-soft); border-top:1px solid var(--line); }
+  .footer-top{ display:flex; justify-content:space-between; align-items:flex-start; padding:44px 0 28px; gap:24px; flex-wrap:wrap; }
+  .footer-brand{ max-width:340px; }
+  .footer-brand .brand-text{ margin-bottom:12px; }
+  .footer-brand p{ color:var(--grey); font-size:13.5px; }
+  .footer-brand .links{ display:flex; gap:16px; margin-top:14px; }
+  .footer-brand .links a{ font-weight:700; font-size:13px; color:var(--blue); }
+
+  .footer-cols{ display:grid; grid-template-columns:repeat(4, 1fr); gap:28px; flex:1; max-width:640px; }
+  .footer-cols h4{ font-size:12px; text-transform:uppercase; letter-spacing:0.04em; color:var(--grey); margin:0 0 10px; }
+  .footer-cols div{ margin-bottom:8px; font-size:13.5px; }
+  .footer-cols a:hover{ text-decoration:underline; }
+  @media (max-width:900px){ .footer-cols{ grid-template-columns:repeat(2,1fr); max-width:none; } }
+
+  .footer-bottom{
+    border-top:1px solid var(--line); padding:18px 0; font-size:12px; color:var(--grey);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .footer-meta{ display:flex; gap:18px; flex-wrap:wrap; }
+
+  .helpful{ text-align:center; padding:20px 0; font-size:13.5px; color:var(--grey); }
+  .helpful .btns{ display:flex; gap:10px; justify-content:center; margin-top:8px; }
+  .helpful button{
+    border:1px solid var(--line); background:#fff; border-radius:4px; padding:6px 18px; cursor:pointer; font-size:13px;
+  }
+  .helpful button:hover{ border-color:var(--blue); color:var(--blue); }
+</style>
+</head>
+<body>
+
+<div class="gov-bar">
+  <div class="wrap">
+    <div class="flag">
+      <svg viewBox="0 0 16 11"><rect width="16" height="11" fill="#123f91"/><rect y="0" width="16" height="1.6" fill="#fff"/><rect y="3.2" width="16" height="1.6" fill="#fff"/><rect y="6.4" width="16" height="1.6" fill="#fff"/><rect y="9.6" width="16" height="1.4" fill="#fff"/></svg>
+      <span>An official website of the federal government</span>
+    </div>
+    <button id="govToggle">Here's how you know <span>▾</span></button>
+  </div>
+</div>
+<div class="gov-detail" id="govDetail">
+  <div class="wrap">
+    <div class="col">
+      <strong>Official websites use .gov</strong>
+      <span>A .gov website belongs to an official government organization.</span>
+    </div>
+    <div class="col">
+      <strong>Secure .gov websites use HTTPS</strong>
+      <span>A lock icon or https:// means you've safely connected to a .gov website. Share sensitive information only on official, secure websites.</span>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="header-row">
+    <a class="brand" href="/">
+      <svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="21" cy="21" r="20" fill="#123f91"/>
+        <ellipse cx="21" cy="21" rx="16" ry="6.5" fill="none" stroke="#fff" stroke-width="1.4" transform="rotate(-18 21 21)"/>
+        <path d="M21 9 L25 22 L21 19.5 L17 22 Z" fill="#e8422a"/>
+        <circle cx="21" cy="21" r="1.8" fill="#fff"/>
+      </svg>
+      <span class="brand-text">NAZA<small>NATIONAL AEROSPACE &amp; ZERO-G ADMINISTRATION</small></span>
+    </a>
+    <div class="header-actions">
+      <button class="search-btn">🔍 <span>Search</span></button>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+    </div>
+  </div>
+  <nav class="primary">
+    <div class="wrap" id="primaryNav">
+      <a href="/">Home</a>
+      <a href="/missions">Missions</a>
+      <a href="/humans">Humans in Space</a>
+      <a href="/science">Science</a>
+      <a href="/news">News &amp; Events</a>
+      <a href="/directory">Directory</a>
+      <a href="/portal">Employee Portal</a>
+    </div>
+  </nav>
+
+<main id="top">
+
+<section class="hero">
+    <div class="hero-main">
+      <div class="hero-copy">
+        <div class="eyebrow">NEWS RELEASE · 6 MIN READ</div>
+        <h1>NAZA Sets Coverage for Halcyon Space Telescope Launch</h1>
+        <p>Live coverage begins Thursday as the Halcyon Space Telescope prepares to lift off from Meridian Launch Complex, beginning a decade-long survey of the deep universe.</p>
+        <a class="link" href="/news">Read the full release →</a>
+      </div>
+    </div>
+    <div class="hero-side">
+      <a href="/news">
+        <span class="tag">ARTICLE</span>
+        <span class="headline">Orpheus II Crew Honored for Historic Lunar Return</span>
+        <span class="meta">2 days ago</span>
+      </a>
+      <a href="/news">
+        <span class="tag">BLOG</span>
+        <span class="headline">NAZA, Skyhold Aerospace Adjust Crew-11 Launch Date</span>
+        <span class="meta">3 days ago</span>
+      </a>
+      <a href="/news">
+        <span class="tag">ARTICLE</span>
+        <span class="headline">New Deep Space Relay Dish Comes Online in Nevada Desert</span>
+        <span class="meta">5 days ago</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="topics">
+      <a href="/missions">Missions</a>
+      <a href="/humans">Humans in Space</a>
+      <a href="/science">Earth</a>
+      <a href="/science">Solar System</a>
+      <a href="/science">Universe</a>
+      <a href="/science">Aeronautics</a>
+      <a href="/science">Technology</a>
+      <a href="/directory">About NAZA</a>
+    </div>
+  </div>
+
+  <section class="block" id="missions">
+    <div class="wrap">
+      <div class="block-head">
+        <h2>Active &amp; upcoming missions</h2>
+        <a href="/missions">View all missions</a>
+      </div>
+      <div class="news-grid">
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#123f91; --thumb-b:#3a1f8f;"></div>
+          <span class="tag">IN FLIGHT</span>
+          <h3>Project Orpheus — Crewed Lunar Return</h3>
+          <span class="meta">Orpheus III currently in transit for a south-pole landing</span>
+        </div>
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#0d1c3f; --thumb-b:#123f91;"></div>
+          <span class="tag">OPERATING</span>
+          <h3>Comet-9 Deep Space Probe</h3>
+          <span class="meta">Flyby survey of the outer asteroid belt</span>
+        </div>
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#e8422a; --thumb-b:#123f91;"></div>
+          <span class="tag">PLANNED · 2027</span>
+          <h3>Pale Blue Array</h3>
+          <span class="meta">Six-satellite constellation for climate monitoring</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="news">
+    <div class="wrap">
+      <div class="block-head">
+        <h2>Featured news</h2>
+        <a href="/news">Recently published</a>
+      </div>
+      <div class="news-grid">
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#123f91; --thumb-b:#e8422a;"></div>
+          <span class="tag">NEWS RELEASE · 2 MIN READ</span>
+          <h3>NAZA Sets Spacewalk for Station Maintenance, Live Coverage Planned</h3>
+          <span class="meta">1 day ago</span>
+        </div>
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#3a1f8f; --thumb-b:#123f91;"></div>
+          <span class="tag">BLOG · 1 MIN READ</span>
+          <h3>NAZA, Skyhold Aerospace Adjust Crew-11 Launch Date</h3>
+          <span class="meta">3 days ago</span>
+        </div>
+        <div class="news-card">
+          <div class="news-thumb" style="--thumb-a:#0d1c3f; --thumb-b:#3a1f8f;"></div>
+          <span class="tag">ARTICLE · 4 MIN READ</span>
+          <h3>Office of Inspector General Opens Routine IT Security Review</h3>
+          <span class="meta">5 days ago</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block his" id="humans">
+    <div class="wrap his-inner">
+      <div>
+        <div class="block-head" style="margin-bottom:14px;"><h2>Humans in Space</h2></div>
+        <p>From low-Earth orbit to the lunar surface, NAZA astronauts are conducting research, maintaining outposts, and preparing the way for the next generation of deep-space missions.</p>
+        <a class="link" href="/humans" style="color:var(--blue); font-weight:700;">Discover more →</a>
+      </div>
+      <div class="his-links">
+        <a href="/humans">Meridian Station</a>
+        <a href="/humans">Living in Space</a>
+        <a href="/humans">Astronauts</a>
+        <a href="/humans">Destinations</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="science">
+    <div class="wrap iotd">
+      <div class="iotd-img"></div>
+      <div class="iotd-copy">
+        <div class="label">IMAGE OF THE DAY</div>
+        <h3>Halcyon Telescope Cleared for Final Fueling</h3>
+        <p>Technicians complete final checks on the Halcyon Space Telescope inside the clean room at Meridian Launch Complex ahead of its scheduled liftoff this week.</p>
+        <a class="link" href="/science" style="color:var(--blue); font-weight:700;">Browse image archive →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="newsletter">
+        <h2>Explore the universe from your inbox</h2>
+        <p>Stay up to date on the latest news from NAZA — from Earth to the Moon, the solar system and beyond.</p>
+        <div class="newsletter-form">
+          <input type="email" placeholder="Email address">
+          <button type="button">Sign Up</button>
+        </div>
+        <div class="fine">We will never share your email address.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="helpful">
+    Was this page helpful?
+    <div class="btns"><button>Yes</button><button>No</button></div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="brand-text">NAZA</div>
+        <p>National Aerospace &amp; Zero-Gravity Administration explores the unknown in air and space, and shares what it learns with the public.</p>
+        <div class="links">
+          <a href="/directory">About NAZA's Mission</a>
+          <a href="/directory">Join Us</a>
+        </div>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h4>Agency</h4>
+          <div><a href="/missions">Missions</a></div>
+          <div><a href="/humans">Humans in Space</a></div>
+          <div><a href="/science">Science</a></div>
+          <div><a href="/directory">About NAZA</a></div>
+        </div>
+        <div>
+          <h4>News</h4>
+          <div><a href="/news">News &amp; Events</a></div>
+          <div><a href="/news">Recently Published</a></div>
+          <div><a href="/news">Newsletters</a></div>
+        </div>
+        <div>
+          <h4>Follow</h4>
+          <div>Twotter</div>
+          <div>Kisscord</div>
+          <div>WeeChat</div>
+        </div>
+        <div>
+          <h4>Resources</h4>
+          <div><a href="/directory">Directory</a></div>
+          <div><a href="/portal">Employee Portal</a></div>
+          <div><a href="/directory">Contact</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 National Aerospace &amp; Zero-Gravity Administration</span>
+      <div class="footer-meta">
+        <a href="/">Sitemap</a>
+        <a href="/">Privacy Policy</a>
+        <a href="/directory">Records Requests</a>
+        <a href="/">Accessibility</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+  document.getElementById('menuToggle').addEventListener('click', function(){
+    document.getElementById('primaryNav').classList.toggle('open');
+  });
+  document.getElementById('govToggle').addEventListener('click', function(){
+    document.getElementById('govDetail').classList.toggle('open');
+  });
+</script>
+
+</body>
+</html>

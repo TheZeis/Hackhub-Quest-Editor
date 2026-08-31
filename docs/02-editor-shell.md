@@ -483,3 +483,22 @@ AlertDialog confirm ("Do you really want to delete this page?"). The code view
 gained Prism syntax highlighting (transparent textarea over a highlighted
 `<pre>`, synced scroll) and a **Format** button that lazy-loads
 `prettier/standalone` + the html plugin.
+
+**Round eleven: naza rebuilt as real pages, plain-language scans, AI prompt.**
+Claude's community naza file was a single-file site whose nav used in-page
+anchors — fine in a browser, useless for quests (no `/portal` page to gate, no
+unlisted page for dirhunter). `scripts/build-naza-pages.mjs` now slices it into
+8 real pages under `src/editor/websites/naza/` (home, missions, humans,
+science, news, directory, portal, and an unlisted `/it/helpdesk`), keeping the
+original stylesheet, gov bar, header and footer verbatim; anchor links became
+path links, the directory gained an Employee ID column (NZA-3419 for t.reyes),
+and the unlisted helpdesk page spells out the temp-password format — the
+portal's comment clue is now solvable in-game. The agency site template ships
+all 8 pages (`/it/helpdesk` hidden from search); page templates offer landing,
+portal and helpdesk individually. The document scan was rewritten for
+non-programmers ("Inside this page", ⚠️/🥚/⚙️ findings with what-to-do, dead
+links get a *Fix it: create the missing pages* button), and the toolbar gained
+an **✨ AI website prompt** popout: describe the site, copy a generated prompt
+that teaches any LLM HackHub's quirks (one self-contained .html per page, no
+internet resources, real path links, one unlinked secret page), then Load HTML
+the results.

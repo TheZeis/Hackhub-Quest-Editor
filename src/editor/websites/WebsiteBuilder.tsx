@@ -14,6 +14,7 @@ import { createPage, createWebsite } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 import { PAGE_TEMPLATES, SITE_TEMPLATES } from "@/templates/pages";
 import { isFullDocument, scanDocument, wrapFragment } from "./pageDoc";
+import { LlmPromptDialog } from "./LlmPromptDialog";
 import { CodePageEditor, VisualPageEditor } from "./pageEditor";
 
 export function WebsiteBuilderDialog({
@@ -39,6 +40,7 @@ export function WebsiteBuilderDialog({
     /** Bumped when content changes outside the visual editor, so it remounts fresh. */
     const [outsideRev, setOutsideRev] = useState(0);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [llmOpen, setLlmOpen] = useState(false);
     const htmlFileRef = useRef<HTMLInputElement>(null);
     const toast = useEditor((s) => s.toast);
 
@@ -411,6 +413,14 @@ export function WebsiteBuilderDialog({
                                                 <Icon name="upload" size={11} />
                                                 Load HTML
                                             </button>
+                                            <button
+                                                type="button"
+                                                className="btn-default"
+                                                title="Get a copy-paste prompt that makes ChatGPT or Claude build a game-ready website for you"
+                                                onClick={() => setLlmOpen(true)}
+                                            >
+                                                ✨ AI website prompt
+                                            </button>
                                             <input
                                                 ref={htmlFileRef}
                                                 type="file"
@@ -474,16 +484,18 @@ export function WebsiteBuilderDialog({
                                             <div className="border-b border-line px-3 py-2">
                                                 <p className="mb-1 flex items-center gap-1.5 text-[10.5px] font-semibold text-ink-2">
                                                     <Icon name="search" size={11} className="text-accent" />
-                                                    Document scan
+                                                    Inside this page
+                                                    <span className="font-normal text-ink-4">
+                                                        — what we found in the code
+                                                    </span>
                                                 </p>
-                                                <div className="grid gap-1 text-[10.5px] leading-relaxed text-ink-3">
+                                                <div className="grid gap-1.5 text-[10.5px] leading-relaxed text-ink-3">
                                                     {missingPaths.length > 0 && (
                                                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                                            <span>
-                                                                Links to {missingPaths.length} page
-                                                                {missingPaths.length === 1 ? "" : "s"} that don't
-                                                                exist yet:
-                                                            </span>
+                                                            <span>⚠️ This page links to {missingPaths.length} page
+                                                                {missingPaths.length === 1 ? "" : "s"} that
+                                                                don't exist yet — in the game, clicking them
+                                                                leads nowhere:</span>
                                                             {missingPaths.slice(0, 6).map((mp) => (
                                                                 <span key={mp} className="rounded bg-surface-2 px-1 font-mono">
                                                                     {mp}
@@ -517,26 +529,24 @@ export function WebsiteBuilderDialog({
                                                                     );
                                                                 }}
                                                             >
-                                                                Create {missingPaths.length} missing page
+                                                                Fix it: create the missing page
                                                                 {missingPaths.length === 1 ? "" : "s"}
                                                             </button>
                                                         </div>
                                                     )}
                                                     {scan.anchors.length > 0 && (
                                                         <p>
-                                                            Section links:{" "}
-                                                            <span className="font-mono text-ink-4">
-                                                                {scan.anchors.map((a) => `#${a}`).join(" ")}
-                                                            </span>{" "}
-                                                            — these jump to sections inside this page, not to
-                                                            separate pages.
+                                                            ℹ️ {scan.anchors.length} menu link
+                                                            {scan.anchors.length === 1 ? "" : "s"} jump to different
+                                                            spots on this same page (a one-page site). That's fine as
+                                                            it is — nothing to fix.
                                                         </p>
                                                     )}
                                                     {scan.comments.length > 0 && (
                                                         <p>
-                                                            {scan.comments.length} HTML comment
-                                                            {scan.comments.length === 1 ? "" : "s"} (view-source clue
-                                                            {scan.comments.length === 1 ? "" : "s"}):{" "}
+                                                            🥚 Hidden message: this page carries text written as a
+                                                            code comment — invisible on the page itself, but players
+                                                            who inspect the source can read it. Great for clues:{" "}
                                                             <code className="rounded bg-surface-2 px-1 font-mono text-accent">
                                                                 {scan.comments[0].slice(0, 120)}
                                                                 {scan.comments[0].length > 120 ? "…" : ""}
@@ -546,10 +556,10 @@ export function WebsiteBuilderDialog({
                                                     {(scan.scripts > 0 || scan.forms > 0) && (
                                                         <p>
                                                             {scan.scripts > 0 &&
-                                                                `${scan.scripts} script${scan.scripts === 1 ? "" : "s"} — runs only in Preview.`}
+                                                                `⚙️ This page runs a small script — it works in the Preview tab (the Visual editor keeps scripts off while you write).`}
                                                             {scan.scripts > 0 && scan.forms > 0 && " "}
                                                             {scan.forms > 0 &&
-                                                                `${scan.forms} form${scan.forms === 1 ? "" : "s"}.`}
+                                                                `📝 It also has an input form, like a login box.`}
                                                         </p>
                                                     )}
                                                     {missingPaths.length === 0 &&
@@ -558,8 +568,8 @@ export function WebsiteBuilderDialog({
                                                         scan.scripts === 0 &&
                                                         scan.forms === 0 && (
                                                             <p className="text-ink-4">
-                                                                No hidden content or page links detected in this
-                                                                document.
+                                                                ✅ Nothing unusual here — every link works, and
+                                                                there are no hidden messages or scripts.
                                                             </p>
                                                         )}
                                                 </div>
@@ -640,6 +650,8 @@ export function WebsiteBuilderDialog({
                 </AlertDialog.Content>
             </AlertDialog.Portal>
         </AlertDialog.Root>
+
+        <LlmPromptDialog open={llmOpen} onOpenChange={setLlmOpen} />
         </>
     );
 }

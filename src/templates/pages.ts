@@ -618,9 +618,21 @@ ol.steps li::before{content:counter(s);position:absolute;left:0;top:2px;width:30
     },
     {
         id: "agency",
-        label: "Public agency site (NAZA)",
-        blurb: "The community-built naza.gov mirror: gov bar, orbit hero, missions, newsroom, staff directory, and a portal that always denies.",
-        make: () => ({ title: "NAZA homepage", path: "/", seo: true, content: nazaHtml }),
+        label: "Public agency landing (NAZA)",
+        blurb: "The naza.gov front page: gov bar, orbit hero, missions, newsroom teasers. Links to /missions, /news, /portal — add those pages too.",
+        make: () => ({ title: "NAZA homepage", path: "/", seo: true, content: nazaHome }),
+    },
+    {
+        id: "agency-portal",
+        label: "Agency employee portal",
+        blurb: "A gov login box that always denies access — with an HTML comment hidden in the source as a view-source clue.",
+        make: () => ({ title: "Employee Portal", path: "/portal", seo: true, content: nazaPortal }),
+    },
+    {
+        id: "agency-helpdesk",
+        label: "Agency internal helpdesk",
+        blurb: "An unlisted internal IT page listing temp-password rules — made to be found by dirhunter, not by the menu.",
+        make: () => ({ title: "IT Help Desk (internal)", path: "/it/helpdesk", seo: true, content: nazaHelpdesk }),
     },
 ];
 
@@ -656,8 +668,27 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
     {
         id: "agency",
         label: "Public agency site (NAZA)",
-        blurb: "The community-built naza.gov mirror, verbatim — gov bar, orbit hero, missions, newsroom, staff directory, dead employee portal.",
-        make: () => ({ host: "naza.gov", name: "NAZA", pages: [pageFrom("agency")] }),
+        blurb: "The community naza.gov site, rebuilt as real pages: home, missions, humans, science, news, directory, a portal that always denies — plus an unlisted IT helpdesk page for dirhunter.",
+        make: () => ({
+            host: "naza.gov",
+            name: "NAZA",
+            pages: [
+                { title: "NAZA homepage", path: "/", seo: true, content: nazaHome, template: "agency" },
+                { title: "Missions", path: "/missions", seo: true, content: nazaMissions, template: "agency" },
+                { title: "Humans in Space", path: "/humans", seo: true, content: nazaHumans, template: "agency" },
+                { title: "Science", path: "/science", seo: true, content: nazaScience, template: "agency" },
+                { title: "News & Events", path: "/news", seo: true, content: nazaNews, template: "agency" },
+                { title: "Leadership & Directory", path: "/directory", seo: true, content: nazaDirectory, template: "agency" },
+                { title: "Employee Portal", path: "/portal", seo: true, content: nazaPortal, template: "agency-portal" },
+                {
+                    title: "IT Help Desk (internal)",
+                    path: "/it/helpdesk",
+                    seo: false,
+                    content: nazaHelpdesk,
+                    template: "agency-helpdesk",
+                },
+            ],
+        }),
     },
     {
         id: "leak",
@@ -704,7 +735,14 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
 /* ── starter for blank sites ─────────────────────────────────────────────── */
 
 import { BASE_CSS } from "@/editor/websites/pageDoc";
-import nazaHtml from "@/editor/websites/naza-homepage.html?raw";
+import nazaHome from "@/editor/websites/naza/home.html?raw";
+import nazaMissions from "@/editor/websites/naza/missions.html?raw";
+import nazaHumans from "@/editor/websites/naza/humans.html?raw";
+import nazaScience from "@/editor/websites/naza/science.html?raw";
+import nazaNews from "@/editor/websites/naza/news.html?raw";
+import nazaDirectory from "@/editor/websites/naza/directory.html?raw";
+import nazaPortal from "@/editor/websites/naza/portal.html?raw";
+import nazaHelpdesk from "@/editor/websites/naza/it-helpdesk.html?raw";
 
 /** The first page of a blank website: styled, with obvious placeholder copy. */
 export const STARTER_PAGE = `<!doctype html>

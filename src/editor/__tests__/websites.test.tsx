@@ -3,7 +3,7 @@
  * code view, Load HTML, the isolated visual editor, and template quality.
  */
 import { useState } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CodePageEditor, VisualPageEditor } from "@/editor/websites/pageEditor";
@@ -84,10 +84,11 @@ describe("template quality", () => {
             const made = s.make();
             expect(made.pages.length, s.id).toBeGreaterThan(0);
         }
-        // The Public agency template is the community naza page, verbatim.
+        // The Public agency template keeps the community naza design, rebuilt as real pages.
         const agency = PAGE_TEMPLATES.find((t) => t.id === "agency")!.make();
         expect(agency.content).toContain("Zero-Gravity Administration");
-        expect(agency.content).toContain("<script>");
+        expect(agency.content).toContain('href="/missions"');
+        expect(agency.content).not.toContain('href="#missions"');
     });
 });
 
@@ -265,22 +266,70 @@ describe("website builder dialog", () => {
         expect(screen.getByText("/vault")).toBeInTheDocument();
         expect(screen.getByText(/temp password: hunter2/)).toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: /Create 1 missing page/ }));
+        await user.click(screen.getByRole("button", { name: /create the missing page/i }));
         const pages = useEditor.getState().project.websites[0].pages;
         expect(pages).toHaveLength(2);
         expect(pages.map((p) => p.path).sort()).toEqual(["/", "/vault"]);
     });
 
-    it("the naza agency page scans as a single-file site with sections and a comment clue", async () => {
+    it("the naza agency site is a real multi-page site with a hidden helpdesk page", async () => {
         const { SITE_TEMPLATES } = await import("@/templates/pages");
         const { scanDocument } = await import("@/editor/websites/pageDoc");
         const agency = SITE_TEMPLATES.find((t) => t.id === "agency")!.make();
-        const scan = scanDocument(agency.pages[0].content);
-        expect(scan.linkedPaths).toEqual([]);
-        expect(scan.anchors).toContain("missions");
-        expect(scan.anchors).toContain("portal");
-        expect(scan.comments.length).toBeGreaterThanOrEqual(1);
-        expect(scan.scripts).toBeGreaterThanOrEqual(1);
+
+        // every linked path is a page of the site — no dead links for players
+        const paths = agency.pages.map((p) => p.path);
+        expect(paths).toContain("/portal");
+        for (const p of agency.pages) {
+            for (const linked of scanDocument(p.content).linkedPaths) {
+                expect(paths, `${p.path} links to ${linked}`).toContain(linked);
+            }
+        }
+
+        // the unlisted helpdesk page is the dirhunter target
+        const helpdesk = agency.pages.find((p) => p.path === "/it/helpdesk")!;
+        expect(helpdesk.seo).toBe(false);
+        expect(helpdesk.content).toContain("tre");
+        expect(helpdesk.content).toContain("NZA-3419");
+
+        // the portal keeps its form, denial script and view-source clue
+        const portal = agency.pages.find((p) => p.path === "/portal")!;
+        const portalScan = scanDocument(portal.content);
+        expect(portalScan.forms).toBe(1);
+        expect(portalScan.scripts).toBe(1);
+        expect(portalScan.comments.join(" ")).toContain("temp resets");
+
+        // the design survived: home still has the orbit hero and gov bar
+        const home = agency.pages.find((p) => p.path === "/")!;
+        expect(home.content).toContain("gov-bar");
+        expect(home.content).toContain("Halcyon Space Telescope");
+    });
+
+    it("the AI website prompt popout teaches the LLM the game's quirks", async () => {
+        const user = userEvent.setup();
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+        const site = createWebsite();
+        act(() => useEditor.getState().addWebsite(site));
+        render(<WebsiteBuilderDialog open onOpenChange={() => {}} />);
+
+        await user.click(screen.getByRole("button", { name: /AI website prompt/ }));
+        expect(screen.getByText("Ask an AI to build your website")).toBeInTheDocument();
+
+        await user.type(
+            screen.getByLabelText("Website idea"),
+            "a bakery that hides its door code",
+        );
+        const prompt = (screen.getByLabelText("Generated prompt") as HTMLTextAreaElement).value;
+        expect(prompt).toContain("a bakery that hides its door code");
+        expect(prompt).toContain("NO internet");
+        expect(prompt).toContain(".html file per page");
+        expect(prompt).toContain('href="/news"');
+        expect(prompt).toContain("NOT linked from the navigation");
+
+        await user.click(screen.getByRole("button", { name: "Copy prompt" }));
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("bakery")));
+        vi.unstubAllGlobals();
     });
 
     it("code view offers a Format button that pretty-prints the document", async () => {
