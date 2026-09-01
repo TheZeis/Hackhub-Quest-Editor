@@ -143,6 +143,8 @@ const settle = async () => {
     for (let i = 0; i < 60; i++) await new Promise((r) => setTimeout(r, 0));
 };
 
+const registered0 = (sdk: unknown) => (sdk as any).__registered;
+
 function runMod(modJs: string, sdk: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     new Function("require", "module", "exports", modJs)((name: string) => {
@@ -314,6 +316,87 @@ describe("world.wifi against the real SDK surface", () => {
         await settle();
         expect(calls).toContain("wifi");
         expect(calls.join(" ")).not.toContain("net:10.0.0.77");
+    });
+});
+
+describe("round-19 fixes", () => {
+    it("passes the mail's custom From through sendMail", async () => {
+        const p = createProject();
+        const q = p.quests[0];
+        const entry = node("entry.start");
+        const mail = node("comms.dialogue", {
+            kind: "mail",
+            mail: { from: "Stevey@gomail.com", subject: "Job", content: "hi", replyable: false },
+        });
+        q.graph.nodes = [entry, mail];
+        q.graph.edges = [edge(entry.id, mail.id, "flow")];
+
+        const sent: unknown[][] = [];
+        const { registered, sdk } = (() => {
+            const base = stubSdk([], []);
+            (base as any).Quest.prototype.sendMail = function (...args: unknown[]) { sent.push(args); };
+            return { registered: (base as any).__registered, sdk: base };
+        })();
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q0 = new registered.quests[0]();
+        q0.OnStart();
+        await settle();
+        expect(sent[0][0]).toBe(0);
+        expect(sent[0][1]).toBe("Stevey@gomail.com");
+    });
+
+    it("charges a percentage of the player's balance via the real Bank API", async () => {
+        const p = createProject();
+        const q = p.quests[0];
+        const entry = node("entry.start");
+        const charge = node("fx.withdraw", { amountMode: "percent", percent: 25, description: "tax" });
+        q.graph.nodes = [entry, charge];
+        q.graph.edges = [edge(entry.id, charge.id, "flow")];
+
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        (sdk as any).Bank = {
+            getBalance: () => 4000,
+            withdraw: (tx: { amount: number; description: string }) => calls.push(`withdraw:${tx.amount}:${tx.description}`),
+            transaction: (tx: { amount: number }) => calls.push(`deposit:${tx.amount}`),
+        };
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q0 = new (registered0(sdk).quests[0])();
+        q0.OnStart();
+        await settle();
+        expect(calls).toContain("withdraw:1000:tax");
+    });
+
+    it("waits in seconds and embeds cover/icon files with manifest references", async () => {
+        const p = createProject();
+        p.mod.tags = ["story", "network"];
+        p.mod.icon = "data:image/png;base64,iVBORw0KGgo=";
+        p.mod.cover = "data:image/jpeg;base64,/9j/4AAQ=";
+        const q = p.quests[0];
+        const entry = node("entry.start");
+        const wait = node("flow.delay", { seconds: 2 });
+        q.graph.nodes = [entry, wait];
+        q.graph.edges = [edge(entry.id, wait.id, "flow")];
+
+        const result = compileProject(p);
+        const manifest = JSON.parse(result.files.find((f) => f.path === "manifest.json")!.content);
+        expect(manifest.icon).toBe("assets/icon.png");
+        expect(manifest.cover).toBe("assets/cover.jpg");
+        expect(manifest.tags).toEqual(["story", "network"]);
+        const iconFile = result.files.find((f) => f.path === "assets/icon.png")!;
+        expect(iconFile.base64).toBe(true);
+
+        // seconds are honoured (the Wait node stored 2s → a real 2000ms sleep)
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(result.files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const started = Date.now();
+        const q0 = new (sdk as any).__registered.quests[0]();
+        q0.OnStart();
+        await new Promise((r) => setTimeout(r, 2100)); // the Wait node slept 2 real seconds
+        expect(Date.now() - started).toBeGreaterThanOrEqual(1900);
     });
 });
 

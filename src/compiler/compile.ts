@@ -18,6 +18,17 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
 export interface CompiledFile {
     path: string;
     content: string;
+    /** Content is base64 (binary asset) rather than plain text. */
+    base64?: boolean;
+}
+
+/** Turn an embedded data-URL image into a zip-ready binary file entry. */
+function imageAsset(dataUrl: string | undefined, name: string): { file: CompiledFile; path: string } | null {
+    const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
+    if (!m) return null;
+    const ext = m[1] === "jpeg" ? "jpg" : "png";
+    const path = `assets/${name}.${ext}`;
+    return { file: { path, content: m[2], base64: true }, path };
 }
 
 export interface CompileResult {
@@ -172,6 +183,12 @@ export function compileProject(project: ProjectDocument): CompileResult {
         "",
     ].join("\n");
 
+    /* Cover/icon: decode the embedded images into real files and reference
+       them by path in the manifest, as the game expects. A plain file name
+       typed into the field (old drafts) is passed through untouched. */
+    const iconAsset = imageAsset(project.mod.icon, "icon");
+    const coverAsset = imageAsset(project.mod.cover, "cover");
+
     const manifest = {
         id: project.mod.id,
         name: project.mod.name,
@@ -180,6 +197,9 @@ export function compileProject(project: ProjectDocument): CompileResult {
         description: project.mod.description || `${project.mod.name} — built with the HackHub Quest Mod Editor`,
         apiVersion: project.mod.apiVersion,
         permissions,
+        ...(project.mod.tags.length ? { tags: project.mod.tags } : {}),
+        ...(iconAsset ? { icon: iconAsset.path } : project.mod.icon ? { icon: project.mod.icon } : {}),
+        ...(coverAsset ? { cover: coverAsset.path } : project.mod.cover ? { cover: project.mod.cover } : {}),
     };
 
     const readme = [
@@ -256,6 +276,8 @@ export function compileProject(project: ProjectDocument): CompileResult {
             { path: "package.json", content: JSON.stringify(packageJson, null, 2) + "\n" },
             { path: "esbuild.config.mjs", content: esbuildConfig },
             { path: "tsconfig.json", content: JSON.stringify(tsconfig, null, 2) + "\n" },
+            ...(iconAsset ? [iconAsset.file] : []),
+            ...(coverAsset ? [coverAsset.file] : []),
         ],
     };
 }

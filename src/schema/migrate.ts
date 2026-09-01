@@ -25,6 +25,16 @@ const mapNode = (n: Loose): Loose => {
             return { ...n, type: "comms.dialogue", data: { kind: "mail", mail: n.data ?? {} } };
         case "comms.weechat":
             return { ...n, type: "comms.dialogue", data: { kind: "weechat", weechat: n.data ?? {} } };
+        case "flow.delay":
+            // ms → seconds (round 19)
+            if (n.data && n.data.ms != null && n.data.seconds == null) {
+                return { ...n, data: { ...n.data, seconds: Number(n.data.ms) / 1000 } };
+            }
+            return n;
+        case "fx.pay":
+        case "fx.withdraw":
+            // amountMode/percent added in round 19 — old drafts are fixed-amount
+            return { ...n, data: { amountMode: "fixed", percent: 10, ...n.data } };
         default:
             return n;
     }

@@ -395,7 +395,10 @@ export const ManualInputNodeDataSchema = z.object({
 });
 
 export const PayNodeDataSchema = z.object({
+    /** Charge/deposit a fixed amount, or a percentage of the player's balance. */
+    amountMode: z.enum(["fixed", "percent"]).default("fixed"),
     amount: z.number().default(0),
+    percent: z.number().default(10),
     description: z.string().default(""),
     fromIBAN: z.string().optional(),
     fromName: z.string().optional(),
@@ -432,7 +435,8 @@ export const BranchNodeDataSchema = z.object({
 });
 
 export const DelayNodeDataSchema = z.object({
-    ms: z.number().default(1000),
+    /** Seconds — friendlier than ms; halves like 0.5 are fine. */
+    seconds: z.number().default(1),
 });
 
 export const RandomPickNodeDataSchema = z.object({

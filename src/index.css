@@ -170,7 +170,7 @@
     }
 
     .field-hint {
-        @apply mt-1.5 text-[11px] leading-snug text-ink-4;
+        @apply mt-2 text-[11px] leading-relaxed text-ink-3;
     }
 
     /* ── Buttons ───────────────────────────────────────────────────── */

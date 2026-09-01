@@ -81,7 +81,11 @@ function __qeRegisterProject(sdk, PROJECT) {
 
         var mailNodes = g.nodes.filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "mail"; });
         var mailIndex = {};
-        mailNodes.forEach(function (n, i) { mailIndex[n.id] = i; });
+        var mailFrom = {};
+        mailNodes.forEach(function (n, i) {
+            mailIndex[n.id] = i;
+            if (n.data.mail.from) mailFrom[n.id] = n.data.mail.from;
+        });
 
         var Mails = mailNodes.map(function (n) {
             var m = n.data.mail;
@@ -256,7 +260,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (sdk.Shell && sdk.Shell.addCommandData) sdk.Shell.addCommandData(d.command, d.dataText);
                     return next();
                 case "comms.dialogue":
-                    if (d.kind === "mail" && mailIndex[node.id] != null) questRef.sendMail(mailIndex[node.id]);
+                    if (d.kind === "mail" && mailIndex[node.id] != null) {
+                        questRef.sendMail(mailIndex[node.id], mailFrom[node.id]);
+                    }
                     if (d.kind === "phone") questRef.createDialog(d.phone && d.phone.branch ? d.phone.branch : "default");
                     return next();
                 case "fx.notify":
@@ -272,16 +278,24 @@ function __qeRegisterProject(sdk, PROJECT) {
                     sdk.Quest.claim(d.quest);
                     return next();
                 case "fx.pay":
-                case "fx.withdraw":
-                    if (sdk.Bank && sdk.Bank.transfer) {
-                        sdk.Bank.transfer({ amount: d.amount, description: d.description });
+                case "fx.withdraw": {
+                    if (sdk.Bank) {
+                        var amount = d.amountMode === "percent"
+                            ? Math.round(((sdk.Bank.getBalance ? sdk.Bank.getBalance() : 0) * Number(d.percent || 0)) / 100)
+                            : Number(d.amount || 0);
+                        if (amount > 0) {
+                            var tx = { amount: amount, description: __QE.fill(d.description || "", scope) };
+                            if (node.type === "fx.pay" && sdk.Bank.transaction) sdk.Bank.transaction(tx);
+                            if (node.type === "fx.withdraw" && sdk.Bank.withdraw) sdk.Bank.withdraw(tx);
+                        }
                     }
                     return next();
+                }
                 case "fx.shell":
                     if (sdk.Shell && sdk.Shell.execute) sdk.Shell.execute(__QE.fill(d.command, scope));
                     return next();
                 case "flow.delay":
-                    return __QE.sleep(d.ms).then(next);
+                    return __QE.sleep(Math.max(0, Number(d.seconds || 0)) * 1000).then(next);
                 case "objective":
                     /* When the story flow reaches an objective, tick it off.
                        (Objectives with a trigger event complete via the SDK

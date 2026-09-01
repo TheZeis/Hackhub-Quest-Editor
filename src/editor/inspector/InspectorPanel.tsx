@@ -10,6 +10,7 @@ import { Icon } from "@/components/Icon";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
 import { selectActiveQuest, selectSelectedNode, useEditor } from "@/store/editor";
 import { Field } from "./Field";
+import { ImagePickerField, TagInput } from "./ModFields";
 import { FieldShell, NumberInput, SelectInput, TextArea, TextInput, Toggle } from "./primitives";
 import { NODE_SIM_EDITORS } from "./sims";
 
@@ -98,7 +99,7 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
                     <h2 className="truncate text-[13.5px] leading-tight font-semibold text-ink">
                         {def.label}
                     </h2>
-                    <p className="mt-0.5 text-[11px] leading-snug text-ink-4">{def.blurb}</p>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-ink-2">{def.blurb}</p>
                     <p className="mt-1 font-mono text-[10px] text-ink-4">{node.type}</p>
                 </div>
                 <button
@@ -334,38 +335,25 @@ function ModInspector() {
             </p>
 
             <Section>Workshop</Section>
-            <FieldShell label="Cover image" hint="16:9, at least 640×360, PNG or JPG.">
-                <TextInput
-                    ariaLabel="Cover image"
-                    value={mod.cover ?? ""}
-                    onChange={(cover) => updateMod({ cover })}
-                    mono
-                    placeholder="cover.png"
-                />
-            </FieldShell>
-            <FieldShell label="Icon">
-                <TextInput
-                    ariaLabel="Icon"
-                    value={mod.icon ?? ""}
-                    onChange={(icon) => updateMod({ icon })}
-                    mono
-                    placeholder="icon.png"
-                />
-            </FieldShell>
-            <FieldShell label="Tags" hint="Comma separated. Used for Workshop categorisation.">
-                <TextInput
-                    ariaLabel="Tags"
-                    value={mod.tags.join(", ")}
-                    onChange={(raw) =>
-                        updateMod({
-                            tags: raw
-                                .split(",")
-                                .map((t) => t.trim())
-                                .filter(Boolean),
-                        })
-                    }
-                    mono
-                    placeholder="quest, network, story"
+            <ImagePickerField
+                label="Cover image"
+                hint="The big picture on your mod's card. 16:9, at least 640×360."
+                ariaLabel="Cover image file"
+                value={mod.cover}
+                onChange={(cover) => updateMod({ cover })}
+            />
+            <ImagePickerField
+                label="Icon"
+                hint="The small square logo shown next to your mod's name."
+                ariaLabel="Icon file"
+                value={mod.icon}
+                onChange={(icon) => updateMod({ icon })}
+            />
+            <FieldShell label="Tags" hint="Used for Workshop categorisation. Press Enter or a comma to add a tag; suggestions appear as you type.">
+                <TagInput
+                    ariaLabel="Add a tag"
+                    value={mod.tags}
+                    onChange={(tags) => updateMod({ tags })}
                 />
             </FieldShell>
         </div>

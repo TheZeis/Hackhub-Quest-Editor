@@ -231,7 +231,7 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
         }
 
         case "flow.delay":
-            return [`${Number(d.ms ?? 0).toLocaleString()} ms`];
+            return [`${Number(d.seconds ?? 0)} s`];
 
         case "flow.random": {
             const options = d.options as { label: string }[] | undefined;

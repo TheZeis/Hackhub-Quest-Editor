@@ -704,7 +704,18 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
+            {
+                kind: "select",
+                key: "amountMode",
+                label: "Amount type",
+                hint: "A fixed sum, or a slice of whatever the player currently has.",
+                options: [
+                    { value: "fixed", label: "Fixed amount" },
+                    { value: "percent", label: "Percentage of balance" },
+                ],
+            },
             { kind: "number", key: "amount", hint: "Credits deposited into the player's bank account.", label: "Amount", min: 0 },
+            { kind: "number", key: "percent", hint: "Percentage of the player's current balance, taken when this node runs.", label: "Percent", min: 0, max: 100 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
             { kind: "text", key: "fromIBAN", hint: "The sending account, shown in the transfer details.", label: "From IBAN", mono: true },
             { kind: "text", key: "fromName", hint: "The sender's name on the statement.", label: "From name" },
@@ -721,7 +732,18 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
+            {
+                kind: "select",
+                key: "amountMode",
+                label: "Amount type",
+                hint: "A fixed sum, or a slice of whatever the player currently has in the bank.",
+                options: [
+                    { value: "fixed", label: "Fixed amount" },
+                    { value: "percent", label: "Percentage of balance" },
+                ],
+            },
             { kind: "number", key: "amount", hint: "Credits taken from the player's account.", label: "Amount", min: 0 },
+            { kind: "number", key: "percent", hint: "Percentage of the player's current balance, taken when this node runs.", label: "Percent", min: 0, max: 100 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
         ],
         create: () => seed(PayNodeDataSchema, { amount: 100, description: "Purchase" }),
@@ -847,7 +869,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         icon: "clock",
         ...io,
         hook: "onStart",
-        fields: [{ kind: "number", key: "ms", hint: "How long to wait, in milliseconds. 1000 is one second.", label: "Milliseconds", min: 0, step: 100 }],
+        fields: [{ kind: "number", key: "seconds", hint: "How long the story pauses here. Fractions are fine — 0.5 waits half a second.", label: "Seconds", min: 0, step: 0.5 }],
         create: () => seed(DelayNodeDataSchema),
     },
 

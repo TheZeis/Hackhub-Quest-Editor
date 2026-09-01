@@ -13,7 +13,7 @@ import { useEditor } from "@/store/editor";
 export async function buildModZip(result: CompileResult, rootName: string): Promise<JSZip> {
     const zip = new JSZip();
     const root = zip.folder(rootName)!;
-    for (const f of result.files) root.file(f.path, f.content);
+    for (const f of result.files) root.file(f.path, f.content, f.base64 ? { base64: true } : undefined);
     return zip;
 }
 
