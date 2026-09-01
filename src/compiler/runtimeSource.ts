@@ -179,7 +179,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 id: a.id || "account-" + (i + 1),
                 username: a.username,
                 displayName: a.displayName || a.username,
-                avatar: a.avatar || "",
+                avatar: a.avatar || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAA",
             };
             if (a.bio) out.bio = a.bio;
             if (a.followers != null) out.followers = a.followers;
@@ -510,7 +510,7 @@ function __qeRegisterProject(sdk, PROJECT) {
             }
         });
         g.nodes.filter(function (n) { return n.type === "reply.input"; }).forEach(function (n) {
-            inputMoments.push({ id: n.id, input: { expected: n.data.expected, matchMode: n.data.matchMode, caseSensitive: n.data.caseSensitive, failureText: n.data.failureMessage, wrongRoute: "wrong" }, label: n.data.prompt || "Answer:", node: n });
+            inputMoments.push({ id: n.id, input: { expected: n.data.expected, matchMode: n.data.matchMode, caseSensitive: n.data.caseSensitive, failureText: n.data.failureMessage, wrongRoute: "wrong" }, label: n.data.prompt || "Your answer:", node: n });
         });
 
         inputMoments.forEach(function (moment) {
@@ -586,7 +586,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 html: [
                     "<!DOCTYPE html><html><head><style>body{background:#000;color:#0f0;font-family:monospace;padding:24px}</style></head><body>",
                     "<h3>" + (h.node.data.heading || "") + "</h3><pre id='t'></pre>",
-                    "<script>var s=" + JSON.stringify(h.node.data.text) + ";var i=0;var done=false;document.addEventListener('keydown',function(){if(done)return;i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i>=s.length){done=true;HackhubSDK.Events.emit(" + JSON.stringify(__qeHtEvent(h.node)) + ",{});}});</" + "script>",
+                    "<script>var s=" + JSON.stringify(h.node.data.text) + ";var i=0;var done=false;document.addEventListener('keydown',function(){if(done)return;i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i===s.length){done=true;sdk.Events.emit(" + JSON.stringify("QE.ht." + h.node.id) + ");}});</script>",
                     "</body></html>",
                 ].join(""),
             });
