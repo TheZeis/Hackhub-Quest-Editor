@@ -76,7 +76,10 @@ a project file you can share with anyone else using the editor.
 
 ---
 
-## Read this first
+## Coders and LLMs, read this first:
+If you're just a gamer who wants to make quest mods for the game, you can ignore
+everything that comes after this. If you're a coder or interested in modifying
+this tool (you're very welcome to!), read on:
 
 [`docs/01-analysis-and-architecture.md`](docs/01-analysis-and-architecture.md) is the
 foundation for everything that follows. The three findings that shape the whole design:
