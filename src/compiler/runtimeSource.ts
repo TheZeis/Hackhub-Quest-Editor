@@ -226,7 +226,31 @@ function __qeRegisterProject(sdk, PROJECT) {
                     return next();
                 }
                 case "world.wifi":
-                    sdk.Network.createWifiNetwork({ ssid: d.ssid, password: d.password, signal: d.signal });
+                    /* SDK 0.21.0 has no wireless API: use it if a future
+                       version ships one, otherwise fall back to a plain
+                       router network so the machines at least exist. */
+                    if (sdk.Network.createWifiNetwork) {
+                        sdk.Network.createWifiNetwork({
+                            ssid: d.ssid,
+                            password: d.password,
+                            signal: d.signal,
+                            bssid: d.bssid,
+                            channel: d.channel,
+                            model: d.model,
+                        });
+                    } else {
+                        var wifiIp = d.ipMode === "fixed" && d.ip
+                            ? d.ip
+                            : (sdk.Network.randomIp ? sdk.Network.randomIp() : "10.0.0.1");
+                        sdk.Network.createSubnetNetwork(mapDevice({
+                            ip: wifiIp,
+                            type: "ROUTER",
+                            model: d.model,
+                            ports: d.ports || [],
+                            users: d.users || [],
+                            children: d.children || [],
+                        }));
+                    }
                     return next();
                 case "world.toolResponse":
                     if (sdk.Shell && sdk.Shell.addCommandData) sdk.Shell.addCommandData(d.command, d.dataText);

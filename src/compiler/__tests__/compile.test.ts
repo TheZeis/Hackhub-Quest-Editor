@@ -274,6 +274,49 @@ describe("compile", () => {
     });
 });
 
+describe("world.wifi against the real SDK surface", () => {
+    function wifiProject() {
+        const p = createProject();
+        const q = p.quests[0];
+        const entry = node("entry.start");
+        const wifi = node("world.wifi", {
+            ssid: "CafeNet",
+            password: "cake",
+            signal: 2,
+            ipMode: "fixed",
+            ip: "10.0.0.77",
+        });
+        q.graph.nodes = [entry, wifi];
+        q.graph.edges = [edge(entry.id, wifi.id, "flow")];
+        return p;
+    }
+
+    it("falls back to a router network when the SDK has no Wi-Fi API (0.21.0 reality)", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        delete (sdk.Network as { createWifiNetwork?: unknown }).createWifiNetwork;
+        runMod(compileProject(wifiProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (sdk as any).__registered.quests[0]();
+        q.OnStart();
+        await settle();
+        expect(calls).toContain("net:10.0.0.77");
+        expect(calls.join(" ")).not.toContain("wifi");
+    });
+
+    it("prefers a native Wi-Fi API if a future SDK ships one", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(compileProject(wifiProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (sdk as any).__registered.quests[0]();
+        q.OnStart();
+        await settle();
+        expect(calls).toContain("wifi");
+        expect(calls.join(" ")).not.toContain("net:10.0.0.77");
+    });
+});
+
 describe("quest behaviour toggles", () => {
     it("advises when a quest will not start on its own", () => {
         const result = compileProject(createProject());

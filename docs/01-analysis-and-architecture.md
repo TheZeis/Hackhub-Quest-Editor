@@ -272,9 +272,13 @@ tree (`children` on Router/Splitter).
     the vendor and a bot replies with credentials.
   - Set neither and the router has no intended way in. This is a *modelling
     primitive* the editor must surface as an explicit choice, not a checkbox footnote.
-- **Wi-Fi** — `Network.createWifiNetwork({ ssid, password, signal, bssid?, channel?, ip?, model?, users?, ports?, children? })`
-  returns the router IP. The player recovers the passphrase via handshake capture +
-  crack, then joins. `Fern.FindPassword` and `Network.WifiConnected` are the events.
+- **Wi-Fi** — ~~`Network.createWifiNetwork({ ssid, password, signal, … })`~~
+  **Correction (round 18, verified against SDK 0.21.0's `index.d.ts`): there is no
+  Wi-Fi creation API.** The `Network` namespace only creates subnet networks; a
+  read-only `WifiNetwork` info type and the `Network.WifiConnected` event exist, but
+  mods cannot spawn wireless networks. The editor keeps the node (it feature-detects
+  `Network.createWifiNetwork` at runtime) and exports it as a regular router network
+  meanwhile.
 - **Domains & vulns** — `registerDomain(domain, ip, vulnerabilities?)` with
   `SQL_INJECTION | XSS | CORS | SSRF | LFI | RFI | RCE`; these drive `nuclei` and
   `sqlmap` results.

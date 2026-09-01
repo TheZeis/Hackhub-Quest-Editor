@@ -603,3 +603,19 @@ is confirm-gated.
 
 **Verification:** 298/298 tests (13 files), `tsc --noEmit` clean, production
 build OK.
+
+---
+
+## Addendum — Round 18: real-game feedback (auto-start naming, Wi-Fi reality)
+
+- **“On quest claim” → “Quest start.”** The old name implied the node only runs
+  after the player manually accepts; with “Start automatically” on it runs on
+  install. Label, blurb, node-card summary and the lifecycle note all updated.
+- **Wi-Fi, verified against SDK 0.21.0:** `Network.createWifiNetwork` **does not
+  exist** (docs/01 §2.4 corrected). The emitted mod now feature-detects it — if a
+  future SDK ships one it is used; otherwise the node falls back to
+  `createSubnetNetwork` (a regular router at the node's IP) instead of calling an
+  undefined function. The Export dialog warns in plain language.
+- **Signal strength** became a labelled 0–3 slider (new `slider` inspector field
+  kind) with an honest hint that the current mod SDK does not read it yet.
+- Compiler tests cover both Wi-Fi paths (fallback + future-native). 302 tests.

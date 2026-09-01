@@ -76,7 +76,7 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
     const d = node.data as Loose;
     switch (node.type) {
         case "entry.start":
-            return ["Runs once, when the quest is claimed"];
+            return ["Runs once, when the quest begins"];
         case "entry.load":
             return ["Runs on claim and after every reload"];
         case "entry.complete":

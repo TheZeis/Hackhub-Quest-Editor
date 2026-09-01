@@ -131,6 +131,33 @@ export function Field({
                 </FieldShell>
             );
 
+        case "slider": {
+            const value = Math.min(def.max, Math.max(def.min, asNumber(raw)));
+            return (
+                <FieldShell label={def.label} hint={def.hint}>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="range"
+                            aria-label={def.label}
+                            min={def.min}
+                            max={def.max}
+                            step={def.step ?? 1}
+                            value={value}
+                            onChange={(e) => write(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer accent-accent"
+                        />
+                        <span className="w-8 shrink-0 rounded border border-line bg-surface-2 py-0.5 text-center font-mono text-[11.5px] text-ink">
+                            {value}
+                        </span>
+                    </div>
+                    <div className="mt-0.5 flex justify-between text-[10px] text-ink-4">
+                        <span>{def.min}</span>
+                        <span>{def.max}</span>
+                    </div>
+                </FieldShell>
+            );
+        }
+
         case "toggle":
             return (
                 <Toggle

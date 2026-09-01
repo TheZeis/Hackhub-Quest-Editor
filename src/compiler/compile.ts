@@ -100,6 +100,11 @@ export function computeWarnings(project: ProjectDocument): string[] {
                 case "fx.handbook":
                     warnings.push(`${q.name}: handbook nodes are not compiled yet.`);
                     break;
+                case "world.wifi":
+                    warnings.push(
+                        `${q.name}: the mod SDK (0.21.0) cannot create wireless networks yet — “Create Wi-Fi” exports as a regular router network the player reaches by IP, not through the in-game Wi-Fi list.`,
+                    );
+                    break;
                 case "comms.dialogue": {
                     const d = n.data as { kind: string; phone?: { branch?: string }; kisscord?: { messages?: { playerAction?: string; input?: { expected?: string } }[] }; weechat?: { messages?: { playerAction?: string } } };
                     if (d.kind === "phone" && q.dialog.some((b) => b.lines.some((l) => l.input))) {

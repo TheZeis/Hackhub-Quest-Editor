@@ -66,7 +66,7 @@ describe("app smoke", () => {
         render(<App />);
 
         // node cards render their plain-English summaries
-        expect(await screen.findByText("Runs once, when the quest is claimed")).toBeInTheDocument();
+        expect(await screen.findByText("Runs once, when the quest begins")).toBeInTheDocument();
         expect(screen.getByText("Runs on claim and after every reload")).toBeInTheDocument();
 
         // an edit lands on the canvas, Ctrl+Z takes it back

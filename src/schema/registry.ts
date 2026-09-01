@@ -68,6 +68,7 @@ export type FieldDef =
           rows?: number;
       }
     | { kind: "number"; key: string; label: string; hint?: string; min?: number; max?: number; step?: number }
+    | { kind: "slider"; key: string; label: string; hint?: string; min: number; max: number; step?: number }
     | { kind: "toggle"; key: string; label: string; hint?: string }
     | {
           kind: "select";
@@ -250,7 +251,7 @@ const entryFields: FieldDef[] = [
     {
         kind: "note",
         tone: "info",
-        text: "Each lifecycle node is an independent starting point — they never connect to each other. Wire the chain that should run when this moment happens. Event listeners belong under “On start & reload”; anything wired to “On quest claim” is wiped when the player reloads.",
+        text: "Each lifecycle node is an independent starting point — they never connect to each other. Wire the chain that should run when this moment happens. Event listeners belong under “On start & reload”; anything wired to “Quest start” is wiped when the player reloads.",
     },
 ];
 
@@ -258,8 +259,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "entry.start": {
         type: "entry.start",
         category: "entry",
-        label: "On quest claim",
-        blurb: "Runs once, when the player accepts. Setup goes here.",
+        label: "Quest start",
+        blurb: "Runs once when the quest begins. Setup goes here.",
         icon: "flag",
         targets: [],
         sources: [outFlow],
@@ -387,9 +388,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
+            { kind: "note", tone: "warn", text: "The mod SDK (0.21.0) has no wireless API yet, so this node exports as a regular router network: the player reaches it by IP address, not through the in-game Wi-Fi list. The SSID and passphrase are stored in the mod and start working if the game opens that up." },
             { kind: "text", key: "ssid", hint: "The network name shown in the in-game Wi-Fi list.", label: "Network name (SSID)", mono: true },
             { kind: "text", key: "password", label: "WPA passphrase", mono: true, hint: "The passphrase the player must discover. Make sure some node in your quest reveals it." },
-            { kind: "number", key: "signal", label: "Signal strength", min: 0, max: 3, hint: "Also drives how long joining takes." },
+            { kind: "slider", key: "signal", label: "Signal strength", min: 0, max: 3, step: 1, hint: "The game's Wi-Fi scale: 0 = weakest, 3 = strongest (it also drives how long joining takes). The current mod SDK does not read it yet — it is kept for when wireless support lands." },
             { kind: "text", key: "model", label: "Router model", mono: true, hint: "Enables the in-game `fern` recovery route. Leave blank to disable it." },
             {
                 kind: "list",
