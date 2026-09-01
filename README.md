@@ -23,12 +23,18 @@ moments, and export a complete, game-ready mod as a `.zip` — no coding at any 
 
 ---
 
-## Install & run
+## Install & Run
 
-**Windows, one click:** download/clone this repository and double-click
-**`Launch.bat`**. It installs everything (needs [Node.js](https://nodejs.org/),
-LTS version), starts the editor, and opens it in your browser at
-<http://localhost:5173>. Keep the terminal window open while you work.
+**Windows, one click:**
+
+Download/clone this repository (green "Code" button on the top of this page. Click the down arrow button -> Download ZIP)
+and double-click **`Launch.bat`**.
+
+It installs everything (needs [Node.js](https://nodejs.org/), LTS version), starts the editor, and opens it in your browser
+at <http://localhost:5173>. 
+
+***Important***: Keep the terminal window open while you work. Closing the terminal closes the tool and you could lose
+your progress if you haven't saved yet.
 
 **Any OS, manually:**
 
@@ -39,9 +45,11 @@ npm run dev          # → http://localhost:5173
 
 **Development commands:**
 
+Only relevant to coders, if you just want to use the tool you can ignore this.
+
 ```bash
 npm run typecheck    # tsc --noEmit
-npm test             # 299 tests (vitest)
+npm test             # 300 tests (vitest)
 npm run build        # typecheck + vite build → dist/
 ```
 
@@ -76,7 +84,10 @@ a project file you can share with anyone else using the editor.
 
 ---
 
-## Read this first
+## Coders and LLMs, read this first:
+If you're just a gamer who wants to make quest mods for the game, you can ignore
+everything that comes after this. If you're a coder or interested in modifying
+this tool (you're very welcome to!), read on:
 
 [`docs/01-analysis-and-architecture.md`](docs/01-analysis-and-architecture.md) is the
 foundation for everything that follows. The three findings that shape the whole design:
