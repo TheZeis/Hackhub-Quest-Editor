@@ -319,6 +319,17 @@ function __qeRegisterProject(sdk, PROJECT) {
                     this.Group = qd.group;
                     this.Rewards = qd.rewards;
                     if (qd.employer && Object.keys(qd.employer).length) this.Employer = qd.employer;
+                    if (qd.icon) this.Icon = qd.icon;
+                    /* Behaviour toggles from the quest settings. AutoStart is
+                       the big one: without it the quest waits to be claimed
+                       and none of the On… hooks ever run. */
+                    if (qd.autoStart) this.AutoStart = true;
+                    if (qd.autoComplete != null) this.AutoComplete = !!qd.autoComplete;
+                    if (qd.abandonable != null) this.Abandonable = !!qd.abandonable;
+                    if (qd.hasCompleteButton) this.HasCompleteButton = true;
+                    if (qd.questsToComplete && qd.questsToComplete.length) this.QuestsToComplete = qd.questsToComplete;
+                    if (qd.maxClaim != null) this.MaxClaim = qd.maxClaim;
+                    if (qd.maxClaimPerDay != null) this.MaxClaimPerDay = qd.maxClaimPerDay;
                     if (qd.hackhubPost) {
                         var hp = { content: qd.hackhubPost.content };
                         if (qd.hackhubPost.media) hp.media = qd.hackhubPost.media;

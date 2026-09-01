@@ -33,6 +33,7 @@ function scenarioProject(): ProjectDocument {
     const quest = project.quests[0];
     quest.name = "heist";
     quest.title = "The Heist";
+    quest.autoStart = true;
 
     const entry = node("entry.start");
     const mail = node("comms.dialogue", {
@@ -177,6 +178,9 @@ describe("compile", () => {
 
         const q = new reg.quests[0]();
         expect(q.Name).toBe("heist");
+        // the behaviour toggles reach the game — without AutoStart the quest
+        // would wait to be claimed and OnStart would never run
+        expect(q.AutoStart).toBe(true);
         q.OnStart();
         await settle(); // flow steps are promise-chained
         expect(calls).toContain("net:10.0.0.14");
@@ -267,6 +271,17 @@ describe("compile", () => {
         const names = Object.keys(zip.files);
         expect(names).toContain("heist-mod/manifest.json");
         expect(names).toContain("heist-mod/dist/mod.js");
+    });
+});
+
+describe("quest behaviour toggles", () => {
+    it("advises when a quest will not start on its own", () => {
+        const result = compileProject(createProject());
+        expect(result.warnings.some((w) => /starts only when the player accepts/.test(w))).toBe(true);
+        // and stays quiet once auto-start is on
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        expect(compileProject(p).warnings.some((w) => /starts only when/.test(w))).toBe(false);
     });
 });
 

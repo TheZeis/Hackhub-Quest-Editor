@@ -33,7 +33,7 @@ start "HackHub Quest Mod Editor" cmd /k "npm run dev"
 
 echo   [3/3] Opening http://localhost:5173 in your browser...
 rem Give the dev server a few seconds to boot before opening the page.
-timeout /t 2 /nobreak >nul
+timeout /t 5 /nobreak >nul
 start "" "http://localhost:5173"
 
 echo.

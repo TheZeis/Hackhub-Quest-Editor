@@ -81,6 +81,11 @@ export function computePermissions(project: ProjectDocument): string[] {
 export function computeWarnings(project: ProjectDocument): string[] {
     const warnings: string[] = [];
     for (const q of project.quests) {
+        if (!q.autoStart) {
+            warnings.push(
+                `${q.title || q.name}: starts only when the player accepts it (e.g. from the quest board) — nothing in it runs before then. Turn on “Start automatically” in the quest's Behaviour settings if it should begin on its own.`,
+            );
+        }
         for (const n of q.graph.nodes) {
             switch (n.type) {
                 case "world.port":
@@ -133,9 +138,17 @@ export function compileProject(project: ProjectDocument): CompileResult {
             name: q.name,
             title: q.title,
             description: q.description,
+            icon: q.icon ?? null,
             group: q.group,
             rewards: q.rewards,
             employer: q.employer,
+            autoStart: q.autoStart,
+            autoComplete: q.autoComplete,
+            abandonable: q.abandonable,
+            hasCompleteButton: q.hasCompleteButton,
+            questsToComplete: q.questsToComplete,
+            maxClaim: q.maxClaim ?? null,
+            maxClaimPerDay: q.maxClaimPerDay ?? null,
             hackhubPost: q.hackhubPost ?? null,
             twotterAccounts: q.twotterAccounts,
             dialog: q.dialog,
