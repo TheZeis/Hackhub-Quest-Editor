@@ -686,3 +686,27 @@ avatars/pictures are decoded into `assets/twotter/…`, accounts without an
 avatar get a generated 64×64 placeholder PNG, and the emitted project
 references the files by path. Verified by recompiling the user's exact
 crash-causing project. Mods exported before this fix must be re-exported.
+
+---
+
+## Addendum — Round 21: the Twotter search crash, take two
+
+Round 20 gave every account a real avatar file; the crash persisted
+(user-confirmed with the `QA-filedump` mod). Root cause, finally pinned: the
+**platform** record (`TwotterUser`) requires `name`, `surname`, `banner`,
+`joinedAt` and `password`, but the quest-level `TwotterAccountDefinition`
+cannot express any of them — the game's converter leaves them `undefined`,
+and the Twotter search UI dereferences one of them
+(`TypeError: Cannot read properties of undefined (reading 'toLowerCase')`).
+
+**Fix:** exported mods now register accounts through the platform API in
+`OnModPackageLoaded` — `Twotter.createUser()` (which fills sensible defaults
+for exactly those fields) + `Twotter.addUser()`, deduped via
+`getUserByUsername`. The quest-level `TwotterAccounts` assignment remains
+only as a fallback for games without that API.
+
+**Verified against the user's crashing project** (QA-filedump): compiling it
+with the fixed compiler and running the emitted `mod.js` against a stub
+platform yields a complete user record (every `TwotterUser` field defined),
+no quest-level double registration, and the tweet resolving to the right
+account id. 324 tests green.

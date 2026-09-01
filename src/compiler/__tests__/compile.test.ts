@@ -400,6 +400,79 @@ describe("round-19 fixes", () => {
     });
 });
 
+describe("Twotter account registration (search-crash fix)", () => {
+    function accountProject() {
+        const p = createProject();
+        const q = p.quests[0];
+        q.twotterAccounts = [
+            { id: "acct-qa", username: "qatester", displayName: "QA Tester", avatar: "assets/twotter/account-qa.png", bio: "QA", verified: true, followers: undefined, following: undefined },
+        ] as never;
+        return p;
+    }
+
+    it("registers accounts through the Twotter API with complete records", async () => {
+        const added: Record<string, unknown>[] = [];
+        const sdk = stubSdk([], []);
+        (sdk as any).Twotter = {
+            // mirrors the platform: fills the fields the quest converter omits
+            createUser: (o: Record<string, unknown>) => ({
+                id: o.id,
+                username: o.username,
+                name: o.firstName,
+                surname: o.lastName,
+                avatar: o.avatar ?? "placeholder.png",
+                banner: "placeholder-banner.png",
+                joinedAt: "2026-01-01T00:00:00.000Z",
+                followers: o.followers ?? 0,
+                following: o.following ?? 0,
+                password: "generated",
+                bio: o.bio,
+                verified: o.verified,
+            }),
+            addUser: (u: Record<string, unknown>) => added.push(u),
+            getUserByUsername: () => undefined,
+        };
+        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const mod = new (sdk as any).__registered.mod();
+        mod.OnModPackageLoaded();
+        expect(added).toHaveLength(1);
+        expect(added[0]).toMatchObject({
+            id: "acct-qa",
+            username: "qatester",
+            name: "QA",
+            surname: "Tester",
+            avatar: "assets/twotter/account-acct-qa.png", // compiler swapped the non-data-URL for a real placeholder asset
+            banner: "placeholder-banner.png", // no longer undefined — this crashed search
+        });
+
+        // and the quest no longer double-registers via the lossy converter
+        const q0 = new (sdk as any).__registered.quests[0]();
+        expect(q0.TwotterAccounts).toBeUndefined();
+    });
+
+    it("falls back to quest-level accounts when the Twotter API is missing", () => {
+        const sdk = stubSdk([], []); // no Twotter namespace
+        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q0 = new (sdk as any).__registered.quests[0]();
+        expect(q0.TwotterAccounts).toHaveLength(1);
+    });
+
+    it("does not register the same username twice on mod reload", () => {
+        const added: Record<string, unknown>[] = [];
+        const sdk = stubSdk([], []);
+        (sdk as any).Twotter = {
+            createUser: (o: Record<string, unknown>) => o,
+            addUser: (u: Record<string, unknown>) => added.push(u),
+            getUserByUsername: (name: string) => (name === "qatester" ? { id: "existing" } : undefined),
+        };
+        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const mod = new (sdk as any).__registered.mod();
+        mod.OnModPackageLoaded();
+        expect(added).toHaveLength(0);
+    });
+});
+
 describe("tweets compile to the real SDK shape", () => {
     it("accounts get ids/avatars and tweets stay flat with images", async () => {
         const p = createProject();
