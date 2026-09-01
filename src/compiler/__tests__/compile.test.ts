@@ -5,7 +5,7 @@
  * conditions, and manual-input commands branch on the typed answer.
  */
 import { describe, expect, it } from "vitest";
-import { compileProject } from "@/compiler/compile";
+import { compileProject, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
 import type { NodeDoc } from "@/schema/nodes";
@@ -397,6 +397,15 @@ describe("round-19 fixes", () => {
         q0.OnStart();
         await new Promise((r) => setTimeout(r, 2100)); // the Wait node slept 2 real seconds
         expect(Date.now() - started).toBeGreaterThanOrEqual(1900);
+    });
+});
+
+describe("export build stamp", () => {
+    it("stamps the editor build id into dist/mod.js", () => {
+        const modJs = compileProject(createProject()).files.find((f) => f.path === "dist/mod.js")!.content;
+        expect(modJs).toContain(`build ${EDITOR_BUILD}`);
+        // and the crash-fix registration must ride along in the same build
+        expect(modJs).toContain("sdk.Twotter.addUser");
     });
 });
 
