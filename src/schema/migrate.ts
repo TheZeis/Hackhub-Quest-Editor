@@ -35,6 +35,21 @@ const mapNode = (n: Loose): Loose => {
         case "fx.withdraw":
             // amountMode/percent added in round 19 — old drafts are fixed-amount
             return { ...n, data: { amountMode: "fixed", percent: 10, ...n.data } };
+        case "comms.tweet":
+            // timeMode/showInTimeline added in round 23. Old drafts that set a
+            // postedAgo string were using the relative mode; everything else
+            // defaults to real-time ("now") and profile-only (showInTimeline off).
+            if (n.data && n.data.timeMode == null) {
+                return {
+                    ...n,
+                    data: {
+                        ...n.data,
+                        timeMode: n.data.postedAgo ? "relative" : "now",
+                        showInTimeline: n.data.showInTimeline ?? false,
+                    },
+                };
+            }
+            return n;
         default:
             return n;
     }

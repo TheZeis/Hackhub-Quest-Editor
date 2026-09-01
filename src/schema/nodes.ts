@@ -349,7 +349,21 @@ export const TweetNodeDataSchema = z.object({
     comments: z.number().optional(),
     shares: z.number().optional(),
     views: z.number().optional(),
+    /**
+     * How the post's timestamp is decided:
+     *  - "now": no stored date; the game shows it relative to real time (its
+     *    natural, always-valid fallback).
+     *  - "relative": an age string like "2 days" (SDK `postedAgo`).
+     *  - "absolute": a specific calendar date the author picks (`postedAt`),
+     *    which the compiler turns into the age string the SDK understands.
+     */
+    timeMode: z.enum(["now", "relative", "absolute"]).default("now"),
+    /** Relative age, SDK format, e.g. "2 days" / "1 month". Used when timeMode = "relative". */
     postedAgo: z.string().optional(),
+    /** A specific date (yyyy-mm-dd). Used when timeMode = "absolute". */
+    postedAt: z.string().optional(),
+    /** Also surface this post in the main Twotter timeline, not just the profile. */
+    showInTimeline: z.boolean().default(false),
 });
 
 /**

@@ -19,6 +19,29 @@ var __QE = (function () {
         });
     }
     function asString(x) { return x == null ? "" : String(x); }
+    /* Turn an ISO-ish date (yyyy-mm-dd) into the age phrase the Twotter SDK
+       expects ("3 days", "2 months", "1 year"). Returns "" for a blank or
+       unparseable date so callers can fall back to real-time display. */
+    function ageStringFromDate(value) {
+        if (!value) return "";
+        var then = new Date(value);
+        if (isNaN(then.getTime())) return "";
+        var secs = Math.floor((Date.now() - then.getTime()) / 1000);
+        if (secs < 60) return "just now";
+        var units = [
+            ["year", 31536000],
+            ["month", 2592000],
+            ["week", 604800],
+            ["day", 86400],
+            ["hour", 3600],
+            ["minute", 60],
+        ];
+        for (var i = 0; i < units.length; i++) {
+            var n = Math.floor(secs / units[i][1]);
+            if (n >= 1) return n + " " + units[i][0] + (n === 1 ? "" : "s");
+        }
+        return "just now";
+    }
     function matchClause(c, payload, scope) {
         var raw = getPath(payload, c.field);
         var val = fill(c.value, scope);
@@ -56,7 +79,7 @@ var __QE = (function () {
         return a === e;
     }
     function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
-    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep };
+    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, ageStringFromDate: ageStringFromDate };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -177,7 +200,20 @@ function __qeRegisterProject(sdk, PROJECT) {
             if (n.data.comments != null) t.comments = n.data.comments;
             if (n.data.shares != null) t.shares = n.data.shares;
             if (n.data.views != null) t.views = n.data.views;
-            if (n.data.postedAgo) t.postedAgo = n.data.postedAgo;
+            /* Timestamp. "now" leaves postedAgo unset so the game shows the post
+               relative to real time (its always-valid fallback). "relative"
+               passes the author's age string straight through. "absolute" turns
+               a picked date into the same kind of age string the SDK expects
+               ("3 days", "2 months", "1 year") so it never hands the game an
+               unparseable date. */
+            var mode = n.data.timeMode || (n.data.postedAgo ? "relative" : "now");
+            if (mode === "relative" && n.data.postedAgo) {
+                t.postedAgo = n.data.postedAgo;
+            } else if (mode === "absolute" && n.data.postedAt) {
+                var ago = __QE.ageStringFromDate(n.data.postedAt);
+                if (ago) t.postedAgo = ago;
+            }
+            if (n.data.showInTimeline) t.showInTimeline = true;
             return t;
         });
 
@@ -396,22 +432,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (Object.keys(Dialog).length) this.Dialog = Dialog;
                     if (KisscordChats.length) this.KisscordChats = KisscordChats;
                     if (WeeChatChats.length) this.WeeChatChats = WeeChatChats;
-                    /* Accounts AND tweets are registered through the Twotter
-                       API on mod load (complete platform records, sensible
-                       defaults for banner/joinedAt/interaction/etc). The
-                       quest-level lists are only the fallback for games without
-                       that API — the quest converter leaves platform fields
-                       undefined, which crashed Twotter search ("undefined …
-                       toLowerCase"). Because accounts are suppressed when the
-                       API is present, the quest-level tweet converter has no
-                       account list to resolve a tweet's author from, so tweets
-                       MUST go through the API too whenever it exists. */
-                    if (TwotterAccounts.length && !(sdk.Twotter && sdk.Twotter.addUser)) {
-                        this.TwotterAccounts = TwotterAccounts;
-                    }
-                    if (Tweets.length && !(sdk.Twotter && sdk.Twotter.postTweet)) {
-                        this.Tweets = Tweets;
-                    }
+                    /* Twotter accounts and tweets are registered declaratively,
+                       per the SDK's intended design: the engine reads these
+                       quest-level lists, keeps them scoped to this quest, and
+                       auto-removes them when the quest completes, is abandoned,
+                       or the mod is uninstalled. (The imperative Twotter.*
+                       global API was tried and rejected — it re-posted on every
+                       load, could not carry tweet images, and left orphaned
+                       records behind after the mod was removed.) */
+                    if (TwotterAccounts.length) this.TwotterAccounts = TwotterAccounts;
+                    if (Tweets.length) this.Tweets = Tweets;
                 }
                 OnStart() {
                     var ctx = { payload: {}, vars: {} };
@@ -564,83 +594,9 @@ function __qeRegisterProject(sdk, PROJECT) {
         registerWebsite(w, extras);
     });
     var Mod = class extends sdk.Bootstrap {
-        OnModPackageLoaded() {
-            /* Register Twotter accounts through the platform API so they get
-               complete user records — the quest-level converter omits fields
-               the search UI dereferences (banner, joinedAt, password…). */
-            if (!sdk.Twotter || !sdk.Twotter.createUser || !sdk.Twotter.addUser) return;
-            (PROJECT.quests || []).forEach(function (qd) {
-                (qd.twotterAccounts || []).forEach(function (a) {
-                    if (!a.username) return;
-                    if (sdk.Twotter.getUserByUsername && sdk.Twotter.getUserByUsername(a.username)) return;
-                    var full = String(a.displayName || a.username).trim().split(/\s+/);
-                    var options = {
-                        id: a.id,
-                        username: a.username,
-                        firstName: full[0] || a.username,
-                        lastName: full.slice(1).join(" "),
-                        verified: !!a.verified,
-                    };
-                    if (a.avatar) options.avatar = a.avatar;
-                    if (a.bio) options.bio = a.bio;
-                    if (a.followers != null) options.followers = a.followers;
-                    if (a.following != null) options.following = a.following;
-                    sdk.Twotter.addUser(sdk.Twotter.createUser(options));
-                });
-            });
-
-            /* Register tweets through the platform API too. The quest-level
-               TweetDefinition is flat (accountId + likes/comments/…) and has no
-               id/userId/interaction; the game's converter would have to invent
-               those, and — with accounts suppressed above — has no account list
-               to resolve the author from. Both gaps end in the same undefined
-               deref that crashed search, so we build the complete TwotterTweet
-               here. */
-            if (!sdk.Twotter.postTweet) return;
-            (PROJECT.quests || []).forEach(function (qd) {
-                var accounts = qd.twotterAccounts || [];
-                if (!accounts.length) return;
-                /* Resolve a tweet's author to a real registered user id. The
-                   editor's accountId points at a quest account; look that up to
-                   get the username, then ask the platform for the id it stored
-                   (createUser may reassign it). Fall back sensibly at each step
-                   so a missing author never yields an undefined userId. */
-                var resolveUserId = function (accountId) {
-                    var acct = null;
-                    for (var i = 0; i < accounts.length; i++) {
-                        if (accounts[i].id === accountId) { acct = accounts[i]; break; }
-                    }
-                    if (!acct) acct = accounts[0];
-                    if (acct && acct.username && sdk.Twotter.getUserByUsername) {
-                        var u = sdk.Twotter.getUserByUsername(acct.username);
-                        if (u && u.id) return u.id;
-                    }
-                    return (acct && acct.id) || accountId || "";
-                };
-                var tweetNodes = ((qd.graph && qd.graph.nodes) || []).filter(function (n) {
-                    return n.type === "comms.tweet";
-                });
-                tweetNodes.forEach(function (n) {
-                    var d = n.data || {};
-                    var userId = resolveUserId(d.accountId);
-                    if (!userId) return;
-                    var tweet = {
-                        id: "tweet-" + n.id,
-                        userId: userId,
-                        content: d.content || "",
-                        interaction: {
-                            comments: d.comments != null ? d.comments : 0,
-                            share: d.shares != null ? d.shares : 0,
-                            likes: d.likes != null ? d.likes : 0,
-                            views: d.views != null ? d.views : 0,
-                        },
-                        showInTimeline: true,
-                    };
-                    if (d.image) tweet.image = d.image;
-                    sdk.Twotter.postTweet(tweet);
-                });
-            });
-        }
+        /* Twotter accounts and tweets are declared per-quest (see the Quest
+           class above); the engine registers and cleans them up automatically,
+           so no imperative Twotter.* calls are needed here. */
     };
     sdk.RegisterModPackage(Mod);
 }

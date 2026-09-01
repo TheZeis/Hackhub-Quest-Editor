@@ -48,6 +48,13 @@ import { VULNERABILITY_TYPES } from "./common";
 
 /* ── Inspector field descriptors ─────────────────────────────────────────── */
 
+/**
+ * Show a field only when a sibling field holds one of the given values. Lets an
+ * author-facing form reveal just the inputs that matter for the current choice
+ * (e.g. a date picker only when the time mode is "a specific date").
+ */
+export type FieldShowWhen = { key: string; equals: string | readonly string[] };
+
 export type FieldDef =
     | {
           kind: "text";
@@ -58,6 +65,7 @@ export type FieldDef =
           mono?: boolean;
           /** Offer the `{{data.targetIp}}` token menu. */
           tokens?: boolean;
+          showWhen?: FieldShowWhen;
       }
     | {
           kind: "textarea";
@@ -68,18 +76,21 @@ export type FieldDef =
           mono?: boolean;
           tokens?: boolean;
           rows?: number;
+          showWhen?: FieldShowWhen;
       }
-    | { kind: "number"; key: string; label: string; hint?: string; min?: number; max?: number; step?: number }
-    | { kind: "slider"; key: string; label: string; hint?: string; min: number; max: number; step?: number }
-    | { kind: "toggle"; key: string; label: string; hint?: string }
+    | { kind: "number"; key: string; label: string; hint?: string; min?: number; max?: number; step?: number; showWhen?: FieldShowWhen }
+    | { kind: "slider"; key: string; label: string; hint?: string; min: number; max: number; step?: number; showWhen?: FieldShowWhen }
+    | { kind: "toggle"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | {
           kind: "select";
           key: string;
           label: string;
           hint?: string;
           options: readonly { value: string; label: string; hint?: string }[];
+          showWhen?: FieldShowWhen;
       }
-    | { kind: "image"; key: string; label: string; hint?: string }
+    | { kind: "date"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
+    | { kind: "image"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "questAccount"; key: string; label: string; hint?: string }
     | { kind: "event"; key: string; label: string; hint?: string }
     | { kind: "conditions"; key: string; label: string; hint?: string }
@@ -629,7 +640,38 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },
             { kind: "number", key: "shares", hint: "How many reposts the post already shows. Cosmetic, but it sells the fiction.", label: "Shares", min: 0 },
             { kind: "number", key: "views", hint: "How many views the post already shows. Cosmetic, but it sells the fiction.", label: "Views", min: 0 },
-            { kind: "text", key: "postedAgo", hint: "How old the post looks, e.g. \"3h\" or \"2d\".", label: "Posted", placeholder: "2 days" },
+            {
+                kind: "select",
+                key: "timeMode",
+                label: "Post time",
+                hint: "How the timestamp reads in-game. \"Now\" lets the game show it relative to real time.",
+                options: [
+                    { value: "now", label: "Now (real time)", hint: "No fixed date — the game shows it as just-posted, relative to when the player sees it." },
+                    { value: "relative", label: "A while ago", hint: "An age like \"2 days\" or \"1 month\" that stays fixed." },
+                    { value: "absolute", label: "A specific date", hint: "Pick a calendar date; the game shows how long ago that was." },
+                ],
+            },
+            {
+                kind: "text",
+                key: "postedAgo",
+                label: "How long ago",
+                hint: "Whole words the game understands, e.g. \"2 days\", \"3 hours\", \"1 month\". Avoid short forms like \"2d\".",
+                placeholder: "2 days",
+                showWhen: { key: "timeMode", equals: "relative" },
+            },
+            {
+                kind: "date",
+                key: "postedAt",
+                label: "Posted on",
+                hint: "The date the post should look like it went up. The game shows it as an age from today.",
+                showWhen: { key: "timeMode", equals: "absolute" },
+            },
+            {
+                kind: "toggle",
+                key: "showInTimeline",
+                label: "Show in main timeline",
+                hint: "On: the post also appears in the main Twotter feed. Off: it shows only on the account's profile.",
+            },
         ],
         create: () => seed(TweetNodeDataSchema),
     },

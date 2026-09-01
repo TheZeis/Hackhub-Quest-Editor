@@ -404,94 +404,25 @@ describe("export build stamp", () => {
     it("stamps the editor build id into dist/mod.js", () => {
         const modJs = compileProject(createProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).toContain(`build ${EDITOR_BUILD}`);
-        // and the crash-fix registration must ride along in the same build
-        expect(modJs).toContain("sdk.Twotter.addUser");
+        // Twotter content is declared per-quest, not posted through the global
+        // API — the imperative path re-posted on reload and could not be undone
+        // when the mod was removed, so it must not creep back in.
+        expect(modJs).not.toContain("sdk.Twotter.addUser");
+        expect(modJs).not.toContain("sdk.Twotter.postTweet");
     });
 });
 
-describe("Twotter account registration (search-crash fix)", () => {
-    function accountProject() {
-        const p = createProject();
-        const q = p.quests[0];
-        q.twotterAccounts = [
-            { id: "acct-qa", username: "qatester", displayName: "QA Tester", avatar: "assets/twotter/account-qa.png", bio: "QA", verified: true, followers: undefined, following: undefined },
-        ] as never;
-        return p;
-    }
-
-    it("registers accounts through the Twotter API with complete records", async () => {
-        const added: Record<string, unknown>[] = [];
-        const sdk = stubSdk([], []);
-        (sdk as any).Twotter = {
-            // mirrors the platform: fills the fields the quest converter omits
-            createUser: (o: Record<string, unknown>) => ({
-                id: o.id,
-                username: o.username,
-                name: o.firstName,
-                surname: o.lastName,
-                avatar: o.avatar ?? "placeholder.png",
-                banner: "placeholder-banner.png",
-                joinedAt: "2026-01-01T00:00:00.000Z",
-                followers: o.followers ?? 0,
-                following: o.following ?? 0,
-                password: "generated",
-                bio: o.bio,
-                verified: o.verified,
-            }),
-            addUser: (u: Record<string, unknown>) => added.push(u),
-            getUserByUsername: () => undefined,
-        };
-        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const mod = new (sdk as any).__registered.mod();
-        mod.OnModPackageLoaded();
-        expect(added).toHaveLength(1);
-        expect(added[0]).toMatchObject({
-            id: "acct-qa",
-            username: "qatester",
-            name: "QA",
-            surname: "Tester",
-            avatar: "assets/twotter/account-acct-qa.png", // compiler swapped the non-data-URL for a real placeholder asset
-            banner: "placeholder-banner.png", // no longer undefined — this crashed search
-        });
-
-        // and the quest no longer double-registers via the lossy converter
-        const q0 = new (sdk as any).__registered.quests[0]();
-        expect(q0.TwotterAccounts).toBeUndefined();
-    });
-
-    it("falls back to quest-level accounts when the Twotter API is missing", () => {
-        const sdk = stubSdk([], []); // no Twotter namespace
-        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q0 = new (sdk as any).__registered.quests[0]();
-        expect(q0.TwotterAccounts).toHaveLength(1);
-    });
-
-    it("does not register the same username twice on mod reload", () => {
-        const added: Record<string, unknown>[] = [];
-        const sdk = stubSdk([], []);
-        (sdk as any).Twotter = {
-            createUser: (o: Record<string, unknown>) => o,
-            addUser: (u: Record<string, unknown>) => added.push(u),
-            getUserByUsername: (name: string) => (name === "qatester" ? { id: "existing" } : undefined),
-        };
-        runMod(compileProject(accountProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const mod = new (sdk as any).__registered.mod();
-        mod.OnModPackageLoaded();
-        expect(added).toHaveLength(0);
-    });
-});
-
-describe("Twotter tweet registration (search-crash fix, round 22)", () => {
+describe("Twotter accounts + tweets register declaratively (SDK-native)", () => {
     /**
      * The QA test3 repro: an account with no avatar and a tweet whose accountId
-     * is empty. Round 21 moved accounts onto the platform API but left tweets at
-     * quest level; with the quest-level account list suppressed, the game's
-     * tweet converter had no author to resolve and crashed search on an
-     * undefined field. Tweets must now post through the API with a complete
-     * record whose userId resolves to a real registered user.
+     * is empty. Rounds 21–22 routed Twotter content through the imperative
+     * global API (Twotter.addUser/postTweet); in-game that re-posted on every
+     * load, dropped tweet images, and left orphaned records after the mod was
+     * removed. The SDK's intended path is the declarative quest-level lists,
+     * which the engine scopes to the quest and cleans up automatically — so the
+     * emitted mod must NOT touch the global Twotter API at all.
      */
-    function tweetCrashProject(): ProjectDocument {
+    function tweetProject(): ProjectDocument {
         const p = createProject();
         const q = p.quests[0];
         q.twotterAccounts = [
@@ -499,8 +430,9 @@ describe("Twotter tweet registration (search-crash fix, round 22)", () => {
         ] as never;
         const entry = node("entry.start");
         const tweet = node("comms.tweet", {
-            accountId: "", // the exact repro: no account picked
+            accountId: "5WjPOEiU",
             content: "This is a Q&A Test Tweet (number 3)",
+            image: "data:image/png;base64,AA==",
             comments: 2,
             shares: 1,
             views: 10,
@@ -511,64 +443,93 @@ describe("Twotter tweet registration (search-crash fix, round 22)", () => {
         return p;
     }
 
-    function apiSdk() {
-        const added: Record<string, unknown>[] = [];
-        const posted: Record<string, any>[] = [];
-        const sdk = stubSdk([], []);
-        const byUsername = new Map<string, Record<string, unknown>>();
-        (sdk as any).Twotter = {
-            createUser: (o: Record<string, unknown>) => ({
-                id: o.id ?? `gen-${o.username}`,
-                username: o.username,
-                name: o.firstName,
-                surname: o.lastName,
-                avatar: o.avatar ?? "placeholder.png",
-                banner: "placeholder-banner.png",
-                joinedAt: "2026-01-01T00:00:00.000Z",
-                followers: o.followers ?? 0,
-                following: o.following ?? 0,
-                password: "generated",
-                bio: o.bio,
-                verified: o.verified,
-            }),
-            addUser: (u: Record<string, unknown>) => {
-                added.push(u);
-                byUsername.set(u.username as string, u);
-            },
-            postTweet: (t: Record<string, any>) => posted.push(t),
-            getUserByUsername: (name: string) => byUsername.get(name),
-        };
-        return { sdk, added, posted };
-    }
-
-    it("posts tweets through the API with a complete record and a resolved author", () => {
-        const { sdk, posted } = apiSdk();
-        runMod(compileProject(tweetCrashProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const mod = new (sdk as any).__registered.mod();
-        mod.OnModPackageLoaded();
-
-        expect(posted).toHaveLength(1);
-        const t = posted[0];
-        // author resolved to the single registered account, never undefined
-        expect(t.userId).toBe("5WjPOEiU");
-        expect(t.content).toBe("This is a Q&A Test Tweet (number 3)");
-        // structured interaction — the shape the platform search UI reads
-        expect(t.interaction).toEqual({ comments: 2, share: 1, likes: 0, views: 10 });
-        expect(t.showInTimeline).toBe(true);
-        expect(typeof t.id).toBe("string");
-        expect(t.id.length).toBeGreaterThan(0);
-
-        // and the quest no longer ships the lossy quest-level tweet list
-        const q0 = new (sdk as any).__registered.quests[0]();
-        expect(q0.Tweets).toBeUndefined();
+    it("never calls the global Twotter API (would re-post on reload / orphan records)", () => {
+        const modJs = compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content;
+        expect(modJs).not.toContain("Twotter.addUser");
+        expect(modJs).not.toContain("Twotter.createUser");
+        expect(modJs).not.toContain("Twotter.postTweet");
+        // no imperative bootstrap logic — the Mod class is a plain shell
+        expect(modJs).not.toContain("OnModPackageLoaded()");
     });
 
-    it("falls back to quest-level tweets when the Twotter API is missing", () => {
-        const sdk = stubSdk([], []); // no Twotter namespace at all
-        runMod(compileProject(tweetCrashProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+    it("declares accounts and tweets on the quest so the engine can clean them up", () => {
+        const sdk = stubSdk([], []);
+        runMod(compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
         const q0 = new (sdk as any).__registered.quests[0]();
+
+        expect(q0.TwotterAccounts).toHaveLength(1);
+        expect(q0.TwotterAccounts[0]).toMatchObject({
+            id: "5WjPOEiU",
+            username: "qatester3",
+            displayName: "QA Tester 3",
+        });
+        // avatar is always a real asset path (empty string crashed search)
+        expect(q0.TwotterAccounts[0].avatar).toBe("assets/twotter/account-5WjPOEiU.png");
+
         expect(q0.Tweets).toHaveLength(1);
-        expect(q0.Tweets[0].content).toBe("This is a Q&A Test Tweet (number 3)");
+        expect(q0.Tweets[0]).toMatchObject({
+            accountId: "5WjPOEiU",
+            content: "This is a Q&A Test Tweet (number 3)",
+            comments: 2,
+            shares: 1,
+            views: 10,
+        });
+        // the picture survives as a real asset file — impossible via the global API
+        expect(q0.Tweets[0].image).toMatch(/^assets\/twotter\/tweet-.+\.png$/);
+    });
+
+    function tweetWith(patch: Record<string, unknown>): ProjectDocument {
+        const p = createProject();
+        const q = p.quests[0];
+        q.twotterAccounts = [
+            { id: "a1", username: "acct", displayName: "Acct", verified: false },
+        ] as never;
+        const entry = node("entry.start");
+        const tweet = node("comms.tweet", { accountId: "a1", content: "hi", ...patch });
+        q.graph.nodes = [entry, tweet];
+        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
+        return p;
+    }
+
+    function firstTweet(p: ProjectDocument) {
+        const sdk = stubSdk([], []);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        return new (sdk as any).__registered.quests[0]().Tweets[0];
+    }
+
+    it("time mode 'now' ships no date so the game shows it relative to real time", () => {
+        const t = firstTweet(tweetWith({ timeMode: "now", postedAgo: "2 days" }));
+        expect(t.postedAgo).toBeUndefined();
+    });
+
+    it("time mode 'relative' passes the author's age string straight through", () => {
+        const t = firstTweet(tweetWith({ timeMode: "relative", postedAgo: "3 hours" }));
+        expect(t.postedAgo).toBe("3 hours");
+    });
+
+    it("time mode 'absolute' converts a picked date into an SDK age string", () => {
+        const threeDaysAgo = new Date(Date.now() - 3 * 86400 * 1000).toISOString().slice(0, 10);
+        const t = firstTweet(tweetWith({ timeMode: "absolute", postedAt: threeDaysAgo }));
+        expect(t.postedAgo).toBe("3 days");
+    });
+
+    it("carries the show-in-timeline choice through to the tweet", () => {
+        expect(firstTweet(tweetWith({ showInTimeline: true })).showInTimeline).toBe(true);
+        // default (off) must not leak a false that some engines could mishandle
+        expect(firstTweet(tweetWith({})).showInTimeline).toBeUndefined();
+    });
+
+    it("registers each account exactly once, no matter how many times the quest is instantiated", () => {
+        const sdk = stubSdk([], []);
+        runMod(compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q1 = new (sdk as any).__registered.quests[0]();
+        const q2 = new (sdk as any).__registered.quests[0]();
+        // Each quest instance carries the same declarative list; the engine — not
+        // the mod — decides when to (re)apply it, so we never accumulate copies.
+        expect(q1.TwotterAccounts).toHaveLength(1);
+        expect(q2.TwotterAccounts).toHaveLength(1);
+        expect(q1.Tweets).toHaveLength(1);
+        expect(q2.Tweets).toHaveLength(1);
     });
 });
 
@@ -585,6 +546,7 @@ describe("tweets compile to the real SDK shape", () => {
             content: "look at this",
             image: "data:image/png;base64,BB==",
             likes: 12,
+            timeMode: "relative",
             postedAgo: "2 days",
         });
         q.graph.nodes = [entry, tweet];

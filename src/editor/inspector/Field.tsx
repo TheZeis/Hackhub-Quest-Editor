@@ -43,6 +43,17 @@ export function Field({
 
     if (!node) return null;
 
+    // Conditional visibility: hide a field until a sibling holds the right value.
+    if ("showWhen" in def && def.showWhen) {
+        const siblingPath = basePath ? `${basePath}.${def.showWhen.key}` : def.showWhen.key;
+        const current = getPath(node.data, siblingPath);
+        const wanted = def.showWhen.equals;
+        const matches = Array.isArray(wanted)
+            ? wanted.includes(current as string)
+            : current === wanted;
+        if (!matches) return null;
+    }
+
     if (def.kind === "section") {
         return (
             <fieldset className="my-1 rounded-md border border-line/70 py-0.5">
@@ -100,6 +111,19 @@ export function Field({
                         onChange={write}
                         placeholder={def.placeholder}
                         mono={def.mono}
+                    />
+                </FieldShell>
+            );
+
+        case "date":
+            return (
+                <FieldShell label={def.label} hint={def.hint}>
+                    <input
+                        type="date"
+                        aria-label={def.label}
+                        value={asString(raw)}
+                        onChange={(e) => write(e.target.value)}
+                        className="w-full rounded-md border border-line bg-surface-2 px-2 py-1 text-[12px] text-ink outline-none focus:border-accent"
                     />
                 </FieldShell>
             );

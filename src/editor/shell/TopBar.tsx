@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { selectCanRedo, selectCanUndo, useEditor } from "@/store/editor";
 import { TEMPLATES } from "@/templates";
 import { EVENT_COUNT, SDK_VERSION } from "@/schema/events";
+import { EDITOR_BUILD } from "@/compiler/compile";
 
 export function TopBar() {
     const mod = useEditor((s) => s.project.mod);
@@ -29,7 +30,15 @@ export function TopBar() {
                     <Icon name="terminal" size={14} />
                 </span>
                 <div className="leading-tight">
-                    <div className="text-[12.5px] font-semibold text-ink">Quest Mod Editor</div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[12.5px] font-semibold text-ink">Quest Mod Editor</span>
+                        <span
+                            className="rounded bg-surface-2 px-1 py-px font-mono text-[9px] text-ink-3"
+                            title="Editor build — must match the build stamped into each exported mod"
+                        >
+                            build {EDITOR_BUILD}
+                        </span>
+                    </div>
                     <div className="font-mono text-[9.5px] text-ink-4">
                         {mod.id} · v{mod.version}
                     </div>
