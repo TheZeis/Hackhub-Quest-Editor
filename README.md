@@ -23,10 +23,11 @@ moments, and export a complete, game-ready mod as a `.zip` — no coding at any 
 
 ---
 
-## Install & run
+## Install & Run
 
-**Windows, one click:** download/clone this repository and double-click
-**`Launch.bat`**. It installs everything (needs [Node.js](https://nodejs.org/),
+**Windows, one click:**
+Download/clone this repository (green "Code" button on the top of this page. Click the down arrow button -> Download ZIP)
+and double-click **`Launch.bat`**. It installs everything (needs [Node.js](https://nodejs.org/),
 LTS version), starts the editor, and opens it in your browser at
 <http://localhost:5173>. Keep the terminal window open while you work.
 
