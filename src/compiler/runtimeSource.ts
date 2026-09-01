@@ -151,23 +151,34 @@ function __qeRegisterProject(sdk, PROJECT) {
                 };
             });
 
-        var tweetNodes = g.nodes.filter(function (n) { return n.type === "comms.tweet"; });
-        var Tweets = tweetNodes.map(function (n) {
-            var t = { content: n.data.content, showInTimeline: true };
-            var inter = {};
-            if (n.data.likes != null) inter.likes = n.data.likes;
-            if (n.data.comments != null) inter.comments = n.data.comments;
-            if (n.data.shares != null) inter.share = n.data.shares;
-            if (n.data.views != null) inter.views = n.data.views;
-            if (Object.keys(inter).length) t.interaction = inter;
-            return t;
-        });
-        var TwotterAccounts = (qd.twotterAccounts || []).map(function (a) {
-            var out = { username: a.username };
-            if (a.displayName) out.displayName = a.displayName;
+        var TwotterAccounts = (qd.twotterAccounts || []).map(function (a, i) {
+            var out = {
+                id: a.id || "account-" + (i + 1),
+                username: a.username,
+                displayName: a.displayName || a.username,
+                avatar: a.avatar || "",
+            };
             if (a.bio) out.bio = a.bio;
+            if (a.followers != null) out.followers = a.followers;
+            if (a.following != null) out.following = a.following;
             if (a.verified) out.verified = true;
             return out;
+        });
+
+        var tweetNodes = g.nodes.filter(function (n) { return n.type === "comms.tweet"; });
+        var Tweets = tweetNodes.map(function (n) {
+            /* Flat TweetDefinition, per the SDK: accountId + optional image. */
+            var t = {
+                accountId: n.data.accountId || (TwotterAccounts[0] && TwotterAccounts[0].id) || "",
+                content: n.data.content,
+            };
+            if (n.data.image) t.image = n.data.image;
+            if (n.data.likes != null) t.likes = n.data.likes;
+            if (n.data.comments != null) t.comments = n.data.comments;
+            if (n.data.shares != null) t.shares = n.data.shares;
+            if (n.data.views != null) t.views = n.data.views;
+            if (n.data.postedAgo) t.postedAgo = n.data.postedAgo;
+            return t;
         });
 
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });

@@ -400,6 +400,38 @@ describe("round-19 fixes", () => {
     });
 });
 
+describe("tweets compile to the real SDK shape", () => {
+    it("accounts get ids/avatars and tweets stay flat with images", async () => {
+        const p = createProject();
+        const q = p.quests[0];
+        q.twotterAccounts = [
+            { id: "acct-1", username: "nightowl", displayName: "Night Owl", avatar: "data:image/png;base64,AA==", bio: "hacker", verified: true, followers: undefined, following: undefined },
+        ] as never;
+        const entry = node("entry.start");
+        const tweet = node("comms.tweet", {
+            accountId: "acct-1",
+            content: "look at this",
+            image: "data:image/png;base64,BB==",
+            likes: 12,
+            postedAgo: "2 days",
+        });
+        q.graph.nodes = [entry, tweet];
+        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
+
+        const { registered, sdk } = (() => {
+            const base = stubSdk([], []);
+            return { registered: (base as any).__registered, sdk: base };
+        })();
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q0 = new registered.quests[0]();
+        expect(q0.TwotterAccounts[0]).toMatchObject({ id: "acct-1", username: "nightowl", displayName: "Night Owl", verified: true });
+        expect(q0.Tweets[0]).toMatchObject({ accountId: "acct-1", content: "look at this", likes: 12, postedAgo: "2 days" });
+        expect(q0.Tweets[0].image).toBe("data:image/png;base64,BB==");
+        expect(q0.Tweets[0].interaction).toBeUndefined(); // old docs-era shape is gone
+        expect(q0.Tweets[0].showInTimeline).toBeUndefined();
+    });
+});
+
 describe("quest behaviour toggles", () => {
     it("advises when a quest will not start on its own", () => {
         const result = compileProject(createProject());

@@ -9,7 +9,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import type { FieldDef } from "@/schema/registry";
-import { getPath, useEditor } from "@/store/editor";
+import { getPath, selectActiveQuest, useEditor } from "@/store/editor";
+import { ImagePickerField } from "./ModFields";
 import { ConditionsEditor } from "./ConditionsEditor";
 import { DeviceEditor, DeviceListEditor } from "./DeviceTree";
 import { EventPicker } from "./EventPicker";
@@ -154,6 +155,41 @@ export function Field({
                         <span>{def.min}</span>
                         <span>{def.max}</span>
                     </div>
+                </FieldShell>
+            );
+        }
+
+        case "image":
+            return (
+                <ImagePickerField
+                    label={def.label}
+                    hint={def.hint ?? ""}
+                    ariaLabel={def.label}
+                    value={asString(raw) || undefined}
+                    onChange={(next) => write(next ?? "")}
+                />
+            );
+
+        case "questAccount": {
+            const accounts = useEditor(selectActiveQuest)?.twotterAccounts ?? [];
+            return (
+                <FieldShell label={def.label} hint={def.hint}>
+                    {accounts.length === 0 ? (
+                        <p className="text-[11px] leading-relaxed text-ink-3">
+                            No Twotter accounts yet — add one in the <strong className="text-ink-2">Quest tab</strong> under
+                            “Twotter accounts”, then pick which account makes this post.
+                        </p>
+                    ) : (
+                        <SelectInput
+                            ariaLabel={def.label}
+                            value={asString(raw)}
+                            onChange={write}
+                            options={accounts.map((a) => ({
+                                value: a.id,
+                                label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
+                            }))}
+                        />
+                    )}
                 </FieldShell>
             );
         }

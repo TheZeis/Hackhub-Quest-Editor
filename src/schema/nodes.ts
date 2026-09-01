@@ -343,6 +343,8 @@ export const WeeChatNodeDataSchema = z.object({
 export const TweetNodeDataSchema = z.object({
     accountId: z.string().default(""),
     content: z.string().default(""),
+    /** Optional attached picture, embedded as a data URL. */
+    image: z.string().optional(),
     likes: z.number().optional(),
     comments: z.number().optional(),
     shares: z.number().optional(),

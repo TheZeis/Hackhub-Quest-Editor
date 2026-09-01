@@ -79,6 +79,8 @@ export type FieldDef =
           hint?: string;
           options: readonly { value: string; label: string; hint?: string }[];
       }
+    | { kind: "image"; key: string; label: string; hint?: string }
+    | { kind: "questAccount"; key: string; label: string; hint?: string }
     | { kind: "event"; key: string; label: string; hint?: string }
     | { kind: "conditions"; key: string; label: string; hint?: string }
     | {
@@ -620,8 +622,9 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "accountId", hint: "Which Twotter account posts this. The account must be declared on the quest.", label: "Account", mono: true },
+            { kind: "questAccount", key: "accountId", hint: "Which of the quest's Twotter accounts posts this. Add accounts in the Quest tab.", label: "Account" },
             { kind: "textarea", key: "content", hint: "The post body, with the same formatting Twotter supports.", label: "Tweet", rows: 4 },
+            { kind: "image", key: "image", label: "Attached picture", hint: "Optional. PNG or JPG — use it for clues the player must read, or files they download later." },
             { kind: "number", key: "likes", hint: "Starting like count. Cosmetic, but it sells the fiction.", label: "Likes", min: 0 },
             { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },
             { kind: "number", key: "shares", hint: "How many reposts the post already shows. Cosmetic, but it sells the fiction.", label: "Shares", min: 0 },
