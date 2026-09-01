@@ -8,6 +8,7 @@ import { Icon } from "@/components/Icon";
 import { useEditor } from "@/store/editor";
 import { TEMPLATES, type Template } from "@/templates";
 import { downloadProject, parseProjectFile, projectFileName } from "@/templates/share";
+import { clearDraft } from "@/store/autosave";
 import { WebsiteBuilderDialog } from "@/editor/websites/WebsiteBuilder";
 import { DialoguesDialog } from "./DialoguesDialog";
 import { ExportDialog } from "./ExportDialog";
@@ -259,11 +260,76 @@ function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
     );
 }
 
+/* ── New project ─────────────────────────────────────────────────────────── */
+
+function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+    const reset = useEditor((s) => s.reset);
+    const toast = useEditor((s) => s.toast);
+    const project = useEditor((s) => s.project);
+
+    const startFresh = () => {
+        // Wipe the autosaved draft too — otherwise the blank project would be
+        // overwritten by the old one the next time the editor loads (which is
+        // exactly why a re-extracted editor kept showing the previous quest).
+        clearDraft();
+        reset();
+        onOpenChange(false);
+        toast("Started a new, blank quest project.", "ok");
+    };
+
+    const saveFirst = () => {
+        const name = downloadProject(project);
+        toast(`Saved “${name}” — reopen it any time from Templates → Import.`, "ok");
+    };
+
+    return (
+        <Modal
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Start a new project?"
+            subtitle="This clears the current quest and the autosaved draft."
+            width="w-[460px]"
+        >
+            <div className="flex flex-col gap-4 p-4">
+                <div className="flex items-start gap-3 rounded-lg border border-warn/40 bg-warn/10 p-3">
+                    <Icon name="alert" size={16} className="mt-0.5 shrink-0 text-warn" />
+                    <div className="text-[12px] leading-relaxed text-ink-2">
+                        <p className="font-semibold text-warn">This can’t be undone.</p>
+                        <p className="mt-1">
+                            Everything currently on the canvas — every quest, website and dialogue in
+                            this project — will be permanently removed, along with the autosaved copy in
+                            your browser. If you haven’t exported this work, save it first.
+                        </p>
+                    </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button type="button" className="btn-default" onClick={saveFirst}>
+                        <Icon name="download" size={13} />
+                        Save current quest first
+                    </button>
+                    <button type="button" className="btn-default" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        className="btn-default border-danger/50 text-danger hover:bg-danger/10"
+                        onClick={startFresh}
+                    >
+                        <Icon name="trash" size={13} />
+                        Clear and start fresh
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
 export function Overlays() {
     const modal = useEditor((s) => s.ui.modal);
     const setUi = useEditor((s) => s.setUi);
     return (
         <>
+            <NewProjectDialog open={modal === "newProject"} onOpenChange={(o) => setUi({ modal: o ? "newProject" : null })} />
             <TemplatesDialog open={modal === "templates"} onOpenChange={(o) => setUi({ modal: o ? "templates" : null })} />
             <ShortcutsDialog open={modal === "shortcuts"} onOpenChange={(o) => setUi({ modal: o ? "shortcuts" : null })} />
             <WebsiteBuilderDialog open={modal === "websites"} onOpenChange={(o) => setUi({ modal: o ? "websites" : null })} />

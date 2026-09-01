@@ -396,15 +396,21 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (Object.keys(Dialog).length) this.Dialog = Dialog;
                     if (KisscordChats.length) this.KisscordChats = KisscordChats;
                     if (WeeChatChats.length) this.WeeChatChats = WeeChatChats;
-                    if (Tweets.length) this.Tweets = Tweets;
-                    /* Accounts are registered through the Twotter API on mod
-                       load (complete platform records, sensible defaults for
-                       banner/joinedAt/etc). The quest-level list is only the
-                       fallback for games without that API — the quest
-                       converter leaves platform fields undefined, which
-                       crashed Twotter search ("undefined … toLowerCase"). */
+                    /* Accounts AND tweets are registered through the Twotter
+                       API on mod load (complete platform records, sensible
+                       defaults for banner/joinedAt/interaction/etc). The
+                       quest-level lists are only the fallback for games without
+                       that API — the quest converter leaves platform fields
+                       undefined, which crashed Twotter search ("undefined …
+                       toLowerCase"). Because accounts are suppressed when the
+                       API is present, the quest-level tweet converter has no
+                       account list to resolve a tweet's author from, so tweets
+                       MUST go through the API too whenever it exists. */
                     if (TwotterAccounts.length && !(sdk.Twotter && sdk.Twotter.addUser)) {
                         this.TwotterAccounts = TwotterAccounts;
+                    }
+                    if (Tweets.length && !(sdk.Twotter && sdk.Twotter.postTweet)) {
+                        this.Tweets = Tweets;
                     }
                 }
                 OnStart() {
@@ -580,6 +586,58 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (a.followers != null) options.followers = a.followers;
                     if (a.following != null) options.following = a.following;
                     sdk.Twotter.addUser(sdk.Twotter.createUser(options));
+                });
+            });
+
+            /* Register tweets through the platform API too. The quest-level
+               TweetDefinition is flat (accountId + likes/comments/…) and has no
+               id/userId/interaction; the game's converter would have to invent
+               those, and — with accounts suppressed above — has no account list
+               to resolve the author from. Both gaps end in the same undefined
+               deref that crashed search, so we build the complete TwotterTweet
+               here. */
+            if (!sdk.Twotter.postTweet) return;
+            (PROJECT.quests || []).forEach(function (qd) {
+                var accounts = qd.twotterAccounts || [];
+                if (!accounts.length) return;
+                /* Resolve a tweet's author to a real registered user id. The
+                   editor's accountId points at a quest account; look that up to
+                   get the username, then ask the platform for the id it stored
+                   (createUser may reassign it). Fall back sensibly at each step
+                   so a missing author never yields an undefined userId. */
+                var resolveUserId = function (accountId) {
+                    var acct = null;
+                    for (var i = 0; i < accounts.length; i++) {
+                        if (accounts[i].id === accountId) { acct = accounts[i]; break; }
+                    }
+                    if (!acct) acct = accounts[0];
+                    if (acct && acct.username && sdk.Twotter.getUserByUsername) {
+                        var u = sdk.Twotter.getUserByUsername(acct.username);
+                        if (u && u.id) return u.id;
+                    }
+                    return (acct && acct.id) || accountId || "";
+                };
+                var tweetNodes = ((qd.graph && qd.graph.nodes) || []).filter(function (n) {
+                    return n.type === "comms.tweet";
+                });
+                tweetNodes.forEach(function (n) {
+                    var d = n.data || {};
+                    var userId = resolveUserId(d.accountId);
+                    if (!userId) return;
+                    var tweet = {
+                        id: "tweet-" + n.id,
+                        userId: userId,
+                        content: d.content || "",
+                        interaction: {
+                            comments: d.comments != null ? d.comments : 0,
+                            share: d.shares != null ? d.shares : 0,
+                            likes: d.likes != null ? d.likes : 0,
+                            views: d.views != null ? d.views : 0,
+                        },
+                        showInTimeline: true,
+                    };
+                    if (d.image) tweet.image = d.image;
+                    sdk.Twotter.postTweet(tweet);
                 });
             });
         }

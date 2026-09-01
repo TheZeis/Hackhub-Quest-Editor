@@ -134,6 +134,16 @@ export function TopBar() {
             <span className="h-6 w-px bg-line" aria-hidden />
 
             {/* actions */}
+            <button
+                type="button"
+                className="btn-default"
+                onClick={() => setUi({ modal: "newProject" })}
+                title="Clear everything and start a blank quest project"
+            >
+                <Icon name="file" size={13} />
+                <span className="hidden lg:inline">New</span>
+            </button>
+
             <button type="button" className="btn-default" onClick={() => setUi({ modal: "templates" })}>
                 <Icon name="layers" size={13} />
                 Templates

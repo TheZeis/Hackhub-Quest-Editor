@@ -482,6 +482,96 @@ describe("Twotter account registration (search-crash fix)", () => {
     });
 });
 
+describe("Twotter tweet registration (search-crash fix, round 22)", () => {
+    /**
+     * The QA test3 repro: an account with no avatar and a tweet whose accountId
+     * is empty. Round 21 moved accounts onto the platform API but left tweets at
+     * quest level; with the quest-level account list suppressed, the game's
+     * tweet converter had no author to resolve and crashed search on an
+     * undefined field. Tweets must now post through the API with a complete
+     * record whose userId resolves to a real registered user.
+     */
+    function tweetCrashProject(): ProjectDocument {
+        const p = createProject();
+        const q = p.quests[0];
+        q.twotterAccounts = [
+            { id: "5WjPOEiU", username: "qatester3", displayName: "QA Tester 3", verified: false, bio: "third tester" },
+        ] as never;
+        const entry = node("entry.start");
+        const tweet = node("comms.tweet", {
+            accountId: "", // the exact repro: no account picked
+            content: "This is a Q&A Test Tweet (number 3)",
+            comments: 2,
+            shares: 1,
+            views: 10,
+            postedAgo: "2 days",
+        });
+        q.graph.nodes = [entry, tweet];
+        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
+        return p;
+    }
+
+    function apiSdk() {
+        const added: Record<string, unknown>[] = [];
+        const posted: Record<string, any>[] = [];
+        const sdk = stubSdk([], []);
+        const byUsername = new Map<string, Record<string, unknown>>();
+        (sdk as any).Twotter = {
+            createUser: (o: Record<string, unknown>) => ({
+                id: o.id ?? `gen-${o.username}`,
+                username: o.username,
+                name: o.firstName,
+                surname: o.lastName,
+                avatar: o.avatar ?? "placeholder.png",
+                banner: "placeholder-banner.png",
+                joinedAt: "2026-01-01T00:00:00.000Z",
+                followers: o.followers ?? 0,
+                following: o.following ?? 0,
+                password: "generated",
+                bio: o.bio,
+                verified: o.verified,
+            }),
+            addUser: (u: Record<string, unknown>) => {
+                added.push(u);
+                byUsername.set(u.username as string, u);
+            },
+            postTweet: (t: Record<string, any>) => posted.push(t),
+            getUserByUsername: (name: string) => byUsername.get(name),
+        };
+        return { sdk, added, posted };
+    }
+
+    it("posts tweets through the API with a complete record and a resolved author", () => {
+        const { sdk, posted } = apiSdk();
+        runMod(compileProject(tweetCrashProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const mod = new (sdk as any).__registered.mod();
+        mod.OnModPackageLoaded();
+
+        expect(posted).toHaveLength(1);
+        const t = posted[0];
+        // author resolved to the single registered account, never undefined
+        expect(t.userId).toBe("5WjPOEiU");
+        expect(t.content).toBe("This is a Q&A Test Tweet (number 3)");
+        // structured interaction — the shape the platform search UI reads
+        expect(t.interaction).toEqual({ comments: 2, share: 1, likes: 0, views: 10 });
+        expect(t.showInTimeline).toBe(true);
+        expect(typeof t.id).toBe("string");
+        expect(t.id.length).toBeGreaterThan(0);
+
+        // and the quest no longer ships the lossy quest-level tweet list
+        const q0 = new (sdk as any).__registered.quests[0]();
+        expect(q0.Tweets).toBeUndefined();
+    });
+
+    it("falls back to quest-level tweets when the Twotter API is missing", () => {
+        const sdk = stubSdk([], []); // no Twotter namespace at all
+        runMod(compileProject(tweetCrashProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q0 = new (sdk as any).__registered.quests[0]();
+        expect(q0.Tweets).toHaveLength(1);
+        expect(q0.Tweets[0].content).toBe("This is a Q&A Test Tweet (number 3)");
+    });
+});
+
 describe("tweets compile to the real SDK shape", () => {
     it("accounts get ids/avatars and tweets stay flat with images", async () => {
         const p = createProject();
