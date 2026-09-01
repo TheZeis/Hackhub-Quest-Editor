@@ -34,6 +34,30 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
+            if (mod && !isTypingTarget(event.target)) {
+                const key = event.key.toLowerCase();
+                if (key === "c") {
+                    event.preventDefault();
+                    store.copySelection();
+                    return;
+                }
+                if (key === "x") {
+                    event.preventDefault();
+                    store.cutSelection();
+                    return;
+                }
+                if (key === "v") {
+                    event.preventDefault();
+                    store.pasteClipboard();
+                    return;
+                }
+                if (key === "d") {
+                    event.preventDefault();
+                    store.duplicateSelection();
+                    return;
+                }
+            }
+
             if (mod && event.key.toLowerCase() === "s") {
                 event.preventDefault();
                 saveDraft(store.project);

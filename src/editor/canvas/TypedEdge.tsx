@@ -47,7 +47,8 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
         curvature: 0.28,
     });
 
-    const style = HANDLE_STYLE[data?.kind ?? "flow"];
+    const kind = data?.kind ?? "flow";
+    const style = HANDLE_STYLE[kind];
     const text = data?.label || data?.socketLabel;
 
     return (
@@ -55,9 +56,10 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
             <BaseEdge
                 id={props.id}
                 path={path}
+                className={kind === "flow" ? "qe-flow-anim" : undefined}
                 style={{
                     stroke: selected ? "var(--color-accent)" : style.color,
-                    strokeDasharray: style.dash,
+                    strokeDasharray: kind === "flow" ? "8 6" : style.dash,
                     strokeWidth: selected ? 2.5 : 1.75,
                     opacity: selected ? 1 : 0.85,
                 }}

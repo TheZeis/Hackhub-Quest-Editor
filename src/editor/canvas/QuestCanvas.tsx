@@ -7,6 +7,8 @@
  */
 import {
     Background,
+    SelectionMode,
+    type OnNodeDrag,
     BackgroundVariant,
     Controls,
     MiniMap,
@@ -48,6 +50,7 @@ function CanvasInner() {
     const removeNodes = useEditor((s) => s.removeNodes);
     const removeEdges = useEditor((s) => s.removeEdges);
     const setNodePositions = useEditor((s) => s.setNodePositions);
+    const insertReroute = useEditor((s) => s.insertReroute);
     const beginTransient = useEditor((s) => s.beginTransient);
     const commitTransient = useEditor((s) => s.commitTransient);
     const select = useEditor((s) => s.select);
@@ -73,6 +76,45 @@ function CanvasInner() {
         return map;
     }, [analysis]);
     const wrapperRef = useRef<HTMLDivElement>(null);
+    /** Tracks the dragged group frame so children can follow it move by move. */
+    const groupDrag = useRef<{ id: string; x: number; y: number } | null>(null);
+
+    const onGroupAwareDragStart: OnNodeDrag<GraphRFNode> = (_e, node) => {
+        beginTransient();
+        if (node.data.doc.type === "layout.group") {
+            groupDrag.current = { id: node.id, x: node.position.x, y: node.position.y };
+        }
+    };
+
+    const onGroupAwareDrag: OnNodeDrag<GraphRFNode> = (_e, node) => {
+        const drag = groupDrag.current;
+        const gnodes = quest?.graph.nodes ?? [];
+        if (!drag || drag.id !== node.id) return;
+        const dx = node.position.x - drag.x;
+        const dy = node.position.y - drag.y;
+        if (dx === 0 && dy === 0) return;
+        groupDrag.current = { id: node.id, x: node.position.x, y: node.position.y };
+        const gd = node.data.doc.data as { w?: number; h?: number };
+        const gw = gd.w ?? 360;
+        const gh = gd.h ?? 240;
+        const rect = { x0: node.position.x, y0: node.position.y, x1: node.position.x + gw, y1: node.position.y + gh };
+        const moves: Record<string, { x: number; y: number }> = {};
+        for (const n of gnodes) {
+            if (n.id === node.id || n.type === "layout.group") continue;
+            const size = measured[n.id] ?? { width: 240, height: 120 };
+            const cx = n.position.x + size.width / 2;
+            const cy = n.position.y + size.height / 2;
+            if (cx >= rect.x0 && cx <= rect.x1 && cy >= rect.y0 && cy <= rect.y1) {
+                moves[n.id] = { x: n.position.x + dx, y: n.position.y + dy };
+            }
+        }
+        if (Object.keys(moves).length) setNodePositions(moves);
+    };
+
+    const onGroupAwareDragStop: OnNodeDrag<GraphRFNode> = () => {
+        groupDrag.current = null;
+        commitTransient();
+    };
 
     // React Flow reports a node's measured size as a "dimensions" change. The
     // MiniMap only draws nodes whose user-node carries dimensions, so fold the
@@ -89,6 +131,8 @@ function CanvasInner() {
                 data: { doc, issue: issuesByNode.get(doc.id) },
                 selected: selection.nodeIds.includes(doc.id),
                 measured: measured[doc.id],
+                // Frames sit behind everything; cards keep the default layer.
+                zIndex: doc.type === "layout.group" ? -1 : 0,
             })),
         [quest, selection.nodeIds, issuesByNode, measured],
     );
@@ -222,14 +266,16 @@ function CanvasInner() {
                 isValidConnection={isValidConnection}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                onNodeDragStart={() => beginTransient()}
-                onNodeDragStop={() => commitTransient()}
+                onNodeDragStart={onGroupAwareDragStart}
+                onNodeDrag={onGroupAwareDrag}
+                onNodeDragStop={onGroupAwareDragStop}
                 onDrop={onDrop}
                 onDragOver={(e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = "move";
                 }}
                 onPaneClick={() => select({ nodeIds: [], edgeIds: [] })}
+                onEdgeDoubleClick={(_event, edge) => insertReroute(edge.id)}
                 onMoveEnd={(_, viewport) => setViewport(quest.id, viewport)}
                 defaultViewport={
                     quest.id in (useEditor.getState().project.editor.viewports ?? {})
@@ -238,6 +284,9 @@ function CanvasInner() {
                 }
                 deleteKeyCode={["Backspace", "Delete"]}
                 selectionKeyCode={null}
+                panOnDrag={[1, 2]}
+                selectionOnDrag
+                selectionMode={SelectionMode.Partial}
                 multiSelectionKeyCode={["Meta", "Shift", "Control"]}
                 fitView={nodes.length > 0}
                 fitViewOptions={{ padding: 0.25, maxZoom: 1 }}

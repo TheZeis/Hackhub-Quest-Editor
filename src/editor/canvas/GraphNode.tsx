@@ -3,7 +3,7 @@
  * through it, so card chrome, socket layout and selection styling stay consistent
  * and new node types need no new component.
  */
-import { Handle, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, NodeResizer, Position, useConnection, type Node, type NodeProps } from "@xyflow/react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
@@ -35,6 +35,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const def = nodeTypeDef(doc.type);
     const category = categoryOf(doc.type);
     const quest = useEditor(selectActiveQuest);
+    const updateNodeData = useEditor((s) => s.updateNodeData);
     const lines = useMemo(() => summarize(doc, quest ?? undefined).filter(Boolean), [doc, quest]);
     const [hovered, setHovered] = useState(false);
     const connecting = useConnection((c) => c.inProgress);
@@ -45,6 +46,56 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const showLabels = selected || hovered || connecting;
 
     const isNote = doc.type === "flow.note";
+
+    if (doc.type === "layout.group") {
+        const gd = doc.data as { label?: string; comment?: string; w?: number; h?: number };
+        return (
+            <>
+                <NodeResizer
+                    isVisible={!!selected}
+                    minWidth={160}
+                    minHeight={120}
+                    onResize={(_e, params) =>
+                        updateNodeData(doc.id, {
+                            w: Math.round(params.width),
+                            h: Math.round(params.height),
+                        })
+                    }
+                />
+                <div
+                    className={cn(
+                        "rounded-lg border-2 border-dashed px-3 py-2",
+                        selected ? "border-accent/70 bg-accent/5" : "border-line-strong/60 bg-surface-2/30",
+                    )}
+                    style={{ width: gd.w ?? 360, height: gd.h ?? 240 }}
+                >
+                    <p className="text-[12px] font-semibold tracking-wide text-ink-2">
+                        {gd.label || "Group"}
+                    </p>
+                    {gd.comment && (
+                        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-ink-3">
+                            {gd.comment}
+                        </p>
+                    )}
+                </div>
+            </>
+        );
+    }
+
+    if (doc.type === "flow.reroute") {
+        return (
+            <div className="relative size-4" title="Reroute — wires pass through here unchanged">
+                <Handle id="in" type="target" position={Position.Left} data-kind="flow" title="In" />
+                <div
+                    className={cn(
+                        "size-4 rounded-full border-2 bg-surface transition-colors",
+                        selected ? "border-accent ring-2 ring-accent/40" : "border-line-strong hover:border-accent",
+                    )}
+                />
+                <Handle id="out" type="source" position={Position.Right} data-kind="flow" title="Out" />
+            </div>
+        );
+    }
 
     if (isNote) {
         return (

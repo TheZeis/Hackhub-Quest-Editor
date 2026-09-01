@@ -44,6 +44,7 @@
     --color-cat-reply: #fb923c;
     --color-cat-effect: #60a5fa;
     --color-cat-flow: #94a3b8;
+    --color-cat-layout: #64748b;
 
     /* Type */
     --font-sans:
@@ -167,6 +168,16 @@
 
     .field-label {
         @apply mb-1.5 block text-[11px] font-medium tracking-wide text-ink-3 uppercase;
+    }
+
+    /* Subtle marching dashes on flow wires — shows which way the story runs. */
+    @keyframes qe-flow-march {
+        to {
+            stroke-dashoffset: -28;
+        }
+    }
+    .qe-flow-anim {
+        animation: qe-flow-march 1.4s linear infinite;
     }
 
     .field-hint {

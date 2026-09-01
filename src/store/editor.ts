@@ -41,6 +41,8 @@ export interface UiState {
 export interface EditorStore {
     project: ProjectDocument;
     selection: Selection;
+    /** Copied nodes + their internal edges, ready to paste with fresh ids. */
+    clipboard: { nodes: NodeDoc[]; edges: EdgeDoc[] } | null;
     ui: UiState;
     past: ProjectDocument[];
     future: ProjectDocument[];
@@ -87,6 +89,14 @@ export interface EditorStore {
         targetHandle: string;
     }) => boolean;
     removeEdges: (ids: string[]) => void;
+    /** Drop a reroute nodule onto an edge: splits it in two through the new node. */
+    insertReroute: (edgeId: string) => string | null;
+
+    /* clipboard: multi-node copy / cut / paste / duplicate */
+    copySelection: () => void;
+    cutSelection: () => void;
+    pasteClipboard: () => void;
+    duplicateSelection: () => void;
 
     /* websites */
     addWebsite: (website: WebsiteDoc) => void;
@@ -165,6 +175,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
     return {
         project: createProject(),
         selection: { nodeIds: [], edgeIds: [] },
+        clipboard: null,
         ui: { inspectorCollapsed: false, paletteCollapsed: false, modal: null, dialogueNode: null, toast: null },
         past: [],
         future: [],
@@ -459,6 +470,118 @@ export const useEditor = create<EditorStore>()((set, get) => {
                 const doomed = new Set(ids);
                 quest.graph.edges = quest.graph.edges.filter((e) => !doomed.has(e.id));
             }),
+
+        insertReroute: (edgeId) => {
+            const quest = activeQuestOf(get().project);
+            if (!quest) return null;
+            const e = quest.graph.edges.find((x) => x.id === edgeId);
+            if (!e) return null;
+            const src = quest.graph.nodes.find((n) => n.id === e.source);
+            const dst = quest.graph.nodes.find((n) => n.id === e.target);
+            if (!src || !dst) return null;
+            const position = {
+                x: Math.round((src.position.x + dst.position.x) / 2 + 60),
+                y: Math.round((src.position.y + dst.position.y) / 2),
+            };
+            const id = nanoid(10);
+            mutate((project) => {
+                const q = project.quests.find((x) => x.id === quest.id);
+                if (!q) return;
+                const old = q.graph.edges.find((x) => x.id === edgeId);
+                if (!old) return;
+                q.graph.edges = q.graph.edges.filter((x) => x.id !== edgeId);
+                q.graph.nodes.push({
+                    id,
+                    type: "flow.reroute",
+                    position,
+                    data: nodeTypeDef("flow.reroute").create(),
+                } as unknown as NodeDoc);
+                q.graph.edges.push(
+                    {
+                        id: nanoid(10),
+                        source: old.source,
+                        sourceHandle: old.sourceHandle,
+                        target: id,
+                        targetHandle: "in",
+                        kind: old.kind,
+                    },
+                    {
+                        id: nanoid(10),
+                        source: id,
+                        sourceHandle: "out",
+                        target: old.target,
+                        targetHandle: old.targetHandle,
+                        kind: old.kind,
+                    },
+                );
+            });
+            set({ selection: { nodeIds: [id], edgeIds: [] } });
+            return id;
+        },
+
+        copySelection: () => {
+            const quest = activeQuestOf(get().project);
+            const { nodeIds } = get().selection;
+            if (!quest || nodeIds.length === 0) return;
+            const idSet = new Set(nodeIds);
+            const nodes = quest.graph.nodes.filter((n) => idSet.has(n.id));
+            const edges = quest.graph.edges.filter(
+                (e) => idSet.has(e.source) && idSet.has(e.target),
+            );
+            set({
+                clipboard: {
+                    nodes: JSON.parse(JSON.stringify(nodes)),
+                    edges: JSON.parse(JSON.stringify(edges)),
+                },
+            });
+        },
+
+        cutSelection: () => {
+            const { nodeIds, edgeIds } = get().selection;
+            get().copySelection();
+            if (nodeIds.length) get().removeNodes(nodeIds);
+            if (edgeIds.length) get().removeEdges(edgeIds);
+            set({ selection: { nodeIds: [], edgeIds: [] } });
+        },
+
+        pasteClipboard: () => {
+            const clipboard = get().clipboard;
+            const quest = activeQuestOf(get().project);
+            if (!clipboard || !quest || clipboard.nodes.length === 0) return;
+            const idMap = new Map<string, string>();
+            const nodes = clipboard.nodes.map((n) => {
+                const id = nanoid(10);
+                idMap.set(n.id, id);
+                return {
+                    ...JSON.parse(JSON.stringify(n)),
+                    id,
+                    position: { x: n.position.x + 32, y: n.position.y + 32 },
+                } as NodeDoc;
+            });
+            const edges = clipboard.edges.map(
+                (e) =>
+                    ({
+                        ...JSON.parse(JSON.stringify(e)),
+                        id: nanoid(10),
+                        source: idMap.get(e.source)!,
+                        target: idMap.get(e.target)!,
+                    }) as EdgeDoc,
+            );
+            mutate((project) => {
+                const q = project.quests.find((x) => x.id === quest.id);
+                if (!q) return;
+                q.graph.nodes.push(...nodes);
+                q.graph.edges.push(...edges);
+            });
+            set({ selection: { nodeIds: nodes.map((n) => n.id), edgeIds: [] } });
+        },
+
+        duplicateSelection: () => {
+            const before = get().clipboard;
+            get().copySelection();
+            get().pasteClipboard();
+            set({ clipboard: before });
+        },
 
         select: (selection) => set({ selection }),
         setUi: (patch) => set((state) => ({ ui: { ...state.ui, ...patch } })),

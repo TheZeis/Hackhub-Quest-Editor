@@ -77,6 +77,12 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
     switch (node.type) {
         case "entry.start":
             return ["Runs once, when the quest begins"];
+        case "flow.reroute":
+            return ["Wire passes through"];
+        case "layout.group": {
+            const label = String(d.label || "Group");
+            return d.comment ? [label, clip(String(d.comment), 50)] : [label];
+        }
         case "entry.load":
             return ["Runs on claim and after every reload"];
         case "entry.complete":

@@ -39,6 +39,8 @@ ClaimQuestNodeDataSchema,
     TweetNodeDataSchema,
 WifiNodeDataSchema,
     NoteNodeDataSchema,
+    RerouteNodeDataSchema,
+    LayoutGroupNodeDataSchema,
     type NodeDoc,
     type NodeType,
 } from "./nodes";
@@ -105,6 +107,7 @@ export const CATEGORIES = [
     { id: "reply", label: "Player replies", color: "var(--color-cat-reply)", hex: "#fb923c", icon: "keyboard" },
     { id: "effect", label: "Effects", color: "var(--color-cat-effect)", hex: "#60a5fa", icon: "sparkle" },
     { id: "flow", label: "Flow control", color: "var(--color-cat-flow)", hex: "#94a3b8", icon: "branch" },
+    { id: "layout", label: "Layout", color: "var(--color-cat-layout)", hex: "#64748b", icon: "layers" },
 ] as const;
 
 /**
@@ -122,6 +125,7 @@ export const CATEGORY_HEX: Record<CategoryId, string> = {
     reply: "#fb923c",
     effect: "#60a5fa",
     flow: "#94a3b8",
+    layout: "#64748b",
 };
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
@@ -871,6 +875,37 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [{ kind: "number", key: "seconds", hint: "How long the story pauses here. Fractions are fine — 0.5 waits half a second.", label: "Seconds", min: 0, step: 0.5 }],
         create: () => seed(DelayNodeDataSchema),
+    },
+
+    "flow.reroute": {
+        type: "flow.reroute",
+        category: "flow",
+        label: "Reroute",
+        blurb: "Split or tidy a wire",
+        icon: "shuffle",
+        ...io,
+        hook: "declarative",
+        fields: [
+            { kind: "note", tone: "info", text: "A tidy point for your wires: run a connection through here to fan it out to several nodes or to route it around clutter. It has no effect on the story itself. Tip: double-click any wire on the canvas to drop one in automatically." },
+        ],
+        create: () => seed(RerouteNodeDataSchema),
+    },
+
+    "layout.group": {
+        type: "layout.group",
+        category: "layout",
+        label: "Group frame",
+        blurb: "A named box that moves its nodes",
+        icon: "layers",
+        targets: [],
+        sources: [],
+        hook: "declarative",
+        fields: [
+            { kind: "note", tone: "info", text: "Draw a box around part of your quest to keep it tidy. Drag the frame and everything inside moves with it. It has no effect on how the mod runs." },
+            { kind: "text", key: "label", label: "Name", hint: "Shown in the frame's corner — name the cluster after what it does, e.g. “Act 1: recon”." },
+            { kind: "textarea", key: "comment", label: "Comment", rows: 3, hint: "A note to future-you about what this cluster does." },
+        ],
+        create: () => seed(LayoutGroupNodeDataSchema),
     },
 
     "flow.random": {

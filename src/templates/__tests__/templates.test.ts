@@ -152,7 +152,7 @@ describe("template registry", () => {
         const types = reference.quests[0].graph.nodes.map((n) => n.type);
 
         // Every registered type is represented.
-        expect(new Set(types).size).toBe(29);
+        expect(new Set(types).size).toBe(31);
 
         // Sticky notes double as row headers, so they are the one repeat.
         const counts = new Map<string, number>();

@@ -69,7 +69,7 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
         const def = nodeTypeDef(node.type);
 
         // Sticky notes are annotations; nothing about them is broken.
-        if (node.type === "flow.note") continue;
+        if (node.type === "flow.note" || node.type === "layout.group") continue;
 
         const wiredIn = (incoming.get(node.id) ?? []).length;
         const wiredOut = (outgoing.get(node.id) ?? []).length;

@@ -181,6 +181,16 @@ const empty = z.object({}).default({});
 
 /** Entry nodes mark which quest lifecycle hook a subtree is emitted into. */
 export const EntryStartData = empty;
+/** Reroute nodules carry no data — they are pure wire management. */
+export const RerouteNodeDataSchema = empty;
+
+/** A labelled box that visually groups nodes and moves them together. */
+export const LayoutGroupNodeDataSchema = z.object({
+    label: z.string().default("Group"),
+    comment: z.string().default(""),
+    w: z.number().default(360),
+    h: z.number().default(240),
+});
 export const EntryLoadData = empty;
 export const EntryCompleteData = empty;
 export const EntryAbandonData = empty;
@@ -495,6 +505,8 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("flow.delay", DelayNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),
     node("flow.note", NoteNodeDataSchema),
+    node("flow.reroute", RerouteNodeDataSchema),
+    node("layout.group", LayoutGroupNodeDataSchema),
 ]);
 
 export type NodeDoc = z.infer<typeof NodeSchema>;
