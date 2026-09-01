@@ -253,3 +253,23 @@ describe("top-level dialogue editor", () => {
         expect(screen.getByText("Dialogue editor")).toBeInTheDocument();
     });
 });
+
+describe("dialogue editor save button", () => {
+    it("writes the draft immediately and confirms", async () => {
+        const user = userEvent.setup();
+        localStorage.clear();
+        const node = addDialogue("mail");
+        render(<DialoguesDialog open onOpenChange={() => {}} />);
+        act(() => useEditor.getState().setUi({ dialogueNode: node.id }));
+
+        const save = screen.getByRole("button", { name: /^save$/i });
+        expect(save).toBeEnabled();
+        await user.click(save);
+
+        expect(await screen.findByRole("button", { name: /saved/i })).toBeInTheDocument();
+        // the draft is really on disk (localStorage), not just promised
+        const raw = localStorage.getItem("hackhub-quest-editor:draft:v1");
+        expect(raw).toBeTruthy();
+        expect(JSON.parse(raw!).quests[0].graph.nodes.some((n: { id: string }) => n.id === node.id)).toBe(true);
+    });
+});

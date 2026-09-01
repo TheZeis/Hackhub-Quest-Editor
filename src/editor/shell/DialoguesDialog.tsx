@@ -5,6 +5,7 @@
  * it lists the quest's dialogue nodes and can create new ones.
  */
 import * as Dialog from "@radix-ui/react-dialog";
+import { useState } from "react";
 import { nanoid } from "nanoid";
 import { Icon } from "@/components/Icon";
 import { DIALOGUE_KIND_LABELS, dialogueFirstLine } from "@/editor/canvas/summarize";
@@ -14,6 +15,7 @@ import { MailScript } from "@/editor/inspector/sims/MailSim";
 import { WeeChatScript } from "@/editor/inspector/sims/WeeChatEditor";
 import { FieldShell, SelectInput } from "@/editor/inspector/primitives";
 import type { DialogBranch, DialogueKind, NodeOfType } from "@/schema/nodes";
+import { saveDraft } from "@/store/autosave";
 import { selectActiveQuest, useEditor } from "@/store/editor";
 
 export function DialoguesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -32,6 +34,15 @@ export function DialoguesDialog({ open, onOpenChange }: { open: boolean; onOpenC
     const close = (o: boolean) => {
         if (!o) setUi({ dialogueNode: null });
         onOpenChange(o);
+    };
+
+    const [justSaved, setJustSaved] = useState(false);
+    const saveNow = () => {
+        // Autosave already persists a moment after every change; this writes
+        // the draft immediately so closing right away is visibly safe.
+        saveDraft(useEditor.getState().project);
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 1600);
     };
 
     const createNode = () => {
@@ -61,6 +72,15 @@ export function DialoguesDialog({ open, onOpenChange }: { open: boolean; onOpenC
                             </Dialog.Description>
                         </div>
                         <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={saveNow}
+                                title="Save this dialogue to your draft now — the editor also autosaves shortly after every change"
+                            >
+                                <Icon name={justSaved ? "check" : "save"} size={13} />
+                                {justSaved ? "Saved" : "Save"}
+                            </button>
                             {node && (
                                 <button
                                     type="button"

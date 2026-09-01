@@ -4,37 +4,75 @@ A visual, no-code editor for building **quest mods** for
 [HackHub — Ultimate Hacker Simulator](https://store.steampowered.com/app/2980270/HackHub__Ultimate_Hacker_Simulator/).
 
 Non-coders design branching quests on a node canvas, build in-game websites in a
-WYSIWYG editor, script phone calls / e-mail / Kisscord / WeeChat conversations, and
-export a complete, game-ready mod project as a `.zip`.
+WYSIWYG editor (with hidden pages for `dirhunter` to find), script phone calls /
+e-mail / Kisscord / WeeChat conversations, add hackertyper and typed-passphrase
+moments, and export a complete, game-ready mod as a `.zip` — no coding at any point.
 
 ---
 
 ## Status
 
-**Step 2 of 4 complete — the editor runs.**
+**All four steps complete — the editor builds playable mods.**
 
 | Step | Deliverable | Status |
 |---|---|---|
 | **1** | Schema analysis, tech stack, architecture | ✅ [docs/01-analysis-and-architecture.md](docs/01-analysis-and-architecture.md) |
 | **2** | Scaffolding + node editor canvas | ✅ [docs/02-editor-shell.md](docs/02-editor-shell.md) |
-| **3** | Website Builder + conversation editors | ⬜ |
-| **4** | Export engine + templates | ⬜ |
+| **3** | Website Builder + conversation editors | ✅ |
+| **4** | Export engine + templates | ✅ |
 
 ---
 
-## Run it
+## Install & run
+
+**Windows, one click:** download/clone this repository and double-click
+**`Launch.bat`**. It installs everything (needs [Node.js](https://nodejs.org/),
+LTS version), starts the editor, and opens it in your browser at
+<http://localhost:5173>. Keep the terminal window open while you work.
+
+**Any OS, manually:**
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # → http://localhost:5173
+```
 
+**Development commands:**
+
+```bash
 npm run typecheck    # tsc --noEmit
-npm test             # 283 tests (vitest)
+npm test             # 299 tests (vitest)
 npm run build        # typecheck + vite build → dist/
 ```
 
-Drag a node from the left onto the canvas, wire its sockets, and edit it on the right.
-Start from a template with the **Templates** button in the top bar.
+---
+
+## Making a mod (no coding)
+
+1. **Start** — open the editor and hit **Templates** in the top bar to begin from
+   a starter quest, or start blank.
+2. **Build the story** — drag nodes from the left palette onto the canvas
+   (objectives, triggers, networks with devices/ports/files, mails, chats,
+   rewards…) and wire their sockets. Click any node to edit it on the right;
+   every field explains itself on hover.
+3. **Write conversations** — the **Dialogues** button opens the dialogue editor:
+   one node, four flavours (phone call, Kisscord, e-mail, WeeChat), with player
+   moments: typed answers with failure routes, hackertyper sends, file uploads.
+   Hit **Save** when a conversation feels done.
+4. **Build websites** — the **Websites** button opens the WYSIWYG website
+   builder: real-looking templates (news, agency, blog, forum, recipes…), a
+   code view with syntax highlighting, HTML import, embedded images, and
+   **unlisted pages** that stay out of the in-game search index — the classic
+   `dirhunter` hiding place.
+5. **Export** — the **Export mod** button compiles everything into a mod folder
+   and downloads it as a `.zip`. It shows which permissions the mod needs and
+   gives plain-language notes about anything worth knowing.
+6. **Play** — unzip into the game's `mods/` directory and start HackHub. The mod
+   runs directly from `dist/mod.js`; **no build step needed**. (Programmers get
+   `src/index.ts` + scaffolding in the same zip if they want to rebuild.)
+
+Your work autosaves in the browser as you go. **Templates → save/export** writes
+a project file you can share with anyone else using the editor.
 
 ---
 
@@ -46,8 +84,9 @@ foundation for everything that follows. The three findings that shape the whole 
 1. **A HackHub mod is a TypeScript project, not a data package.**
    `QuestObjectiveTrigger.condition` is a *function*; message chains take `onSent`
    callbacks; dynamic website pages take a `metadata(context)` function. So the export
-   engine is a **code generator**, and `npm install && npm run build` is the step that
-   produces the `dist/mod.js` the game actually loads.
+   engine ships an **interpreter**: the emitted `dist/mod.js` embeds the project as data
+   plus a small plain-JS runtime that walks the quest graph — which is exactly why
+   exported mods need no build step.
 
 2. **The docs' event payload table is stale for roughly half the 92 events.**
    The guide says `Terminal.NmapScan` is `{ ip, ports }`; it is `{ ip, versionScan? }`.
@@ -63,25 +102,36 @@ foundation for everything that follows. The three findings that shape the whole 
 ## Repository layout
 
 ```
+Launch.bat                          # Windows one-click launcher
 docs/
   01-analysis-and-architecture.md   # Step 1 — schema, stack, architecture
-  02-editor-shell.md                # Step 2 — contracts the rest of the build extends
+  02-editor-shell.md                # Steps 2–4 — contracts + round-by-round addenda
 reference/
   generate-event-catalogue.mjs      # parses the SDK's index.d.ts → event palette data
   hackhub-events.json               # all 92 events with verified payloads (generated)
+scripts/
+  build-naza-pages.mjs              # regenerates the "public agency" site template
 src/
   schema/                           # the ProjectDocument model (Zod) — the product's spine
     registry.ts                     #   one description per node type: palette, handles,
                                     #   inspector fields and lifecycle hook all read this
     events.ts                       #   the 92-event catalogue, with real payloads
+    migrate.ts                      #   upgrades old drafts (e.g. the 4 comms node types
+                                    #   that became one general dialogue node)
   store/                            # Zustand + Immer: undo/redo, autosave
   editor/
     canvas/                         # React Flow surface, typed nodes and edges
     palette/                        # searchable node library
     inspector/                      # registry-driven field renderer, event + condition
                                     #   pickers, list and network-device editors
-    shell/                          # top bar, quest tabs, status bar, overlays
-  templates/                        # starter quests (deterministic builds)
+      sims/                         # the conversation editors + live call/chat previews
+    websites/                       # WYSIWYG website builder, site/page templates,
+                                    #   HTML import, AI-prompt helper
+    shell/                          # top bar, quest tabs, status bar, overlays,
+                                    #   dialogue editor, export dialog
+  compiler/                         # Step 4 — project → mod folder (manifest, dist/mod.js
+                                    #   interpreter, scaffolding), permissions, advice
+  templates/                        # starter + reference quests (deterministic builds)
 ```
 
 **One table drives four subsystems.** Every node type is described once in
@@ -120,7 +170,7 @@ and their consequences are in
 3. **Granularity** — **many quests per mod**, with single-quest as the default
    new-project template.
 4. **Generated code** — **the editor owns it.** Re-exporting overwrites `src/`;
-   `.hackhub-quest-editor/project.json` is the only durable state.
+   the project document is the only durable state.
 
 ---
 
