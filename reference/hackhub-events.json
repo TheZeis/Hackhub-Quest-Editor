@@ -1,0 +1,473 @@
+{
+  "generatedFrom": {
+    "package": "@hotbunny/hackhub-content-sdk",
+    "version": "0.21.0",
+    "source": "index.d.ts → ModEventMap",
+    "generatedBy": "reference/generate-event-catalogue.mjs"
+  },
+  "count": 92,
+  "events": [
+    {
+      "name": "AppStore.Downloaded",
+      "group": "world",
+      "payload": "string"
+    },
+    {
+      "name": "Bank.AccountCreated",
+      "group": "world",
+      "payload": "{ id: string; IBAN: string; owner?: string }"
+    },
+    {
+      "name": "Bank.Logout",
+      "group": "world",
+      "payload": "{ id: string; IBAN: string }"
+    },
+    {
+      "name": "Bank.Transfer",
+      "group": "world",
+      "payload": "{ amount: number; from: string; to: string }"
+    },
+    {
+      "name": "BCC.News.Opened",
+      "group": "world",
+      "payload": "{ articleId: string }"
+    },
+    {
+      "name": "Bettercap.Close",
+      "group": "wifi",
+      "payload": "{}"
+    },
+    {
+      "name": "Bettercap.NetProbe",
+      "group": "wifi",
+      "payload": "{ active: boolean }"
+    },
+    {
+      "name": "Bettercap.NetShow",
+      "group": "wifi",
+      "payload": "{}"
+    },
+    {
+      "name": "Bettercap.Open",
+      "group": "wifi",
+      "payload": "{}"
+    },
+    {
+      "name": "Bettercap.WifiDeAuth",
+      "group": "wifi",
+      "payload": "{}"
+    },
+    {
+      "name": "Bettercap.WifiRecon",
+      "group": "wifi",
+      "payload": "{}"
+    },
+    {
+      "name": "Browser.Meta",
+      "group": "web",
+      "payload": "{ href: string; protocol: string; slashes: boolean; auth: string; username: string; password: string; host: string; hostname: string; port: string; pathname: string; query: string; hash: string; origin: string }"
+    },
+    {
+      "name": "Browser.WebsiteOpened",
+      "group": "web",
+      "payload": "{ siteName: string; url: string }"
+    },
+    {
+      "name": "Database.Connected",
+      "group": "network",
+      "payload": "{ ip: string; database?: string }"
+    },
+    {
+      "name": "Database.DataUpdate",
+      "group": "network",
+      "payload": "{ table: string; data: any }"
+    },
+    {
+      "name": "Fern.FindPassword",
+      "group": "cracking",
+      "payload": "{ user: any; model: string }"
+    },
+    {
+      "name": "Files.Deleted",
+      "group": "files",
+      "payload": "{ id: string; name: string }"
+    },
+    {
+      "name": "Files.Open",
+      "group": "files",
+      "payload": "{ app: string; data: any }"
+    },
+    {
+      "name": "Files.Transfer",
+      "group": "files",
+      "payload": "{ type: \"DOWNLOAD\" | \"UPLOAD\"; file: { id: string; name: string; extension?: string; } }"
+    },
+    {
+      "name": "Hashcat",
+      "group": "cracking",
+      "payload": "{ id: string; name: string }"
+    },
+    {
+      "name": "John.DecryptHash",
+      "group": "cracking",
+      "payload": "{ hash: string; password: string }"
+    },
+    {
+      "name": "Kisscord.FriendAdded",
+      "group": "social",
+      "payload": "{ id: string; username: string; isFriend: boolean }"
+    },
+    {
+      "name": "Kisscord.Messaging",
+      "group": "social",
+      "payload": "{ channel: string; isMine?: boolean }"
+    },
+    {
+      "name": "Mail.AccountCreated",
+      "group": "mail",
+      "payload": "{ email: string; password: string }"
+    },
+    {
+      "name": "Mail.AccountLoggedIn",
+      "group": "mail",
+      "payload": "{ email: string }"
+    },
+    {
+      "name": "Mail.MailboxOpened",
+      "group": "mail",
+      "payload": "{ from: string; to: string; subject: string }"
+    },
+    {
+      "name": "Mail.Read",
+      "group": "mail",
+      "payload": "{ id: string; from: string; to: string; subject: string; content: string; sentAt: number; metadata?: Record<string, any> }"
+    },
+    {
+      "name": "Mail.Received",
+      "group": "mail",
+      "payload": "{ id: string; from: string; to: string; subject: string; content: string; sentAt: number; metadata?: Record<string, any> }"
+    },
+    {
+      "name": "Mail.Sent",
+      "group": "mail",
+      "payload": "{ id: string; from: string; to: string; subject: string; content: string; sentAt: number; metadata?: Record<string, any> }"
+    },
+    {
+      "name": "Metasploit.Event",
+      "group": "access",
+      "payload": "{ type: string; data: any }"
+    },
+    {
+      "name": "Metasploit.Event.Try",
+      "group": "access",
+      "payload": "{ exploit: string; target: string; options: any }"
+    },
+    {
+      "name": "Metasploit.Meterpreter.Connected",
+      "group": "access",
+      "payload": "{ ip: string; session: any }"
+    },
+    {
+      "name": "Metasploit.Msfconsole",
+      "group": "access",
+      "payload": "{}"
+    },
+    {
+      "name": "Metasploit.Rootgrab",
+      "group": "access",
+      "payload": "{ ip: string; file: { id: string; name: string; } }"
+    },
+    {
+      "name": "Metasploit.Search",
+      "group": "access",
+      "payload": "{ search: string; matchedModules: any[] }"
+    },
+    {
+      "name": "Metasploit.SetOption",
+      "group": "access",
+      "payload": "{ name: string; value: string | number; allFilled: boolean }"
+    },
+    {
+      "name": "Metasploit.ShowOptions",
+      "group": "access",
+      "payload": "{ name: string; type: string }"
+    },
+    {
+      "name": "Metasploit.Use",
+      "group": "access",
+      "payload": "{ name: string; type: string }"
+    },
+    {
+      "name": "Meterpreter.Download",
+      "group": "access",
+      "payload": "{ host: string; file: { id: string; name: string; } }"
+    },
+    {
+      "name": "Network.PortChanges",
+      "group": "network",
+      "payload": "{ ip: string; port: number; active: boolean }"
+    },
+    {
+      "name": "Network.UserActivity",
+      "group": "network",
+      "payload": "{ userId: string; online: boolean }"
+    },
+    {
+      "name": "Network.WifiConnected",
+      "group": "wifi",
+      "payload": "{ ip: string; ssid?: string }"
+    },
+    {
+      "name": "NetworkPacketTransfer",
+      "group": "network",
+      "payload": "{ from: string; to: string; type?: string }"
+    },
+    {
+      "name": "Nuclei.Item",
+      "group": "cracking",
+      "payload": "{ host: string; vulnerability: any }"
+    },
+    {
+      "name": "Nuclei.Results",
+      "group": "cracking",
+      "payload": "{ file: any; hosts: string[] }"
+    },
+    {
+      "name": "PFSense.Changes",
+      "group": "network",
+      "payload": "{ old: any; new: any }"
+    },
+    {
+      "name": "PFSense.Login",
+      "group": "network",
+      "payload": "{ ip: string }"
+    },
+    {
+      "name": "Process.Killed",
+      "group": "world",
+      "payload": "{ pid: number; name: string }"
+    },
+    {
+      "name": "Python3.ExecFile",
+      "group": "files",
+      "payload": "{ args: string[]; file: any }"
+    },
+    {
+      "name": "Quest.Claimed",
+      "group": "world",
+      "payload": "{ name: string; id: string }"
+    },
+    {
+      "name": "RemoteConnection.Disconnected",
+      "group": "access",
+      "payload": "{ ip: string; service?: string }"
+    },
+    {
+      "name": "RemoteConnection.Established",
+      "group": "access",
+      "payload": "{ ip: string; service?: string }"
+    },
+    {
+      "name": "Sqlmap.DumpTable",
+      "group": "cracking",
+      "payload": "{ host: string; tableName: string }"
+    },
+    {
+      "name": "Sqlmap.ListTables",
+      "group": "cracking",
+      "payload": "{ host: string }"
+    },
+    {
+      "name": "Subfinder.Results",
+      "group": "cracking",
+      "payload": "{ domain: string; subdomains: any[] }"
+    },
+    {
+      "name": "Subfinder.Try",
+      "group": "cracking",
+      "payload": "{ domain: string }"
+    },
+    {
+      "name": "Terminal.Cat",
+      "group": "recon",
+      "payload": "{ id: string; name: string; extension?: string; data?: string }"
+    },
+    {
+      "name": "Terminal.Cd",
+      "group": "recon",
+      "payload": "{ path: string }"
+    },
+    {
+      "name": "Terminal.Command",
+      "group": "recon",
+      "payload": "{ command: string; args: string[] }"
+    },
+    {
+      "name": "Terminal.Dig",
+      "group": "recon",
+      "payload": "{ target: string }"
+    },
+    {
+      "name": "Terminal.Dirhunter",
+      "group": "web",
+      "payload": "{ host: string; results: string[] }"
+    },
+    {
+      "name": "Terminal.Explorer",
+      "group": "recon",
+      "payload": "{ ip: string }"
+    },
+    {
+      "name": "Terminal.FTP.Connect",
+      "group": "access",
+      "payload": "{ ip: string; port?: number }"
+    },
+    {
+      "name": "Terminal.Geoip",
+      "group": "recon",
+      "payload": "{ ip: string }"
+    },
+    {
+      "name": "Terminal.Hydra",
+      "group": "access",
+      "payload": "{ ip: string; port: number; wordlistFile: string; credentials?: { username: string; password: string; } }"
+    },
+    {
+      "name": "Terminal.Hydra.Try",
+      "group": "access",
+      "payload": "{ ip: string; username: string; password: string }"
+    },
+    {
+      "name": "Terminal.Ifconfig",
+      "group": "recon",
+      "payload": "{ terminalIp: string }"
+    },
+    {
+      "name": "Terminal.InstallPackage",
+      "group": "recon",
+      "payload": "{ cId: string; pkg: string }"
+    },
+    {
+      "name": "Terminal.Ls",
+      "group": "recon",
+      "payload": "{ id: string; name: string }"
+    },
+    {
+      "name": "Terminal.Lynx.Lookup",
+      "group": "recon",
+      "payload": "{ data: any }"
+    },
+    {
+      "name": "Terminal.Lynx.Search",
+      "group": "recon",
+      "payload": "{ query: string }"
+    },
+    {
+      "name": "Terminal.Mxlookup",
+      "group": "recon",
+      "payload": "{ domain: string; ip: string }"
+    },
+    {
+      "name": "Terminal.NmapScan",
+      "group": "recon",
+      "payload": "{ ip: string; versionScan?: boolean }"
+    },
+    {
+      "name": "Terminal.Nslookup",
+      "group": "recon",
+      "payload": "{ domain: string; ip: string }"
+    },
+    {
+      "name": "Terminal.Openssl",
+      "group": "recon",
+      "payload": "{ file: string }"
+    },
+    {
+      "name": "Terminal.Ping",
+      "group": "recon",
+      "payload": "{ ip: string; isUp: boolean }"
+    },
+    {
+      "name": "Terminal.SSH.Connected",
+      "group": "access",
+      "payload": "string",
+      "doc": "Payload is the connected server IP as a plain string (e.g. \"10.40.0.12\")."
+    },
+    {
+      "name": "Terminal.SSH.Disconnected",
+      "group": "access",
+      "payload": "string",
+      "doc": "Payload is the connected server IP as a plain string (e.g. \"10.40.0.12\"). */ \"Terminal.SSH.Connected\": string; /** Payload is the disconnected server IP as a plain string."
+    },
+    {
+      "name": "Terminal.SSH.FileDownload",
+      "group": "access",
+      "payload": "{ id: string; name: string; extension?: string }"
+    },
+    {
+      "name": "Terminal.SSH.Shutdown",
+      "group": "access",
+      "payload": "{ ip: string }"
+    },
+    {
+      "name": "Terminal.Whois",
+      "group": "recon",
+      "payload": "{ domain: string; whois: any }"
+    },
+    {
+      "name": "Twotter.AccountCreated",
+      "group": "social",
+      "payload": "{ id: string; username: string }"
+    },
+    {
+      "name": "Twotter.AccountLogin",
+      "group": "social",
+      "payload": "{ id: string; username: string }"
+    },
+    {
+      "name": "Twotter.AccountLogout",
+      "group": "social",
+      "payload": "{ id: string; username: string }"
+    },
+    {
+      "name": "Twotter.Post",
+      "group": "social",
+      "payload": "{ questId: string; tweetIndex: number }"
+    },
+    {
+      "name": "Twotter.PostSeen",
+      "group": "social",
+      "payload": "{ id: string; userId: string }"
+    },
+    {
+      "name": "Twotter.ProfileSeen",
+      "group": "social",
+      "payload": "{ id: string; username: string }"
+    },
+    {
+      "name": "WeeChat.Connected",
+      "group": "social",
+      "payload": "{ host: string }"
+    },
+    {
+      "name": "WeeChat.Disconnected",
+      "group": "social",
+      "payload": "{ host: string }"
+    },
+    {
+      "name": "WeeChat.Message",
+      "group": "social",
+      "payload": "{ host: string; username: string; message: any }"
+    },
+    {
+      "name": "Wireshark.Started",
+      "group": "world",
+      "payload": "{ interface: string }"
+    },
+    {
+      "name": "Wireshark.Stopped",
+      "group": "world",
+      "payload": "{ interface: string }"
+    }
+  ]
+}
