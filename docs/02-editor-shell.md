@@ -619,3 +619,50 @@ build OK.
 - **Signal strength** became a labelled 0–3 slider (new `slider` inspector field
   kind) with an honest hint that the current mod SDK does not read it yet.
 - Compiler tests cover both Wi-Fi paths (fallback + future-native). 302 tests.
+
+---
+
+## Addendum — Round 19: playtest feedback sweep (13 items)
+
+**Phase 1 — bugs & Mod tab.** Mail "From" now reaches the game via
+`sendMail(index, from)` (QuestMailDefinition has no `from` — the game used to
+fall back to the employer address). `Bank.transfer` did not exist: pay/charge
+now call `Bank.transaction`/`Bank.withdraw`, with a new fixed-or-percentage
+amount mode (`Bank.getBalance()` drives the percentage). Wait node switched
+from ms to seconds (migration rewrites old drafts). Mod tab: real image
+pickers for cover/icon (PNG/JPG, embedded in the project, decoded into
+`assets/…` files in the zip and referenced by path in the manifest — `tags`
+now land in the manifest too). Tag input rebuilt: chips, Enter/comma commit,
+Tab-autocomplete and a common-tags quick list (the old field split on every
+keystroke, which ate spaces). All hint/descriptor text brightened
+(`text-ink-4` → `text-ink-3`, node blurbs `text-ink-2`).
+
+**Phase 2 — canvas.** Left-drag is now a selection marquee (panning moved to
+middle/right mouse), `SelectionMode.Partial`; Ctrl+C/X/V/D copy, cut, paste,
+duplicate multi-selections (internal wires included, fresh ids, +32px
+offset). Flow wires animate with subtle marching dashes. Double-clicking a
+wire drops a `flow.reroute` nodule that splits it — fan-out and tidying,
+pass-through at runtime. `layout.group` frames: named/commentable, resizable
+(NodeResizer), drag the frame and every node whose centre is inside moves
+with it; frames render behind cards (zIndex −1) and are skipped by the graph
+analysis and the compiler.
+
+**Phase 3 — tweets.** Compiled against SDK 0.21.0's real shapes:
+`TweetDefinition` is flat (`accountId`, `image?`, `likes?`…) — the old
+docs-era `{interaction, showInTimeline}` shape is gone; accounts get required
+`id`/`displayName`/`avatar`. New Quest-tab "Twotter accounts" editor
+(username, display name, avatar upload, bio, verified); the tweet node got an
+account picker and an optional attached picture.
+
+**Phase 4 — answered without code.** The suspicion/"you got hacked" minigame
+is **not exposed** in SDK 0.21.0 (no matches for suspicion/minigame/counter-
+hack in `index.d.ts`), so a "Hack the player" node is not possible today.
+
+**Verified against the SDK's own `index.d.ts` (0.21.0, npm):** `sendMail(
+index, from?, to?)`, `QuestMailDefinition {title, content, replyable?,
+attachment?}`, `Bank.{transaction, withdraw, getBalance, getPlayerAccount}`,
+`TweetDefinition {accountId, content, image?, likes?, comments?, shares?,
+views?, postedAgo?}`, `TwotterAccountDefinition {id, username, displayName,
+avatar, …}`, `ModManifest {icon?, cover?, tags?}`, no Wi-Fi/suspicion APIs.
+
+**Verification:** 320 tests (15 files), `tsc --noEmit` clean.
