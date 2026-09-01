@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "hackhub-quest-editor/project",
+  "mod": {
+    "id": "twotter-diagtest-04",
+    "name": "Diag Test 04",
+    "version": "4.0.0",
+    "author": "Zeis",
+    "description": "Avatar Blank + One Tweet (Now mode)",
+    "tags": [],
+    "dependencies": [],
+    "minSdkVersion": "0.21.0",
+    "apiVersion": 1
+  },
+  "quests": [
+    {
+      "id": "9LN7JxCmcf",
+      "name": "DiagTest04",
+      "title": "Diagnostic Test 04",
+      "description": "Avatar Blank + One Tweet (Now mode)",
+      "group": "sandbox",
+      "rewards": {
+        "money": 0,
+        "xp": 0
+      },
+      "employer": {},
+      "autoStart": true,
+      "autoComplete": true,
+      "questsToComplete": [],
+      "abandonable": true,
+      "hasCompleteButton": false,
+      "twotterAccounts": [
+        {
+          "id": "6lu8QWG5",
+          "username": "diagtest4",
+          "displayName": "Diag Test 4",
+          "verified": false,
+          "bio": "Avatar Blank + One Tweet (Now mode)"
+        }
+      ],
+      "dialog": [],
+      "dataKeys": [],
+      "graph": {
+        "nodes": [
+          {
+            "id": "91UClHN0WW",
+            "type": "entry.start",
+            "position": {
+              "x": 122.20588235294122,
+              "y": -110.02941176470586
+            },
+            "data": {}
+          },
+          {
+            "id": "lWllBZsuX9",
+            "type": "comms.tweet",
+            "position": {
+              "x": 417.2058823529412,
+              "y": -117.02941176470586
+            },
+            "data": {
+              "accountId": "",
+              "content": "test",
+              "timeMode": "now",
+              "showInTimeline": false
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "rpPK8ihtNj",
+            "source": "91UClHN0WW",
+            "sourceHandle": "out",
+            "target": "lWllBZsuX9",
+            "targetHandle": "in",
+            "kind": "flow"
+          }
+        ]
+      }
+    }
+  ],
+  "websites": [],
+  "editor": {
+    "activeQuestId": "9LN7JxCmcf",
+    "viewports": {
+      "9LN7JxCmcf": {
+        "x": 370.7941176470588,
+        "y": 669.0294117647059,
+        "zoom": 1
+      }
+    }
+  }
+}
