@@ -666,3 +666,23 @@ views?, postedAgo?}`, `TwotterAccountDefinition {id, username, displayName,
 avatar, …}`, `ModManifest {icon?, cover?, tags?}`, no Wi-Fi/suspicion APIs.
 
 **Verification:** 320 tests (15 files), `tsc --noEmit` clean.
+
+---
+
+## Addendum — Round 20: Twotter search crash (game-breaking)
+
+**Symptom (QA-filedump):** searching a mod-registered account in Twotter
+crashed the game: `TypeError: Cannot read properties of undefined (reading
+'toLowerCase')`, preceded by a moment.js deprecation warning (that one is the
+game parsing `postedAgo: "3h"` — cosmetic noise, not the crash).
+
+**Root cause:** accounts with no avatar shipped `avatar: ""`. `avatar` is the
+one asset-like string on `TwotterAccountDefinition`; the game parses it and an
+empty string yields `undefined` before `.toLowerCase()`. (Tweet images as raw
+data URLs are the same risk class.)
+
+**Fix:** the compiler now emits Twotter assets as real files — uploaded
+avatars/pictures are decoded into `assets/twotter/…`, accounts without an
+avatar get a generated 64×64 placeholder PNG, and the emitted project
+references the files by path. Verified by recompiling the user's exact
+crash-causing project. Mods exported before this fix must be re-exported.

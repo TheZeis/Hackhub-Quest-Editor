@@ -22,6 +22,13 @@ export interface CompiledFile {
     base64?: boolean;
 }
 
+/**
+ * A neutral 64×64 placeholder avatar. The game parses account avatar strings
+ * (an empty one crashed Twotter search with "undefined … toLowerCase"), so
+ * every account ships a real image file — never "" and never a data URL.
+ */
+const DEFAULT_AVATAR_PNG = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAAAACCa0YWnkjGyO5TAAAAAElFTkSuQmCC";
+
 /** Turn an embedded data-URL image into a zip-ready binary file entry. */
 function imageAsset(dataUrl: string | undefined, name: string): { file: CompiledFile; path: string } | null {
     const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
@@ -148,9 +155,38 @@ export function compileProject(project: ProjectDocument): CompileResult {
     const permissions = computePermissions(project);
     const warnings = computeWarnings(project);
 
+    /* Twotter assets: avatars and tweet pictures become real files in the
+       zip, referenced by path — the game's asset resolver expects file names,
+       and an empty avatar string crashes Twotter search. */
+    const twotterAssets: CompiledFile[] = [];
+    const compiledQuests = project.quests.map((q) => {
+        const accounts = (q.twotterAccounts ?? []).map((a, i) => {
+            const name = `account-${a.id || i}`;
+            const embedded = imageAsset(a.avatar, `twotter/${name}`);
+            if (embedded) {
+                twotterAssets.push(embedded.file);
+                return { ...a, avatar: embedded.path };
+            }
+            twotterAssets.push({ path: `assets/twotter/${name}.png`, content: DEFAULT_AVATAR_PNG, base64: true });
+            return { ...a, avatar: `assets/twotter/${name}.png` };
+        });
+        const graph = {
+            ...q.graph,
+            nodes: q.graph.nodes.map((n) => {
+                if (n.type !== "comms.tweet") return n;
+                const d = n.data as { image?: string };
+                const img = imageAsset(d.image, `twotter/tweet-${n.id}`);
+                if (!img) return n;
+                twotterAssets.push(img.file);
+                return { ...n, data: { ...d, image: img.path } };
+            }),
+        };
+        return { q, accounts, graph };
+    });
+
     const PROJECT = {
         mod: project.mod,
-        quests: project.quests.map((q) => ({
+        quests: compiledQuests.map(({ q, accounts, graph }) => ({
             name: q.name,
             title: q.title,
             description: q.description,
@@ -166,9 +202,9 @@ export function compileProject(project: ProjectDocument): CompileResult {
             maxClaim: q.maxClaim ?? null,
             maxClaimPerDay: q.maxClaimPerDay ?? null,
             hackhubPost: q.hackhubPost ?? null,
-            twotterAccounts: q.twotterAccounts,
+            twotterAccounts: accounts,
             dialog: q.dialog,
-            graph: q.graph,
+            graph,
         })),
         websites: project.websites,
     };
@@ -278,6 +314,7 @@ export function compileProject(project: ProjectDocument): CompileResult {
             { path: "tsconfig.json", content: JSON.stringify(tsconfig, null, 2) + "\n" },
             ...(iconAsset ? [iconAsset.file] : []),
             ...(coverAsset ? [coverAsset.file] : []),
+            ...twotterAssets,
         ],
     };
 }

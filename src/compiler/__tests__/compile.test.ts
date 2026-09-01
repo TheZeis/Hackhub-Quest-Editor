@@ -426,9 +426,45 @@ describe("tweets compile to the real SDK shape", () => {
         const q0 = new registered.quests[0]();
         expect(q0.TwotterAccounts[0]).toMatchObject({ id: "acct-1", username: "nightowl", displayName: "Night Owl", verified: true });
         expect(q0.Tweets[0]).toMatchObject({ accountId: "acct-1", content: "look at this", likes: 12, postedAgo: "2 days" });
-        expect(q0.Tweets[0].image).toBe("data:image/png;base64,BB==");
+        expect(q0.Tweets[0].image).toBe("assets/twotter/tweet-" + tweet.id + ".png");
         expect(q0.Tweets[0].interaction).toBeUndefined(); // old docs-era shape is gone
         expect(q0.Tweets[0].showInTimeline).toBeUndefined();
+    });
+});
+
+describe("twotter crash regression (empty avatar)", () => {
+    it("every account ships a real avatar file and tweets reference image files", () => {
+        const p = createProject();
+        const q = p.quests[0];
+        // the QA repro: an account with no avatar, and a tweet with an embedded image
+        q.twotterAccounts = [
+            { id: "spnVxepH", username: "QATester", displayName: "Q&A Tester", verified: true, bio: "I only exist to test Twotter features" },
+            { id: "withpic", username: "pic", displayName: "Pic", avatar: "data:image/png;base64,AA==" },
+        ] as never;
+        const entry = node("entry.start");
+        const tweet = node("comms.tweet", { accountId: "spnVxepH", content: "hi", image: "data:image/jpeg;base64,/9j/AA==" });
+        q.graph.nodes = [entry, tweet];
+        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
+
+        const result = compileProject(p);
+        const modJs = result.files.find((f) => f.path === "dist/mod.js")!.content;
+        const projectJson = JSON.parse(
+            /var PROJECT = (\{[\s\S]*?\});\n/.exec(modJs)![1],
+        );
+        const accounts = projectJson.quests[0].twotterAccounts;
+        expect(accounts[0].avatar).toBe("assets/twotter/account-spnVxepH.png");
+        expect(accounts[1].avatar).toBe("assets/twotter/account-withpic.png");
+        const tweetNode = projectJson.quests[0].graph.nodes.find((n: { type: string }) => n.type === "comms.tweet");
+        expect(tweetNode.data.image).toBe("assets/twotter/tweet-" + tweet.id + ".jpg");
+
+        // …and the files really are in the zip manifest
+        const paths = result.files.map((f) => f.path);
+        expect(paths).toContain("assets/twotter/account-spnVxepH.png");
+        expect(paths).toContain("assets/twotter/account-withpic.png");
+        expect(paths).toContain(`assets/twotter/tweet-${tweet.id}.jpg`);
+        // no empty avatar or data URL survives anywhere in the emitted mod
+        expect(modJs).not.toContain("data:image/jpeg;base64");
+        expect(/"avatar":\s*""/.test(modJs)).toBe(false);
     });
 });
 
