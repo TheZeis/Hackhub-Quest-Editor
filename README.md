@@ -26,10 +26,15 @@ moments, and export a complete, game-ready mod as a `.zip` — no coding at any 
 ## Install & Run
 
 **Windows, one click:**
+
 Download/clone this repository (green "Code" button on the top of this page. Click the down arrow button -> Download ZIP)
-and double-click **`Launch.bat`**. It installs everything (needs [Node.js](https://nodejs.org/),
-LTS version), starts the editor, and opens it in your browser at
-<http://localhost:5173>. Keep the terminal window open while you work.
+and double-click **`Launch.bat`**.
+
+It installs everything (needs [Node.js](https://nodejs.org/), LTS version), starts the editor, and opens it in your browser
+at <http://localhost:5173>. 
+
+***Important***: Keep the terminal window open while you work. Closing the terminal closes the tool and you could lose
+your progress if you haven't saved yet.
 
 **Any OS, manually:**
 
@@ -39,6 +44,8 @@ npm run dev          # → http://localhost:5173
 ```
 
 **Development commands:**
+
+Only relevant to coders, if you just want to use the tool you can ignore this.
 
 ```bash
 npm run typecheck    # tsc --noEmit
