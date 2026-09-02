@@ -58,6 +58,7 @@ const PATHS: Record<string, string> = {
     sparkle:
         "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15Z",
     play: "M6 4l14 8-14 8V4Z",
+    pause: "M8 4h3v16H8z M13 4h3v16h-3z",
     file: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z M14 3v6h6",
     package: "M21 8 12 3 3 8v8l9 5 9-5V8Z M3 8l9 5 9-5 M12 13v8",
     panelLeft: "M3 3h18v18H3z M9 3v18",

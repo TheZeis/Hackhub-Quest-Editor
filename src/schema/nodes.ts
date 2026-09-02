@@ -390,6 +390,12 @@ export const DialogueNodeDataSchema = z.object({
     kisscord: KisscordNodeDataSchema.default({ contactId: "", messages: [] }),
     mail: MailNodeDataSchema.default({ from: "", subject: "", content: "", replyable: false }),
     weechat: WeeChatNodeDataSchema.default({ host: "", password: "", registerServer: true, messages: [] }),
+    /**
+     * Kisscord/WeeChat only: play the conversation when the story flow arrives
+     * instead of registering it with the quest up front. Opt-in, because the
+     * declarative script is the path the engine scopes and cleans up.
+     */
+    postLive: z.boolean().default(false),
 });
 
 /**

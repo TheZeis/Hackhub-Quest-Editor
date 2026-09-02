@@ -145,8 +145,9 @@ function __qeRegisterProject(sdk, PROJECT) {
             });
         });
 
-        var KisscordChats = g.nodes
-            .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "kisscord"; })
+        var kisscordNodes = g.nodes
+            .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "kisscord"; });
+        var KisscordChats = kisscordNodes
             .map(function (n) {
                 return {
                     contactId: n.data.kisscord.contactId,
@@ -179,8 +180,9 @@ function __qeRegisterProject(sdk, PROJECT) {
             .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "weechat" && n.data.weechat.registerServer; })
             .map(function (n) { return { host: n.data.weechat.host, password: n.data.weechat.password }; });
 
-        var WeeChatChats = g.nodes
-            .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "weechat"; })
+        var weechatNodes = g.nodes
+            .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "weechat"; });
+        var WeeChatChats = weechatNodes
             .map(function (n) {
                 return {
                     host: n.data.weechat.host,
@@ -193,6 +195,54 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }),
                 };
             });
+
+        /* Timed chats — OPT IN, per node ("Play when the story reaches this
+           node"), exactly like timed tweets. A quest-level KisscordChats /
+           WeeChatChats script is handed to the engine when the quest starts, so
+           a conversation that has to land on a Sequence beat cannot use that
+           path. Those nodes are played through the platform API instead
+           (SDK 0.21.0: Kisscord.sendMessage(channelUserId, content, isMine),
+           WeeChat.sendMessage({host, username, message})), one message at a
+           time, honouring each message's own delay. Everything else stays
+           declarative, which is what the engine scopes and cleans up for us. */
+        var chatOfNode = {};
+        kisscordNodes.forEach(function (n, i) { chatOfNode[n.id] = KisscordChats[i]; });
+        weechatNodes.forEach(function (n, i) { chatOfNode[n.id] = WeeChatChats[i]; });
+        var liveChat = {};
+        function optedInAndWired(n) {
+            return n.data.postLive === true && g.edges.some(function (e) {
+                return e.kind === "flow" && e.target === n.id;
+            });
+        }
+        kisscordNodes.forEach(function (n) {
+            if (optedInAndWired(n) && sdk.Kisscord && sdk.Kisscord.sendMessage) liveChat[n.id] = "kisscord";
+        });
+        weechatNodes.forEach(function (n) {
+            if (optedInAndWired(n) && sdk.WeeChat && sdk.WeeChat.sendMessage) liveChat[n.id] = "weechat";
+        });
+        var DeclaredKisscordChats = KisscordChats.filter(function (_c, i) { return !liveChat[kisscordNodes[i].id]; });
+        var DeclaredWeeChatChats = WeeChatChats.filter(function (_c, i) { return !liveChat[weechatNodes[i].id]; });
+        var playedChats = {};
+
+        function sendChatNow(node, scope) {
+            var mode = liveChat[node.id];
+            var chat = chatOfNode[node.id];
+            if (!mode || !chat || playedChats[node.id]) return Promise.resolve();
+            /* Once per playthrough: a conversation replayed by a loop would
+               stack duplicates in a window the player may still be reading. */
+            playedChats[node.id] = true;
+            return (chat.messages || []).reduce(function (chain, m) {
+                return chain.then(function () {
+                    var wait = Math.max(0, Number(m.delayMs || 0));
+                    var send = function () {
+                        var content = __QE.fill(m.content || "", scope);
+                        if (mode === "kisscord") sdk.Kisscord.sendMessage(chat.contactId, content, !!m.isMine);
+                        else sdk.WeeChat.sendMessage({ host: chat.host, username: m.username || "", message: content });
+                    };
+                    return wait > 0 ? __QE.sleep(wait).then(send) : send();
+                });
+            }, Promise.resolve());
+        }
 
         var TwotterAccounts = (qd.twotterAccounts || []).map(function (a, i) {
             var out = {
@@ -369,8 +419,8 @@ function __qeRegisterProject(sdk, PROJECT) {
            content the SDK already registered. */
         function refillComms() {
             var scope = dataScope();
-            if (KisscordChats.length) {
-                questRef.KisscordChats = KisscordChats.map(function (c) {
+            if (DeclaredKisscordChats.length) {
+                questRef.KisscordChats = DeclaredKisscordChats.map(function (c) {
                     return Object.assign({}, c, {
                         messages: c.messages.map(function (m) {
                             return m.content ? Object.assign({}, m, { content: __QE.fill(m.content, scope) }) : m;
@@ -378,8 +428,8 @@ function __qeRegisterProject(sdk, PROJECT) {
                     });
                 });
             }
-            if (WeeChatChats.length) {
-                questRef.WeeChatChats = WeeChatChats.map(function (c) {
+            if (DeclaredWeeChatChats.length) {
+                questRef.WeeChatChats = DeclaredWeeChatChats.map(function (c) {
                     return Object.assign({}, c, {
                         messages: c.messages.map(function (m) {
                             return m.content ? Object.assign({}, m, { content: __QE.fill(m.content, scope) }) : m;
@@ -462,6 +512,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (sdk.Shell && sdk.Shell.addCommandData) sdk.Shell.addCommandData(d.command, d.dataText);
                     return next();
                 case "comms.dialogue": {
+                    /* Timed chat → play it here, message by message, so a
+                       conversation can land on a Sequence beat. */
+                    if (liveChat[node.id]) return sendChatNow(node, scope).then(next);
                     if (d.kind === "mail" && mailIndex[node.id] != null) {
                         var mi = mailIndex[node.id];
                         var baseMail = Mails[mi];
@@ -640,8 +693,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                     this.Objectives = Objectives;
                     if (Mails.length) this.Mails = Mails;
                     if (Object.keys(Dialog).length) this.Dialog = Dialog;
-                    if (KisscordChats.length) this.KisscordChats = KisscordChats;
-                    if (WeeChatChats.length) this.WeeChatChats = WeeChatChats;
+                    /* Only the chats that are NOT timed into the story: the
+                       timed ones are played live when the flow reaches them. */
+                    if (DeclaredKisscordChats.length) this.KisscordChats = DeclaredKisscordChats;
+                    if (DeclaredWeeChatChats.length) this.WeeChatChats = DeclaredWeeChatChats;
                     /* Twotter accounts and tweets are registered declaratively,
                        per the SDK's intended design: the engine reads these
                        quest-level lists, keeps them scoped to this quest, and

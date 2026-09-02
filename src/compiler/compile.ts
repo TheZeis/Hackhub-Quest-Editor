@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r25";
+export const EDITOR_BUILD = "2026-09-02.r26";
 
 export interface CompiledFile {
     path: string;
@@ -160,6 +160,19 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         warnings.push(
                             `${q.name}: phone lines with typed answers also register a terminal command (qe-…) the player uses to answer.`,
                         );
+                    }
+                    const live = (n.data as { postLive?: boolean }).postLive === true;
+                    const wired = q.graph.edges.some((e) => e.kind === "flow" && e.target === n.id);
+                    if (live && (d.kind === "kisscord" || d.kind === "weechat")) {
+                        if (!wired) {
+                            warnings.push(
+                                `${q.name}: a conversation is set to “play when the story reaches this node” but nothing is wired into it — it stays a normal quest conversation.`,
+                            );
+                        } else {
+                            warnings.push(
+                                `${q.name}: a conversation set to “play when the story reaches this node” is sent live at that moment. Player replies, uploads and “unlocks after” steps are skipped, and the game does not remove live messages with the quest.`,
+                            );
+                        }
                     }
                     if (d.kind === "kisscord" && d.kisscord?.messages?.some((m) => m.playerAction === "upload")) {
                         warnings.push(`${q.name}: Kisscord uploads compile to a “[uploaded file …]” message.`);

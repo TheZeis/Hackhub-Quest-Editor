@@ -82,9 +82,9 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 >
                     {/* Title bar: spans the frame and carries the group's name. */}
                     <div
-                        className="flex items-center gap-1.5 px-2.5 py-1.5"
+                        className="qe-group-grip flex cursor-grab items-center gap-1.5 px-2.5 py-1.5 active:cursor-grabbing"
                         style={{ background: color }}
-                        title={gd.label || "Group"}
+                        title={`${gd.label || "Group"} — drag this bar to move the frame and everything inside it`}
                     >
                         <Icon name="layers" size={11} className="shrink-0" style={{ color: readableOn(color) }} />
                         <span
@@ -126,7 +126,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 />
                 <div
                     className={cn(
-                        "size-[22px] rounded-full border-2 bg-surface transition-colors",
+                        "size-[26px] rounded-full border-2 bg-surface transition-colors",
                         selected ? "border-accent ring-2 ring-accent/40" : "border-line-strong hover:border-accent",
                     )}
                 />

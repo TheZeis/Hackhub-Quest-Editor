@@ -991,3 +991,128 @@ describe("workshop tags", () => {
         expect("tags" in manifest).toBe(false);
     });
 });
+
+/**
+ * Chats can land on the beat too — same opt-in deal as tweets.
+ * SDK 0.21.0: Kisscord.sendMessage(channelUserId, content, isMine),
+ * WeeChat.sendMessage({ host, username, message }).
+ */
+describe("conversations timed to the story", () => {
+    function chatSdk(calls: string[]) {
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Kisscord = {
+            sendMessage: (ch: string, content: string, isMine?: boolean) =>
+                calls.push(`kc:${ch}:${content}:${isMine ? "me" : "them"}`),
+        };
+        sdk.WeeChat = {
+            createServer: () => {},
+            removeServer: () => {},
+            sendMessage: (m: { host: string; username: string; message: string }) =>
+                calls.push(`wc:${m.host}:${m.username}:${m.message}`),
+        };
+        return sdk;
+    }
+
+    function chatProject(kind: "kisscord" | "weechat", opts: { wire: boolean; live: boolean }) {
+        const p = createProject();
+        const quest = p.quests[0];
+        quest.name = "beat";
+        quest.autoStart = true;
+        const entry = node("entry.start");
+        const chat = node("comms.dialogue", {
+            kind,
+            postLive: opts.live,
+            kisscord: {
+                contactId: "informant",
+                messages: [
+                    { id: "m1", content: "You there?", isMine: false, delayMs: 0, playerAction: "none", playerText: "", unlocksAfter: [] },
+                    { id: "m2", content: "The dock gate is open.", isMine: false, delayMs: 0, playerAction: "none", playerText: "", unlocksAfter: [] },
+                ],
+            },
+            weechat: {
+                host: "irc.darknet.org",
+                password: "hunter2",
+                registerServer: false,
+                messages: [
+                    { id: "m1", content: "gate is open", username: "ghost", isMine: false, delayMs: 0, playerAction: "none", playerText: "" },
+                ],
+            },
+        });
+        quest.graph.nodes = [entry, chat];
+        quest.graph.edges = opts.wire ? [edge(entry.id, chat.id, "flow")] : [];
+        return p;
+    }
+
+    async function run(kind: "kisscord" | "weechat", opts: { wire: boolean; live: boolean }) {
+        const calls: string[] = [];
+        const sdk = chatSdk(calls);
+        const { files } = compileProject(chatProject(kind, opts));
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+        return { calls, q };
+    }
+
+    it("sends a Kisscord conversation when the flow arrives, in order", async () => {
+        const { calls, q } = await run("kisscord", { wire: true, live: true });
+        // Not handed to the engine up front any more …
+        expect(q.KisscordChats).toBeUndefined();
+        expect(calls.filter((c) => c.startsWith("kc:"))).toEqual([
+            "kc:informant:You there?:them",
+            "kc:informant:The dock gate is open.:them",
+        ]);
+    });
+
+    it("sends a WeeChat line live, with its host and speaker", async () => {
+        const { calls, q } = await run("weechat", { wire: true, live: true });
+        expect(q.WeeChatChats).toBeUndefined();
+        expect(calls.filter((c) => c.startsWith("wc:"))).toEqual([
+            "wc:irc.darknet.org:ghost:gate is open",
+        ]);
+    });
+
+    it("plays a conversation once, however often the flow comes back", async () => {
+        const calls: string[] = [];
+        const sdk = chatSdk(calls);
+        const { files } = compileProject(chatProject("kisscord", { wire: true, live: true }));
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        q.OnStart();
+        await settle();
+        expect(calls.filter((c) => c.startsWith("kc:"))).toHaveLength(2); // two messages, once
+    });
+
+    it("stays a normal quest conversation when it did not opt in", async () => {
+        const { calls, q } = await run("kisscord", { wire: true, live: false });
+        expect(q.KisscordChats).toHaveLength(1);
+        expect(calls.filter((c) => c.startsWith("kc:"))).toHaveLength(0);
+    });
+
+    it("stays declarative when it opted in but nothing is wired into it", async () => {
+        const { calls, q } = await run("weechat", { wire: false, live: true });
+        expect(q.WeeChatChats).toHaveLength(1);
+        expect(calls.filter((c) => c.startsWith("wc:"))).toHaveLength(0);
+    });
+
+    it("falls back to the declarative script when the game cannot send live", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []); // no Kisscord namespace at all
+        const { files } = compileProject(chatProject("kisscord", { wire: true, live: true }));
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.KisscordChats).toHaveLength(1);
+        q.OnStart();
+        await settle();
+        expect(calls.filter((c) => c.startsWith("kc:"))).toHaveLength(0);
+    });
+
+    it("says plainly what a timed conversation gives up", () => {
+        const warnings = computeWarnings(chatProject("kisscord", { wire: true, live: true }));
+        expect(warnings.join("\n")).toContain("sent live at that moment");
+        expect(warnings.join("\n")).toContain("“unlocks after”");
+        const unwired = computeWarnings(chatProject("kisscord", { wire: false, live: true }));
+        expect(unwired.join("\n")).toContain("nothing is wired into it");
+    });
+});

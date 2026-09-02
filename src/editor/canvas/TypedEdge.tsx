@@ -11,6 +11,7 @@ import {
     type EdgeProps,
 } from "@xyflow/react";
 import { HANDLE_STYLE, type EdgeDoc, type EdgeKind } from "@/schema/edges";
+import { DASH_VAR, DOT_GAP } from "./wireMotion";
 import { cn } from "@/lib/cn";
 
 export interface TypedEdgeData extends Record<string, unknown> {
@@ -21,23 +22,6 @@ export interface TypedEdgeData extends Record<string, unknown> {
 }
 
 export type TypedRFEdge = Edge<TypedEdgeData, "typed">;
-
-/** Distance between two travelling dots, in pixels. */
-const DOT_GAP = 14;
-/** Seconds for a dot to travel one gap: 10px/s, half the old marching dashes. */
-const DOT_PERIOD_S = 1.4;
-
-/**
- * True when the OS asks for less motion. Read once per render (cheap) and
- * guarded for jsdom, which has no matchMedia.
- */
-function usePrefersReducedMotion(): boolean {
-    return (
-        typeof window !== "undefined" &&
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
-}
 
 export function toRFEdge(edge: EdgeDoc, socketLabel?: string): TypedRFEdge {
     return {
@@ -68,7 +52,6 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
     const style = HANDLE_STYLE[kind];
     const text = data?.label || data?.socketLabel;
     const color = selected ? "var(--color-accent)" : style.color;
-    const reducedMotion = usePrefersReducedMotion();
     const width = selected ? 2.5 : 1.75;
 
     return (
@@ -99,18 +82,15 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
                     strokeWidth: width + 1.4,
                     strokeLinecap: "round",
                     strokeDasharray: `0.1 ${DOT_GAP}`,
+                    // Driven by the canvas's single animation loop (wireMotion),
+                    // not by CSS keyframes or SMIL: those were both reported as
+                    // "not moving" on the author's machine, and neither can be
+                    // observed from a test. Purely decorative, so it never
+                    // intercepts a click meant for the wire underneath.
+                    strokeDashoffset: `var(${DASH_VAR}, 0px)`,
                     pointerEvents: "none",
                 }}
-            >
-                {!reducedMotion && (
-                    <animate
-                        attributeName="stroke-dashoffset"
-                        values={`0;-${DOT_GAP}`}
-                        dur={`${DOT_PERIOD_S}s`}
-                        repeatCount="indefinite"
-                    />
-                )}
-            </path>
+            />
             {text && (
                 <EdgeLabelRenderer>
                     <div

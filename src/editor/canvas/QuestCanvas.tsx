@@ -17,13 +17,16 @@ import {
     type Connection,
     type NodeChange,
     type EdgeChange,
+    type FinalConnectionState,
     type NodeTypes,
     type EdgeTypes,
 } from "@xyflow/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
+import { setWireMotion, subscribeWireMotion, wireMotionEnabled } from "./wireMotion";
+import { nodeIdUnderPointer, soleMatchingInput } from "./wiring";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
@@ -42,6 +45,16 @@ export interface CandidateConnection {
 }
 
 export const DND_MIME = "application/x-qe-node-type";
+
+/** What each colour of wire actually means, in one sentence, on hover. */
+const WIRE_HELP: Record<"flow" | "condition" | "unlock" | "data", string> = {
+    flow: "Then — the story runs on to the next node. This is the wire you use most.",
+    condition:
+        "When — a trigger node hands its event and conditions to whatever it is wired to, so the flow only continues if they match.",
+    unlock:
+        "Unlocks — an objective gates something: the thing on the other end only becomes available once that objective is done.",
+    data: "Data — a value (quest data, an input answer, a random pick) is handed to the node on the other end to use in its text.",
+};
 
 /** #rrggbb → rgba(), for the one place that needs a see-through fill. */
 export function withAlpha(hex: string, alpha: number): string {
@@ -66,6 +79,12 @@ function CanvasInner() {
     const setViewport = useEditor((s) => s.setViewport);
     const applyLayout = useEditor((s) => s.applyLayout);
     const { screenToFlowPosition } = useReactFlow();
+    // One animation loop drives every wire's dots; this is only its switch.
+    const motion = useSyncExternalStore(
+        subscribeWireMotion,
+        wireMotionEnabled,
+        () => false, // server/jsdom: nothing is animating anyway
+    );
 
     // Analysis is cheap and pure, so it can run on every render.
     const analysis = useMemo(
@@ -143,6 +162,10 @@ function CanvasInner() {
             data: { doc, issue: issuesByNode.get(doc.id) },
             selected: selection.nodeIds.includes(doc.id),
             measured: measured[doc.id],
+            // A frame is moved by its title bar only. Grabbing anywhere inside
+            // it used to pick the whole group up, which made a reroute nodule
+            // sitting inside one almost impossible to catch.
+            dragHandle: doc.type === "layout.group" ? ".qe-group-grip" : undefined,
             // Frames sit behind everything; cards keep the default layer.
             zIndex: doc.type === "layout.group" ? -1 : 0,
         }));
@@ -173,6 +196,82 @@ function CanvasInner() {
                 sourceHandle: connection.sourceHandle ?? "",
                 target: connection.target,
                 targetHandle: connection.targetHandle ?? "",
+            });
+            if (!ok) {
+                useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
+            }
+        },
+        [connect],
+    );
+
+    /**
+     * Dragging an existing wire's end away and dropping it on nothing deletes
+     * it — the shortest way to unplug something. `reconnectDone` distinguishes
+     * "dropped on a socket" (React Flow calls onReconnect) from "dropped on the
+     * pane" (it does not).
+     */
+    const reconnectDone = useRef(false);
+
+    const onReconnectStart = useCallback(() => {
+        reconnectDone.current = false;
+    }, []);
+
+    const onReconnect = useCallback(
+        (oldEdge: TypedRFEdge, connection: Connection) => {
+            reconnectDone.current = true;
+            removeEdges([oldEdge.id]);
+            const ok = connect({
+                source: connection.source,
+                sourceHandle: connection.sourceHandle ?? "",
+                target: connection.target,
+                targetHandle: connection.targetHandle ?? "",
+            });
+            if (!ok) {
+                useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
+            }
+        },
+        [connect, removeEdges],
+    );
+
+    const onReconnectEnd = useCallback(
+        (_event: MouseEvent | TouchEvent, edge: TypedRFEdge) => {
+            if (!reconnectDone.current) removeEdges([edge.id]);
+        },
+        [removeEdges],
+    );
+
+    /**
+     * Dropping a new wire on a node's body — not on one of its sockets — wires
+     * it to that node's only matching input. If the node has several inputs of
+     * that kind there is no single obvious answer, so nothing happens and the
+     * author aims at the socket they mean.
+     */
+    const onConnectEnd = useCallback(
+        (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+            if (state.isValid) return; // already landed on a socket
+            const from = state.fromHandle;
+            if (!from || from.type !== "source" || !from.nodeId) return;
+
+            const q = useEditor.getState().project.quests.find(
+                (x) => x.id === useEditor.getState().project.editor.activeQuestId,
+            );
+            if (!q) return;
+            const sourceNode = q.graph.nodes.find((n) => n.id === from.nodeId);
+            if (!sourceNode) return;
+
+            const targetId = state.toNode?.id ?? nodeIdUnderPointer(event);
+            if (!targetId) return;
+            const targetNode = q.graph.nodes.find((n) => n.id === targetId);
+            if (!targetNode) return;
+
+            const targetHandle = soleMatchingInput(sourceNode, from.id ?? "", targetNode);
+            if (!targetHandle) return; // no input of that kind, or too many to guess
+
+            const ok = connect({
+                source: from.nodeId,
+                sourceHandle: from.id ?? "",
+                target: targetId,
+                targetHandle,
             });
             if (!ok) {
                 useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
@@ -273,6 +372,10 @@ function CanvasInner() {
                 nodeTypes={NODE_TYPES}
                 edgeTypes={EDGE_TYPES}
                 onConnect={onConnect}
+                onConnectEnd={onConnectEnd}
+                onReconnectStart={onReconnectStart}
+                onReconnect={onReconnect}
+                onReconnectEnd={onReconnectEnd}
                 isValidConnection={isValidConnection}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
@@ -340,6 +443,20 @@ function CanvasInner() {
                     <Icon name="branch" size={13} />
                     Tidy up
                 </button>
+                <button
+                    type="button"
+                    aria-pressed={motion}
+                    className="btn-default pointer-events-auto"
+                    onClick={() => setWireMotion(!motion)}
+                    title={
+                        motion
+                            ? "Wires show which way the story runs by drifting dots along themselves. Click to hold them still."
+                            : "Wire dots are held still. Click to let them drift again, showing which way the story runs."
+                    }
+                >
+                    <Icon name={motion ? "play" : "pause"} size={13} />
+                    {motion ? "Wires moving" : "Wires still"}
+                </button>
                 <span
                     className={
                         "pointer-events-none rounded-md border px-2 py-1 text-[10.5px] " +
@@ -356,9 +473,9 @@ function CanvasInner() {
             </div>
 
             {/* Socket legend */}
-            <div className="pointer-events-none absolute top-3 right-3 flex flex-col gap-1 rounded-md border border-line bg-surface/90 px-2.5 py-2 backdrop-blur">
+            <div className="absolute top-3 right-3 flex flex-col gap-1 rounded-md border border-line bg-surface/90 px-2.5 py-2 backdrop-blur">
                 {(["flow", "condition", "unlock", "data"] as const).map((kind) => (
-                    <div key={kind} className="flex items-center gap-2">
+                    <div key={kind} className="flex items-center gap-2" title={WIRE_HELP[kind]}>
                         <span className="relative block h-[7px] w-5">
                             <span
                                 className="absolute top-1/2 left-0 block h-0 w-5 -translate-y-1/2 rounded"

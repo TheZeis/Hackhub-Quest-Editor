@@ -829,3 +829,48 @@ proving it, so it cannot quietly break later.
 
 **Verification:** 371 tests (17 files, +13), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r25"`.
+
+## Round 26 — motion the editor owns, and wires that behave
+
+**1. The dots move, and now nothing outside the editor can stop them.** Round 24
+used a CSS keyframe, round 25 used SVG SMIL; both were reported static. The
+common thread is that both can be switched off by something we do not control —
+stylesheet order for the first, and the operating system's “reduce animation”
+setting (on by default on some Windows machines) for both. The motion is now the
+editor's own: one `requestAnimationFrame` loop (`src/editor/canvas/wireMotion.ts`)
+writes a single custom property, `--qe-dash-offset`, and every wire's dot layer
+reads it. One loop for the whole canvas, no React re-renders, no OS veto — plus a
+**Wires moving / Wires still** button on the canvas, remembered between sessions,
+for when the drift is distracting.
+
+**2. Reroute ring 22 px → 26 px**, inside the same 36 px grab box.
+
+**3. Group frames are dragged by their title bar.** React Flow's `dragHandle`
+points at the title bar (`.qe-group-grip`, `cursor: grab`); the rest of the frame
+no longer picks the group up, so a reroute nodule sitting inside one can be
+grabbed without pixel-hunting. Resizing and selecting are unchanged.
+
+**4. Two wiring gestures, decided in `src/editor/canvas/wiring.ts`.** Dragging an
+existing wire's end off and dropping it on nothing deletes the wire
+(`onReconnectStart/onReconnect/onReconnectEnd`). Dropping a *new* wire on a
+node's body — anywhere on the card, not only on the socket — connects it to that
+node's one input of the matching kind; if the node has several inputs of that
+kind there is no obvious answer, so nothing happens. The node under the pointer
+comes from React Flow when it knows it, and from a document hit test when the
+connection line is in the way.
+
+**5. Kisscord and WeeChat can be timed to the story**, exactly like tweets: a
+per-node toggle **“Play when the story reaches this node”** (Kisscord/WeeChat
+only). Off, the script is registered with the quest as before. On — and only when
+something is wired into the node and the game exposes the API — the runtime plays
+it message by message through `Kisscord.sendMessage(channelUserId, content,
+isMine)` / `WeeChat.sendMessage({host, username, message})`, honouring each
+message's own delay, once per playthrough. Player replies, uploads and “unlocks
+after” gates only exist in the declarative script, so the inspector and the export
+warnings say so.
+
+**6. The wire legend explains itself.** Hovering “Then / When / Unlocks / Data”
+now says what each colour of wire actually does, in one sentence.
+
+**Verification:** 390 tests (18 files, +19), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r26"`.

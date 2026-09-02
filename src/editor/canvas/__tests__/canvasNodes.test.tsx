@@ -4,13 +4,22 @@
  * own data. Both were reported from the real editor, so both are pinned here
  * against the mounted app rather than the store alone.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
 import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 import { withAlpha } from "@/editor/canvas/QuestCanvas";
+import {
+    DASH_VAR,
+    DOT_GAP,
+    DOT_PERIOD_S,
+    paintDashOffset,
+    setWireMotion,
+    subscribeWireMotion,
+    wireMotionEnabled,
+} from "@/editor/canvas/wireMotion";
 import { Position } from "@xyflow/react";
 import { TypedEdge } from "@/editor/canvas/TypedEdge";
 import { sourcesOf } from "@/schema/registry";
@@ -223,14 +232,10 @@ describe("wires", () => {
         // and they never steal a click meant for the wire
         expect(dots.style.pointerEvents).toBe("none");
 
-        // The motion lives in the SVG itself, so it cannot be undone by
-        // stylesheet order — and it is visible right here in the DOM.
-        const anim = dots.querySelector("animate")!;
-        expect(anim).toBeTruthy();
-        expect(anim.getAttribute("attributeName")).toBe("stroke-dashoffset");
-        expect(anim.getAttribute("values")).toBe("0;-14"); // towards the target
-        expect(anim.getAttribute("dur")).toBe("1.4s"); // 14px / 1.4s = 10px/s
-        expect(anim.getAttribute("repeatCount")).toBe("indefinite");
+        // The dots read the canvas's own animation clock, so nothing outside
+        // the editor (stylesheet order, an OS "reduce animation" setting) can
+        // hold them still.
+        expect(dots.style.strokeDashoffset).toBe("var(--qe-dash-offset, 0px)");
     });
 
     it("takes its colour from the kind of socket it leaves", () => {
@@ -357,5 +362,82 @@ describe("tweet account picker", () => {
         const node = quest().graph.nodes.find((n) => n.id === id)!;
         expect((node.data as { accountId: string }).accountId).toBe("acc1");
         await waitFor(() => expect(document.body.textContent).toContain("@Test"));
+    });
+});
+
+describe("wire motion", () => {
+    beforeEach(() => {
+        document.documentElement.style.removeProperty(DASH_VAR);
+        localStorage.clear();
+    });
+
+    it("moves the dots along the wire, one gap per cycle", () => {
+        // Two moments a quarter-cycle apart must paint different offsets —
+        // that difference IS the animation.
+        paintDashOffset(0);
+        const start = document.documentElement.style.getPropertyValue(DASH_VAR);
+        paintDashOffset((DOT_PERIOD_S * 1000) / 4);
+        const quarter = document.documentElement.style.getPropertyValue(DASH_VAR);
+        paintDashOffset(DOT_PERIOD_S * 1000);
+
+        expect(parseFloat(start)).toBe(0);
+        expect(parseFloat(quarter)).toBeCloseTo(-DOT_GAP / 4, 1);
+        // A full period brings it back to the start: the pattern repeats
+        // seamlessly, so the dots read as a continuous drift.
+        expect(parseFloat(document.documentElement.style.getPropertyValue(DASH_VAR))).toBe(
+            parseFloat(start),
+        );
+    });
+
+    it("runs a single loop for the whole canvas while anything is subscribed", async () => {
+        const frames: number[] = [];
+        const raf = vi
+            .spyOn(window, "requestAnimationFrame")
+            .mockImplementation((() => {
+                frames.push(1);
+                return frames.length;
+            }) as typeof requestAnimationFrame);
+
+        const offA = subscribeWireMotion(() => {});
+        const offB = subscribeWireMotion(() => {});
+        expect(frames.length).toBe(1); // one loop, not one per subscriber
+
+        offA();
+        offB();
+        // The last unsubscriber stops the clock and parks the dots.
+        expect(document.documentElement.style.getPropertyValue(DASH_VAR)).toBe("0px");
+        raf.mockRestore();
+    });
+
+    it("can be switched off and remembers the choice", () => {
+        expect(wireMotionEnabled()).toBe(true);
+        setWireMotion(false);
+        expect(wireMotionEnabled()).toBe(false);
+        expect(localStorage.getItem("hackhub-quest-editor:wire-motion:v1")).toBe("off");
+        setWireMotion(true);
+        expect(localStorage.getItem("hackhub-quest-editor:wire-motion:v1")).toBe("on");
+    });
+});
+
+describe("group frames", () => {
+    it("are picked up by their title bar, not by their whole body", async () => {
+        const id = useEditor.getState().addNode("layout.group", { x: 0, y: 0 })!;
+        render(<App />);
+
+        const frame = await waitFor(() => {
+            const el = document.querySelector(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
+            expect(el).toBeTruthy();
+            return el;
+        });
+        // React Flow only starts a drag from the element named by dragHandle.
+        const grip = frame.querySelector(".qe-group-grip") as HTMLElement;
+        expect(grip).toBeTruthy();
+        expect(grip.textContent).toContain("Group");
+        expect(grip.className).toContain("cursor-grab");
+        // Exactly one grip, and it is not the frame itself: the body of the
+        // frame stays free, so a reroute nodule sitting on top of one can
+        // still be grabbed.
+        expect(frame.querySelectorAll(".qe-group-grip").length).toBe(1);
+        expect(frame.classList.contains("qe-group-grip")).toBe(false);
     });
 });
