@@ -60,9 +60,12 @@ export function Field({
         const siblingPath = basePath ? `${basePath}.${def.showWhen.key}` : def.showWhen.key;
         const current = getPath(node.data, siblingPath);
         const wanted = def.showWhen.equals;
+        // Booleans are compared by their spelling, so a toggle can gate a field
+        // with equals: "true".
+        const seen = typeof current === "boolean" ? String(current) : current;
         const matches = Array.isArray(wanted)
-            ? wanted.includes(current as string)
-            : current === wanted;
+            ? wanted.includes(seen as string)
+            : seen === wanted;
         if (!matches) return null;
     }
 
@@ -245,6 +248,8 @@ export function Field({
 
         case "questAccount": {
             const accounts = useEditor(selectActiveQuest)?.twotterAccounts ?? [];
+            const picked = asString(raw);
+            const known = accounts.some((a) => a.id === picked);
             return (
                 <FieldShell label={def.label} hint={def.hint}>
                     {accounts.length === 0 ? (
@@ -253,15 +258,44 @@ export function Field({
                             “Twotter accounts”, then pick which account makes this post.
                         </p>
                     ) : (
-                        <SelectInput
-                            ariaLabel={def.label}
-                            value={asString(raw)}
-                            onChange={write}
-                            options={accounts.map((a) => ({
-                                value: a.id,
-                                label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
-                            }))}
-                        />
+                        <>
+                            <SelectInput
+                                ariaLabel={def.label}
+                                value={known ? picked : ""}
+                                onChange={write}
+                                options={[
+                                    // Without this row an empty value would still
+                                    // *display* the first account (how a <select>
+                                    // behaves), so the node card said "no account
+                                    // yet" while the picker looked set.
+                                    {
+                                        value: "",
+                                        label: picked ? "— account no longer exists, pick one —" : "— pick an account —",
+                                    },
+                                    ...accounts.map((a) => ({
+                                        value: a.id,
+                                        label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
+                                    })),
+                                ]}
+                            />
+                            {!known && (
+                                <p className="mt-1.5 text-[10.5px] leading-relaxed text-warn">
+                                    Nothing is posted until you choose an account.
+                                    {accounts.length === 1 && (
+                                        <>
+                                            {" "}
+                                            <button
+                                                type="button"
+                                                className="underline underline-offset-2 hover:text-ink"
+                                                onClick={() => write(accounts[0].id)}
+                                            >
+                                                Use @{accounts[0].username || accounts[0].id}
+                                            </button>
+                                        </>
+                                    )}
+                                </p>
+                            )}
+                        </>
                     )}
                 </FieldShell>
             );

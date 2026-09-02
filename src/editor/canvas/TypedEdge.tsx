@@ -22,8 +22,22 @@ export interface TypedEdgeData extends Record<string, unknown> {
 
 export type TypedRFEdge = Edge<TypedEdgeData, "typed">;
 
-/** Distance between two travelling dots, in pixels. Mirrored by the CSS keyframe. */
+/** Distance between two travelling dots, in pixels. */
 const DOT_GAP = 14;
+/** Seconds for a dot to travel one gap: 10px/s, half the old marching dashes. */
+const DOT_PERIOD_S = 1.4;
+
+/**
+ * True when the OS asks for less motion. Read once per render (cheap) and
+ * guarded for jsdom, which has no matchMedia.
+ */
+function usePrefersReducedMotion(): boolean {
+    return (
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+}
 
 export function toRFEdge(edge: EdgeDoc, socketLabel?: string): TypedRFEdge {
     return {
@@ -54,6 +68,7 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
     const style = HANDLE_STYLE[kind];
     const text = data?.label || data?.socketLabel;
     const color = selected ? "var(--color-accent)" : style.color;
+    const reducedMotion = usePrefersReducedMotion();
     const width = selected ? 2.5 : 1.75;
 
     return (
@@ -70,8 +85,11 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
                 }}
             />
             {/* Direction: round dots, a touch fatter than the wire, drifting
-                from the source towards the target. Purely decorative, so it
-                never intercepts clicks meant for the wire underneath. */}
+                from the source towards the target. Driven by SVG's own
+                animation rather than a CSS keyframe — that is the one form of
+                motion that cannot be defeated by stylesheet order, and it is
+                visible in the DOM, so it can be tested. Purely decorative, so
+                it never intercepts clicks meant for the wire underneath. */}
             <path
                 d={path}
                 fill="none"
@@ -83,7 +101,16 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
                     strokeDasharray: `0.1 ${DOT_GAP}`,
                     pointerEvents: "none",
                 }}
-            />
+            >
+                {!reducedMotion && (
+                    <animate
+                        attributeName="stroke-dashoffset"
+                        values={`0;-${DOT_GAP}`}
+                        dur={`${DOT_PERIOD_S}s`}
+                        repeatCount="indefinite"
+                    />
+                )}
+            </path>
             {text && (
                 <EdgeLabelRenderer>
                     <div

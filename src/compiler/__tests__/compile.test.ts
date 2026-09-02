@@ -5,7 +5,7 @@
  * conditions, and manual-input commands branch on the typed answer.
  */
 import { describe, expect, it } from "vitest";
-import { compileProject, EDITOR_BUILD } from "@/compiler/compile";
+import { compileProject, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
 import type { NodeDoc } from "@/schema/nodes";
@@ -405,11 +405,11 @@ describe("export build stamp", () => {
     it("stamps the editor build id into dist/mod.js", () => {
         const modJs = compileProject(createProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).toContain(`build ${EDITOR_BUILD}`);
-        // Twotter content is declared per-quest, not posted through the global
+        // Accounts are declared per-quest, never registered through the global
         // API — the imperative path re-posted on reload and could not be undone
         // when the mod was removed, so it must not creep back in.
         expect(modJs).not.toContain("sdk.Twotter.addUser");
-        expect(modJs).not.toContain("sdk.Twotter.postTweet");
+        expect(modJs).not.toContain("sdk.Twotter.createUser");
     });
 });
 
@@ -444,13 +444,30 @@ describe("Twotter accounts + tweets register declaratively (SDK-native)", () => 
         return p;
     }
 
-    it("never calls the global Twotter API (would re-post on reload / orphan records)", () => {
+    it("never calls the global Twotter API (would re-post on reload / orphan records)", async () => {
         const modJs = compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).not.toContain("Twotter.addUser");
         expect(modJs).not.toContain("Twotter.createUser");
-        expect(modJs).not.toContain("Twotter.postTweet");
         // no imperative bootstrap logic — the Mod class is a plain shell
         expect(modJs).not.toContain("OnModPackageLoaded()");
+
+        // The live post path exists for nodes that opt into timing, but a
+        // project that has not opted in must never reach it, even once the
+        // quest has run.
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Twotter = {
+            postTweet: () => calls.push("postTweet"),
+            addUser: () => calls.push("addUser"),
+            createUser: () => calls.push("createUser"),
+            getUserByUsername: () => undefined,
+        };
+        runMod(modJs, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        q.OnObjectivesStart();
+        await settle();
+        expect(calls.filter((c) => /postTweet|addUser|createUser/.test(c))).toEqual([]);
     });
 
     it("declares accounts and tweets on the quest so the engine can clean them up", () => {
@@ -828,5 +845,149 @@ describe("flow.sequence fires its outputs in order, with the author's pauses", (
         await settle();
 
         expect(calls).toEqual(["notify:one", "notify:three"]);
+    });
+});
+
+describe("tweets wired into the story post live, on the beat", () => {
+    /**
+     * SDK 0.21.0: quest-level `Tweets` are "tweets to post when the quest
+     * starts", so a tweet node inside a Sequence would appear far too early.
+     * `Twotter.postTweet(tweet: TwotterTweet)` is the platform API for posting
+     * one at a moment of our choosing — note `interaction.share` (singular).
+     */
+    function twotterSdk(calls: string[]) {
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Twotter = {
+            postTweet: (t: unknown) => calls.push(`tweet:${JSON.stringify(t)}`),
+            getUserByUsername: (u: string) => ({ id: `live-${u}`, username: u }),
+        };
+        return sdk;
+    }
+
+    function project(wire: boolean, patch: Record<string, unknown> = {}) {
+        const p = createProject();
+        const quest = p.quests[0];
+        quest.name = "beat";
+        quest.autoStart = true;
+        quest.twotterAccounts = [
+            { id: "acc1", username: "dockwatch", displayName: "Dock Watch", avatar: "", verified: false },
+        ];
+        const entry = node("entry.start");
+        const seqNode = node("flow.sequence", {
+            steps: [{ id: "a", label: "Tweet drops", delayMs: 0 }],
+        });
+        const tweet = node("comms.tweet", {
+            accountId: "acc1",
+            postLive: true, // the author asked for it to land on the beat
+            content: "Something moved on the 14th.",
+            likes: 42,
+            comments: 7,
+            shares: 11,
+            views: 3180,
+            ...patch,
+        });
+        quest.graph.nodes = [entry, seqNode, tweet];
+        quest.graph.edges = wire
+            ? [edge(entry.id, seqNode.id, "flow"), edge(seqNode.id, tweet.id, "flow", "step-a")]
+            : [edge(entry.id, seqNode.id, "flow")];
+        return { p, tweetId: tweet.id };
+    }
+
+    it("posts through the platform API when the flow reaches it, not at quest start", async () => {
+        const calls: string[] = [];
+        const sdk = twotterSdk(calls);
+        const { files } = compileProject(project(true).p);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        // it is NOT registered up front any more …
+        expect(q.Tweets).toBeUndefined();
+        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
+
+        q.OnStart();
+        await settle();
+
+        const posted = calls.filter((c) => c.startsWith("tweet:"));
+        expect(posted).toHaveLength(1);
+        const payload = JSON.parse(posted[0].slice("tweet:".length));
+        expect(payload.content).toBe("Something moved on the 14th.");
+        expect(payload.userId).toBe("live-dockwatch"); // the id the platform knows
+        expect(payload.interaction).toEqual({ comments: 7, share: 11, likes: 42, views: 3180 });
+        expect(payload.id).toContain("beat");
+    });
+
+    it("posts a given tweet only once per playthrough", async () => {
+        const calls: string[] = [];
+        const sdk = twotterSdk(calls);
+        const { files } = compileProject(project(true).p);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        q.OnStart();
+        await settle();
+        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(1);
+    });
+
+    it("leaves a tweet that did not opt in declarative, so the engine still owns it", async () => {
+        const calls: string[] = [];
+        const sdk = twotterSdk(calls);
+        const { files } = compileProject(project(false).p);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Tweets).toHaveLength(1);
+        q.OnStart();
+        await settle();
+        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
+    });
+
+    it("stays declarative when the node opted in but sits outside the story", async () => {
+        const calls: string[] = [];
+        const sdk = twotterSdk(calls);
+        const { files } = compileProject(project(false).p); // opted in, no flow wire
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Tweets).toHaveLength(1);
+        q.OnStart();
+        await settle();
+        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
+    });
+
+    it("falls back to the declarative list when the game has no postTweet", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []); // no Twotter namespace at all
+        const { files } = compileProject(project(true).p);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Tweets).toHaveLength(1);
+        q.OnStart();
+        await settle();
+        // nothing thrown, nothing lost
+        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
+    });
+
+    it("says plainly what a wired tweet gives up", () => {
+        const warnings = computeWarnings(project(true, { image: "data:image/png;base64,AAA", timeMode: "relative", postedAgo: "3 days" }).p);
+        expect(warnings.join("\n")).toContain("posted live at that moment");
+        expect(warnings.join("\n")).toContain("no picture field");
+        expect(warnings.join("\n")).toContain("“post time” is ignored");
+    });
+});
+
+describe("workshop tags", () => {
+    it("exports whatever tags the author typed, invented ones included", () => {
+        const p = createProject();
+        p.mod.tags = ["story", "dockyards noir", "my-own-tag"];
+        const { files } = compileProject(p);
+        const manifest = JSON.parse(files.find((f) => f.path === "manifest.json")!.content);
+        expect(manifest.tags).toEqual(["story", "dockyards noir", "my-own-tag"]);
+    });
+
+    it("omits the tags field entirely when there are none", () => {
+        const { files } = compileProject(createProject());
+        const manifest = JSON.parse(files.find((f) => f.path === "manifest.json")!.content);
+        expect("tags" in manifest).toBe(false);
     });
 });

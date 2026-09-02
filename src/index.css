@@ -171,22 +171,9 @@
     }
 
     /* Wires: a solid line in the socket's colour with round dots drifting along
-       it towards the target. One dot every 14px, one gap per 1.4s — half the
-       speed of the marching dashes this replaced, which read as frantic. */
-    @keyframes qe-flow-dots {
-        to {
-            stroke-dashoffset: -14;
-        }
-    }
-    .qe-flow-dots {
-        animation: qe-flow-dots 1.4s linear infinite;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .qe-flow-dots {
-            animation: none;
-        }
-    }
+       it towards the target. The motion itself is an SVG <animate> inside the
+       edge (see TypedEdge.tsx) — a CSS keyframe here would sit in a cascade
+       layer and can be beaten by React Flow's own unlayered stylesheet. */
 
     .field-hint {
         @apply mt-2 text-[11px] leading-relaxed text-ink-3;

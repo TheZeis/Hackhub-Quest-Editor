@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import App from "@/App";
 import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
+import { withAlpha } from "@/editor/canvas/QuestCanvas";
 import { Position } from "@xyflow/react";
 import { TypedEdge } from "@/editor/canvas/TypedEdge";
 import { sourcesOf } from "@/schema/registry";
@@ -221,6 +222,15 @@ describe("wires", () => {
         expect(dots.getAttribute("d")).toBe(base.getAttribute("d"));
         // and they never steal a click meant for the wire
         expect(dots.style.pointerEvents).toBe("none");
+
+        // The motion lives in the SVG itself, so it cannot be undone by
+        // stylesheet order — and it is visible right here in the DOM.
+        const anim = dots.querySelector("animate")!;
+        expect(anim).toBeTruthy();
+        expect(anim.getAttribute("attributeName")).toBe("stroke-dashoffset");
+        expect(anim.getAttribute("values")).toBe("0;-14"); // towards the target
+        expect(anim.getAttribute("dur")).toBe("1.4s"); // 14px / 1.4s = 10px/s
+        expect(anim.getAttribute("repeatCount")).toBe("indefinite");
     });
 
     it("takes its colour from the kind of socket it leaves", () => {
@@ -249,5 +259,103 @@ describe("wires", () => {
             expect(base.style.stroke).toBe(color);
             unmount();
         }
+    });
+});
+
+describe("minimap", () => {
+    it("puts group frames first so their fill cannot cover the nodes inside", async () => {
+        const st = useEditor.getState();
+        st.addNode("fx.notify", { x: 40, y: 40 });
+        // The frame is added last — exactly the case that blanked the minimap,
+        // which paints in array order and ignores zIndex.
+        const frame = useEditor.getState().addNode("layout.group", { x: 0, y: 0 })!;
+        render(<App />);
+
+        const rendered = await waitFor(() => {
+            const els = [...document.querySelectorAll(".react-flow__node")];
+            expect(els.length).toBe(2);
+            return els;
+        });
+        expect(rendered[0].getAttribute("data-id")).toBe(frame);
+    });
+
+    it("draws a frame as a see-through wash of its own colour", () => {
+        expect(withAlpha("#fbbf24", 0.22)).toBe("rgba(251, 191, 36, 0.22)");
+        expect(withAlpha("not a colour", 0.22)).toBe("not a colour");
+    });
+});
+
+describe("reroute grab area", () => {
+    it("is outlined so you can see where to grab it", async () => {
+        const st = useEditor.getState();
+        st.addNode("flow.reroute", { x: 0, y: 0 });
+        render(<App />);
+
+        const nodule = await waitFor(() => {
+            const el = document.querySelector(".qe-reroute") as HTMLElement;
+            expect(el).toBeTruthy();
+            return el;
+        });
+        const outline = nodule.querySelector("span.absolute") as HTMLElement;
+        expect(outline).toBeTruthy();
+        expect(outline.style.borderColor).toBe("rgba(255, 255, 255, 0.5)");
+        expect(outline.className).toContain("border-2");
+        expect(outline.className).toContain("inset-0"); // spans the whole grab box
+        expect(outline.className).toContain("pointer-events-none"); // never eats a drag
+    });
+});
+
+describe("tweet account picker", () => {
+    /**
+     * The reported bug: the dropdown showed the first account while the node
+     * card still said "no account yet". A <select> with a value that matches no
+     * option displays its first option, so an unset account *looked* set.
+     */
+    function tweetWithAccounts() {
+        const st = useEditor.getState();
+        const id = st.addNode("comms.tweet", { x: 0, y: 0 })!;
+        act(() =>
+            useEditor.getState().updateQuest(quest().id, {
+                twotterAccounts: [
+                    { id: "acc1", username: "Test", displayName: "Testacc", avatar: "", verified: false },
+                ],
+            } as never),
+        );
+        act(() => useEditor.getState().select({ nodeIds: [id], edgeIds: [] }));
+        return id;
+    }
+
+    it("never shows an account that has not actually been chosen", async () => {
+        tweetWithAccounts();
+        render(<App />);
+
+        const select = (await waitFor(() => {
+            const el = document.querySelector('select[aria-label="Account"]') as HTMLSelectElement;
+            expect(el).toBeTruthy();
+            return el;
+        })) as HTMLSelectElement;
+
+        expect(select.value).toBe("");
+        expect(select.options[0].textContent).toMatch(/pick an account/i);
+        // and the editor says out loud that nothing is posted yet
+        expect(document.body.textContent).toContain("Nothing is posted until you choose an account");
+    });
+
+    it("writes the choice, and the node card then shows the handle", async () => {
+        const user = userEvent.setup();
+        const id = tweetWithAccounts();
+        render(<App />);
+
+        const select = (await waitFor(() => {
+            const el = document.querySelector('select[aria-label="Account"]') as HTMLSelectElement;
+            expect(el).toBeTruthy();
+            return el;
+        })) as HTMLSelectElement;
+
+        await user.selectOptions(select, "acc1");
+
+        const node = quest().graph.nodes.find((n) => n.id === id)!;
+        expect((node.data as { accountId: string }).accountId).toBe("acc1");
+        await waitFor(() => expect(document.body.textContent).toContain("@Test"));
     });
 });

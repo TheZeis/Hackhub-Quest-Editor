@@ -116,6 +116,17 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
             }
         }
 
+        // A tweet with no author posts as nobody.
+        if (node.type === "comms.tweet" && !(node.data as { accountId?: string }).accountId) {
+            issues.push({
+                nodeId: node.id,
+                label: "No account",
+                detail:
+                    "This post has no Twotter account behind it. Pick one in the inspector — accounts are managed on the Quest tab under “Twotter accounts”.",
+                severity: "warn",
+            });
+        }
+
         // Anything that is neither a root nor reachable cannot run.
         if (!isRoot(node.type) && !reachable.has(node.id)) {
             issues.push({

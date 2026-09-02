@@ -109,7 +109,7 @@ export type FieldDef =
       }
     | { kind: "deviceTree"; key: string; label: string; hint?: string }
     | { kind: "section"; label: string; hint?: string; fields: FieldDef[] }
-    | { kind: "note"; text: string; tone?: "info" | "warn" };
+    | { kind: "note"; text: string; tone?: "info" | "warn"; showWhen?: FieldShowWhen };
 
 /* ── Categories ──────────────────────────────────────────────────────────── */
 
@@ -643,6 +643,18 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             { kind: "questAccount", key: "accountId", hint: "Which of the quest's Twotter accounts posts this. Add accounts in the Quest tab.", label: "Account" },
             { kind: "textarea", key: "content", hint: "The post body, with the same formatting Twotter supports.", label: "Tweet", rows: 4 },
+            {
+                kind: "toggle",
+                key: "postLive",
+                label: "Post when the story reaches this node",
+                hint: "Off: the post is on Twotter from the moment the quest starts — the safe, normal choice. On: nothing shows until the story reaches this node, so you can time a post to a Sequence beat.",
+            },
+            {
+                kind: "note",
+                tone: "warn",
+                showWhen: { key: "postLive", equals: "true" },
+                text: "Timed posts go out through the game's live posting API: it has no picture field, it ignores the post time below, and unlike a normal post the quest does not clean it up afterwards. Lovely for a dramatic beat — worth a quick in-game check before you ship it.",
+            },
             { kind: "image", key: "image", label: "Attached picture", hint: "Optional. PNG or JPG — use it for clues the player must read, or files they download later." },
             { kind: "number", key: "likes", hint: "Starting like count. Cosmetic, but it sells the fiction.", label: "Likes", min: 0 },
             { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },

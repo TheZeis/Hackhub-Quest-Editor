@@ -345,6 +345,13 @@ export const WeeChatNodeDataSchema = z.object({
 export const TweetNodeDataSchema = z.object({
     accountId: z.string().default(""),
     content: z.string().default(""),
+    /**
+     * Post the moment the story reaches this node (through the platform's live
+     * post API) instead of having it on Twotter from the quest's start.
+     * Off by default: the declarative path is the one the engine scopes and
+     * cleans up for us, and the live API was found wanting in rounds 21–22.
+     */
+    postLive: z.boolean().default(false),
     /** Optional attached picture, embedded as a data URL. */
     image: z.string().optional(),
     likes: z.number().optional(),

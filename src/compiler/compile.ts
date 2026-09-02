@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r24";
+export const EDITOR_BUILD = "2026-09-02.r25";
 
 export interface CompiledFile {
     path: string;
@@ -132,6 +132,28 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         `${q.name}: the mod SDK (0.21.0) cannot create wireless networks yet — “Create Wi-Fi” exports as a regular router network the player reaches by IP, not through the in-game Wi-Fi list.`,
                     );
                     break;
+                case "comms.tweet": {
+                    const d = n.data as { image?: string; timeMode?: string; postedAgo?: string; postLive?: boolean };
+                    const wired =
+                        d.postLive === true &&
+                        q.graph.edges.some((e) => e.kind === "flow" && e.target === n.id);
+                    if (wired) {
+                        warnings.push(
+                            `${q.name}: a tweet set to “post when the story reaches this node” is posted live at that moment, instead of being on Twotter from the quest's start. Live posts are not managed by the quest, so check in-game that it behaves as you expect.`,
+                        );
+                        if (d.image) {
+                            warnings.push(
+                                `${q.name}: the live post API in SDK 0.21.0 has no picture field, so a timed tweet may show up without its attached picture. Turn the timing off if the picture matters more.`,
+                            );
+                        }
+                        if (d.timeMode && d.timeMode !== "now") {
+                            warnings.push(
+                                `${q.name}: “post time” is ignored for a timed tweet — it is posted right then, so the game shows it as just posted.`,
+                            );
+                        }
+                    }
+                    break;
+                }
                 case "comms.dialogue": {
                     const d = n.data as { kind: string; phone?: { branch?: string }; kisscord?: { messages?: { playerAction?: string; input?: { expected?: string } }[] }; weechat?: { messages?: { playerAction?: string } } };
                     if (d.kind === "phone" && q.dialog.some((b) => b.lines.some((l) => l.input))) {

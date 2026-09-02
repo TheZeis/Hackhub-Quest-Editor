@@ -778,3 +778,54 @@ wait.
 **Verification:** 358 tests (17 files, +27), `tsc --noEmit` clean, `vite build`
 clean. Node types: 31 → **32** (schema, reference template and its `nodeCount`
 updated together). Export stamp: `EDITOR_BUILD = "2026-09-02.r24"`.
+
+## Round 25 — six follow-ups from the r24 review
+
+**1. The tweet card said “no account yet” while the dropdown showed one.** A
+`<select>` whose value matches no option paints its *first* option, so an unset
+account looked chosen. The picker now carries an explicit unset row (“— pick an
+account —”, or “— account no longer exists, pick one —” when the stored id has
+gone), a warning line “Nothing is posted until you choose an account”, and — when
+the quest has exactly one account — a one-click **Use @username** button. A tweet
+without an account is also reported by the analyser as a “No account” warning, so
+it shows up in the issues list rather than only on the card.
+
+**2. Noodle dots move again.** The travelling dots were a CSS keyframe, which lost
+to stylesheet order in some builds. They are now SMIL inside the edge itself —
+`<animate attributeName="stroke-dashoffset" values="0;-14" dur="1.4s"
+repeatCount="indefinite">` — so the motion travels with the SVG and is visible in
+the DOM (and assertable in tests). 14 px gap over 1.4 s = 10 px/s, in the
+direction of the target. `prefers-reduced-motion` still stops it.
+
+**3. The minimap paints nodes again.** React Flow's minimap draws nodes in array
+order and ignores `zIndex`, so a group frame added after its contents covered
+everything with an opaque rectangle. Frames are now sorted to the front of the
+node list, and the minimap fills a frame with `withAlpha(colour, 0.22)` — a wash
+of its own colour, not a lid.
+
+**4. Reroute grab area is visible.** A 2 px `rgba(255,255,255,0.5)` outline sits on
+the 36 px hitbox (`pointer-events: none`, so it never eats a drag), showing exactly
+where the nodule can be grabbed versus where the 22 px ring is drawn.
+
+**5. Tweets can be timed to the story.** New per-node toggle **“Post when the story
+reaches this node”** (`postLive`, default off). Off — the existing, safe path: the
+tweet is declared with the quest, is on Twotter from the start, keeps its picture,
+and the game removes it with the quest. On — the runtime calls
+`sdk.Twotter.postTweet` at the moment the flow arrives (once per playthrough,
+deduped), resolving the author with `getUserByUsername` and falling back to the
+stored account id. It only goes live when the node actually has an incoming flow
+wire *and* the host SDK exposes `postTweet`; otherwise it silently stays
+declarative. Three export warnings and an inspector note spell out the trade-off,
+because rounds 21–22 found in-game that the live API has **no picture field**,
+ignores the authored post time, and leaves posts behind when the mod is removed.
+So Zeis's example — login → mail (out 0) → tweet 6 s later (out 1) → call a second
+after (out 2) — now works end to end: mail, phone, notify and data effects already
+fire at flow time, and the tweet joins them when the toggle is on.
+
+**6. Custom workshop tags were already exported** — the Mod tab writes whatever
+strings the author invented straight into `manifest.json`'s `tags`, with the key
+omitted entirely when the list is empty. That was never broken; it now has tests
+proving it, so it cannot quietly break later.
+
+**Verification:** 371 tests (17 files, +13), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r25"`.

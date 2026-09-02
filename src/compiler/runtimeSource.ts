@@ -237,6 +237,61 @@ function __qeRegisterProject(sdk, PROJECT) {
             return t;
         });
 
+        /* Timed tweets — OPT IN, per node ("Post when the story reaches this
+           node"). Quest-level Tweets are registered when the quest starts, so a
+           tweet that has to land on a Sequence beat cannot use that path; those
+           nodes go through the platform API instead (SDK 0.21.0:
+           Twotter.postTweet(tweet)). Everything else stays declarative, which is
+           what the engine scopes and cleans up for us, and what rounds 21–22
+           showed to be the reliable path. No opt-in, or no postTweet in this
+           build of the game, means nothing changes. */
+        var canPostLive = !!(sdk.Twotter && sdk.Twotter.postTweet);
+        var tweetOfNode = {};
+        var timedTweet = {};
+        tweetNodes.forEach(function (n, i) {
+            tweetOfNode[n.id] = Tweets[i];
+            timedTweet[n.id] = canPostLive && n.data.postLive === true && g.edges.some(function (e) {
+                return e.kind === "flow" && e.target === n.id;
+            });
+        });
+        var DeclaredTweets = Tweets.filter(function (_t, i) {
+            return !timedTweet[tweetNodes[i].id];
+        });
+        var postedTweets = {};
+
+        function postTweetNow(node, scope) {
+            var t = tweetOfNode[node.id];
+            if (!t || postedTweets[node.id]) return;
+            postedTweets[node.id] = true;
+            var account = null;
+            for (var i = 0; i < TwotterAccounts.length; i++) {
+                if (TwotterAccounts[i].id === t.accountId) account = TwotterAccounts[i];
+            }
+            /* The platform keeps its own user records; prefer the id it knows
+               the account by, and fall back to the quest-level id. */
+            var userId = t.accountId;
+            if (account && sdk.Twotter.getUserByUsername) {
+                var live = sdk.Twotter.getUserByUsername(account.username);
+                if (live && live.id) userId = live.id;
+            }
+            var payload = {
+                id: "qe-" + qd.name + "-" + node.id,
+                userId: userId,
+                content: __QE.fill(t.content, scope),
+                interaction: {
+                    comments: Number(t.comments || 0),
+                    share: Number(t.shares || 0),
+                    likes: Number(t.likes || 0),
+                    views: Number(t.views || 0),
+                },
+            };
+            if (t.showInTimeline) payload.showInTimeline = true;
+            /* TwotterTweet has no picture field in SDK 0.21.0; passing it costs
+               nothing and lets a future engine use it. */
+            if (t.image) payload.image = t.image;
+            sdk.Twotter.postTweet(payload);
+        }
+
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });
         var questRef = null;
         var needsTargetIp = g.nodes.some(function (n) {
@@ -332,8 +387,8 @@ function __qeRegisterProject(sdk, PROJECT) {
                     });
                 });
             }
-            if (Tweets.length) {
-                questRef.Tweets = Tweets.map(function (t) {
+            if (DeclaredTweets.length) {
+                questRef.Tweets = DeclaredTweets.map(function (t) {
                     return Object.assign({}, t, { content: __QE.fill(t.content, scope) });
                 });
             }
@@ -499,12 +554,17 @@ function __qeRegisterProject(sdk, PROJECT) {
                        declarative trigger instead.) */
                     if (d.name && questRef && questRef.completeObjective) questRef.completeObjective(d.name);
                     return next();
+                case "comms.tweet":
+                    /* Wired into the story → post it now, so a tweet can land
+                       on a Sequence node's beat. Not wired → it was registered
+                       declaratively with the quest and there is nothing to do. */
+                    if (timedTweet[node.id]) postTweetNow(node, scope);
+                    return next();
                 case "trigger.event":
                 case "entry.start":
                 case "entry.load":
                 case "entry.complete":
                 case "entry.abandon":
-                case "comms.tweet":
                     return next();
                 case "reply.input":
                 case "reply.hackertyper":
@@ -591,7 +651,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                        load, could not carry tweet images, and left orphaned
                        records behind after the mod was removed.) */
                     if (TwotterAccounts.length) this.TwotterAccounts = TwotterAccounts;
-                    if (Tweets.length) this.Tweets = Tweets;
+                    /* Only the tweets that are NOT wired into the story: the
+                       wired ones are posted live when the flow reaches them. */
+                    if (DeclaredTweets.length) this.Tweets = DeclaredTweets;
                 }
                 CreateData() {
                     /* Required by the SDK (Quest.CreateData is abstract) even

@@ -43,6 +43,14 @@ export interface CandidateConnection {
 
 export const DND_MIME = "application/x-qe-node-type";
 
+/** #rrggbb → rgba(), for the one place that needs a see-through fill. */
+export function withAlpha(hex: string, alpha: number): string {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 function CanvasInner() {
     const quest = useEditor(selectActiveQuest);
     const addNode = useEditor((s) => s.addNode);
@@ -122,20 +130,23 @@ function CanvasInner() {
     // never part of the saved document, and never a history entry.
     const [measured, setMeasured] = useState<Record<string, { width: number; height: number }>>({});
 
-    const nodes = useMemo<GraphRFNode[]>(
-        () =>
-            (quest?.graph.nodes ?? []).map((doc) => ({
-                id: doc.id,
-                type: "qe" as const,
-                position: doc.position,
-                data: { doc, issue: issuesByNode.get(doc.id) },
-                selected: selection.nodeIds.includes(doc.id),
-                measured: measured[doc.id],
-                // Frames sit behind everything; cards keep the default layer.
-                zIndex: doc.type === "layout.group" ? -1 : 0,
-            })),
-        [quest, selection.nodeIds, issuesByNode, measured],
-    );
+    const nodes = useMemo<GraphRFNode[]>(() => {
+        const docs = [...(quest?.graph.nodes ?? [])];
+        // Frames first. zIndex handles the canvas, but the MiniMap paints in
+        // array order and ignores zIndex — with a frame last, its solid rect
+        // covered every node inside it and the map looked empty.
+        docs.sort((a, b) => Number(b.type === "layout.group") - Number(a.type === "layout.group"));
+        return docs.map((doc) => ({
+            id: doc.id,
+            type: "qe" as const,
+            position: doc.position,
+            data: { doc, issue: issuesByNode.get(doc.id) },
+            selected: selection.nodeIds.includes(doc.id),
+            measured: measured[doc.id],
+            // Frames sit behind everything; cards keep the default layer.
+            zIndex: doc.type === "layout.group" ? -1 : 0,
+        }));
+    }, [quest, selection.nodeIds, issuesByNode, measured]);
 
     const edges = useMemo<TypedRFEdge[]>(() => {
         const list = quest?.graph.edges ?? [];
@@ -301,10 +312,16 @@ function CanvasInner() {
                     pannable
                     zoomable
                     nodeColor={(n) => {
-                        const doc = (n.data as { doc?: { type: NodeType } })?.doc;
+                        const doc = (n.data as { doc?: { type: NodeType; data?: { color?: string } } })?.doc;
+                        if (!doc) return "#333";
+                        // A frame is a container, not a card: draw it as a faint
+                        // wash in its own colour so the nodes inside stay visible.
+                        if (doc.type === "layout.group") {
+                            return withAlpha(doc.data?.color || CATEGORY_HEX.layout, 0.22);
+                        }
                         // Concrete hex per category, matching the node cards'
                         // accent stripe (see CATEGORY_HEX).
-                        return doc ? CATEGORY_HEX[categoryOf(doc.type).id] : "#333";
+                        return CATEGORY_HEX[categoryOf(doc.type).id];
                     }}
                     nodeStrokeWidth={0}
                     maskColor="rgba(8, 9, 13, 0.72)"
