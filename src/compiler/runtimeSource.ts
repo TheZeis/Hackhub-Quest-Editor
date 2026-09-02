@@ -923,7 +923,7 @@ function __qeRegisterProject(sdk, PROJECT) {
        missing field. */
     var __QE_TWOTTER_ACCOUNTS = [];
     var __QE_TWOTTER_STRINGS = ["username", "name", "surname", "avatar", "banner", "bio", "joinedAt", "password"];
-    var __QE_TWOTTER_SEEN = {};
+    var __QE_TWOTTER_DONE = {};
 
     function __qeTwotterField(key, account) {
         var display = account.displayName || account.username || "";
@@ -939,34 +939,120 @@ function __qeRegisterProject(sdk, PROJECT) {
         }
     }
 
+    /* Which of the fields Twotter search lowercases are not strings here. */
+    function __qeMissingFields(user) {
+        var missing = [];
+        __QE_TWOTTER_STRINGS.forEach(function (k) {
+            if (typeof user[k] !== "string") missing.push(k);
+        });
+        return missing;
+    }
+
+    /* Field-by-field types, for the game log: if this ever breaks again, the
+       report says exactly what the record looked like. */
+    function __qeSnapshot(user) {
+        var seen = {};
+        var parts = [];
+        for (var k in user) {
+            seen[k] = true;
+            parts.push(k + ":" + (user[k] === undefined ? "undefined" : typeof user[k]));
+        }
+        __QE_TWOTTER_STRINGS.concat(["id", "followers", "following", "verified"]).forEach(function (k) {
+            if (!seen[k]) parts.push(k + ":absent");
+        });
+        return parts.join(" ");
+    }
+
+    function __qeFetchUser(sdk, a) {
+        var user = __QE.safe(function () {
+            return (sdk.Twotter.getUserByUsername && sdk.Twotter.getUserByUsername(a.username)) ||
+                (sdk.Twotter.getUserById && sdk.Twotter.getUserById(a.id)) || null;
+        });
+        return user && typeof user === "object" ? user : null;
+    }
+
+    /* A complete TwotterUser to put back in place of a half-built one: the
+       engine's own factory where it exists, seeded from whatever the existing
+       record already had right, and keeping its id so this replaces the
+       account rather than adding a second one. */
+    function __qeCompleteUser(sdk, user, a) {
+        var display = a.displayName || a.username || "";
+        var space = display.indexOf(" ");
+        var seed = {
+            id: user.id || a.id,
+            username: user.username || a.username,
+            firstName: space > 0 ? display.slice(0, space) : display,
+            lastName: space > 0 ? display.slice(space + 1) : "",
+            avatar: typeof user.avatar === "string" ? user.avatar : (a.avatar || ""),
+            bio: a.bio || "",
+            verified: typeof user.verified === "boolean" ? user.verified : !!a.verified,
+            followers: typeof user.followers === "number" ? user.followers : Number(a.followers || 0),
+            following: typeof user.following === "number" ? user.following : Number(a.following || 0),
+        };
+        var made = sdk.Twotter.createUser ? __QE.safe(function () { return sdk.Twotter.createUser(seed); }) : null;
+        var out = made && typeof made === "object" ? made : {};
+        for (var k in user) {
+            var t = typeof user[k];
+            if ((t === "string" || t === "number" || t === "boolean") && out[k] === undefined) out[k] = user[k];
+        }
+        out.id = seed.id;
+        out.username = seed.username;
+        __QE_TWOTTER_STRINGS.forEach(function (k) {
+            if (typeof out[k] !== "string") out[k] = __qeTwotterField(k, a);
+        });
+        if (typeof out.followers !== "number") out.followers = seed.followers;
+        if (typeof out.following !== "number") out.following = seed.following;
+        if (typeof out.verified !== "boolean") out.verified = seed.verified;
+        return out;
+    }
+
     function __qeRepairTwotter(sdk) {
         if (!sdk.Twotter || !__QE_TWOTTER_ACCOUNTS.length) return;
         __QE_TWOTTER_ACCOUNTS.forEach(function (a) {
-            var user = __QE.safe(function () {
-                return (sdk.Twotter.getUserByUsername && sdk.Twotter.getUserByUsername(a.username)) ||
-                    (sdk.Twotter.getUserById && sdk.Twotter.getUserById(a.id)) || null;
-            });
-            if (!user || typeof user !== "object") return;
-            var filled = [];
-            __QE_TWOTTER_STRINGS.forEach(function (key) {
-                if (typeof user[key] !== "string") {
-                    try {
-                        user[key] = __qeTwotterField(key, a);
-                        filled.push(key);
-                    } catch (e) { /* a frozen record is beyond our reach */ }
-                }
-            });
-            try {
-                if (typeof user.followers !== "number") user.followers = Number(a.followers || 0);
-                if (typeof user.following !== "number") user.following = Number(a.following || 0);
-            } catch (e) { /* as above */ }
-            if (filled.length) {
-                __QE.log("repaired Twotter account @" + a.username + ": filled " + filled.join(", ") +
-                    " — these were undefined, which crashes Twotter search");
-            } else if (!__QE_TWOTTER_SEEN[a.username]) {
+            if (__QE_TWOTTER_DONE[a.username]) return;
+            var user = __qeFetchUser(sdk, a);
+            /* Not on the platform yet — this runs again when the quest starts. */
+            if (!user) return;
+
+            var missing = __qeMissingFields(user);
+            if (!missing.length) {
+                __QE_TWOTTER_DONE[a.username] = true;
                 __QE.log("Twotter account @" + a.username + " is complete; no repair needed");
+                return;
             }
-            __QE_TWOTTER_SEEN[a.username] = true;
+            __QE.log("Twotter account @" + a.username + " is missing " + missing.join(", ") +
+                " — Twotter search lowercases these, so any search that does not match sooner crashes the game. Record: " +
+                __qeSnapshot(user));
+
+            /* 1. Patch what we were handed. If that was the live record, done. */
+            missing.forEach(function (k) {
+                try { user[k] = __qeTwotterField(k, a); } catch (e) { /* frozen */ }
+            });
+            var after = __qeFetchUser(sdk, a);
+            if (after && !__qeMissingFields(after).length) {
+                __QE_TWOTTER_DONE[a.username] = true;
+                __QE.log("repaired Twotter account @" + a.username + " in place: filled " + missing.join(", "));
+                return;
+            }
+
+            /* 2. The game handed us a copy, so the only way to fix the stored
+                  record is to put a complete one back under the same id. */
+            __QE_TWOTTER_DONE[a.username] = true;
+            if (!sdk.Twotter.addUser) {
+                __QE.log("cannot repair Twotter account @" + a.username +
+                    ": this build of the game reads back a copy and offers no way to write the record");
+                return;
+            }
+            __QE.safe(function () { sdk.Twotter.addUser(__qeCompleteUser(sdk, user, a)); return ""; });
+            var again = __qeFetchUser(sdk, a);
+            if (again && !__qeMissingFields(again).length) {
+                __QE.log("repaired Twotter account @" + a.username +
+                    " by replacing the stored record (filled " + missing.join(", ") + ")");
+            } else {
+                __QE.log("could not repair Twotter account @" + a.username +
+                    "; it still reads back as " + __qeSnapshot(again || user) +
+                    ". Twotter search will crash on a term that matches nothing — please report this record to the game authors");
+            }
         });
     }
 

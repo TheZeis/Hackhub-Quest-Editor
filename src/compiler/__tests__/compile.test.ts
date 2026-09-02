@@ -405,11 +405,13 @@ describe("export build stamp", () => {
     it("stamps the editor build id into dist/mod.js", () => {
         const modJs = compileProject(createProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).toContain(`build ${EDITOR_BUILD}`);
-        // Accounts are declared per-quest, never registered through the global
-        // API — the imperative path re-posted on reload and could not be undone
-        // when the mod was removed, so it must not creep back in.
-        expect(modJs).not.toContain("sdk.Twotter.addUser");
-        expect(modJs).not.toContain("sdk.Twotter.createUser");
+        // Accounts are declared per-quest, never *registered* through the
+        // global API — the imperative path re-posted on reload and could not be
+        // undone when the mod was removed. `addUser` appears exactly once, in
+        // the save-repair pass, and only runs for a record the game left
+        // half-built (see "Twotter save safety").
+        expect(modJs.match(/sdk\.Twotter\.addUser/g) ?? []).toHaveLength(2); // the guard and the call
+        expect(modJs).toContain("__qeRepairTwotter");
     });
 });
 
@@ -446,8 +448,6 @@ describe("Twotter accounts + tweets register declaratively (SDK-native)", () => 
 
     it("never calls the global Twotter API (would re-post on reload / orphan records)", async () => {
         const modJs = compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content;
-        expect(modJs).not.toContain("Twotter.addUser");
-        expect(modJs).not.toContain("Twotter.createUser");
         // The one thing the Mod class does on load is repair half-built
         // Twotter account records (see "Twotter save safety"); it must not
         // create, add or post anything.
@@ -464,6 +464,11 @@ describe("Twotter accounts + tweets register declaratively (SDK-native)", () => 
             createUser: () => calls.push("createUser"),
             getUserByUsername: () => undefined,
         };
+        // A record the game built properly: the repair pass must do nothing.
+        sdk.Twotter.getUserByUsername = () => ({
+            id: "u1", username: "qa", name: "Q", surname: "A", avatar: "a.png",
+            banner: "b.png", bio: "", joinedAt: "2026-01-01", password: "", followers: 0, following: 0,
+        });
         runMod(modJs, sdk);
         const q = new (registered0(sdk).quests[0])();
         q.OnStart();
@@ -1278,10 +1283,129 @@ describe("Twotter save safety", () => {
         new (registered0(sdk).mod)().OnModPackageLoaded();
         spy.mockRestore();
 
-        const line = said.find((l) => l.includes("@qatest5")) ?? "";
-        expect(line).toContain("repaired Twotter account");
-        expect(line).toContain("name");
-        expect(line).toContain("surname");
+        const lines = said.filter((l) => l.includes("@qatest5")).join("\n");
+        expect(lines).toContain("is missing");
+        expect(lines).toContain("repaired Twotter account");
+        expect(lines).toContain("name");
+        expect(lines).toContain("surname");
+        // and the record it found is written out field by field, so a crash
+        // report can be read without guessing
+        expect(lines).toMatch(/username:string/);
+        expect(lines).toMatch(/bio:absent|bio:undefined/);
+    });
+
+    /**
+     * What the QA-filedump log of 02/09 proved, in two lines:
+     *
+     *   [quest-editor] repaired Twotter account @qatest6: filled bio …
+     *   [quest-editor] repaired Twotter account @qatest6: filled bio …
+     *
+     * Only `bio` was ever missing — the engine does not carry a quest account's
+     * bio onto the user record — and the same repair reported the same hole
+     * twice in one session, which means the record we are handed is a COPY:
+     * patching it changes nothing the game will ever read (or save).
+     */
+    describe("when the game hands back a copy", () => {
+        /** A store like the game's: reads clone, addUser writes by id. */
+        function copyStore(calls: string[], stored: Record<string, unknown>[]) {
+            const sdk = stubSdk(calls, []) as any;
+            const clone = (u?: Record<string, unknown>) => (u ? { ...u } : undefined);
+            sdk.Twotter = {
+                getUserByUsername: (name: string) => clone(stored.find((u) => u.username === name)),
+                getUserById: (id: string) => clone(stored.find((u) => u.id === id)),
+                createUser: (o: Record<string, unknown>) => {
+                    calls.push("createUser");
+                    return {
+                        id: o.id ?? "new", username: o.username ?? "", name: o.firstName ?? "",
+                        surname: o.lastName ?? "", avatar: o.avatar ?? "", banner: "", bio: o.bio ?? "",
+                        joinedAt: "2026-09-02", password: "", followers: o.followers ?? 0,
+                        following: o.following ?? 0, verified: !!o.verified,
+                    };
+                },
+                addUser: (u: Record<string, unknown>) => {
+                    calls.push("addUser");
+                    const at = stored.findIndex((x) => x.id === u.id);
+                    if (at >= 0) stored[at] = u;
+                    else stored.push(u);
+                },
+            };
+            return sdk;
+        }
+
+        it("puts a complete record back, under the same id, exactly once", async () => {
+            const calls: string[] = [];
+            // Precisely the QA record: everything present except bio.
+            const stored = [{
+                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
+                banner: "", joinedAt: "2026-09-02", password: "", followers: 0, following: 0,
+            } as Record<string, unknown>];
+            const sdk = copyStore(calls, stored);
+            const { files } = compileProject(tweetProject({ bio: "Dockyard watch" }));
+            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+            new (registered0(sdk).mod)().OnModPackageLoaded();
+            const q = new (registered0(sdk).quests[0])();
+            q.OnStart();
+            q.OnObjectivesStart();
+            await settle();
+
+            expect(stored).toHaveLength(1); // replaced, not duplicated
+            expect(stored[0].id).toBe("k5nKaikR");
+            expect(stored[0].bio).toBe("Dockyard watch");
+            expect(stored[0].name).toBe("QA"); // what was already right is kept
+            expect(calls.filter((c) => c === "addUser")).toHaveLength(1); // and only once
+            expect(searchLikeTheGame(stored, "boop")).toEqual([]);
+            expect(searchLikeTheGame(stored, "dockyard")).toHaveLength(1);
+        });
+
+        it("says so in the log, naming the field and the record it saw", async () => {
+            const said: string[] = [];
+            const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+            const stored = [{
+                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
+                banner: "", joinedAt: "2026-09-02", password: "", followers: 0, following: 0,
+            } as Record<string, unknown>];
+            const sdk = copyStore([], stored);
+            const { files } = compileProject(tweetProject());
+            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+            new (registered0(sdk).mod)().OnModPackageLoaded();
+            await settle();
+            spy.mockRestore();
+
+            const lines = said.join("\n");
+            expect(lines).toContain("is missing bio");
+            expect(lines).toContain("replacing the stored record");
+        });
+
+        it("gives up loudly, without throwing, when the record cannot be written", async () => {
+            const said: string[] = [];
+            const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+            const stored = [{ id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png", banner: "", joinedAt: "x", password: "", followers: 0, following: 0 } as Record<string, unknown>];
+            const sdk = copyStore([], stored);
+            delete sdk.Twotter.addUser; // an older build with no way to write
+            const { files } = compileProject(tweetProject());
+            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+            expect(() => new (registered0(sdk).mod)().OnModPackageLoaded()).not.toThrow();
+            spy.mockRestore();
+            expect(said.join("\n")).toContain("cannot repair Twotter account @qatest5");
+        });
+
+        it("does not touch an account the game stores properly", async () => {
+            const calls: string[] = [];
+            const stored = [{
+                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
+                banner: "", bio: "all good", joinedAt: "2026-09-02", password: "", followers: 2, following: 3,
+            } as Record<string, unknown>];
+            const sdk = copyStore(calls, stored);
+            const { files } = compileProject(tweetProject());
+            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+            new (registered0(sdk).mod)().OnModPackageLoaded();
+            const q = new (registered0(sdk).quests[0])();
+            q.OnStart();
+            await settle();
+            expect(calls.filter((c) => c === "addUser" || c === "createUser")).toEqual([]);
+            expect(stored[0].bio).toBe("all good");
+        });
     });
 
     it("never touches the player's IP unless the author asked for it", async () => {

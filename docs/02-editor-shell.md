@@ -975,3 +975,42 @@ that a project *with* the token still resolves it and asks for `network`.
 
 **Verification:** 409 tests (18 files, +9), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r29"`.
+
+## Round 30 — the crashing field, named
+
+The r29 repair pass paid for itself: the QATest6 log says exactly what is wrong.
+
+```
+[quest-editor] repaired Twotter account @qatest6: filled bio …
+[quest-editor] repaired Twotter account @qatest6: filled bio …
+```
+
+Two facts in two lines. **`bio` is the only missing field** — `name`, `surname`,
+`banner`, `joinedAt` and `password` were all strings, so the engine builds those
+and simply does not carry a quest account's bio onto the user record (QATest6's
+account had a real bio in the project, and the record still had none). And the
+same repair reported the same hole **twice in one session**, which can only mean
+the record `getUserByUsername` returns is a **copy**: patching it changes nothing
+the game reads or saves. That is why r29 changed nothing.
+
+So the repair now escalates. It still patches what it is handed — free if the
+record is live — then reads back to check. If the hole is still there, it writes a
+complete record with `Twotter.addUser` under **the same id**, built by the
+engine's own `createUser` where available and seeded from whatever the existing
+record already had right. It reads back once more and says in the log whether the
+account is fixed or still broken. It runs at most one write per account per
+session, and does nothing at all when the game stores the account properly.
+
+This is the one case where the imperative Twotter API earns its place: the record
+already exists and is already broken, and `addUser` is the only write the SDK
+offers (there is no `removeUser` for Twotter, which is also why a broken account
+outlives the mod).
+
+**Tests** model the game's semantics — reads clone, `addUser` writes by id — and
+pin: one write, no duplicate, `bio` filled from the account, fields that were
+already right preserved, the game's own search filter surviving "boop", a loud log
+naming the field and the record, no write at all for a healthy account, and no
+throw on a build with no `addUser`.
+
+**Verification:** 413 tests (18 files, +4), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r30"`.
