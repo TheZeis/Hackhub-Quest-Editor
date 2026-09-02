@@ -78,6 +78,19 @@ var __QE = (function () {
         }
         return a === e;
     }
+    /* Never let an optional lookup take a quest down with it: a missing
+       permission, a missing API or a throwing getter all become "". */
+    function safe(fn) {
+        try {
+            var v = fn();
+            return v == null ? "" : v;
+        } catch (e) {
+            return "";
+        }
+    }
+    function log(msg) {
+        try { if (typeof console !== "undefined" && console.log) console.log("[quest-editor] " + msg); } catch (e) { /* nothing to do */ }
+    }
     function sleep(ms) {
         /* Prefer the game's own timer (SDK 0.21.0 Random.sleep) so waits obey
            whatever the game does with time; fall back to a plain timeout when
@@ -89,7 +102,7 @@ var __QE = (function () {
         } catch (e) { /* fall through to the timeout below */ }
         return new Promise(function (res) { setTimeout(res, ms); });
     }
-    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, ageStringFromDate: ageStringFromDate };
+    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -251,12 +264,37 @@ function __qeRegisterProject(sdk, PROJECT) {
                 displayName: a.displayName || a.username,
                 avatar: a.avatar || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAA",
             };
-            if (a.bio) out.bio = a.bio;
-            if (a.followers != null) out.followers = a.followers;
-            if (a.following != null) out.following = a.following;
-            if (a.verified) out.verified = true;
+            /* Always a value, never a hole. An account field the engine copies
+               through as undefined ends up in the save file, and Twotter's
+               search lowercases these strings on every keystroke: one undefined
+               field there takes the whole game down, and the broken record
+               outlives the mod. */
+            out.bio = a.bio || "";
+            out.followers = Number(a.followers || 0);
+            out.following = Number(a.following || 0);
+            out.verified = !!a.verified;
             return out;
         });
+
+        /* ── Twotter save-safety pass ────────────────────────────────────
+           A TwotterUser in the game's save has more fields than a quest
+           account definition can carry (name, surname, banner, joinedAt,
+           password …). Whatever the engine leaves unset stays undefined in the
+           save, and Twotter's search calls .toLowerCase() on those strings for
+           every result it checks: search a word that matches nothing and the
+           game dies — before the mod is removed, and after, because the record
+           is in the save now.
+
+           So once the accounts exist, look each one up and fill in anything
+           that is not a string. It costs nothing when the engine already did it
+           right, and it repairs a save that a previous version broke, provided
+           the same account is loaded again. What it fixed is logged, so a
+           crash report can say which field was missing. */
+        /* Every account this quest puts on Twotter is also handed to the
+           package-level repair pass (see __qeRepairTwotter), which runs when
+           the mod loads and again whenever the quest starts. */
+        TwotterAccounts.forEach(function (a) { __QE_TWOTTER_ACCOUNTS.push(a); });
+        function repairTwotterAccounts() { __qeRepairTwotter(sdk); }
 
         var tweetNodes = g.nodes.filter(function (n) { return n.type === "comms.tweet"; });
         var Tweets = tweetNodes.map(function (n) {
@@ -385,18 +423,26 @@ function __qeRegisterProject(sdk, PROJECT) {
            yields independent values. */
         function dataScope(extra) {
             var d = questRef ? questRef.Data : {};
+            /* Every player/random field is a GETTER, computed only if a token
+               actually asks for it, and never allowed to throw. Reading them
+               eagerly cost a mod its whole quest once: a project with no
+               {{player.ip}} anywhere still called Network.getPlayerIp on every
+               scope, the loader refused it for want of the "network"
+               permission, and the exception escaped OnStart so the quest never
+               started. A value the author never mentioned must not be able to
+               do that. */
             var base = {
                 data: d,
                 Data: d,
                 player: {
-                    ip: sdk.Network && sdk.Network.getPlayerIp ? sdk.Network.getPlayerIp() : "",
-                    email: sdk.Mail && sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : "",
-                    username: sdk.Shell && sdk.Shell.getUsername ? sdk.Shell.getUsername() : "",
+                    get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.getPlayerIp ? sdk.Network.getPlayerIp() : ""; }); },
+                    get email() { return __QE.safe(function () { return sdk.Mail && sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; }); },
+                    get username() { return __QE.safe(function () { return sdk.Shell && sdk.Shell.getUsername ? sdk.Shell.getUsername() : ""; }); },
                 },
                 random: {
-                    password: sdk.Random && sdk.Random.password ? sdk.Random.password() : "",
-                    ip: sdk.Network && sdk.Network.randomIp ? sdk.Network.randomIp() : "",
-                    username: sdk.Random && sdk.Random.username ? sdk.Random.username() : "",
+                    get password() { return __QE.safe(function () { return sdk.Random && sdk.Random.password ? sdk.Random.password() : ""; }); },
+                    get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.randomIp ? sdk.Network.randomIp() : ""; }); },
+                    get username() { return __QE.safe(function () { return sdk.Random && sdk.Random.username ? sdk.Random.username() : ""; }); },
                 },
             };
             if (extra) { for (var k in extra) base[k] = extra[k]; }
@@ -722,6 +768,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 OnStart() {
                     var ctx = { payload: {}, vars: {} };
+                    /* Before anything else: make sure the accounts this quest
+                       just put on Twotter cannot crash its search. */
+                    repairTwotterAccounts();
                     g.nodes
                         .filter(function (n) { return n.type === "entry.start"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
@@ -730,6 +779,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var self = this;
                     var ctx = { payload: {}, vars: {} };
                     refillComms();
+                    repairTwotterAccounts();
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.createServer) sdk.WeeChat.createServer(s.host, s.password);
                     });
@@ -857,6 +907,69 @@ function __qeRegisterProject(sdk, PROJECT) {
 
     var __QE_HACKERTYPER = [];
 
+    /* ── Twotter save safety ─────────────────────────────────────────────
+       A TwotterUser in the save carries more fields than a quest account
+       definition can (name, surname, banner, joinedAt, password …). Whatever
+       the engine leaves unset stays undefined in the save file, and Twotter's
+       search lowercases those strings for every record it tests: search a word
+       that matches nothing and the game dies. Worse, the record outlives the
+       mod, so the crash survives uninstalling it.
+
+       So: look each account up and fill in anything that is not a string. It
+       does nothing when the engine already built the record properly, and it
+       repairs a save an earlier version broke — the mod only has to be
+       installed, because this runs when the package loads as well as when a
+       quest starts. Whatever it fixed is logged, so a crash report can name the
+       missing field. */
+    var __QE_TWOTTER_ACCOUNTS = [];
+    var __QE_TWOTTER_STRINGS = ["username", "name", "surname", "avatar", "banner", "bio", "joinedAt", "password"];
+    var __QE_TWOTTER_SEEN = {};
+
+    function __qeTwotterField(key, account) {
+        var display = account.displayName || account.username || "";
+        var space = display.indexOf(" ");
+        switch (key) {
+            case "username": return account.username || "";
+            case "name": return space > 0 ? display.slice(0, space) : display;
+            case "surname": return space > 0 ? display.slice(space + 1) : "";
+            case "avatar": return account.avatar || "";
+            case "bio": return account.bio || "";
+            case "joinedAt": return new Date().toISOString();
+            default: return "";
+        }
+    }
+
+    function __qeRepairTwotter(sdk) {
+        if (!sdk.Twotter || !__QE_TWOTTER_ACCOUNTS.length) return;
+        __QE_TWOTTER_ACCOUNTS.forEach(function (a) {
+            var user = __QE.safe(function () {
+                return (sdk.Twotter.getUserByUsername && sdk.Twotter.getUserByUsername(a.username)) ||
+                    (sdk.Twotter.getUserById && sdk.Twotter.getUserById(a.id)) || null;
+            });
+            if (!user || typeof user !== "object") return;
+            var filled = [];
+            __QE_TWOTTER_STRINGS.forEach(function (key) {
+                if (typeof user[key] !== "string") {
+                    try {
+                        user[key] = __qeTwotterField(key, a);
+                        filled.push(key);
+                    } catch (e) { /* a frozen record is beyond our reach */ }
+                }
+            });
+            try {
+                if (typeof user.followers !== "number") user.followers = Number(a.followers || 0);
+                if (typeof user.following !== "number") user.following = Number(a.following || 0);
+            } catch (e) { /* as above */ }
+            if (filled.length) {
+                __QE.log("repaired Twotter account @" + a.username + ": filled " + filled.join(", ") +
+                    " — these were undefined, which crashes Twotter search");
+            } else if (!__QE_TWOTTER_SEEN[a.username]) {
+                __QE.log("Twotter account @" + a.username + " is complete; no repair needed");
+            }
+            __QE_TWOTTER_SEEN[a.username] = true;
+        });
+    }
+
     (PROJECT.quests || []).forEach(registerQuest);
 
     /* attach hackertyper widget pages to their target sites */
@@ -883,7 +996,13 @@ function __qeRegisterProject(sdk, PROJECT) {
     var Mod = class extends sdk.Bootstrap {
         /* Twotter accounts and tweets are declared per-quest (see the Quest
            class above); the engine registers and cleans them up automatically,
-           so no imperative Twotter.* calls are needed here. */
+           so no imperative Twotter.* calls are needed here. The one thing this
+           does is repair account records the engine left half-built, which is
+           why installing this mod is enough to un-break a save whose Twotter
+           search crashes. */
+        OnModPackageLoaded() {
+            __qeRepairTwotter(sdk);
+        }
     };
     sdk.RegisterModPackage(Mod);
 }

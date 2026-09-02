@@ -4,8 +4,8 @@
  * OnStart builds networks and sends mail, triggers evaluate their
  * conditions, and manual-input commands branch on the typed answer.
  */
-import { describe, expect, it } from "vitest";
-import { compileProject, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
+import { describe, expect, it, vi } from "vitest";
+import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
 import type { NodeDoc } from "@/schema/nodes";
@@ -448,8 +448,10 @@ describe("Twotter accounts + tweets register declaratively (SDK-native)", () => 
         const modJs = compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).not.toContain("Twotter.addUser");
         expect(modJs).not.toContain("Twotter.createUser");
-        // no imperative bootstrap logic — the Mod class is a plain shell
-        expect(modJs).not.toContain("OnModPackageLoaded()");
+        // The one thing the Mod class does on load is repair half-built
+        // Twotter account records (see "Twotter save safety"); it must not
+        // create, add or post anything.
+        expect(modJs).toContain("__qeRepairTwotter(sdk)");
 
         // The live post path exists for nodes that opt into timing, but a
         // project that has not opted in must never reach it, even once the
@@ -1114,5 +1116,217 @@ describe("conversations timed to the story", () => {
         expect(warnings.join("\n")).toContain("“unlocks after”");
         const unwired = computeWarnings(chatProject("kisscord", { wire: false, live: true }));
         expect(unwired.join("\n")).toContain("nothing is wired into it");
+    });
+});
+
+/**
+ * The QA crash of 02/09/2026 (log on the QA-filedump branch):
+ *
+ *   TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+ *       at Array.filter … useMemo
+ *
+ * Searching Twotter for a word that matches nothing crashed the game, and kept
+ * crashing it after the mod was removed, because the broken account record is
+ * in the save. A TwotterUser carries more fields than a quest account
+ * definition can (name, surname, banner, joinedAt, password); whatever the
+ * engine leaves unset is undefined, and search lowercases them all.
+ *
+ * The same log also shows the quest never starting at all:
+ *   Mod "twotter-qatest-5" tried to use Network.getPlayerIp without "network"
+ * — for a project that mentions no player IP anywhere.
+ */
+describe("Twotter save safety", () => {
+    /** The game's own search, as the crash log describes it. */
+    function searchLikeTheGame(users: Record<string, unknown>[], query: string) {
+        const q = query.toLowerCase();
+        return users.filter(
+            (u) =>
+                String((u as { username: string }).username).toLowerCase().includes(q) ||
+                (u.name as string).toLowerCase().includes(q) ||
+                (u.surname as string).toLowerCase().includes(q) ||
+                (u.bio as string).toLowerCase().includes(q),
+        );
+    }
+
+    /** A user record the way the QA save had it: half the fields missing. */
+    function halfBuiltUser(username: string) {
+        return { id: "u1", username, avatar: "a.png", followers: 0, following: 0 } as Record<string, unknown>;
+    }
+
+    function tweetProject(patch: Record<string, unknown> = {}) {
+        const p = createProject();
+        const quest = p.quests[0];
+        quest.name = "QATest";
+        quest.autoStart = true;
+        quest.twotterAccounts = [
+            { id: "k5nKaikR", username: "qatest5", displayName: "QA Test", avatar: "", verified: false, ...patch },
+        ];
+        const entry = node("entry.start");
+        const tweet = node("comms.tweet", { accountId: "k5nKaikR", content: "Hello World!" });
+        quest.graph.nodes = [entry, tweet];
+        quest.graph.edges = [edge(entry.id, tweet.id, "flow")];
+        return p;
+    }
+
+    function twotterStore(calls: string[], user: Record<string, unknown>) {
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Twotter = {
+            getUserByUsername: (u: string) => ((user.username === u ? user : undefined)),
+            getUserById: (id: string) => (user.id === id ? user : undefined),
+        };
+        return sdk;
+    }
+
+    it("reproduces the crash: an unrepaired record kills search on a word that matches nothing", () => {
+        const user = halfBuiltUser("qatest5");
+        // "test" is a substring of the username, so the filter short-circuits
+        // before it reaches the undefined fields — which is exactly why QA saw
+        // a successful search followed by a crash on the next word.
+        expect(searchLikeTheGame([user], "test")).toHaveLength(1);
+        expect(() => searchLikeTheGame([user], "boop")).toThrow(TypeError);
+    });
+
+    it("fills every string field the save needs, and search survives", async () => {
+        const calls: string[] = [];
+        const user = halfBuiltUser("qatest5");
+        const sdk = twotterStore(calls, user);
+        const { files } = compileProject(tweetProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+
+        for (const key of ["username", "name", "surname", "avatar", "banner", "bio", "joinedAt", "password"]) {
+            expect(typeof user[key], `${key} must be a string in the save`).toBe("string");
+        }
+        // The display name is split the way a person would: "QA Test".
+        expect(user.name).toBe("QA");
+        expect(user.surname).toBe("Test");
+        // And now the search that crashed the game finds nothing, quietly.
+        expect(searchLikeTheGame([user], "boop")).toEqual([]);
+        expect(searchLikeTheGame([user], "qatest")).toHaveLength(1);
+    });
+
+    it("leaves a record the engine already built properly alone", async () => {
+        const calls: string[] = [];
+        const user = {
+            id: "k5nKaikR", username: "qatest5", name: "Dock", surname: "Watch", avatar: "a.png",
+            banner: "b.png", bio: "hi", joinedAt: "2026-01-01", password: "x", followers: 3, following: 4,
+        } as Record<string, unknown>;
+        const sdk = twotterStore(calls, user);
+        const { files } = compileProject(tweetProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+        expect(user.name).toBe("Dock");
+        expect(user.surname).toBe("Watch");
+        expect(user.followers).toBe(3);
+    });
+
+    it("declares accounts with no holes in them", () => {
+        const { files } = compileProject(tweetProject());
+        const src = files.find((f) => f.path === "dist/mod.js")!.content;
+        const account = JSON.parse(
+            src.slice(src.indexOf('"twotterAccounts":[') + '"twotterAccounts":['.length).split("}]")[0] + "}",
+        );
+        expect(account.username).toBe("qatest5");
+        // bio/followers/following/verified are always written, never left out:
+        // an absent field is an undefined field once it reaches the save.
+        const calls: string[] = [];
+        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
+        runMod(src, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.TwotterAccounts[0]).toMatchObject({
+            bio: "",
+            followers: 0,
+            following: 0,
+            verified: false,
+        });
+        expect(typeof q.TwotterAccounts[0].avatar).toBe("string");
+    });
+
+    it("repairs a broken save on mod load, before any quest runs", async () => {
+        // The scenario that matters most: the player's save already holds the
+        // half-built record and the quest is long finished (or never claimed).
+        // Installing the mod has to be enough.
+        const calls: string[] = [];
+        const user = halfBuiltUser("qatest5");
+        const sdk = twotterStore(calls, user);
+        const { files } = compileProject(tweetProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const ModPackage = (registered0(sdk) as { mod: new () => { OnModPackageLoaded(): void } }).mod;
+        expect(ModPackage).toBeTruthy();
+        new ModPackage().OnModPackageLoaded();
+
+        expect(typeof user.name).toBe("string");
+        expect(typeof user.joinedAt).toBe("string");
+        expect(searchLikeTheGame([user], "boop")).toEqual([]);
+        // …and it did it by patching, not by creating a second account.
+        expect(calls.filter((c) => /addUser|createUser|postTweet/.test(c))).toEqual([]);
+    });
+
+    it("says in the log which fields it had to fill, so a crash report can name them", () => {
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        const user = halfBuiltUser("qatest5");
+        const sdk = twotterStore([], user);
+        const { files } = compileProject(tweetProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        new (registered0(sdk).mod)().OnModPackageLoaded();
+        spy.mockRestore();
+
+        const line = said.find((l) => l.includes("@qatest5")) ?? "";
+        expect(line).toContain("repaired Twotter account");
+        expect(line).toContain("name");
+        expect(line).toContain("surname");
+    });
+
+    it("never touches the player's IP unless the author asked for it", async () => {
+        const calls: string[] = [];
+        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
+        // The loader throws for an undeclared permission — exactly as the log shows.
+        sdk.Network = {
+            getPlayerIp: () => {
+                calls.push("getPlayerIp");
+                throw new Error('[ContentSDK] Mod tried to use Network.getPlayerIp without "network" permission.');
+            },
+        };
+        const { files } = compileProject(tweetProject());
+        expect(JSON.parse(files.find((f) => f.path === "manifest.json")!.content).permissions).not.toContain("network");
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        expect(() => q.OnStart()).not.toThrow();
+        q.OnObjectivesStart();
+        await settle();
+        expect(calls).not.toContain("getPlayerIp");
+    });
+
+    it("asks for the permission when a token does need the player's IP", () => {
+        const p = tweetProject();
+        (p.quests[0].graph.nodes[1].data as { content: string }).content = "Your IP is {{player.ip}}";
+        expect(computePermissions(p)).toContain("network");
+        const { files } = compileProject(p);
+        expect(JSON.parse(files.find((f) => f.path === "manifest.json")!.content).permissions).toContain("network");
+    });
+
+    it("still resolves the token when the permission is there", async () => {
+        const calls: string[] = [];
+        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
+        sdk.Network = { getPlayerIp: () => "10.0.0.7" };
+        sdk.UI = { notify: (m: string) => calls.push(`notify:${m}`) };
+        const p = tweetProject();
+        const notify = node("fx.notify", { message: "IP {{player.ip}}", variant: "notify" });
+        p.quests[0].graph.nodes.push(notify);
+        p.quests[0].graph.edges.push(edge(p.quests[0].graph.nodes[0].id, notify.id, "flow"));
+        const { files } = compileProject(p);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+        expect(calls).toContain("notify:IP 10.0.0.7");
     });
 });

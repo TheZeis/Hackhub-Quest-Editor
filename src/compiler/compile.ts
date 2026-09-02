@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r28";
+export const EDITOR_BUILD = "2026-09-02.r29";
 
 export interface CompiledFile {
     path: string;
@@ -55,8 +55,24 @@ export interface CompileResult {
 
 const nodeType = (n: NodeDoc) => n.type;
 
+/**
+ * Tokens the author typed into text somewhere in the project. `{{player.ip}}`
+ * is a `Network.getPlayerIp()` call at runtime, and the loader refuses an API
+ * whose permission is not declared — so a token has to earn its permission the
+ * same way a node does.
+ */
+function tokenPermissions(project: ProjectDocument): string[] {
+    const text = JSON.stringify(project);
+    const perms: string[] = [];
+    if (text.includes("player.ip") || text.includes("random.ip")) perms.push("network");
+    if (text.includes("player.email")) perms.push("mail");
+    if (text.includes("player.username")) perms.push("shell");
+    return perms;
+}
+
 export function computePermissions(project: ProjectDocument): string[] {
     const perms = new Set<string>();
+    for (const p of tokenPermissions(project)) perms.add(p);
     const nodes = project.quests.flatMap((q) => q.graph.nodes);
     for (const n of nodes) {
         switch (nodeType(n)) {
@@ -307,6 +323,19 @@ export function compileProject(project: ProjectDocument): CompileResult {
         `- Websites: ${project.websites.map((w) => w.host).join(", ") || "none"}`,
         `- Permissions requested: ${permissions.join(", ") || "none"}`,
         "",
+        ...(project.quests.some((q) => (q.twotterAccounts ?? []).length > 0)
+            ? [
+                  "## Twotter accounts",
+                  "",
+                  "This mod checks its own Twotter accounts when it loads and fills in any",
+                  "field the game left unset (name, surname, banner, joined date …). An unset",
+                  "field there crashes Twotter's search — including in saves made before this",
+                  "version — so if search has been crashing, installing this mod and loading",
+                  "the save repairs those records. Look for `[quest-editor] repaired Twotter",
+                  "account` in the game log.",
+                  "",
+              ]
+            : []),
         "## Notes",
         "",
         ...(warnings.length ? warnings.map((w) => `- ${w}`) : ["- Everything compiled cleanly. Have fun."]),

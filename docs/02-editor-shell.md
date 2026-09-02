@@ -923,3 +923,55 @@ input it was just pulled out of.
 
 **Verification:** 400 tests (18 files, +6), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r28"`.
+
+## Round 29 — the Twotter search crash, and the quest that never started
+
+Evidence: the QA-filedump branch (crash log, save, mod zip, exported project) for
+`twotter-qatest-5`, run against r28.
+
+**Two separate faults in one run.**
+
+**1. `Cannot read properties of undefined (reading 'toLowerCase')` — Twotter
+search.** A `TwotterUser` in the save has more fields than a
+`TwotterAccountDefinition` can carry: `name`, `surname`, `banner`, `joinedAt`,
+`password`. Whatever the engine leaves unset stays *undefined in the save file*,
+and Twotter's search lowercases those strings for every record it tests. That is
+why searching “test” worked (it matched the username and the filter
+short-circuited) and “boop” crashed a moment later — and why the crash outlived
+the mod: the broken record is in the save, and no cleanup pass reaches it. The
+same file already carried the note “an empty avatar string crashes Twotter
+search”, which is the same fault, one field over.
+
+Fix, in two layers. The account definition no longer has holes: `bio`,
+`followers`, `following` and `verified` are always written, never omitted. And
+the emitted mod now runs a repair pass — `__qeRepairTwotter` — which looks each
+of its accounts up with `getUserByUsername` / `getUserById` and fills anything
+that is not a string (`name`/`surname` split from the display name, `joinedAt`
+stamped, the rest blank). It runs from `OnModPackageLoaded` as well as from
+`OnStart`/`OnObjectivesStart`, so **installing the mod is enough to repair a save
+an earlier build broke**, even if the quest is finished or was never claimed. It
+patches in place — no `createUser`, no `addUser`, no second account — and logs
+what it filled (`[quest-editor] repaired Twotter account @… : filled name,
+surname, …`), so the next crash report can name the field.
+
+**2. The quest never actually started.** The log shows
+`Mod "twotter-qatest-5" tried to use Network.getPlayerIp without "network"
+permission` thrown out of `OnStart` — for a project that mentions no player IP
+anywhere. `dataScope()` was building `player.ip`, `player.email`,
+`player.username` and three `random.*` values *eagerly*, on every scope, whether
+or not a token asked for them. They are lazy getters now, each wrapped in
+`__QE.safe()`, so an unused value cannot touch a permission and no optional
+lookup can throw a quest down. And when a token *is* used, the permission is
+requested: `computePermissions` scans the project text for `{{player.ip}}`,
+`{{random.ip}}` (network), `{{player.email}}` (mail) and `{{player.username}}`
+(shell).
+
+**Tests** (`compile.test.ts` → “Twotter save safety”) reproduce the crash with the
+game's own filter — “test” finds the account, “boop” throws `TypeError` — then
+prove the repaired record survives both, that a well-built record is left alone,
+that mod load alone repairs a save, that the log names the fields, that a project
+without IP tokens never calls `getPlayerIp` even when the SDK throws for it, and
+that a project *with* the token still resolves it and asks for `network`.
+
+**Verification:** 409 tests (18 files, +9), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r29"`.
