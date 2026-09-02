@@ -4,7 +4,7 @@
  * OnStart builds networks and sends mail, triggers evaluate their
  * conditions, and manual-input commands branch on the typed answer.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
@@ -252,11 +252,18 @@ describe("compile", () => {
         await settle();
         expect(calls).toContain("notify:granted");
 
-        // the widget page exists on the target site, hidden from search, emitting once
+        // The widget page exists on the target site at an address a person
+        // could actually be told about, is findable in-game, and talks back
+        // through HackhubSDK — the global the sandboxed iframe really has.
+        // (It used to call `sdk`, which does not exist in there, so the reveal
+        // event never fired and nothing after it ever ran.)
         const site = new reg.websites[0]();
-        const widget = site.Pages.find((p: { path: string }) => p.path.startsWith("/qe/ht/"));
-        expect(widget.seo).toBe(false);
+        const widget = site.Pages.find((p: { path: string }) => p.path.startsWith("/terminal/"));
+        expect(widget, "the hackertyper page must be on the referenced site").toBeTruthy();
+        expect(widget.seo).toBe(true);
         expect(widget.html).toContain(htListener![0]);
+        expect(widget.html).toContain("HackhubSDK.Events.emit");
+        expect(widget.html).toContain("postMessage");
         expect(widget.html).toContain("done=true");
     });
 
@@ -1490,5 +1497,112 @@ describe("other calls that never matched the SDK", () => {
             sdk.UI = { toast: (m: string, t: string) => c.push(`toast:${m}:${t}`), notify: () => {} };
         });
         expect(calls).toContain("toast:careful:warning");
+    });
+});
+
+/**
+ * QA, round 35: the Ledger quest called `sendMail(0, "i.faber@ghostmail.io")`
+ * — verified by running the author's own exported mod against a stub engine —
+ * and no mail ever arrived in-game. The call is right; the engine dropped it.
+ *
+ * Two defences, both tested here: bind the live quest instance in every hook
+ * (the engine may build the class more than once, and only one instance can
+ * actually send), and check the inbox afterwards, delivering the mail directly
+ * if the quest path lost it.
+ */
+describe("a briefing mail that actually arrives", () => {
+    function mailProject() {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const mail = node("comms.dialogue", {
+            kind: "mail",
+            mail: { from: "i.faber@ghostmail.io", subject: "One file", content: "<p>Get it done.</p>", replyable: true },
+        });
+        q.graph.nodes = [entry, mail];
+        q.graph.edges = [edge(entry.id, mail.id, "flow")];
+        return p;
+    }
+
+    /** A stub engine whose quest mail delivery works. */
+    function workingEngine(calls: string[]) {
+        const inbox: { id: string; subject: string }[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Mail = {
+            getInbox: () => inbox,
+            getPlayerEmail: () => "player@gomail.com",
+            send: (m: { subject: string }) => { calls.push(`Mail.send:${m.subject}`); inbox.push({ id: "d", subject: m.subject }); },
+        };
+        return { sdk, inbox };
+    }
+
+    it("keeps the mail's reply flag, which the engine needs to allow a reply", () => {
+        const sdk = stubSdk([], []) as any;
+        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Mails[0]).toMatchObject({ title: "One file", replyable: true });
+    });
+
+    it("sends through the quest, and says so once the inbox shows it", async () => {
+        const calls: string[] = [];
+        const { sdk, inbox } = workingEngine(calls);
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        // the working engine: sendMail puts it in the inbox
+        q.sendMail = (i: number, from: string) => {
+            calls.push(`sendMail:${i}:${from}`);
+            inbox.push({ id: "q", subject: q.Mails[i].title });
+        };
+        q.OnStart();
+        await new Promise((r) => setTimeout(r, 1700));
+        spy.mockRestore();
+
+        expect(calls).toContain("sendMail:0:i.faber@ghostmail.io");
+        expect(calls.filter((c) => c.startsWith("Mail.send"))).toEqual([]); // no double mail
+        expect(said.join("\n")).toContain('mail "One file" delivered');
+    });
+
+    it("delivers it directly when the quest path swallows it", async () => {
+        const calls: string[] = [];
+        const { sdk } = workingEngine(calls);
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        // the QA engine: the call is accepted and nothing happens
+        q.sendMail = (i: number) => calls.push(`sendMail:${i}`);
+        q.OnStart();
+        await new Promise((r) => setTimeout(r, 1700));
+        spy.mockRestore();
+
+        expect(calls).toContain("sendMail:0");
+        expect(calls).toContain("Mail.send:One file");
+        expect(said.join("\n")).toContain("never reached the inbox");
+    });
+
+    it("binds the instance the engine is actually running", async () => {
+        // The engine builds the class twice; only the second instance is live.
+        const calls: string[] = [];
+        const { sdk } = workingEngine(calls);
+        const Cls = (() => {
+            runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+            return registered0(sdk).quests[0];
+        })();
+        const dead = new Cls();
+        const live = new Cls();
+        dead.sendMail = () => calls.push("sendMail:DEAD");
+        live.sendMail = (i: number) => calls.push(`sendMail:LIVE:${i}`);
+        // OnStart is called on the live one; the last-constructed reference is
+        // no longer a safe assumption, so the hook must rebind.
+        const other = new Cls();
+        other.sendMail = () => calls.push("sendMail:OTHER");
+        live.OnStart();
+        await settle();
+        expect(calls).toContain("sendMail:LIVE:0");
+        expect(calls).not.toContain("sendMail:OTHER");
+        expect(calls).not.toContain("sendMail:DEAD");
     });
 });

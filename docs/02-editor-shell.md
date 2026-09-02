@@ -1322,3 +1322,69 @@ clean. The Ledger template, run against a stub engine, now reaches
 `net:45.33.32.156 → mail:0` with both tool responses registered as
 `("lynx", "Anselm Ritter", {…})` and `("whois", "meridian-capital.net", {…})`.
 Export stamp: `EDITOR_BUILD = "2026-09-02.r35"`.
+
+## Round 36 — the mail the engine accepted and never delivered
+
+QA ran the r35 Ledger export with the briefing mail moved to the **front** of the
+chain. Same result: the quest claims, the objective appears, no mail.
+
+### What the evidence says
+
+Running the author's own exported `dist/mod.js` against a stub engine:
+
+```
+sendMail:0:i.faber@ghostmail.io
+net:45.33.32.156
+cmd:lynx:"Anselm Ritter"
+cmd:whois:"meridian-capital.net"
+```
+
+Everything fires, in the right order, with the right arguments. **The mod asks
+for the mail correctly and the game does not deliver it.** So the flow is not the
+problem any more (r35 fixed that) — the delivery is.
+
+Two defences, because the cause is on the far side of a call we cannot debug:
+
+**1. Bind the live quest instance in every hook.** The runtime kept a `questRef`
+captured in the constructor. If the engine builds the quest class more than once
+— a metadata pass and then the live quest, in either order — that reference can
+point at an instance the engine is not using, whose `sendMail` is wired to
+nothing. `OnStart`, `OnObjectivesStart`, `OnComplete` and `OnAbandon` now each set
+`questRef = this` before doing anything.
+
+**2. Send, verify, repair.** After `sendMail`, the runtime waits, then looks in
+`Mail.getInbox()` for the subject. If it is there, it says so. If it is not, it
+delivers the same mail through `Mail.send({ subject, content, from, to })` — the
+global "send an email to the player's inbox" API — and logs that it had to:
+
+```
+[quest-editor] quest mail "One file, one man, no trace" never reached the inbox;
+              sent it directly with Mail.send instead
+```
+
+Either way the player gets the mail, and the next log says which path worked —
+which also answers whether quest mail is broken in this build or only in this
+mod. Run against the author's exact project, the fallback fires and the mail is
+delivered.
+
+Also: `replyable` was being dropped from every quest mail, so “the player can
+reply to this” never reached the engine. Carried through now.
+
+### The hackertyper node was broken, and QA was right to suspect it
+
+Its page HTML called `sdk.Events.emit(...)`. The SDK documents the in-frame global
+as **`HackhubSDK`** — pages run in a sandboxed iframe where `sdk` does not exist —
+so the reveal event never fired and **nothing wired after a hackertyper node
+could ever run**. Fixed, with a `sdk` fallback and a `postMessage` last resort.
+
+Two more faults in the same node, both about the player never finding the thing:
+
+- the page lived at `/qe/ht/<generated-node-id>` — an address nobody could type
+  — and was marked `seo: false`, so in-game search would not show it either.
+  It is now `/terminal/<heading-in-dashes>` and listed.
+- nothing told the author any of this. The node now carries a note explaining
+  where the page will be and that the quest has to send the player there; the
+  Ledger template's brief now names the address in the mail.
+
+**Verification:** 459 tests (19 files, +4), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r36"`.

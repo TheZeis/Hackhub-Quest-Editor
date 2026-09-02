@@ -135,6 +135,7 @@ function __qeRegisterProject(sdk, PROJECT) {
         var Mails = mailNodes.map(function (n) {
             var m = n.data.mail;
             var out = { title: m.subject, content: m.content };
+            if (m.replyable) out.replyable = true;
             if (m.attachment && m.attachment.name) out.attachment = m.attachment;
             return out;
         });
@@ -389,6 +390,78 @@ function __qeRegisterProject(sdk, PROJECT) {
            two nodes later was never sent - the player got a quest with an
            objective and nothing else. Now a node that throws is logged and the
            flow carries on to the next one. */
+        /* Sending a quest mail, and making sure it actually arrived.
+           QA hit a quest whose briefing mail never appeared even though
+           sendMail() was called with the right index: the engine accepted the
+           call and delivered nothing. So: send it, then look in the player's
+           inbox a moment later, and if it is not there, deliver the same mail
+           through the global Mail API instead. Whichever path worked is written
+           to the log, so a failure can be diagnosed from a report. */
+        function sendQuestMail(node, scope) {
+            var mi = mailIndex[node.id];
+            var baseMail = Mails[mi];
+            if (!baseMail) return;
+            var subject = __QE.fill(baseMail.title || "", scope);
+            var content = __QE.fill(baseMail.content || "", scope);
+            var from = mailFrom[node.id] || "";
+
+            if (questRef && questRef.Mails && questRef.Mails[mi]) {
+                var filledMail = { title: subject, content: content };
+                if (baseMail.replyable) filledMail.replyable = true;
+                if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
+                questRef.Mails[mi] = filledMail;
+            }
+            var sent = false;
+            try {
+                if (questRef && questRef.sendMail) {
+                    questRef.sendMail(mi, from || undefined);
+                    sent = true;
+                }
+            } catch (e) {
+                __QE.log("sendMail(" + mi + ") threw: " + (e && e.message ? e.message : e));
+            }
+            if (!sent) __QE.log("sendMail(" + mi + ") could not be called on this quest instance");
+
+            /* Verify, then repair. Delivery may be a tick or two behind, so the
+               check waits before deciding anything. */
+            __QE.sleep(1500).then(function () {
+                if (__qeInboxHas(subject)) {
+                    __QE.log("mail \"" + subject + "\" delivered");
+                    return;
+                }
+                if (sdk.Mail && sdk.Mail.send) {
+                    var direct = { subject: subject, content: content };
+                    if (from) direct.from = from;
+                    var to = __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
+                    if (to) direct.to = to;
+                    if (baseMail.attachment && baseMail.attachment.name) {
+                        direct.attachments = [{
+                            name: baseMail.attachment.name,
+                            extension: baseMail.attachment.extension || "txt",
+                            data: baseMail.attachment.content || "",
+                        }];
+                    }
+                    __QE.safe(function () { sdk.Mail.send(direct); return ""; });
+                    __QE.log("quest mail \"" + subject + "\" never reached the inbox; sent it directly with Mail.send instead");
+                } else {
+                    __QE.log("quest mail \"" + subject + "\" never reached the inbox, and this build has no Mail.send to fall back on");
+                }
+            });
+        }
+
+        /* Is a mail with this subject in the player's inbox? Unknown (false)
+           when the game does not expose the inbox. */
+        function __qeInboxHas(subject) {
+            var inbox = __QE.safe(function () {
+                return sdk.Mail && sdk.Mail.getInbox ? sdk.Mail.getInbox() : null;
+            });
+            if (!inbox || !inbox.length) return false;
+            for (var i = 0; i < inbox.length; i++) {
+                if (inbox[i] && inbox[i].subject === subject) return true;
+            }
+            return false;
+        }
+
         function runFlow(nodeId, ctx, depth) {
             try {
                 return runFlowStep(nodeId, ctx, depth);
@@ -555,14 +628,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                        conversation can land on a Sequence beat. */
                     if (liveChat[node.id]) return sendChatNow(node, scope).then(next);
                     if (d.kind === "mail" && mailIndex[node.id] != null) {
-                        var mi = mailIndex[node.id];
-                        var baseMail = Mails[mi];
-                        if (baseMail && questRef.Mails && questRef.Mails[mi]) {
-                            var filledMail = { title: __QE.fill(baseMail.title, scope), content: __QE.fill(baseMail.content, scope) };
-                            if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
-                            questRef.Mails[mi] = filledMail;
-                        }
-                        questRef.sendMail(mi, mailFrom[node.id]);
+                        sendQuestMail(node, scope);
                     }
                     if (d.kind === "phone") {
                         var branchName = d.phone && d.phone.branch ? d.phone.branch : "default";
@@ -910,12 +976,24 @@ function __qeRegisterProject(sdk, PROJECT) {
                     return {};
                 }
                 OnStart() {
+                    /* The engine may build this class more than once (metadata
+                       pass, then the live quest). Whichever instance the engine
+                       is actually calling is the one that can send mail and
+                       complete objectives, so bind it here rather than trusting
+                       whatever the last constructor saw. */
+                    questRef = this;
                     var ctx = { payload: {}, vars: {} };
                     g.nodes
                         .filter(function (n) { return n.type === "entry.start"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
                 }
                 OnObjectivesStart() {
+                    /* The engine may build this class more than once (metadata
+                       pass, then the live quest). Whichever instance the engine
+                       is actually calling is the one that can send mail and
+                       complete objectives, so bind it here rather than trusting
+                       whatever the last constructor saw. */
+                    questRef = this;
                     var self = this;
                     var ctx = { payload: {}, vars: {} };
                     refillComms();
@@ -982,6 +1060,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                         });
                 }
                 OnComplete() {
+                    /* The engine may build this class more than once (metadata
+                       pass, then the live quest). Whichever instance the engine
+                       is actually calling is the one that can send mail and
+                       complete objectives, so bind it here rather than trusting
+                       whatever the last constructor saw. */
+                    questRef = this;
                     var ctx = { payload: {}, vars: {} };
                     runQuestCleanup();
                     weechatServers.forEach(function (s) {
@@ -992,6 +1076,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
                 }
                 OnAbandon() {
+                    /* The engine may build this class more than once (metadata
+                       pass, then the live quest). Whichever instance the engine
+                       is actually calling is the one that can send mail and
+                       complete objectives, so bind it here rather than trusting
+                       whatever the last constructor saw. */
+                    questRef = this;
                     var ctx = { payload: {}, vars: {} };
                     runQuestCleanup();
                     weechatServers.forEach(function (s) {
@@ -1081,6 +1171,17 @@ function __qeRegisterProject(sdk, PROJECT) {
 
     var __QE_HACKERTYPER = [];
 
+    /* The address the author can put in a mail: derived from the heading, so
+       "SECURE REPLY - FABER" lives at /terminal/secure-reply-faber rather than
+       at a generated node id nobody could ever type. */
+    function __qeHtPath(node) {
+        var slug = String(node.data.heading || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        return "/terminal/" + (slug || node.id);
+    }
+
     (PROJECT.quests || []).forEach(registerQuest);
 
     /* attach hackertyper widget pages to their target sites */
@@ -1091,13 +1192,30 @@ function __qeRegisterProject(sdk, PROJECT) {
             var ref = String(h.node.data.targetRef || "");
             if (ref.indexOf(w.host) !== 0) return;
             extras.push({
-                path: "/qe/ht/" + h.node.id,
+                path: __qeHtPath(h.node),
                 title: h.node.data.heading || "Terminal",
-                seo: false,
+                /* Listed on purpose: the player has to be able to find this
+                   page. A hidden page at a generated address is a page nobody
+                   ever opens. */
+                seo: true,
                 html: [
                     "<!DOCTYPE html><html><head><style>body{background:#000;color:#0f0;font-family:monospace;padding:24px}</style></head><body>",
                     "<h3>" + (h.node.data.heading || "") + "</h3><pre id='t'></pre>",
-                    "<script>var s=" + JSON.stringify(h.node.data.text) + ";var i=0;var done=false;document.addEventListener('keydown',function(){if(done)return;i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i===s.length){done=true;sdk.Events.emit(" + JSON.stringify("QE.ht." + h.node.id) + ");}});</script>",
+                    "<script>",
+                    "var s=" + JSON.stringify(h.node.data.text) + ";var i=0;var done=false;",
+                    "var EV=" + JSON.stringify(__qeHtEvent(h.node)) + ";",
+                    /* The page runs in a sandboxed iframe, where the SDK is
+                       exposed as HackhubSDK — not as sdk, which is what this
+                       used to call, so the finished event never fired and
+                       nothing downstream ever ran. Falls back to postMessage
+                       for builds that wire the frame up differently. */
+                    "function fire(){",
+                    "  try{ if(typeof HackhubSDK!=='undefined'&&HackhubSDK.Events&&HackhubSDK.Events.emit){HackhubSDK.Events.emit(EV);return;} }catch(e){}",
+                    "  try{ if(typeof sdk!=='undefined'&&sdk.Events&&sdk.Events.emit){sdk.Events.emit(EV);return;} }catch(e){}",
+                    "  try{ if(window.parent){window.parent.postMessage({type:'HackhubSDK.Events.emit',event:EV},'*');} }catch(e){}",
+                    "}",
+                    "document.addEventListener('keydown',function(){if(done)return;i=Math.min(s.length,i+" + (h.node.data.charsPerKeypress || 3) + ");document.getElementById('t').textContent=s.slice(0,i);if(i===s.length){done=true;fire();}});",
+                    "</script>",
                     "</body></html>",
                 ].join(""),
             });

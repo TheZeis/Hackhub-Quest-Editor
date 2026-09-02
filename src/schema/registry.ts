@@ -651,6 +651,11 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onObjectivesStart",
         fields: [
+            {
+                kind: "note",
+                tone: "info",
+                text: "This builds a page on the website you name below, at /terminal/ plus the heading in dashes — heading “Secure reply” becomes /terminal/secure-reply. Nothing links to it, so tell the player where it is: put the address in the mail or chat that sends them there.",
+            },
             { kind: "note", tone: "info", text: "HackHub has no engine primitive for this, so the editor emits a small HTML surface that runs the effect and emits a custom event when the string is revealed." },
             {
                 kind: "select",

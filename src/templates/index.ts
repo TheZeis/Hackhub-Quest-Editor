@@ -809,7 +809,7 @@ function buildContractHack(): ProjectDocument {
             content: [
                 `<p>His name is <b>${TARGET}</b>. That is all you get, and all you need.</p>`,
                 `<p>On his machine there is a spreadsheet called <b>${FILE}.xlsx</b>. I want it gone. Not copied, not read to me — gone.</p>`,
-                "<p>Reply to this mail when it is done. I check.</p>",
+                `<p>When it is done, tell me through the drop page: <b>${DOMAIN}/terminal/secure-reply</b>. Do not reply to this address.</p>`,
             ].join(""),
             replyable: true,
         },
@@ -879,7 +879,7 @@ function buildContractHack(): ProjectDocument {
     const reply = makeNode("reply.hackertyper", { x: 2540, y: 520 }, {
         surface: "website",
         targetRef: DOMAIN,
-        heading: "SECURE REPLY — FABER",
+        heading: "Secure reply",
         text: "> job closed\n> ledger_q3.xlsx no longer exists on the host\n> logs cleared\n> send the rest of the money",
         charsPerKeypress: 4,
         eventName: "QE.reply.sent",
