@@ -1262,3 +1262,63 @@ the SDK's event set, so that much is usable — nothing else from it was taken.
 
 **Verification:** 445 tests (19 files, +21), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r34"`.
+
+## Round 35 — the quest that started and then did nothing
+
+QA screenshot: the Ledger contract auto-started, “Read the contract” appeared in
+the journal, and that was it. No briefing mail, no contract on hackhub.com.
+
+### The cause
+
+`Shell.addCommandData` takes **three** arguments — `(command, input, data)`.
+The runtime passed two: the response text as the *input*, and nothing as the
+data. The engine threw, and because the two Tool response nodes sit between the
+network and the briefing mail in that template's flow, **the exception killed
+the chain before the mail was ever sent**. The quest existed, its objectives
+existed, and nothing else did.
+
+Three more calls were wrong in the same way, found by auditing every `sdk.*`
+call in the runtime against the declarations:
+
+| Call | Was | Is |
+|---|---|---|
+| `Shell.addCommandData` | `(command, dataText)` | `(command, input, data)` — plus `removeCommandData` on quest end, which `removeOnComplete` had never actually done |
+| `Shell.execute(cmd)` | does not exist — “Run shell command” silently did nothing | `Shell.exec(cmd)`, awaited |
+| `Quest.claim(d.quest)` | field is `questName`; passed `undefined` | `Quest.claim(d.questName)`, guarded |
+| `UI.toast(msg)` | tone dropped, every toast looked the same | `UI.toast(msg, tone)` |
+
+### Tool responses now speak the engine's shapes
+
+`addCommandData` wants the structure the tool returns, not printable text — the
+node's own field promised the opposite (“the player sees it word for word”).
+Authors keep writing readable lines; the compiler converts:
+
+- `whois` → `{ domain, ip, contact, email, status }`
+- `lynx` → `{ socialMedia, ips, address, contact: { emails, phones }, additional }`
+- `geoip` → `{ country, city, latitude, longitude }`, `hydra` → `{ credentials }`,
+  `ping` → boolean, `nslookup`/`mxlookup` → string
+- `nmap` → `NmapPort[]` parsed from `22 open ssh OpenSSH 8.9` lines
+- anything starting `{` or `[` is parsed as JSON and passed through untouched
+
+`hydra`, `ssh` and `ftp` are keyed by an object (`{ user, target }` etc.), so the
+node's User/Target fields finally do something.
+
+### And the structural fix: one node can no longer end the story
+
+This is the part worth keeping. `runFlow` now runs each node inside a try/catch
+and rejections are caught at the wire: a node that throws is **logged by name and
+skipped**, and the flow continues to the next one.
+
+```
+[quest-editor] node CtUi7l6 (world.toolResponse) failed and was skipped: …
+```
+
+A single bad call used to take out everything downstream of it — the exact
+failure in the screenshot. Now the briefing mail still goes out, and the log says
+what broke.
+
+**Verification:** 455 tests (19 files, +10), `tsc --noEmit` clean, `vite build`
+clean. The Ledger template, run against a stub engine, now reaches
+`net:45.33.32.156 → mail:0` with both tool responses registered as
+`("lynx", "Anselm Ritter", {…})` and `("whois", "meridian-capital.net", {…})`.
+Export stamp: `EDITOR_BUILD = "2026-09-02.r35"`.

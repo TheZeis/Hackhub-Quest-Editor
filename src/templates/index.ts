@@ -793,7 +793,7 @@ function buildContractHack(): ProjectDocument {
             `Domain:     ${DOMAIN}`,
             `IP:         ${IP}`,
             "Registrant: Meridian Capital AG",
-            "Contact:    hostmaster@meridian-capital.net",
+            "Email:      hostmaster@meridian-capital.net",
             "Status:     active",
         ].join("\n"),
         removeOnComplete: true,

@@ -283,9 +283,13 @@ export const FilesNodeDataSchema = z.object({
 });
 
 /**
- * `Shell.addCommandData` — scripts what a built-in reconnaissance tool reports.
- * `dataText` is edited through a shape-aware editor in the inspector, never as
- * raw JSON in the common case.
+ * `Shell.addCommandData(command, input, data)` — scripts what a built-in
+ * reconnaissance tool reports for one exact input.
+ *
+ * `dataText` is authored as readable "Label: value" lines (or port lines, for
+ * nmap) and the compiler turns them into the shape that tool actually returns;
+ * JSON is passed through untouched. The engine takes a structure here, never a
+ * block of text, and getting that wrong throws inside the game.
  */
 export const ToolResponseNodeDataSchema = z.object({
     command: z

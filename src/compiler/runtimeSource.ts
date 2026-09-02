@@ -266,6 +266,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 var item = questCleanup.pop();
                 try {
                     if (item.kind === "domain" && sdk.Network.removeDomain) sdk.Network.removeDomain(item.domain);
+                    if (item.kind === "commandData" && sdk.Shell && sdk.Shell.removeCommandData) sdk.Shell.removeCommandData(item.command, item.input);
                     if (item.kind === "firewall" && sdk.Network.removeFirewallRule) sdk.Network.removeFirewallRule(item.ip, item.port);
                     if (item.kind === "database" && sdk.Database && sdk.Database.remove) sdk.Database.remove(item.id);
                     if (item.kind === "port") {
@@ -382,7 +383,33 @@ function __qeRegisterProject(sdk, PROJECT) {
             }
         }
 
+        /* One node must never be able to end the story.
+           The Ledger template proved why: a single bad SDK call in a Tool
+           response node threw, the promise chain died, and the briefing mail
+           two nodes later was never sent - the player got a quest with an
+           objective and nothing else. Now a node that throws is logged and the
+           flow carries on to the next one. */
         function runFlow(nodeId, ctx, depth) {
+            try {
+                return runFlowStep(nodeId, ctx, depth);
+            } catch (e) {
+                var failed = byId[nodeId];
+                __QE.log("node " + nodeId + (failed ? " (" + failed.type + ")" : "") +
+                    " failed and was skipped: " + (e && e.message ? e.message : e));
+                return continueFrom(nodeId, ctx, depth);
+            }
+        }
+
+        /* The wires out of a node, followed without running the node itself. */
+        function continueFrom(nodeId, ctx, depth) {
+            var node = byId[nodeId];
+            if (!node) return Promise.resolve();
+            return flowOuts(nodeId).reduce(function (p, e) {
+                return p.then(function () { return runFlow(e.target, ctx, depth + 1); });
+            }, Promise.resolve());
+        }
+
+        function runFlowStep(nodeId, ctx, depth) {
             if (depth > 200) return Promise.resolve();
             var node = byId[nodeId];
             if (!node) return Promise.resolve();
@@ -398,7 +425,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 return edges.reduce(function (p, e) {
                     return p.then(function () { return runFlow(e.target, ctx, depth + 1); });
-                }, Promise.resolve());
+                }, Promise.resolve()).catch(function (e) {
+                    __QE.log("flow after node " + nodeId + " stopped: " + (e && e.message ? e.message : e));
+                });
             };
             var d = node.data;
             switch (node.type) {
@@ -505,9 +534,22 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }
                     return next();
                 }
-                case "world.toolResponse":
-                    if (sdk.Shell && sdk.Shell.addCommandData) sdk.Shell.addCommandData(d.command, d.dataText);
+                case "world.toolResponse": {
+                    /* Shell.addCommandData(command, input, data): the input is
+                       the thing the player typed after the command, and the
+                       data is a SHAPE the tool understands, not a block of
+                       text. Passing the text as the input (which is what this
+                       used to do) throws inside the engine and takes the rest
+                       of the quest with it. */
+                    if (sdk.Shell && sdk.Shell.addCommandData) {
+                        var trInput = __qeCommandInput(d, scope);
+                        sdk.Shell.addCommandData(d.command, trInput, __qeCommandData(d.command, __QE.fill(d.dataText || "", scope)));
+                        if (d.removeOnComplete !== false) {
+                            questCleanup.push({ kind: "commandData", command: d.command, input: trInput });
+                        }
+                    }
                     return next();
+                }
                 case "comms.dialogue": {
                     /* Timed chat → play it here, message by message, so a
                        conversation can land on a Sequence beat. */
@@ -548,7 +590,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                 case "fx.notify": {
                     var notifyMsg = __QE.fill(d.message, scope);
                     if (sdk.UI) {
-                        if (d.variant === "toast" && sdk.UI.toast) sdk.UI.toast(notifyMsg);
+                        /* toast takes the tone as its second argument; it used
+                           to be dropped, so every toast looked the same. */
+                        if (d.variant === "toast" && sdk.UI.toast) sdk.UI.toast(notifyMsg, d.tone || "info");
                         else if (sdk.UI.notify) sdk.UI.notify(notifyMsg);
                     }
                     return next();
@@ -557,7 +601,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                     questRef.SetData(d.key, __QE.fill(d.value, scope));
                     return next();
                 case "fx.claimQuest":
-                    sdk.Quest.claim(d.quest);
+                    /* Quest.claim is a static on the Quest class, and the field
+                       is questName - this used to pass an undefined "quest". */
+                    if (sdk.Quest && sdk.Quest.claim && d.questName) sdk.Quest.claim(d.questName);
                     return next();
                 case "fx.pay":
                 case "fx.withdraw": {
@@ -584,9 +630,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                             .then(next, next);
                     }
                     return next();
-                case "fx.shell":
-                    if (sdk.Shell && sdk.Shell.execute) sdk.Shell.execute(__QE.fill(d.command, scope));
+                case "fx.shell": {
+                    /* The SDK calls it exec(); execute() never existed, so this
+                       node quietly did nothing at all. */
+                    var shellCmd = __QE.fill(d.command, scope);
+                    if (sdk.Shell && sdk.Shell.exec) return Promise.resolve(sdk.Shell.exec(shellCmd)).then(next, next);
+                    if (sdk.Shell && sdk.Shell.execute) sdk.Shell.execute(shellCmd);
                     return next();
+                }
                 case "flow.delay":
                     return __QE.sleep(Math.max(0, Number(d.seconds || 0)) * 1000).then(next);
                 case "flow.sequence": {
@@ -645,6 +696,124 @@ function __qeRegisterProject(sdk, PROJECT) {
                 if (f.children && f.children.length) o.children = mapFiles(f.children);
                 return o;
             });
+        }
+
+        /* What the player types after the command. Most tools are keyed by a
+           single string (an ip or a domain); hydra/ssh/ftp are keyed by an
+           object, per the SDK's CommandDataMap. */
+        function __qeCommandInput(d, scope) {
+            var input = __QE.fill(d.input || "", scope);
+            var user = __QE.fill(d.inputUser || "", scope);
+            var target = __QE.fill(d.inputTarget || "", scope) || input;
+            if (d.command === "hydra") return { user: user, target: target };
+            if (d.command === "ssh") return { host: target, key: user };
+            if (d.command === "ftp") return { host: target, username: user, password: "" };
+            return input;
+        }
+
+        /* Authors write the response as readable lines; the engine wants the
+           shape its own tool returns. JSON is passed through untouched for
+           anyone who wants exact control. */
+        function __qeKeyValueLines(text) {
+            var out = [];
+            String(text).split("\n").forEach(function (line) {
+                var at = line.indexOf(":");
+                if (at <= 0) return;
+                var key = line.slice(0, at).trim().toLowerCase();
+                var value = line.slice(at + 1).trim();
+                if (key && value) out.push([key, value]);
+            });
+            return out;
+        }
+
+        function __qeCommandData(command, text) {
+            var trimmed = String(text || "").trim();
+            if (!trimmed) return command === "ping" ? true : {};
+            if (trimmed.charAt(0) === "{" || trimmed.charAt(0) === "[") {
+                try { return JSON.parse(trimmed); } catch (e) { /* not JSON after all */ }
+            }
+            var pairs = __qeKeyValueLines(trimmed);
+            var get = function (names) {
+                for (var i = 0; i < pairs.length; i++) {
+                    if (names.indexOf(pairs[i][0]) >= 0) return pairs[i][1];
+                }
+                return "";
+            };
+            if (command === "ping") return !/false|down|unreachable/i.test(trimmed);
+            if (command === "nslookup" || command === "mxlookup") {
+                return get(["ip", "address", "answer"]) || trimmed.split("\n")[0].trim();
+            }
+            if (command === "whois") {
+                var whois = {};
+                var domain = get(["domain", "domain name"]);
+                var ip = get(["ip", "ip address", "address"]);
+                var contact = get(["registrant", "contact", "owner", "organisation", "organization"]);
+                var email = get(["email", "e-mail", "abuse"]);
+                if (domain) whois.domain = domain;
+                if (ip) whois.ip = ip;
+                if (contact) whois.contact = contact;
+                if (email) whois.email = email;
+                whois.status = !/status:\s*(inactive|expired|false)/i.test(trimmed);
+                return whois;
+            }
+            if (command === "geoip") {
+                return {
+                    country: get(["country"]),
+                    city: get(["city"]),
+                    latitude: get(["latitude", "lat"]),
+                    longitude: get(["longitude", "lon", "lng"]),
+                };
+            }
+            if (command === "lynx") {
+                var lynx = { additional: [] };
+                pairs.forEach(function (pair) {
+                    var key = pair[0];
+                    var value = pair[1];
+                    if (key.indexOf("mail") >= 0) {
+                        lynx.contact = lynx.contact || {};
+                        lynx.contact.emails = (lynx.contact.emails || []).concat(value.split(/[,;]\s*/));
+                    } else if (key.indexOf("phone") >= 0) {
+                        lynx.contact = lynx.contact || {};
+                        lynx.contact.phones = (lynx.contact.phones || []).concat(value.split(/[,;]\s*/));
+                    } else if (key === "ip" || key === "ips") {
+                        lynx.ips = (lynx.ips || []).concat(value.split(/[,;]\s*/));
+                    } else if (key.indexOf("address") >= 0 || key === "location") {
+                        lynx.address = (lynx.address || []).concat([value]);
+                    } else if (key.indexOf("social") >= 0) {
+                        lynx.socialMedia = (lynx.socialMedia || []).concat(value.split(/[,;]\s*/));
+                    } else {
+                        var record = {};
+                        record[pair[0]] = value;
+                        lynx.additional.push(record);
+                    }
+                });
+                return lynx;
+            }
+            if (command === "nmap") {
+                var ports = [];
+                String(trimmed).split("\n").forEach(function (line) {
+                    /* "22/tcp open ssh OpenSSH 7.2" and "22 open ssh" both.
+                       The status has to be a whole word: a greedy match found
+                       the "Open" inside "OpenSSH" and read the rest wrong. */
+                    var m = /^\s*(\d{1,5})(?:\/\w+)?\s+(open|closed?|filtered|forwarded)\b\s*([a-z0-9_.-]*)\s*(.*)$/i.exec(line);
+                    if (!m) return;
+                    var status = m[2].toUpperCase();
+                    if (status === "CLOSED") status = "CLOSE";
+                    var port = { port: Number(m[1]), status: status, service: m[3] || "" };
+                    if (m[4] && m[4].trim()) port.version = m[4].trim();
+                    ports.push(port);
+                });
+                return ports;
+            }
+            if (command === "hydra") {
+                return { credentials: { username: get(["username", "user"]), password: get(["password", "pass"]) } };
+            }
+            if (command === "ssh") {
+                return { ip: get(["ip", "host"]), status: /close|refus|denied/i.test(trimmed) ? "CLOSE" : "OPEN" };
+            }
+            var generic = {};
+            pairs.forEach(function (pair) { generic[pair[0]] = pair[1]; });
+            return pairs.length ? generic : trimmed;
         }
 
         function mapDevice(dev) {

@@ -1320,3 +1320,175 @@ describe("world nodes that used to be notes", () => {
         expect(() => q.OnComplete()).not.toThrow();
     });
 });
+
+/**
+ * QA screenshot, round 34: the Ledger quest auto-started, its objective appeared
+ * in the journal, and then nothing — no briefing mail, no contract. The cause
+ * was a Tool response node calling `Shell.addCommandData` with the wrong
+ * arguments; it threw inside the engine, the flow chain died, and the mail two
+ * nodes later never went out.
+ *
+ * Two fixes, tested here: the call is right, and a node that throws can no
+ * longer take the rest of the quest with it.
+ */
+describe("tool responses speak the SDK's actual signature", () => {
+    function toolProject(data: Record<string, unknown>) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const tool = node("world.toolResponse", data);
+        const after = node("fx.notify", { message: "still running", variant: "notify" });
+        q.graph.nodes = [entry, tool, after];
+        q.graph.edges = [edge(entry.id, tool.id, "flow"), edge(tool.id, after.id, "flow")];
+        return p;
+    }
+
+    async function play(data: Record<string, unknown>, shell?: Record<string, unknown>) {
+        const calls: string[] = [];
+        const added: [string, unknown, unknown][] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Shell = {
+            addCommandData: (c: string, input: unknown, d: unknown) => {
+                added.push([c, input, d]);
+                if (d === undefined) throw new Error("[ContentSDK] addCommandData: data is required");
+            },
+            removeCommandData: (c: string, input: unknown) => calls.push(`rm:${c}:${JSON.stringify(input)}`),
+            ...shell,
+        };
+        runMod(compileProject(toolProject(data)).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        await settle();
+        return { calls, added, q };
+    }
+
+    it("keys the response by what the player types, and sends a shape as the data", async () => {
+        const { added } = await play({
+            command: "whois",
+            input: "meridian-capital.net",
+            dataText: "Domain: meridian-capital.net\nIP: 45.33.32.156\nRegistrant: Meridian Capital AG\nEmail: hostmaster@meridian-capital.net",
+            removeOnComplete: true,
+        });
+        expect(added).toHaveLength(1);
+        const [command, input, data] = added[0];
+        expect(command).toBe("whois");
+        expect(input).toBe("meridian-capital.net"); // NOT the response text
+        expect(data).toEqual({
+            domain: "meridian-capital.net",
+            ip: "45.33.32.156",
+            contact: "Meridian Capital AG",
+            email: "hostmaster@meridian-capital.net",
+            status: true,
+        });
+    });
+
+    it("turns an OSINT block into the lynx shape", async () => {
+        const { added } = await play({
+            command: "lynx",
+            input: "Anselm Ritter",
+            dataText: "Name: Anselm Ritter\nWeb: https://meridian-capital.net\nEmail: a.ritter@meridian-capital.net\nSocial: @a_ritter_mc",
+        });
+        const data = added[0][2] as { contact?: { emails?: string[] }; socialMedia?: string[]; additional?: unknown[] };
+        expect(data.contact?.emails).toEqual(["a.ritter@meridian-capital.net"]);
+        expect(data.socialMedia).toEqual(["@a_ritter_mc"]);
+        expect(data.additional).toContainEqual({ name: "Anselm Ritter" });
+    });
+
+    it("reads a port table as nmap's own shape", async () => {
+        const { added } = await play({
+            command: "nmap",
+            input: "45.33.32.156",
+            dataText: "22 open ssh OpenSSH 7.2\n80 open http nginx 1.18\n3306 closed mysql",
+        });
+        expect(added[0][2]).toEqual([
+            { port: 22, status: "OPEN", service: "ssh", version: "OpenSSH 7.2" },
+            { port: 80, status: "OPEN", service: "http", version: "nginx 1.18" },
+            { port: 3306, status: "CLOSE", service: "mysql" },
+        ]);
+    });
+
+    it("passes JSON straight through for anyone who wants exact control", async () => {
+        const { added } = await play({
+            command: "ping",
+            input: "10.0.0.4",
+            dataText: '{"anything":"goes"}',
+        });
+        expect(added[0][2]).toEqual({ anything: "goes" });
+    });
+
+    it("keys hydra by the user/target pair the SDK expects", async () => {
+        const { added } = await play({
+            command: "hydra",
+            input: "",
+            inputUser: "root",
+            inputTarget: "10.0.0.4",
+            dataText: "Username: root\nPassword: hunter2",
+        });
+        expect(added[0][1]).toEqual({ user: "root", target: "10.0.0.4" });
+        expect(added[0][2]).toEqual({ credentials: { username: "root", password: "hunter2" } });
+    });
+
+    it("takes the response away again when the quest ends", async () => {
+        const { calls, q } = await play({ command: "whois", input: "x.net", dataText: "IP: 1.2.3.4", removeOnComplete: true });
+        q.OnComplete();
+        expect(calls).toContain('rm:whois:"x.net"');
+    });
+
+    it("keeps the story going when a node throws", async () => {
+        // The exact QA failure: the tool call blows up, and the mail after it
+        // must still be sent.
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Shell = { addCommandData: () => { throw new Error("engine said no"); } };
+        runMod(compileProject(toolProject({ command: "whois", input: "x.net", dataText: "IP: 1.2.3.4" })).files
+            .find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        expect(() => q.OnStart()).not.toThrow();
+        await settle();
+        expect(calls).toContain("notify:still running");
+    });
+});
+
+describe("other calls that never matched the SDK", () => {
+    async function playOne(type: Parameters<typeof node>[0], data: Record<string, unknown>, sdkPatch: (s: any, calls: string[]) => void) {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdkPatch(sdk, calls);
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const target = node(type, data);
+        p.quests[0].graph.nodes = [entry, target];
+        p.quests[0].graph.edges = [edge(entry.id, target.id, "flow")];
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        await settle();
+        return calls;
+    }
+
+    it("runs a shell command through exec(), the name the SDK actually has", async () => {
+        const calls = await playOne("fx.shell", { command: "echo hi >> ~/notes.txt" }, (sdk, c) => {
+            sdk.Shell = { exec: (cmd: string) => { c.push(`exec:${cmd}`); return Promise.resolve(); } };
+        });
+        expect(calls).toContain("exec:echo hi >> ~/notes.txt");
+    });
+
+    it("claims the quest named in the node, not an undefined field", async () => {
+        const calls = await playOne("fx.claimQuest", { questName: "NextJob" }, (sdk, c) => {
+            sdk.Quest.claim = (name: string) => c.push(`claim:${name}`);
+        });
+        expect(calls).toContain("claim:NextJob");
+    });
+
+    it("gives a toast its tone", async () => {
+        const calls = await playOne("fx.notify", { message: "careful", variant: "toast", tone: "warning" }, (sdk, c) => {
+            sdk.UI = { toast: (m: string, t: string) => c.push(`toast:${m}:${t}`), notify: () => {} };
+        });
+        expect(calls).toContain("toast:careful:warning");
+    });
+});
