@@ -41,6 +41,7 @@ function scenarioProject(): ProjectDocument {
         mail: { from: "h@x.net", subject: "Job", content: "<p>hi</p>", replyable: false },
     });
     const net = node("world.network", {
+        ipMode: "fixed",
         device: {
             id: "r1",
             ip: "10.0.0.14",
@@ -637,5 +638,85 @@ describe("reference template through the compiler", () => {
         for (const WC of reg.websites) new WC();
         for (const CC of reg.commands) new CC();
         // no exception anywhere = every node type survives the interpreter
+    });
+});
+
+describe("random target ip: CreateData + {{data.targetIp}}", () => {
+    /** Unlike stubSdk() above, SetData here actually persists into Data and
+     * createSubnetNetwork records the full device — this exercises the real
+     * CreateData()/Data round trip the shared stub short-circuits. */
+    function persistingSdk() {
+        const calls: string[] = [];
+        const registered: any = { quests: [] };
+        class Quest {
+            Data: Record<string, unknown> = {};
+            Events = { on: () => {}, off: () => {}, offAll: () => {} };
+            sendMail() {}
+            createDialog() {}
+            completeObjective() {}
+            SetData(k: string, v: unknown) {
+                (this.Data as any)[k] = v;
+            }
+        }
+        const sdk = {
+            Quest,
+            Website: class {},
+            Command: class {},
+            Bootstrap: class {},
+            RegisterQuest: (c: unknown) => registered.quests.push(c),
+            RegisterWebsite: () => {},
+            RegisterCommand: () => {},
+            RegisterModPackage: () => {},
+            Network: {
+                createSubnetNetwork: (d: { ip: string }) => calls.push(`net:${d.ip}`),
+                createUser: (u: unknown) => u,
+                randomIp: () => "45.33.32.156",
+            },
+            UI: { notify: (m: string) => calls.push(`notify:${m}`), toast: () => {} },
+            Shell: {},
+            Bank: {},
+        };
+        return { sdk, registered, calls };
+    }
+
+    it("allocates targetIp once in CreateData and reuses it for the live network and every {{data.targetIp}} token", async () => {
+        const project = createProject();
+        const quest = project.quests[0];
+        quest.autoStart = true;
+
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "random",
+            device: { id: "r1", ip: "10.0.0.1", type: "ROUTER", ports: [], users: [] },
+        });
+        const notify = node("fx.notify", { message: "target is {{data.targetIp}}" });
+        quest.graph.nodes = [entry, net, notify];
+        quest.graph.edges = [
+            edge(entry.id, net.id, "flow"),
+            edge(net.id, notify.id, "flow"),
+        ];
+
+        const { sdk, registered, calls } = persistingSdk();
+        const { files } = compileProject(project);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const QC = registered.quests[0];
+        const q = new QC();
+        q.Data = await q.CreateData(); // mirrors what the real engine does before OnStart
+        q.OnStart();
+        await settle();
+
+        expect(q.Data.targetIp).toBe("45.33.32.156");
+        expect(calls).toContain("net:45.33.32.156"); // same ip used for the live network
+        expect(calls).toContain("notify:target is 45.33.32.156"); // and for the token
+    });
+
+    it("CreateData() returns {} when nothing needs a random ip", async () => {
+        const { sdk, registered } = persistingSdk();
+        const { files } = compileProject(createProject());
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const QC = registered.quests[0];
+        const q = new QC();
+        expect(await q.CreateData()).toEqual({});
     });
 });

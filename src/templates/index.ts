@@ -381,10 +381,9 @@ function buildInvestigation(): ProjectDocument {
         ip: "{{data.targetIp}}",
         parentPath: "/var/www/intranet/",
     });
-    const storeIp = makeNode("fx.setData", { x: 320, y: 160 }, {
-        key: "targetIp",
-        value: "{{network.routerIp}}",
-    });
+    /* Note: `network`'s ipMode is "random", so the compiler allocates
+       Data.targetIp once in CreateData() and reuses it for the live
+       network — no manual fx.setData step needed to capture it. */
 
     /* ── briefing, re-sent on every load ────────────────────────────────── */
     const mail = makeNode("comms.dialogue", { x: 320, y: 450 }, {
@@ -580,7 +579,7 @@ function buildInvestigation(): ProjectDocument {
     quest.graph = {
         nodes: [
             claim, load, complete, abandon,
-            network, firewall, domain, dropFiles, storeIp,
+            network, firewall, domain, dropFiles,
             mail, kisscord, weechat, call,
             recon, findPage, exfil,
             branch, quietPath, loudPath, tipQuiet, tipLoud,
@@ -591,8 +590,7 @@ function buildInvestigation(): ProjectDocument {
         edges: [
             // Claim: build the world once.
             makeEdge(claim, "out", network, "in"),
-            makeEdge(network, "out", storeIp, "in"),
-            makeEdge(storeIp, "out", firewall, "in"),
+            makeEdge(network, "out", firewall, "in"),
             makeEdge(firewall, "out", domain, "in"),
             makeEdge(domain, "out", dropFiles, "in"),
 
@@ -945,7 +943,7 @@ export const TEMPLATES: Template[] = [
         description:
             "A corporate network behind a firewall, a website with an unlinked page, mail / Kisscord / WeeChat / a phone call, a branch on how the player got in, and a passphrase ending.",
         difficulty: "Advanced",
-        nodeCount: 30,
+        nodeCount: 29,
         build: buildInvestigation,
     },
     {

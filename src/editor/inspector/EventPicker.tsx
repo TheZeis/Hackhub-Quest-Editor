@@ -161,7 +161,8 @@ export function EventPicker({
 
             {isCustom && (
                 <p className="field-hint">
-                    Custom event — emit it from a website, app or terminal command with
+                    Advanced: a custom event isn't in the game yet — you (or another mod)
+                    must trigger it from a website, app or terminal command with
                     <code className="mx-1 rounded bg-surface-2 px-1 font-mono text-[10px]">
                         HackhubSDK.Events.emit("{value}")
                     </code>
@@ -169,9 +170,19 @@ export function EventPicker({
             )}
             {selected && (
                 <p className="field-hint">
-                    Payload:{" "}
-                    <code className="font-mono text-[10px] text-ink-3">{selected.payload}</code>
-                    {payloadFields(selected.payload).length === 0 && " (no fields)"}
+                    {payloadFields(selected.payload).length > 0 ? (
+                        <>
+                            This event tells you:{" "}
+                            <code
+                                className="font-mono text-[10px] text-ink-3"
+                                title={selected.payload}
+                            >
+                                {payloadFields(selected.payload).join(", ")}
+                            </code>
+                        </>
+                    ) : (
+                        "This event doesn't carry any extra details to test against."
+                    )}
                 </p>
             )}
         </Popover.Root>

@@ -841,7 +841,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "key", hint: "A name you choose, like containerId. Use the same name later to read this value back.", label: "Key", mono: true },
+            { kind: "text", key: "key", hint: "A name you choose, like doorCode. Use the same name later to read this value back.", label: "Key", mono: true },
             { kind: "text", key: "value", hint: "Any text is fine — a word, a number, an address. It is just stored, so nothing here can error. You can also insert a live value by typing {{data.name}} for something you saved earlier.", label: "Value", mono: true, tokens: true },
         ],
         create: () => seed(SetDataNodeDataSchema),
@@ -862,7 +862,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "fx.shell": {
         type: "fx.shell",
         category: "effect",
-        label: "Run shell command",
+        label: "Run terminal command",
         blurb: "Execute in the terminal",
         icon: "terminal",
         ...io,
@@ -898,10 +898,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         fields: [
             {
                 kind: "select",
-                key: "source", hint: "Test against the details of the event that fired, or against quest data you stored earlier.",
+                key: "source", hint: "Test against details from the event that fired, or against quest data you stored earlier with a “Set quest data” node.",
                 label: "Test against",
                 options: [
-                    { value: "event", label: "The triggering event payload" },
+                    { value: "event", label: "Details from the event" },
                     { value: "data", label: "Quest data" },
                 ],
             },

@@ -102,7 +102,6 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
                         {def.label}
                     </h2>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-ink-2">{def.blurb}</p>
-                    <p className="mt-1 font-mono text-[10px] text-ink-4">{node.type}</p>
                 </div>
                 <button
                     type="button"
@@ -147,7 +146,7 @@ function QuestInspector() {
     return (
         <div className="pb-8">
             <Section>Identity</Section>
-            <FieldShell label="Quest identifier" hint="Unique across all mods. Used by Quest.claim() and quest chaining.">
+            <FieldShell label="Quest identifier" hint="A unique name for this quest, not shown to players. Other quests use it to unlock only after this one is finished.">
                 <TextInput
                     ariaLabel="Quest identifier"
                     value={quest.name}
@@ -361,7 +360,7 @@ function ModInspector() {
             <FieldShell label="Display name">
                 <TextInput ariaLabel="Display name" value={mod.name} onChange={(name) => updateMod({ name })} />
             </FieldShell>
-            <FieldShell label="Version" hint="Semantic versioning. Bump it before every Workshop upload.">
+            <FieldShell label="Version" hint="A number for this release, like 1.0.0. Increase it before every Workshop upload so players get the update.">
                 <TextInput
                     ariaLabel="Version"
                     value={mod.version}

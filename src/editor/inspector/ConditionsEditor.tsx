@@ -59,7 +59,7 @@ export function ConditionsEditor({
             {value.length === 0 && (
                 <p className="rounded-md border border-dashed border-line px-3 py-3 text-center text-[11.5px] leading-relaxed text-ink-4">
                     {primitive
-                        ? "This event's payload is a single value. Test it with the field name “value”."
+                        ? "This event only gives one piece of information. Compare it using the name “value”."
                         : "No conditions — this fires whenever the event happens."}
                 </p>
             )}
@@ -186,10 +186,10 @@ function FieldCombobox({
         <div className="flex items-center gap-1.5">
             <div className="relative flex-1">
                 <TextInput
-                    ariaLabel="Payload field"
+                    ariaLabel="Event detail"
                     value={value}
                     onChange={onChange}
-                    placeholder="field"
+                    placeholder="detail name"
                     mono
                 />
             </div>
@@ -199,8 +199,8 @@ function FieldCombobox({
                         <button
                             type="button"
                             className="btn-default shrink-0 px-2 py-1.5"
-                            title="Pick a payload field"
-                            aria-label="Pick a payload field"
+                            title="Pick a detail this event provides"
+                            aria-label="Pick a detail this event provides"
                         >
                             <Icon name="list" size={12} />
                         </button>
@@ -229,7 +229,7 @@ function FieldCombobox({
                 </Popover.Root>
             )}
             {!known && value !== "" && fields.length > 0 && (
-                <span className="shrink-0 text-warn" title="Not one of this event's payload fields">
+                <span className="shrink-0 text-warn" title="Not one of this event's known details">
                     <Icon name="alert" size={13} />
                 </span>
             )}

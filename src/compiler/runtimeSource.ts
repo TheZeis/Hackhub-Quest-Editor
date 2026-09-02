@@ -157,13 +157,23 @@ function __qeRegisterProject(sdk, PROJECT) {
                 };
             });
 
+        /* WeeChatChatDefinition (the declarative, quest-scoped chat script) only
+           has host/messages in the SDK — there is no password or
+           registerServer field on it. Making the server something the
+           player can actually connect to (weechat HOST PASSWORD) is a
+           separate, imperative call: WeeChat.createServer(host, password).
+           That registration (and its matching removeServer cleanup) is done
+           in OnObjectivesStart/OnComplete/OnAbandon below — see
+           weechatServers. */
+        var weechatServers = g.nodes
+            .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "weechat" && n.data.weechat.registerServer; })
+            .map(function (n) { return { host: n.data.weechat.host, password: n.data.weechat.password }; });
+
         var WeeChatChats = g.nodes
             .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "weechat"; })
             .map(function (n) {
                 return {
                     host: n.data.weechat.host,
-                    password: n.data.weechat.password,
-                    registerServer: n.data.weechat.registerServer,
                     messages: (n.data.weechat.messages || []).map(function (m) {
                         var out = m.playerAction === "send"
                             ? { content: m.playerText, username: "you" }
@@ -219,6 +229,9 @@ function __qeRegisterProject(sdk, PROJECT) {
 
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });
         var questRef = null;
+        var needsTargetIp = g.nodes.some(function (n) {
+            return (n.type === "world.network" || n.type === "world.wifi") && n.data.ipMode === "random";
+        });
 
         var Objectives = objectiveNodes.map(function (n) {
             var unlocks = g.edges
@@ -240,15 +253,85 @@ function __qeRegisterProject(sdk, PROJECT) {
                 o.trigger = {
                     event: trig.data.event,
                     condition: function (data) {
-                        return __QE.matchAll(clauses, data, { data: data, Data: questRef ? questRef.Data : {} });
+                        return __QE.matchAll(clauses, data, dataScope());
                     },
                 };
             }
             return o;
         });
 
+        /* Builds the scope object {{token}} fields resolve against.
+           data/Data both point at the quest's own persisted Data (set via
+           SetData / CreateData) — NOT the current event payload, which is
+           matched separately via each condition's own field selector. This
+           matches what every field hint in the editor promises ("insert a
+           value you saved earlier"). player and random fields are computed
+           fresh each call so repeated use of e.g. {{random.password}}
+           yields independent values. */
+        function dataScope(extra) {
+            var d = questRef ? questRef.Data : {};
+            var base = {
+                data: d,
+                Data: d,
+                player: {
+                    ip: sdk.Network && sdk.Network.getPlayerIp ? sdk.Network.getPlayerIp() : "",
+                    email: sdk.Mail && sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : "",
+                    username: sdk.Shell && sdk.Shell.getUsername ? sdk.Shell.getUsername() : "",
+                },
+                random: {
+                    password: sdk.Random && sdk.Random.password ? sdk.Random.password() : "",
+                    ip: sdk.Network && sdk.Network.randomIp ? sdk.Network.randomIp() : "",
+                    username: sdk.Random && sdk.Random.username ? sdk.Random.username() : "",
+                },
+            };
+            if (extra) { for (var k in extra) base[k] = extra[k]; }
+            return base;
+        }
+
         function scopeOf(ctx) {
-            return { data: ctx && ctx.payload, Data: questRef ? questRef.Data : {}, vars: ctx && ctx.vars };
+            return dataScope({ vars: ctx && ctx.vars });
+        }
+
+        /* Kisscord/WeeChat/Tweet/Twotter content is registered declaratively
+           on the instance (the SDK drives when each message actually shows,
+           not the flow graph), so there's no single "send" call site to fill
+           tokens at like there is for mail/dialog. Best effort: re-render
+           with whatever Data exists once CreateData has populated it (called
+           from OnObjectivesStart, which always runs after CreateData). This
+           correctly resolves anything set in CreateData (including
+           {{data.targetIp}}), but NOT values a flow node sets later via
+           fx.setData mid-playthrough — those can't retroactively update
+           content the SDK already registered. */
+        function refillComms() {
+            var scope = dataScope();
+            if (KisscordChats.length) {
+                questRef.KisscordChats = KisscordChats.map(function (c) {
+                    return Object.assign({}, c, {
+                        messages: c.messages.map(function (m) {
+                            return m.content ? Object.assign({}, m, { content: __QE.fill(m.content, scope) }) : m;
+                        }),
+                    });
+                });
+            }
+            if (WeeChatChats.length) {
+                questRef.WeeChatChats = WeeChatChats.map(function (c) {
+                    return Object.assign({}, c, {
+                        messages: c.messages.map(function (m) {
+                            return m.content ? Object.assign({}, m, { content: __QE.fill(m.content, scope) }) : m;
+                        }),
+                    });
+                });
+            }
+            if (Tweets.length) {
+                questRef.Tweets = Tweets.map(function (t) {
+                    return Object.assign({}, t, { content: __QE.fill(t.content, scope) });
+                });
+            }
+            if (TwotterAccounts.length) {
+                questRef.TwotterAccounts = TwotterAccounts.map(function (a) {
+                    return a.bio ? Object.assign({}, a, { bio: __QE.fill(a.bio, scope) }) : a;
+                });
+            }
         }
 
         function runFlow(nodeId, ctx, depth) {
@@ -272,11 +355,20 @@ function __qeRegisterProject(sdk, PROJECT) {
             var d = node.data;
             switch (node.type) {
                 case "world.network": {
-                    var ip = sdk.Network.createSubnetNetwork(mapDevice(d.device));
-                    (ctx.vars || {})[nodeId] = ip;
+                    /* "random" is allocated once in CreateData() and lives in
+                       Data.targetIp, so the SAME ip is used here as whatever
+                       {{data.targetIp}} resolves to elsewhere (mail, notify,
+                       other device fields, condition values, ...). */
+                    var netIp = d.ipMode === "random"
+                        ? ((questRef && questRef.Data && questRef.Data.targetIp) || (sdk.Network.randomIp ? sdk.Network.randomIp() : d.device.ip))
+                        : d.device.ip;
+                    sdk.Network.createSubnetNetwork(mapDevice(Object.assign({}, d.device, { ip: netIp })));
                     return next();
                 }
-                case "world.wifi":
+                case "world.wifi": {
+                    var wifiIp = d.ipMode === "fixed" && d.ip
+                        ? d.ip
+                        : ((questRef && questRef.Data && questRef.Data.targetIp) || (sdk.Network.randomIp ? sdk.Network.randomIp() : "10.0.0.1"));
                     /* SDK 0.21.0 has no wireless API: use it if a future
                        version ships one, otherwise fall back to a plain
                        router network so the machines at least exist. */
@@ -290,9 +382,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                             model: d.model,
                         });
                     } else {
-                        var wifiIp = d.ipMode === "fixed" && d.ip
-                            ? d.ip
-                            : (sdk.Network.randomIp ? sdk.Network.randomIp() : "10.0.0.1");
                         sdk.Network.createSubnetNetwork(mapDevice({
                             ip: wifiIp,
                             type: "ROUTER",
@@ -303,21 +392,52 @@ function __qeRegisterProject(sdk, PROJECT) {
                         }));
                     }
                     return next();
+                }
                 case "world.toolResponse":
                     if (sdk.Shell && sdk.Shell.addCommandData) sdk.Shell.addCommandData(d.command, d.dataText);
                     return next();
-                case "comms.dialogue":
+                case "comms.dialogue": {
                     if (d.kind === "mail" && mailIndex[node.id] != null) {
-                        questRef.sendMail(mailIndex[node.id], mailFrom[node.id]);
+                        var mi = mailIndex[node.id];
+                        var baseMail = Mails[mi];
+                        if (baseMail && questRef.Mails && questRef.Mails[mi]) {
+                            var filledMail = { title: __QE.fill(baseMail.title, scope), content: __QE.fill(baseMail.content, scope) };
+                            if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
+                            questRef.Mails[mi] = filledMail;
+                        }
+                        questRef.sendMail(mi, mailFrom[node.id]);
                     }
-                    if (d.kind === "phone") questRef.createDialog(d.phone && d.phone.branch ? d.phone.branch : "default");
+                    if (d.kind === "phone") {
+                        var branchName = d.phone && d.phone.branch ? d.phone.branch : "default";
+                        var baseLines = Dialog[branchName];
+                        if (baseLines && questRef.Dialog && questRef.Dialog[branchName]) {
+                            questRef.Dialog[branchName] = baseLines.map(function (line) {
+                                var out = { speaker: line.speaker, text: __QE.fill(line.text, scope) };
+                                if (line.isEnd) out.isEnd = true;
+                                if (line.options) {
+                                    out.options = line.options.map(function (o) {
+                                        var oo = { label: o.label };
+                                        if (o.text) oo.text = __QE.fill(o.text, scope);
+                                        if (o.switchBranch) oo.switchBranch = o.switchBranch;
+                                        if (o.isEnd) oo.isEnd = true;
+                                        return oo;
+                                    });
+                                }
+                                return out;
+                            });
+                        }
+                        questRef.createDialog(branchName, d.phone && d.phone.startIndex ? d.phone.startIndex : 0);
+                    }
                     return next();
-                case "fx.notify":
+                }
+                case "fx.notify": {
+                    var notifyMsg = __QE.fill(d.message, scope);
                     if (sdk.UI) {
-                        if (d.variant === "toast" && sdk.UI.toast) sdk.UI.toast(d.message);
-                        else if (sdk.UI.notify) sdk.UI.notify(d.message);
+                        if (d.variant === "toast" && sdk.UI.toast) sdk.UI.toast(notifyMsg);
+                        else if (sdk.UI.notify) sdk.UI.notify(notifyMsg);
                     }
                     return next();
+                }
                 case "fx.setData":
                     questRef.SetData(d.key, __QE.fill(d.value, scope));
                     return next();
@@ -443,6 +563,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (TwotterAccounts.length) this.TwotterAccounts = TwotterAccounts;
                     if (Tweets.length) this.Tweets = Tweets;
                 }
+                CreateData() {
+                    /* Required by the SDK (Quest.CreateData is abstract) even
+                       when a quest has no data of its own to seed. Any
+                       world.network/world.wifi node using ipMode: "random"
+                       gets ONE ip allocated here, once, so it's stable
+                       across reloads and shared by both the live device and
+                       every {{data.targetIp}} reference. */
+                    if (needsTargetIp) return { targetIp: sdk.Network.randomIp ? sdk.Network.randomIp() : "10.0.0.1" };
+                    return {};
+                }
                 OnStart() {
                     var ctx = { payload: {}, vars: {} };
                     g.nodes
@@ -452,6 +582,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                 OnObjectivesStart() {
                     var self = this;
                     var ctx = { payload: {}, vars: {} };
+                    refillComms();
+                    weechatServers.forEach(function (s) {
+                        if (sdk.WeeChat && sdk.WeeChat.createServer) sdk.WeeChat.createServer(s.host, s.password);
+                    });
                     g.nodes
                         .filter(function (n) { return n.type === "entry.load"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
@@ -472,7 +606,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                         })
                         .forEach(function (n) {
                             self.Events.on(n.data.event, function (data) {
-                                if (__QE.matchAll(n.data.conditions, data, { data: data, Data: self.Data })) {
+                                if (__QE.matchAll(n.data.conditions, data, dataScope())) {
                                     flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: data, vars: {} }, 0); });
                                 }
                             });
@@ -480,12 +614,18 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 OnComplete() {
                     var ctx = { payload: {}, vars: {} };
+                    weechatServers.forEach(function (s) {
+                        if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
+                    });
                     g.nodes
                         .filter(function (n) { return n.type === "entry.complete"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
                 }
                 OnAbandon() {
                     var ctx = { payload: {}, vars: {} };
+                    weechatServers.forEach(function (s) {
+                        if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
+                    });
                     g.nodes
                         .filter(function (n) { return n.type === "entry.abandon"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
