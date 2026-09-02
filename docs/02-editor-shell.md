@@ -1014,3 +1014,82 @@ throw on a build with no `addUser`.
 
 **Verification:** 413 tests (18 files, +4), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r30"`.
+
+## Round 31 — Twotter removed
+
+**Decision: the Twotter integration is withdrawn.** Not deprecated, not hidden —
+removed, with a migration so no existing project is lost. It returns if a future
+SDK/engine build fixes the record it stores.
+
+### Why
+
+Seven in-game QA rounds (QATest 1–7, files on the `QA-filedump` branch) converge
+on one fault that no mod can work around:
+
+1. A quest-declared `TwotterAccountDefinition` becomes a `TwotterUser` in the
+   save whose **`bio` is `undefined`** — even when the account has a bio in the
+   project. Every other field the engine fills.
+2. Twotter's search calls `.toLowerCase()` on that field for every record it
+   tests. A term that matches the username first short-circuits (“test” worked);
+   the next term crashes the game (“boop” did, every time).
+3. The record is written to the **save**, so the crash survives uninstalling the
+   mod and survives the game's own cleanup pass.
+4. Nothing in SDK 0.21.0 can repair it. There is no `Twotter.removeUser`. Reads
+   (`getUserByUsername`/`getUserById`) hand back a **copy**, so patching the
+   field in place changes nothing — proved by our own repair pass reporting the
+   same hole twice in one session. Writing a complete record back with
+   `addUser` under the same id left it exactly as it was:
+   `bio:undefined` (QATest7 log).
+5. An account with **no tweet at all** crashes search just the same, so the fault
+   is the account record, not the post.
+
+Shipping a feature whose mere presence can brick a player's save is not a
+trade-off worth making for a cosmetic channel.
+
+### What was removed
+
+- Node type **`comms.tweet`** (“Post tweet”) — registry entry, schema, card
+  summary, analysis issue, inspector fields, reference-template entry. Node types
+  32 → **31**; the reference template's `nodeCount` 41 → **40**.
+- **Quest → Twotter accounts** — the whole Quest-tab section, `TwotterAccountSchema`
+  and `QuestDoc.twotterAccounts`.
+- The `questAccount` inspector field kind (it existed only for tweets).
+- Everything Twotter in the emitted runtime: `TwotterAccounts`, `Tweets`, the
+  timed-post path (`postTweetNow`, `canPostLive`, `timedTweet`), and the r29–r30
+  save-repair pass with its `Bootstrap.OnModPackageLoaded` hook. The mod package
+  class is a plain shell again.
+- Twotter avatar/picture assets from the export, the tweet export warnings and
+  the README section the compiler used to write.
+- The Twotter test suites. A guard remains in their place: **the emitted
+  `dist/mod.js` must not contain the strings `Twotter` or `Tweets`.**
+
+### What replaces it
+
+Nothing — but nothing breaks either:
+
+- **Migration** (`src/schema/migrate.ts`): a project made before round 31 loads
+  with its “Post tweet” nodes and their wires dropped and `twotterAccounts`
+  stripped. The rest of the quest is untouched.
+- **`parseProjectFile` now migrates too** — a QA sweep found that opening a
+  *file* skipped the migration step the autosaved draft always got, so an older
+  export would have been rejected as “not a quest project”. That bug predated
+  this round (it applied to the round-13 comms merge as well) and is fixed here,
+  with tests.
+
+### Kept from the Twotter investigation
+
+Two fixes found while chasing the crash are unrelated to Twotter and stay:
+
+- **Lazy token values.** `{{player.ip}}`, `{{player.email}}`, `{{player.username}}`
+  and the `{{random.*}}` values are getters wrapped in `__QE.safe()`, computed only
+  when a token asks for them. Eager evaluation once called `Network.getPlayerIp()`
+  in a mod with no network permission and the exception escaped `OnStart`, so the
+  quest never started.
+- **Token-driven permissions.** `computePermissions` scans project text for
+  `{{player.ip}}`/`{{random.ip}}` → `network`, `{{player.email}}` → `mail`,
+  `{{player.username}}` → `shell`.
+
+**Verification:** 387 tests (18 files), `tsc --noEmit` clean, `vite build` clean,
+and the real QATest7 export re-opened through the editor: it loads, the tweet node
+is gone, and the compiled `dist/mod.js` mentions Twotter only where the author
+typed it in their own mod name. Export stamp: `EDITOR_BUILD = "2026-09-02.r31"`.

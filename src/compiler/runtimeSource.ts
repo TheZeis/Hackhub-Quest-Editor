@@ -19,9 +19,8 @@ var __QE = (function () {
         });
     }
     function asString(x) { return x == null ? "" : String(x); }
-    /* Turn an ISO-ish date (yyyy-mm-dd) into the age phrase the Twotter SDK
-       expects ("3 days", "2 months", "1 year"). Returns "" for a blank or
-       unparseable date so callers can fall back to real-time display. */
+    /* Turn an ISO-ish date (yyyy-mm-dd) into an age phrase ("3 days",
+       "2 months", "1 year"). Returns "" for a blank or unparseable date. */
     function ageStringFromDate(value) {
         if (!value) return "";
         var then = new Date(value);
@@ -210,7 +209,7 @@ function __qeRegisterProject(sdk, PROJECT) {
             });
 
         /* Timed chats — OPT IN, per node ("Play when the story reaches this
-           node"), exactly like timed tweets. A quest-level KisscordChats /
+           node"). A quest-level KisscordChats /
            WeeChatChats script is handed to the engine when the quest starts, so
            a conversation that has to land on a Sequence beat cannot use that
            path. Those nodes are played through the platform API instead
@@ -255,129 +254,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                     return wait > 0 ? __QE.sleep(wait).then(send) : send();
                 });
             }, Promise.resolve());
-        }
-
-        var TwotterAccounts = (qd.twotterAccounts || []).map(function (a, i) {
-            var out = {
-                id: a.id || "account-" + (i + 1),
-                username: a.username,
-                displayName: a.displayName || a.username,
-                avatar: a.avatar || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAA",
-            };
-            /* Always a value, never a hole. An account field the engine copies
-               through as undefined ends up in the save file, and Twotter's
-               search lowercases these strings on every keystroke: one undefined
-               field there takes the whole game down, and the broken record
-               outlives the mod. */
-            out.bio = a.bio || "";
-            out.followers = Number(a.followers || 0);
-            out.following = Number(a.following || 0);
-            out.verified = !!a.verified;
-            return out;
-        });
-
-        /* ── Twotter save-safety pass ────────────────────────────────────
-           A TwotterUser in the game's save has more fields than a quest
-           account definition can carry (name, surname, banner, joinedAt,
-           password …). Whatever the engine leaves unset stays undefined in the
-           save, and Twotter's search calls .toLowerCase() on those strings for
-           every result it checks: search a word that matches nothing and the
-           game dies — before the mod is removed, and after, because the record
-           is in the save now.
-
-           So once the accounts exist, look each one up and fill in anything
-           that is not a string. It costs nothing when the engine already did it
-           right, and it repairs a save that a previous version broke, provided
-           the same account is loaded again. What it fixed is logged, so a
-           crash report can say which field was missing. */
-        /* Every account this quest puts on Twotter is also handed to the
-           package-level repair pass (see __qeRepairTwotter), which runs when
-           the mod loads and again whenever the quest starts. */
-        TwotterAccounts.forEach(function (a) { __QE_TWOTTER_ACCOUNTS.push(a); });
-        function repairTwotterAccounts() { __qeRepairTwotter(sdk); }
-
-        var tweetNodes = g.nodes.filter(function (n) { return n.type === "comms.tweet"; });
-        var Tweets = tweetNodes.map(function (n) {
-            /* Flat TweetDefinition, per the SDK: accountId + optional image. */
-            var t = {
-                accountId: n.data.accountId || (TwotterAccounts[0] && TwotterAccounts[0].id) || "",
-                content: n.data.content,
-            };
-            if (n.data.image) t.image = n.data.image;
-            if (n.data.likes != null) t.likes = n.data.likes;
-            if (n.data.comments != null) t.comments = n.data.comments;
-            if (n.data.shares != null) t.shares = n.data.shares;
-            if (n.data.views != null) t.views = n.data.views;
-            /* Timestamp. "now" leaves postedAgo unset so the game shows the post
-               relative to real time (its always-valid fallback). "relative"
-               passes the author's age string straight through. "absolute" turns
-               a picked date into the same kind of age string the SDK expects
-               ("3 days", "2 months", "1 year") so it never hands the game an
-               unparseable date. */
-            var mode = n.data.timeMode || (n.data.postedAgo ? "relative" : "now");
-            if (mode === "relative" && n.data.postedAgo) {
-                t.postedAgo = n.data.postedAgo;
-            } else if (mode === "absolute" && n.data.postedAt) {
-                var ago = __QE.ageStringFromDate(n.data.postedAt);
-                if (ago) t.postedAgo = ago;
-            }
-            if (n.data.showInTimeline) t.showInTimeline = true;
-            return t;
-        });
-
-        /* Timed tweets — OPT IN, per node ("Post when the story reaches this
-           node"). Quest-level Tweets are registered when the quest starts, so a
-           tweet that has to land on a Sequence beat cannot use that path; those
-           nodes go through the platform API instead (SDK 0.21.0:
-           Twotter.postTweet(tweet)). Everything else stays declarative, which is
-           what the engine scopes and cleans up for us, and what rounds 21–22
-           showed to be the reliable path. No opt-in, or no postTweet in this
-           build of the game, means nothing changes. */
-        var canPostLive = !!(sdk.Twotter && sdk.Twotter.postTweet);
-        var tweetOfNode = {};
-        var timedTweet = {};
-        tweetNodes.forEach(function (n, i) {
-            tweetOfNode[n.id] = Tweets[i];
-            timedTweet[n.id] = canPostLive && n.data.postLive === true && g.edges.some(function (e) {
-                return e.kind === "flow" && e.target === n.id;
-            });
-        });
-        var DeclaredTweets = Tweets.filter(function (_t, i) {
-            return !timedTweet[tweetNodes[i].id];
-        });
-        var postedTweets = {};
-
-        function postTweetNow(node, scope) {
-            var t = tweetOfNode[node.id];
-            if (!t || postedTweets[node.id]) return;
-            postedTweets[node.id] = true;
-            var account = null;
-            for (var i = 0; i < TwotterAccounts.length; i++) {
-                if (TwotterAccounts[i].id === t.accountId) account = TwotterAccounts[i];
-            }
-            /* The platform keeps its own user records; prefer the id it knows
-               the account by, and fall back to the quest-level id. */
-            var userId = t.accountId;
-            if (account && sdk.Twotter.getUserByUsername) {
-                var live = sdk.Twotter.getUserByUsername(account.username);
-                if (live && live.id) userId = live.id;
-            }
-            var payload = {
-                id: "qe-" + qd.name + "-" + node.id,
-                userId: userId,
-                content: __QE.fill(t.content, scope),
-                interaction: {
-                    comments: Number(t.comments || 0),
-                    share: Number(t.shares || 0),
-                    likes: Number(t.likes || 0),
-                    views: Number(t.views || 0),
-                },
-            };
-            if (t.showInTimeline) payload.showInTimeline = true;
-            /* TwotterTweet has no picture field in SDK 0.21.0; passing it costs
-               nothing and lets a future engine use it. */
-            if (t.image) payload.image = t.image;
-            sdk.Twotter.postTweet(payload);
         }
 
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });
@@ -453,7 +329,7 @@ function __qeRegisterProject(sdk, PROJECT) {
             return dataScope({ vars: ctx && ctx.vars });
         }
 
-        /* Kisscord/WeeChat/Tweet/Twotter content is registered declaratively
+        /* Kisscord/WeeChat content is registered declaratively
            on the instance (the SDK drives when each message actually shows,
            not the flow graph), so there's no single "send" call site to fill
            tokens at like there is for mail/dialog. Best effort: re-render
@@ -481,16 +357,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                             return m.content ? Object.assign({}, m, { content: __QE.fill(m.content, scope) }) : m;
                         }),
                     });
-                });
-            }
-            if (DeclaredTweets.length) {
-                questRef.Tweets = DeclaredTweets.map(function (t) {
-                    return Object.assign({}, t, { content: __QE.fill(t.content, scope) });
-                });
-            }
-            if (TwotterAccounts.length) {
-                questRef.TwotterAccounts = TwotterAccounts.map(function (a) {
-                    return a.bio ? Object.assign({}, a, { bio: __QE.fill(a.bio, scope) }) : a;
                 });
             }
         }
@@ -653,12 +519,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                        declarative trigger instead.) */
                     if (d.name && questRef && questRef.completeObjective) questRef.completeObjective(d.name);
                     return next();
-                case "comms.tweet":
-                    /* Wired into the story → post it now, so a tweet can land
-                       on a Sequence node's beat. Not wired → it was registered
-                       declaratively with the quest and there is nothing to do. */
-                    if (timedTweet[node.id]) postTweetNow(node, scope);
-                    return next();
                 case "trigger.event":
                 case "entry.start":
                 case "entry.load":
@@ -743,18 +603,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                        timed ones are played live when the flow reaches them. */
                     if (DeclaredKisscordChats.length) this.KisscordChats = DeclaredKisscordChats;
                     if (DeclaredWeeChatChats.length) this.WeeChatChats = DeclaredWeeChatChats;
-                    /* Twotter accounts and tweets are registered declaratively,
-                       per the SDK's intended design: the engine reads these
-                       quest-level lists, keeps them scoped to this quest, and
-                       auto-removes them when the quest completes, is abandoned,
-                       or the mod is uninstalled. (The imperative Twotter.*
-                       global API was tried and rejected — it re-posted on every
-                       load, could not carry tweet images, and left orphaned
-                       records behind after the mod was removed.) */
-                    if (TwotterAccounts.length) this.TwotterAccounts = TwotterAccounts;
-                    /* Only the tweets that are NOT wired into the story: the
-                       wired ones are posted live when the flow reaches them. */
-                    if (DeclaredTweets.length) this.Tweets = DeclaredTweets;
                 }
                 CreateData() {
                     /* Required by the SDK (Quest.CreateData is abstract) even
@@ -768,9 +616,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 OnStart() {
                     var ctx = { payload: {}, vars: {} };
-                    /* Before anything else: make sure the accounts this quest
-                       just put on Twotter cannot crash its search. */
-                    repairTwotterAccounts();
                     g.nodes
                         .filter(function (n) { return n.type === "entry.start"; })
                         .forEach(function (n) { runFlow(n.id, ctx, 0); });
@@ -779,7 +624,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var self = this;
                     var ctx = { payload: {}, vars: {} };
                     refillComms();
-                    repairTwotterAccounts();
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.createServer) sdk.WeeChat.createServer(s.host, s.password);
                     });
@@ -907,155 +751,6 @@ function __qeRegisterProject(sdk, PROJECT) {
 
     var __QE_HACKERTYPER = [];
 
-    /* ── Twotter save safety ─────────────────────────────────────────────
-       A TwotterUser in the save carries more fields than a quest account
-       definition can (name, surname, banner, joinedAt, password …). Whatever
-       the engine leaves unset stays undefined in the save file, and Twotter's
-       search lowercases those strings for every record it tests: search a word
-       that matches nothing and the game dies. Worse, the record outlives the
-       mod, so the crash survives uninstalling it.
-
-       So: look each account up and fill in anything that is not a string. It
-       does nothing when the engine already built the record properly, and it
-       repairs a save an earlier version broke — the mod only has to be
-       installed, because this runs when the package loads as well as when a
-       quest starts. Whatever it fixed is logged, so a crash report can name the
-       missing field. */
-    var __QE_TWOTTER_ACCOUNTS = [];
-    var __QE_TWOTTER_STRINGS = ["username", "name", "surname", "avatar", "banner", "bio", "joinedAt", "password"];
-    var __QE_TWOTTER_DONE = {};
-
-    function __qeTwotterField(key, account) {
-        var display = account.displayName || account.username || "";
-        var space = display.indexOf(" ");
-        switch (key) {
-            case "username": return account.username || "";
-            case "name": return space > 0 ? display.slice(0, space) : display;
-            case "surname": return space > 0 ? display.slice(space + 1) : "";
-            case "avatar": return account.avatar || "";
-            case "bio": return account.bio || "";
-            case "joinedAt": return new Date().toISOString();
-            default: return "";
-        }
-    }
-
-    /* Which of the fields Twotter search lowercases are not strings here. */
-    function __qeMissingFields(user) {
-        var missing = [];
-        __QE_TWOTTER_STRINGS.forEach(function (k) {
-            if (typeof user[k] !== "string") missing.push(k);
-        });
-        return missing;
-    }
-
-    /* Field-by-field types, for the game log: if this ever breaks again, the
-       report says exactly what the record looked like. */
-    function __qeSnapshot(user) {
-        var seen = {};
-        var parts = [];
-        for (var k in user) {
-            seen[k] = true;
-            parts.push(k + ":" + (user[k] === undefined ? "undefined" : typeof user[k]));
-        }
-        __QE_TWOTTER_STRINGS.concat(["id", "followers", "following", "verified"]).forEach(function (k) {
-            if (!seen[k]) parts.push(k + ":absent");
-        });
-        return parts.join(" ");
-    }
-
-    function __qeFetchUser(sdk, a) {
-        var user = __QE.safe(function () {
-            return (sdk.Twotter.getUserByUsername && sdk.Twotter.getUserByUsername(a.username)) ||
-                (sdk.Twotter.getUserById && sdk.Twotter.getUserById(a.id)) || null;
-        });
-        return user && typeof user === "object" ? user : null;
-    }
-
-    /* A complete TwotterUser to put back in place of a half-built one: the
-       engine's own factory where it exists, seeded from whatever the existing
-       record already had right, and keeping its id so this replaces the
-       account rather than adding a second one. */
-    function __qeCompleteUser(sdk, user, a) {
-        var display = a.displayName || a.username || "";
-        var space = display.indexOf(" ");
-        var seed = {
-            id: user.id || a.id,
-            username: user.username || a.username,
-            firstName: space > 0 ? display.slice(0, space) : display,
-            lastName: space > 0 ? display.slice(space + 1) : "",
-            avatar: typeof user.avatar === "string" ? user.avatar : (a.avatar || ""),
-            bio: a.bio || "",
-            verified: typeof user.verified === "boolean" ? user.verified : !!a.verified,
-            followers: typeof user.followers === "number" ? user.followers : Number(a.followers || 0),
-            following: typeof user.following === "number" ? user.following : Number(a.following || 0),
-        };
-        var made = sdk.Twotter.createUser ? __QE.safe(function () { return sdk.Twotter.createUser(seed); }) : null;
-        var out = made && typeof made === "object" ? made : {};
-        for (var k in user) {
-            var t = typeof user[k];
-            if ((t === "string" || t === "number" || t === "boolean") && out[k] === undefined) out[k] = user[k];
-        }
-        out.id = seed.id;
-        out.username = seed.username;
-        __QE_TWOTTER_STRINGS.forEach(function (k) {
-            if (typeof out[k] !== "string") out[k] = __qeTwotterField(k, a);
-        });
-        if (typeof out.followers !== "number") out.followers = seed.followers;
-        if (typeof out.following !== "number") out.following = seed.following;
-        if (typeof out.verified !== "boolean") out.verified = seed.verified;
-        return out;
-    }
-
-    function __qeRepairTwotter(sdk) {
-        if (!sdk.Twotter || !__QE_TWOTTER_ACCOUNTS.length) return;
-        __QE_TWOTTER_ACCOUNTS.forEach(function (a) {
-            if (__QE_TWOTTER_DONE[a.username]) return;
-            var user = __qeFetchUser(sdk, a);
-            /* Not on the platform yet — this runs again when the quest starts. */
-            if (!user) return;
-
-            var missing = __qeMissingFields(user);
-            if (!missing.length) {
-                __QE_TWOTTER_DONE[a.username] = true;
-                __QE.log("Twotter account @" + a.username + " is complete; no repair needed");
-                return;
-            }
-            __QE.log("Twotter account @" + a.username + " is missing " + missing.join(", ") +
-                " — Twotter search lowercases these, so any search that does not match sooner crashes the game. Record: " +
-                __qeSnapshot(user));
-
-            /* 1. Patch what we were handed. If that was the live record, done. */
-            missing.forEach(function (k) {
-                try { user[k] = __qeTwotterField(k, a); } catch (e) { /* frozen */ }
-            });
-            var after = __qeFetchUser(sdk, a);
-            if (after && !__qeMissingFields(after).length) {
-                __QE_TWOTTER_DONE[a.username] = true;
-                __QE.log("repaired Twotter account @" + a.username + " in place: filled " + missing.join(", "));
-                return;
-            }
-
-            /* 2. The game handed us a copy, so the only way to fix the stored
-                  record is to put a complete one back under the same id. */
-            __QE_TWOTTER_DONE[a.username] = true;
-            if (!sdk.Twotter.addUser) {
-                __QE.log("cannot repair Twotter account @" + a.username +
-                    ": this build of the game reads back a copy and offers no way to write the record");
-                return;
-            }
-            __QE.safe(function () { sdk.Twotter.addUser(__qeCompleteUser(sdk, user, a)); return ""; });
-            var again = __qeFetchUser(sdk, a);
-            if (again && !__qeMissingFields(again).length) {
-                __QE.log("repaired Twotter account @" + a.username +
-                    " by replacing the stored record (filled " + missing.join(", ") + ")");
-            } else {
-                __QE.log("could not repair Twotter account @" + a.username +
-                    "; it still reads back as " + __qeSnapshot(again || user) +
-                    ". Twotter search will crash on a term that matches nothing — please report this record to the game authors");
-            }
-        });
-    }
-
     (PROJECT.quests || []).forEach(registerQuest);
 
     /* attach hackertyper widget pages to their target sites */
@@ -1080,15 +775,8 @@ function __qeRegisterProject(sdk, PROJECT) {
         registerWebsite(w, extras);
     });
     var Mod = class extends sdk.Bootstrap {
-        /* Twotter accounts and tweets are declared per-quest (see the Quest
-           class above); the engine registers and cleans them up automatically,
-           so no imperative Twotter.* calls are needed here. The one thing this
-           does is repair account records the engine left half-built, which is
-           why installing this mod is enough to un-break a save whose Twotter
-           search crashes. */
-        OnModPackageLoaded() {
-            __qeRepairTwotter(sdk);
-        }
+        /* Nothing to do at package level: every piece of content is registered
+           by the quest, the website or the command classes above. */
     };
     sdk.RegisterModPackage(Mod);
 }

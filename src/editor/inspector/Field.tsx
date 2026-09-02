@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import type { FieldDef } from "@/schema/registry";
-import { getPath, selectActiveQuest, useEditor } from "@/store/editor";
+import { getPath, useEditor } from "@/store/editor";
 import { ImagePickerField } from "./ModFields";
 import { ConditionsEditor } from "./ConditionsEditor";
 import { DeviceEditor, DeviceListEditor } from "./DeviceTree";
@@ -245,61 +245,6 @@ export function Field({
                     onChange={(next) => write(next ?? "")}
                 />
             );
-
-        case "questAccount": {
-            const accounts = useEditor(selectActiveQuest)?.twotterAccounts ?? [];
-            const picked = asString(raw);
-            const known = accounts.some((a) => a.id === picked);
-            return (
-                <FieldShell label={def.label} hint={def.hint}>
-                    {accounts.length === 0 ? (
-                        <p className="text-[11px] leading-relaxed text-ink-3">
-                            No Twotter accounts yet — add one in the <strong className="text-ink-2">Quest tab</strong> under
-                            “Twotter accounts”, then pick which account makes this post.
-                        </p>
-                    ) : (
-                        <>
-                            <SelectInput
-                                ariaLabel={def.label}
-                                value={known ? picked : ""}
-                                onChange={write}
-                                options={[
-                                    // Without this row an empty value would still
-                                    // *display* the first account (how a <select>
-                                    // behaves), so the node card said "no account
-                                    // yet" while the picker looked set.
-                                    {
-                                        value: "",
-                                        label: picked ? "— account no longer exists, pick one —" : "— pick an account —",
-                                    },
-                                    ...accounts.map((a) => ({
-                                        value: a.id,
-                                        label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
-                                    })),
-                                ]}
-                            />
-                            {!known && (
-                                <p className="mt-1.5 text-[10.5px] leading-relaxed text-warn">
-                                    Nothing is posted until you choose an account.
-                                    {accounts.length === 1 && (
-                                        <>
-                                            {" "}
-                                            <button
-                                                type="button"
-                                                className="underline underline-offset-2 hover:text-ink"
-                                                onClick={() => write(accounts[0].id)}
-                                            >
-                                                Use @{accounts[0].username || accounts[0].id}
-                                            </button>
-                                        </>
-                                    )}
-                                </p>
-                            )}
-                        </>
-                    )}
-                </FieldShell>
-            );
-        }
 
         case "toggle":
             return (

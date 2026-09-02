@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r30";
+export const EDITOR_BUILD = "2026-09-02.r31";
 
 export interface CompiledFile {
     path: string;
@@ -30,13 +30,6 @@ export interface CompiledFile {
     /** Content is base64 (binary asset) rather than plain text. */
     base64?: boolean;
 }
-
-/**
- * A neutral 64×64 placeholder avatar. The game parses account avatar strings
- * (an empty one crashed Twotter search with "undefined … toLowerCase"), so
- * every account ships a real image file — never "" and never a data URL.
- */
-const DEFAULT_AVATAR_PNG = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAAAACCa0YWnkjGyO5TAAAAAElFTkSuQmCC";
 
 /** Turn an embedded data-URL image into a zip-ready binary file entry. */
 function imageAsset(dataUrl: string | undefined, name: string): { file: CompiledFile; path: string } | null {
@@ -148,28 +141,6 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         `${q.name}: the mod SDK (0.21.0) cannot create wireless networks yet — “Create Wi-Fi” exports as a regular router network the player reaches by IP, not through the in-game Wi-Fi list.`,
                     );
                     break;
-                case "comms.tweet": {
-                    const d = n.data as { image?: string; timeMode?: string; postedAgo?: string; postLive?: boolean };
-                    const wired =
-                        d.postLive === true &&
-                        q.graph.edges.some((e) => e.kind === "flow" && e.target === n.id);
-                    if (wired) {
-                        warnings.push(
-                            `${q.name}: a tweet set to “post when the story reaches this node” is posted live at that moment, instead of being on Twotter from the quest's start. Live posts are not managed by the quest, so check in-game that it behaves as you expect.`,
-                        );
-                        if (d.image) {
-                            warnings.push(
-                                `${q.name}: the live post API in SDK 0.21.0 has no picture field, so a timed tweet may show up without its attached picture. Turn the timing off if the picture matters more.`,
-                            );
-                        }
-                        if (d.timeMode && d.timeMode !== "now") {
-                            warnings.push(
-                                `${q.name}: “post time” is ignored for a timed tweet — it is posted right then, so the game shows it as just posted.`,
-                            );
-                        }
-                    }
-                    break;
-                }
                 case "comms.dialogue": {
                     const d = n.data as { kind: string; phone?: { branch?: string }; kisscord?: { messages?: { playerAction?: string; input?: { expected?: string } }[] }; weechat?: { messages?: { playerAction?: string } } };
                     if (d.kind === "phone" && q.dialog.some((b) => b.lines.some((l) => l.input))) {
@@ -215,38 +186,11 @@ export function compileProject(project: ProjectDocument): CompileResult {
     const permissions = computePermissions(project);
     const warnings = computeWarnings(project);
 
-    /* Twotter assets: avatars and tweet pictures become real files in the
-       zip, referenced by path — the game's asset resolver expects file names,
-       and an empty avatar string crashes Twotter search. */
-    const twotterAssets: CompiledFile[] = [];
-    const compiledQuests = project.quests.map((q) => {
-        const accounts = (q.twotterAccounts ?? []).map((a, i) => {
-            const name = `account-${a.id || i}`;
-            const embedded = imageAsset(a.avatar, `twotter/${name}`);
-            if (embedded) {
-                twotterAssets.push(embedded.file);
-                return { ...a, avatar: embedded.path };
-            }
-            twotterAssets.push({ path: `assets/twotter/${name}.png`, content: DEFAULT_AVATAR_PNG, base64: true });
-            return { ...a, avatar: `assets/twotter/${name}.png` };
-        });
-        const graph = {
-            ...q.graph,
-            nodes: q.graph.nodes.map((n) => {
-                if (n.type !== "comms.tweet") return n;
-                const d = n.data as { image?: string };
-                const img = imageAsset(d.image, `twotter/tweet-${n.id}`);
-                if (!img) return n;
-                twotterAssets.push(img.file);
-                return { ...n, data: { ...d, image: img.path } };
-            }),
-        };
-        return { q, accounts, graph };
-    });
+    const compiledQuests = project.quests.map((q) => ({ q, graph: q.graph }));
 
     const PROJECT = {
         mod: project.mod,
-        quests: compiledQuests.map(({ q, accounts, graph }) => ({
+        quests: compiledQuests.map(({ q, graph }) => ({
             name: q.name,
             title: q.title,
             description: q.description,
@@ -262,7 +206,6 @@ export function compileProject(project: ProjectDocument): CompileResult {
             maxClaim: q.maxClaim ?? null,
             maxClaimPerDay: q.maxClaimPerDay ?? null,
             hackhubPost: q.hackhubPost ?? null,
-            twotterAccounts: accounts,
             dialog: q.dialog,
             graph,
         })),
@@ -323,19 +266,6 @@ export function compileProject(project: ProjectDocument): CompileResult {
         `- Websites: ${project.websites.map((w) => w.host).join(", ") || "none"}`,
         `- Permissions requested: ${permissions.join(", ") || "none"}`,
         "",
-        ...(project.quests.some((q) => (q.twotterAccounts ?? []).length > 0)
-            ? [
-                  "## Twotter accounts",
-                  "",
-                  "This mod checks its own Twotter accounts when it loads and fills in any",
-                  "field the game left unset (name, surname, banner, joined date …). An unset",
-                  "field there crashes Twotter's search — including in saves made before this",
-                  "version — so if search has been crashing, installing this mod and loading",
-                  "the save repairs those records. Look for `[quest-editor] repaired Twotter",
-                  "account` in the game log.",
-                  "",
-              ]
-            : []),
         "## Notes",
         "",
         ...(warnings.length ? warnings.map((w) => `- ${w}`) : ["- Everything compiled cleanly. Have fun."]),
@@ -387,7 +317,6 @@ export function compileProject(project: ProjectDocument): CompileResult {
             { path: "tsconfig.json", content: JSON.stringify(tsconfig, null, 2) + "\n" },
             ...(iconAsset ? [iconAsset.file] : []),
             ...(coverAsset ? [coverAsset.file] : []),
-            ...twotterAssets,
         ],
     };
 }

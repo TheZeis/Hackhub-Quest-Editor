@@ -37,7 +37,6 @@ ClaimQuestNodeDataSchema,
     ShellExecNodeDataSchema,
     ToolResponseNodeDataSchema,
     TriggerEventDataSchema,
-    TweetNodeDataSchema,
 WifiNodeDataSchema,
     NoteNodeDataSchema,
     RerouteNodeDataSchema,
@@ -93,7 +92,6 @@ export type FieldDef =
     | { kind: "date"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "color"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "image"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
-    | { kind: "questAccount"; key: string; label: string; hint?: string }
     | { kind: "event"; key: string; label: string; hint?: string }
     | { kind: "conditions"; key: string; label: string; hint?: string }
     | {
@@ -630,70 +628,6 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [],
         create: () => seed(DialogueNodeDataSchema),
-    },
-
-    "comms.tweet": {
-        type: "comms.tweet",
-        category: "comms",
-        label: "Post tweet",
-        blurb: "A Twotter post from an NPC",
-        icon: "bird",
-        ...io,
-        hook: "onStart",
-        fields: [
-            { kind: "questAccount", key: "accountId", hint: "Which of the quest's Twotter accounts posts this. Add accounts in the Quest tab.", label: "Account" },
-            { kind: "textarea", key: "content", hint: "The post body, with the same formatting Twotter supports.", label: "Tweet", rows: 4 },
-            {
-                kind: "toggle",
-                key: "postLive",
-                label: "Post when the story reaches this node",
-                hint: "Off: the post is on Twotter from the moment the quest starts — the safe, normal choice. On: nothing shows until the story reaches this node, so you can time a post to a Sequence beat.",
-            },
-            {
-                kind: "note",
-                tone: "warn",
-                showWhen: { key: "postLive", equals: "true" },
-                text: "Timed posts go out through the game's live posting API: it has no picture field, it ignores the post time below, and unlike a normal post the quest does not clean it up afterwards. Lovely for a dramatic beat — worth a quick in-game check before you ship it.",
-            },
-            { kind: "image", key: "image", label: "Attached picture", hint: "Optional. PNG or JPG — use it for clues the player must read, or files they download later." },
-            { kind: "number", key: "likes", hint: "Starting like count. Cosmetic, but it sells the fiction.", label: "Likes", min: 0 },
-            { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },
-            { kind: "number", key: "shares", hint: "How many reposts the post already shows. Cosmetic, but it sells the fiction.", label: "Shares", min: 0 },
-            { kind: "number", key: "views", hint: "How many views the post already shows. Cosmetic, but it sells the fiction.", label: "Views", min: 0 },
-            {
-                kind: "select",
-                key: "timeMode",
-                label: "Post time",
-                hint: "How the timestamp reads in-game. \"Now\" lets the game show it relative to real time.",
-                options: [
-                    { value: "now", label: "Now (real time)", hint: "No fixed date — the game shows it as just-posted, relative to when the player sees it." },
-                    { value: "relative", label: "A while ago", hint: "An age like \"2 days\" or \"1 month\" that stays fixed." },
-                    { value: "absolute", label: "A specific date", hint: "Pick a calendar date; the game shows how long ago that was." },
-                ],
-            },
-            {
-                kind: "text",
-                key: "postedAgo",
-                label: "How long ago",
-                hint: "Whole words the game understands, e.g. \"2 days\", \"3 hours\", \"1 month\". Avoid short forms like \"2d\".",
-                placeholder: "2 days",
-                showWhen: { key: "timeMode", equals: "relative" },
-            },
-            {
-                kind: "date",
-                key: "postedAt",
-                label: "Posted on",
-                hint: "The date the post should look like it went up. The game shows it as an age from today.",
-                showWhen: { key: "timeMode", equals: "absolute" },
-            },
-            {
-                kind: "toggle",
-                key: "showInTimeline",
-                label: "Show in main timeline",
-                hint: "On: the post also appears in the main Twotter feed. Off: it shows only on the account's profile.",
-            },
-        ],
-        create: () => seed(TweetNodeDataSchema),
     },
 
     "reply.hackertyper": {

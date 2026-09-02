@@ -49,7 +49,7 @@ Only relevant to coders, if you just want to use the tool you can ignore this.
 
 ```bash
 npm run typecheck    # tsc --noEmit
-npm test             # 300 tests (vitest)
+npm test             # 387 tests (vitest)
 npm run build        # typecheck + vite build → dist/
 ```
 
@@ -63,9 +63,21 @@ npm run build        # typecheck + vite build → dist/
    (objectives, triggers, networks with devices/ports/files, mails, chats,
    rewards…) and wire their sockets. Click any node to edit it on the right;
    every field explains itself on hover.
+
+   Wiring is meant to feel physical: drop a wire on a node's **body** and it
+   takes that node's one matching socket; pull a wire out of an input and it
+   comes with you, keeping the end it came from — drop it on another node to
+   move it there, on empty canvas (or press Escape) to remove it. Dots drift
+   along each wire to show which way the story runs; the **Wires moving** button
+   holds them still. **Group frames** are dragged by their title bar, so
+   anything sitting inside one stays grabbable, and a **Sequence** node fires
+   its outputs one after another with the pauses you set.
 3. **Write conversations** — the **Dialogues** button opens the dialogue editor:
    one node, four flavours (phone call, Kisscord, e-mail, WeeChat), with player
    moments: typed answers with failure routes, hackertyper sends, file uploads.
+   Kisscord and WeeChat conversations can also be **timed to the story** — a
+   per-node switch plays them message by message when the flow reaches the node,
+   so a chat can land on a **Sequence** beat instead of existing from the start.
    Hit **Save** when a conversation feels done.
 4. **Build websites** — the **Websites** button opens the WYSIWYG website
    builder: real-looking templates (news, agency, blog, forum, recipes…), a
@@ -177,7 +189,15 @@ and their consequences are in
 
 1. **Delivery** — **browser app, ZIP export.** Vite SPA, no server, no desktop shell.
 2. **SMS** — **dropped.** No native primitive exists, so no SMS editor ships. The
-   conversation editors are Phone calls, E-Mail, Kisscord and WeeChat (+ Twotter).
+   conversation editors are Phone calls, E-Mail, Kisscord and WeeChat.
+   **Twotter is dropped too** (round 31): a quest-declared account reaches the
+   save with an undefined `bio`, and the game's own Twotter search calls
+   `.toLowerCase()` on it — so searching for any word that does not match
+   something else crashes the game, before *and* after the mod is uninstalled,
+   with no API a mod can use to repair the record. Seven in-game QA rounds; the
+   full account is in
+   [docs/02 “Round 31”](docs/02-editor-shell.md). It comes back when the SDK
+   does.
 3. **Granularity** — **many quests per mod**, with single-quest as the default
    new-project template.
 4. **Generated code** — **the editor owns it.** Re-exporting overwrites `src/`;

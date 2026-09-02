@@ -4,7 +4,7 @@
  * OnStart builds networks and sends mail, triggers evaluate their
  * conditions, and manual-input commands branch on the typed answer.
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
@@ -405,225 +405,13 @@ describe("export build stamp", () => {
     it("stamps the editor build id into dist/mod.js", () => {
         const modJs = compileProject(createProject()).files.find((f) => f.path === "dist/mod.js")!.content;
         expect(modJs).toContain(`build ${EDITOR_BUILD}`);
-        // Accounts are declared per-quest, never *registered* through the
-        // global API — the imperative path re-posted on reload and could not be
-        // undone when the mod was removed. `addUser` appears exactly once, in
-        // the save-repair pass, and only runs for a record the game left
-        // half-built (see "Twotter save safety").
-        expect(modJs.match(/sdk\.Twotter\.addUser/g) ?? []).toHaveLength(2); // the guard and the call
-        expect(modJs).toContain("__qeRepairTwotter");
-    });
-});
-
-describe("Twotter accounts + tweets register declaratively (SDK-native)", () => {
-    /**
-     * The QA test3 repro: an account with no avatar and a tweet whose accountId
-     * is empty. Rounds 21–22 routed Twotter content through the imperative
-     * global API (Twotter.addUser/postTweet); in-game that re-posted on every
-     * load, dropped tweet images, and left orphaned records after the mod was
-     * removed. The SDK's intended path is the declarative quest-level lists,
-     * which the engine scopes to the quest and cleans up automatically — so the
-     * emitted mod must NOT touch the global Twotter API at all.
-     */
-    function tweetProject(): ProjectDocument {
-        const p = createProject();
-        const q = p.quests[0];
-        q.twotterAccounts = [
-            { id: "5WjPOEiU", username: "qatester3", displayName: "QA Tester 3", verified: false, bio: "third tester" },
-        ] as never;
-        const entry = node("entry.start");
-        const tweet = node("comms.tweet", {
-            accountId: "5WjPOEiU",
-            content: "This is a Q&A Test Tweet (number 3)",
-            image: "data:image/png;base64,AA==",
-            comments: 2,
-            shares: 1,
-            views: 10,
-            postedAgo: "2 days",
-        });
-        q.graph.nodes = [entry, tweet];
-        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
-        return p;
-    }
-
-    it("never calls the global Twotter API (would re-post on reload / orphan records)", async () => {
-        const modJs = compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content;
-        // The one thing the Mod class does on load is repair half-built
-        // Twotter account records (see "Twotter save safety"); it must not
-        // create, add or post anything.
-        expect(modJs).toContain("__qeRepairTwotter(sdk)");
-
-        // The live post path exists for nodes that opt into timing, but a
-        // project that has not opted in must never reach it, even once the
-        // quest has run.
-        const calls: string[] = [];
-        const sdk = stubSdk(calls, []) as any;
-        sdk.Twotter = {
-            postTweet: () => calls.push("postTweet"),
-            addUser: () => calls.push("addUser"),
-            createUser: () => calls.push("createUser"),
-            getUserByUsername: () => undefined,
-        };
-        // A record the game built properly: the repair pass must do nothing.
-        sdk.Twotter.getUserByUsername = () => ({
-            id: "u1", username: "qa", name: "Q", surname: "A", avatar: "a.png",
-            banner: "b.png", bio: "", joinedAt: "2026-01-01", password: "", followers: 0, following: 0,
-        });
-        runMod(modJs, sdk);
-        const q = new (registered0(sdk).quests[0])();
-        q.OnStart();
-        q.OnObjectivesStart();
-        await settle();
-        expect(calls.filter((c) => /postTweet|addUser|createUser/.test(c))).toEqual([]);
-    });
-
-    it("declares accounts and tweets on the quest so the engine can clean them up", () => {
-        const sdk = stubSdk([], []);
-        runMod(compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q0 = new (sdk as any).__registered.quests[0]();
-
-        expect(q0.TwotterAccounts).toHaveLength(1);
-        expect(q0.TwotterAccounts[0]).toMatchObject({
-            id: "5WjPOEiU",
-            username: "qatester3",
-            displayName: "QA Tester 3",
-        });
-        // avatar is always a real asset path (empty string crashed search)
-        expect(q0.TwotterAccounts[0].avatar).toBe("assets/twotter/account-5WjPOEiU.png");
-
-        expect(q0.Tweets).toHaveLength(1);
-        expect(q0.Tweets[0]).toMatchObject({
-            accountId: "5WjPOEiU",
-            content: "This is a Q&A Test Tweet (number 3)",
-            comments: 2,
-            shares: 1,
-            views: 10,
-        });
-        // the picture survives as a real asset file — impossible via the global API
-        expect(q0.Tweets[0].image).toMatch(/^assets\/twotter\/tweet-.+\.png$/);
-    });
-
-    function tweetWith(patch: Record<string, unknown>): ProjectDocument {
-        const p = createProject();
-        const q = p.quests[0];
-        q.twotterAccounts = [
-            { id: "a1", username: "acct", displayName: "Acct", verified: false },
-        ] as never;
-        const entry = node("entry.start");
-        const tweet = node("comms.tweet", { accountId: "a1", content: "hi", ...patch });
-        q.graph.nodes = [entry, tweet];
-        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
-        return p;
-    }
-
-    function firstTweet(p: ProjectDocument) {
-        const sdk = stubSdk([], []);
-        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        return new (sdk as any).__registered.quests[0]().Tweets[0];
-    }
-
-    it("time mode 'now' ships no date so the game shows it relative to real time", () => {
-        const t = firstTweet(tweetWith({ timeMode: "now", postedAgo: "2 days" }));
-        expect(t.postedAgo).toBeUndefined();
-    });
-
-    it("time mode 'relative' passes the author's age string straight through", () => {
-        const t = firstTweet(tweetWith({ timeMode: "relative", postedAgo: "3 hours" }));
-        expect(t.postedAgo).toBe("3 hours");
-    });
-
-    it("time mode 'absolute' converts a picked date into an SDK age string", () => {
-        const threeDaysAgo = new Date(Date.now() - 3 * 86400 * 1000).toISOString().slice(0, 10);
-        const t = firstTweet(tweetWith({ timeMode: "absolute", postedAt: threeDaysAgo }));
-        expect(t.postedAgo).toBe("3 days");
-    });
-
-    it("carries the show-in-timeline choice through to the tweet", () => {
-        expect(firstTweet(tweetWith({ showInTimeline: true })).showInTimeline).toBe(true);
-        // default (off) must not leak a false that some engines could mishandle
-        expect(firstTweet(tweetWith({})).showInTimeline).toBeUndefined();
-    });
-
-    it("registers each account exactly once, no matter how many times the quest is instantiated", () => {
-        const sdk = stubSdk([], []);
-        runMod(compileProject(tweetProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q1 = new (sdk as any).__registered.quests[0]();
-        const q2 = new (sdk as any).__registered.quests[0]();
-        // Each quest instance carries the same declarative list; the engine — not
-        // the mod — decides when to (re)apply it, so we never accumulate copies.
-        expect(q1.TwotterAccounts).toHaveLength(1);
-        expect(q2.TwotterAccounts).toHaveLength(1);
-        expect(q1.Tweets).toHaveLength(1);
-        expect(q2.Tweets).toHaveLength(1);
-    });
-});
-
-describe("tweets compile to the real SDK shape", () => {
-    it("accounts get ids/avatars and tweets stay flat with images", async () => {
-        const p = createProject();
-        const q = p.quests[0];
-        q.twotterAccounts = [
-            { id: "acct-1", username: "nightowl", displayName: "Night Owl", avatar: "data:image/png;base64,AA==", bio: "hacker", verified: true, followers: undefined, following: undefined },
-        ] as never;
-        const entry = node("entry.start");
-        const tweet = node("comms.tweet", {
-            accountId: "acct-1",
-            content: "look at this",
-            image: "data:image/png;base64,BB==",
-            likes: 12,
-            timeMode: "relative",
-            postedAgo: "2 days",
-        });
-        q.graph.nodes = [entry, tweet];
-        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
-
-        const { registered, sdk } = (() => {
-            const base = stubSdk([], []);
-            return { registered: (base as any).__registered, sdk: base };
-        })();
-        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q0 = new registered.quests[0]();
-        expect(q0.TwotterAccounts[0]).toMatchObject({ id: "acct-1", username: "nightowl", displayName: "Night Owl", verified: true });
-        expect(q0.Tweets[0]).toMatchObject({ accountId: "acct-1", content: "look at this", likes: 12, postedAgo: "2 days" });
-        expect(q0.Tweets[0].image).toBe("assets/twotter/tweet-" + tweet.id + ".png");
-        expect(q0.Tweets[0].interaction).toBeUndefined(); // old docs-era shape is gone
-        expect(q0.Tweets[0].showInTimeline).toBeUndefined();
-    });
-});
-
-describe("twotter crash regression (empty avatar)", () => {
-    it("every account ships a real avatar file and tweets reference image files", () => {
-        const p = createProject();
-        const q = p.quests[0];
-        // the QA repro: an account with no avatar, and a tweet with an embedded image
-        q.twotterAccounts = [
-            { id: "spnVxepH", username: "QATester", displayName: "Q&A Tester", verified: true, bio: "I only exist to test Twotter features" },
-            { id: "withpic", username: "pic", displayName: "Pic", avatar: "data:image/png;base64,AA==" },
-        ] as never;
-        const entry = node("entry.start");
-        const tweet = node("comms.tweet", { accountId: "spnVxepH", content: "hi", image: "data:image/jpeg;base64,/9j/AA==" });
-        q.graph.nodes = [entry, tweet];
-        q.graph.edges = [edge(entry.id, tweet.id, "flow")];
-
-        const result = compileProject(p);
-        const modJs = result.files.find((f) => f.path === "dist/mod.js")!.content;
-        const projectJson = JSON.parse(
-            /var PROJECT = (\{[\s\S]*?\});\n/.exec(modJs)![1],
-        );
-        const accounts = projectJson.quests[0].twotterAccounts;
-        expect(accounts[0].avatar).toBe("assets/twotter/account-spnVxepH.png");
-        expect(accounts[1].avatar).toBe("assets/twotter/account-withpic.png");
-        const tweetNode = projectJson.quests[0].graph.nodes.find((n: { type: string }) => n.type === "comms.tweet");
-        expect(tweetNode.data.image).toBe("assets/twotter/tweet-" + tweet.id + ".jpg");
-
-        // …and the files really are in the zip manifest
-        const paths = result.files.map((f) => f.path);
-        expect(paths).toContain("assets/twotter/account-spnVxepH.png");
-        expect(paths).toContain("assets/twotter/account-withpic.png");
-        expect(paths).toContain(`assets/twotter/tweet-${tweet.id}.jpg`);
-        // no empty avatar or data URL survives anywhere in the emitted mod
-        expect(modJs).not.toContain("data:image/jpeg;base64");
-        expect(/"avatar":\s*""/.test(modJs)).toBe(false);
+        // Twotter support was removed in round 31: the game stores a quest
+        // account with an undefined `bio` and its search crashes on it, with
+        // no way for a mod to repair the record (QA rounds 5–7, see
+        // docs/02-editor-shell.md). Nothing Twotter-shaped may come back
+        // without a fresh look at the SDK.
+        expect(modJs).not.toContain("Twotter");
+        expect(modJs).not.toContain("Tweets");
     });
 });
 
@@ -855,134 +643,6 @@ describe("flow.sequence fires its outputs in order, with the author's pauses", (
     });
 });
 
-describe("tweets wired into the story post live, on the beat", () => {
-    /**
-     * SDK 0.21.0: quest-level `Tweets` are "tweets to post when the quest
-     * starts", so a tweet node inside a Sequence would appear far too early.
-     * `Twotter.postTweet(tweet: TwotterTweet)` is the platform API for posting
-     * one at a moment of our choosing — note `interaction.share` (singular).
-     */
-    function twotterSdk(calls: string[]) {
-        const sdk = stubSdk(calls, []) as any;
-        sdk.Twotter = {
-            postTweet: (t: unknown) => calls.push(`tweet:${JSON.stringify(t)}`),
-            getUserByUsername: (u: string) => ({ id: `live-${u}`, username: u }),
-        };
-        return sdk;
-    }
-
-    function project(wire: boolean, patch: Record<string, unknown> = {}) {
-        const p = createProject();
-        const quest = p.quests[0];
-        quest.name = "beat";
-        quest.autoStart = true;
-        quest.twotterAccounts = [
-            { id: "acc1", username: "dockwatch", displayName: "Dock Watch", avatar: "", verified: false },
-        ];
-        const entry = node("entry.start");
-        const seqNode = node("flow.sequence", {
-            steps: [{ id: "a", label: "Tweet drops", delayMs: 0 }],
-        });
-        const tweet = node("comms.tweet", {
-            accountId: "acc1",
-            postLive: true, // the author asked for it to land on the beat
-            content: "Something moved on the 14th.",
-            likes: 42,
-            comments: 7,
-            shares: 11,
-            views: 3180,
-            ...patch,
-        });
-        quest.graph.nodes = [entry, seqNode, tweet];
-        quest.graph.edges = wire
-            ? [edge(entry.id, seqNode.id, "flow"), edge(seqNode.id, tweet.id, "flow", "step-a")]
-            : [edge(entry.id, seqNode.id, "flow")];
-        return { p, tweetId: tweet.id };
-    }
-
-    it("posts through the platform API when the flow reaches it, not at quest start", async () => {
-        const calls: string[] = [];
-        const sdk = twotterSdk(calls);
-        const { files } = compileProject(project(true).p);
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const q = new (registered0(sdk).quests[0])();
-        // it is NOT registered up front any more …
-        expect(q.Tweets).toBeUndefined();
-        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
-
-        q.OnStart();
-        await settle();
-
-        const posted = calls.filter((c) => c.startsWith("tweet:"));
-        expect(posted).toHaveLength(1);
-        const payload = JSON.parse(posted[0].slice("tweet:".length));
-        expect(payload.content).toBe("Something moved on the 14th.");
-        expect(payload.userId).toBe("live-dockwatch"); // the id the platform knows
-        expect(payload.interaction).toEqual({ comments: 7, share: 11, likes: 42, views: 3180 });
-        expect(payload.id).toContain("beat");
-    });
-
-    it("posts a given tweet only once per playthrough", async () => {
-        const calls: string[] = [];
-        const sdk = twotterSdk(calls);
-        const { files } = compileProject(project(true).p);
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const q = new (registered0(sdk).quests[0])();
-        q.OnStart();
-        q.OnStart();
-        await settle();
-        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(1);
-    });
-
-    it("leaves a tweet that did not opt in declarative, so the engine still owns it", async () => {
-        const calls: string[] = [];
-        const sdk = twotterSdk(calls);
-        const { files } = compileProject(project(false).p);
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const q = new (registered0(sdk).quests[0])();
-        expect(q.Tweets).toHaveLength(1);
-        q.OnStart();
-        await settle();
-        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
-    });
-
-    it("stays declarative when the node opted in but sits outside the story", async () => {
-        const calls: string[] = [];
-        const sdk = twotterSdk(calls);
-        const { files } = compileProject(project(false).p); // opted in, no flow wire
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q = new (registered0(sdk).quests[0])();
-        expect(q.Tweets).toHaveLength(1);
-        q.OnStart();
-        await settle();
-        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
-    });
-
-    it("falls back to the declarative list when the game has no postTweet", async () => {
-        const calls: string[] = [];
-        const sdk = stubSdk(calls, []); // no Twotter namespace at all
-        const { files } = compileProject(project(true).p);
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const q = new (registered0(sdk).quests[0])();
-        expect(q.Tweets).toHaveLength(1);
-        q.OnStart();
-        await settle();
-        // nothing thrown, nothing lost
-        expect(calls.filter((c) => c.startsWith("tweet:"))).toHaveLength(0);
-    });
-
-    it("says plainly what a wired tweet gives up", () => {
-        const warnings = computeWarnings(project(true, { image: "data:image/png;base64,AAA", timeMode: "relative", postedAgo: "3 days" }).p);
-        expect(warnings.join("\n")).toContain("posted live at that moment");
-        expect(warnings.join("\n")).toContain("no picture field");
-        expect(warnings.join("\n")).toContain("“post time” is ignored");
-    });
-});
-
 describe("workshop tags", () => {
     it("exports whatever tags the author typed, invented ones included", () => {
         const p = createProject();
@@ -1000,7 +660,7 @@ describe("workshop tags", () => {
 });
 
 /**
- * Chats can land on the beat too — same opt-in deal as tweets.
+ * Chats can land on the beat, instead of being handed to the game up front.
  * SDK 0.21.0: Kisscord.sendMessage(channelUserId, content, isMine),
  * WeeChat.sendMessage({ host, username, message }).
  */
@@ -1125,332 +785,78 @@ describe("conversations timed to the story", () => {
 });
 
 /**
- * The QA crash of 02/09/2026 (log on the QA-filedump branch):
+ * From the QA log of 02/09/2026:
  *
- *   TypeError: Cannot read properties of undefined (reading 'toLowerCase')
- *       at Array.filter … useMemo
- *
- * Searching Twotter for a word that matches nothing crashed the game, and kept
- * crashing it after the mod was removed, because the broken account record is
- * in the save. A TwotterUser carries more fields than a quest account
- * definition can (name, surname, banner, joinedAt, password); whatever the
- * engine leaves unset is undefined, and search lowercases them all.
- *
- * The same log also shows the quest never starting at all:
  *   Mod "twotter-qatest-5" tried to use Network.getPlayerIp without "network"
- * — for a project that mentions no player IP anywhere.
+ *   permission … at dataScope … at runFlow … at cls.OnStart
+ *
+ * — thrown for a project that mentions no player IP anywhere. The token scope
+ * was computing every `player.*` and `random.*` value eagerly, so an API the
+ * author never asked for could take the whole quest down before it started.
  */
-describe("Twotter save safety", () => {
-    /** The game's own search, as the crash log describes it. */
-    function searchLikeTheGame(users: Record<string, unknown>[], query: string) {
-        const q = query.toLowerCase();
-        return users.filter(
-            (u) =>
-                String((u as { username: string }).username).toLowerCase().includes(q) ||
-                (u.name as string).toLowerCase().includes(q) ||
-                (u.surname as string).toLowerCase().includes(q) ||
-                (u.bio as string).toLowerCase().includes(q),
-        );
-    }
-
-    /** A user record the way the QA save had it: half the fields missing. */
-    function halfBuiltUser(username: string) {
-        return { id: "u1", username, avatar: "a.png", followers: 0, following: 0 } as Record<string, unknown>;
-    }
-
-    function tweetProject(patch: Record<string, unknown> = {}) {
+describe("token values cost nothing until a token asks for them", () => {
+    function notifyProject(message: string) {
         const p = createProject();
-        const quest = p.quests[0];
-        quest.name = "QATest";
-        quest.autoStart = true;
-        quest.twotterAccounts = [
-            { id: "k5nKaikR", username: "qatest5", displayName: "QA Test", avatar: "", verified: false, ...patch },
-        ];
+        const q = p.quests[0];
+        q.name = "Tokens";
+        q.autoStart = true;
         const entry = node("entry.start");
-        const tweet = node("comms.tweet", { accountId: "k5nKaikR", content: "Hello World!" });
-        quest.graph.nodes = [entry, tweet];
-        quest.graph.edges = [edge(entry.id, tweet.id, "flow")];
+        const notify = node("fx.notify", { message, variant: "notify" });
+        q.graph.nodes = [entry, notify];
+        q.graph.edges = [edge(entry.id, notify.id, "flow")];
         return p;
     }
 
-    function twotterStore(calls: string[], user: Record<string, unknown>) {
-        const sdk = stubSdk(calls, []) as any;
-        sdk.Twotter = {
-            getUserByUsername: (u: string) => ((user.username === u ? user : undefined)),
-            getUserById: (id: string) => (user.id === id ? user : undefined),
-        };
-        return sdk;
-    }
-
-    it("reproduces the crash: an unrepaired record kills search on a word that matches nothing", () => {
-        const user = halfBuiltUser("qatest5");
-        // "test" is a substring of the username, so the filter short-circuits
-        // before it reaches the undefined fields — which is exactly why QA saw
-        // a successful search followed by a crash on the next word.
-        expect(searchLikeTheGame([user], "test")).toHaveLength(1);
-        expect(() => searchLikeTheGame([user], "boop")).toThrow(TypeError);
-    });
-
-    it("fills every string field the save needs, and search survives", async () => {
-        const calls: string[] = [];
-        const user = halfBuiltUser("qatest5");
-        const sdk = twotterStore(calls, user);
-        const { files } = compileProject(tweetProject());
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const q = new (registered0(sdk).quests[0])();
-        q.OnStart();
-        await settle();
-
-        for (const key of ["username", "name", "surname", "avatar", "banner", "bio", "joinedAt", "password"]) {
-            expect(typeof user[key], `${key} must be a string in the save`).toBe("string");
-        }
-        // The display name is split the way a person would: "QA Test".
-        expect(user.name).toBe("QA");
-        expect(user.surname).toBe("Test");
-        // And now the search that crashed the game finds nothing, quietly.
-        expect(searchLikeTheGame([user], "boop")).toEqual([]);
-        expect(searchLikeTheGame([user], "qatest")).toHaveLength(1);
-    });
-
-    it("leaves a record the engine already built properly alone", async () => {
-        const calls: string[] = [];
-        const user = {
-            id: "k5nKaikR", username: "qatest5", name: "Dock", surname: "Watch", avatar: "a.png",
-            banner: "b.png", bio: "hi", joinedAt: "2026-01-01", password: "x", followers: 3, following: 4,
-        } as Record<string, unknown>;
-        const sdk = twotterStore(calls, user);
-        const { files } = compileProject(tweetProject());
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q = new (registered0(sdk).quests[0])();
-        q.OnStart();
-        await settle();
-        expect(user.name).toBe("Dock");
-        expect(user.surname).toBe("Watch");
-        expect(user.followers).toBe(3);
-    });
-
-    it("declares accounts with no holes in them", () => {
-        const { files } = compileProject(tweetProject());
-        const src = files.find((f) => f.path === "dist/mod.js")!.content;
-        const account = JSON.parse(
-            src.slice(src.indexOf('"twotterAccounts":[') + '"twotterAccounts":['.length).split("}]")[0] + "}",
-        );
-        expect(account.username).toBe("qatest5");
-        // bio/followers/following/verified are always written, never left out:
-        // an absent field is an undefined field once it reaches the save.
-        const calls: string[] = [];
-        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
-        runMod(src, sdk);
-        const q = new (registered0(sdk).quests[0])();
-        expect(q.TwotterAccounts[0]).toMatchObject({
-            bio: "",
-            followers: 0,
-            following: 0,
-            verified: false,
-        });
-        expect(typeof q.TwotterAccounts[0].avatar).toBe("string");
-    });
-
-    it("repairs a broken save on mod load, before any quest runs", async () => {
-        // The scenario that matters most: the player's save already holds the
-        // half-built record and the quest is long finished (or never claimed).
-        // Installing the mod has to be enough.
-        const calls: string[] = [];
-        const user = halfBuiltUser("qatest5");
-        const sdk = twotterStore(calls, user);
-        const { files } = compileProject(tweetProject());
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-        const ModPackage = (registered0(sdk) as { mod: new () => { OnModPackageLoaded(): void } }).mod;
-        expect(ModPackage).toBeTruthy();
-        new ModPackage().OnModPackageLoaded();
-
-        expect(typeof user.name).toBe("string");
-        expect(typeof user.joinedAt).toBe("string");
-        expect(searchLikeTheGame([user], "boop")).toEqual([]);
-        // …and it did it by patching, not by creating a second account.
-        expect(calls.filter((c) => /addUser|createUser|postTweet/.test(c))).toEqual([]);
-    });
-
-    it("says in the log which fields it had to fill, so a crash report can name them", () => {
-        const said: string[] = [];
-        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
-        const user = halfBuiltUser("qatest5");
-        const sdk = twotterStore([], user);
-        const { files } = compileProject(tweetProject());
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        new (registered0(sdk).mod)().OnModPackageLoaded();
-        spy.mockRestore();
-
-        const lines = said.filter((l) => l.includes("@qatest5")).join("\n");
-        expect(lines).toContain("is missing");
-        expect(lines).toContain("repaired Twotter account");
-        expect(lines).toContain("name");
-        expect(lines).toContain("surname");
-        // and the record it found is written out field by field, so a crash
-        // report can be read without guessing
-        expect(lines).toMatch(/username:string/);
-        expect(lines).toMatch(/bio:absent|bio:undefined/);
-    });
-
-    /**
-     * What the QA-filedump log of 02/09 proved, in two lines:
-     *
-     *   [quest-editor] repaired Twotter account @qatest6: filled bio …
-     *   [quest-editor] repaired Twotter account @qatest6: filled bio …
-     *
-     * Only `bio` was ever missing — the engine does not carry a quest account's
-     * bio onto the user record — and the same repair reported the same hole
-     * twice in one session, which means the record we are handed is a COPY:
-     * patching it changes nothing the game will ever read (or save).
-     */
-    describe("when the game hands back a copy", () => {
-        /** A store like the game's: reads clone, addUser writes by id. */
-        function copyStore(calls: string[], stored: Record<string, unknown>[]) {
-            const sdk = stubSdk(calls, []) as any;
-            const clone = (u?: Record<string, unknown>) => (u ? { ...u } : undefined);
-            sdk.Twotter = {
-                getUserByUsername: (name: string) => clone(stored.find((u) => u.username === name)),
-                getUserById: (id: string) => clone(stored.find((u) => u.id === id)),
-                createUser: (o: Record<string, unknown>) => {
-                    calls.push("createUser");
-                    return {
-                        id: o.id ?? "new", username: o.username ?? "", name: o.firstName ?? "",
-                        surname: o.lastName ?? "", avatar: o.avatar ?? "", banner: "", bio: o.bio ?? "",
-                        joinedAt: "2026-09-02", password: "", followers: o.followers ?? 0,
-                        following: o.following ?? 0, verified: !!o.verified,
-                    };
-                },
-                addUser: (u: Record<string, unknown>) => {
-                    calls.push("addUser");
-                    const at = stored.findIndex((x) => x.id === u.id);
-                    if (at >= 0) stored[at] = u;
-                    else stored.push(u);
-                },
-            };
-            return sdk;
-        }
-
-        it("puts a complete record back, under the same id, exactly once", async () => {
-            const calls: string[] = [];
-            // Precisely the QA record: everything present except bio.
-            const stored = [{
-                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
-                banner: "", joinedAt: "2026-09-02", password: "", followers: 0, following: 0,
-            } as Record<string, unknown>];
-            const sdk = copyStore(calls, stored);
-            const { files } = compileProject(tweetProject({ bio: "Dockyard watch" }));
-            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-
-            new (registered0(sdk).mod)().OnModPackageLoaded();
-            const q = new (registered0(sdk).quests[0])();
-            q.OnStart();
-            q.OnObjectivesStart();
-            await settle();
-
-            expect(stored).toHaveLength(1); // replaced, not duplicated
-            expect(stored[0].id).toBe("k5nKaikR");
-            expect(stored[0].bio).toBe("Dockyard watch");
-            expect(stored[0].name).toBe("QA"); // what was already right is kept
-            expect(calls.filter((c) => c === "addUser")).toHaveLength(1); // and only once
-            expect(searchLikeTheGame(stored, "boop")).toEqual([]);
-            expect(searchLikeTheGame(stored, "dockyard")).toHaveLength(1);
-        });
-
-        it("says so in the log, naming the field and the record it saw", async () => {
-            const said: string[] = [];
-            const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
-            const stored = [{
-                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
-                banner: "", joinedAt: "2026-09-02", password: "", followers: 0, following: 0,
-            } as Record<string, unknown>];
-            const sdk = copyStore([], stored);
-            const { files } = compileProject(tweetProject());
-            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-            new (registered0(sdk).mod)().OnModPackageLoaded();
-            await settle();
-            spy.mockRestore();
-
-            const lines = said.join("\n");
-            expect(lines).toContain("is missing bio");
-            expect(lines).toContain("replacing the stored record");
-        });
-
-        it("gives up loudly, without throwing, when the record cannot be written", async () => {
-            const said: string[] = [];
-            const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
-            const stored = [{ id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png", banner: "", joinedAt: "x", password: "", followers: 0, following: 0 } as Record<string, unknown>];
-            const sdk = copyStore([], stored);
-            delete sdk.Twotter.addUser; // an older build with no way to write
-            const { files } = compileProject(tweetProject());
-            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-            expect(() => new (registered0(sdk).mod)().OnModPackageLoaded()).not.toThrow();
-            spy.mockRestore();
-            expect(said.join("\n")).toContain("cannot repair Twotter account @qatest5");
-        });
-
-        it("does not touch an account the game stores properly", async () => {
-            const calls: string[] = [];
-            const stored = [{
-                id: "k5nKaikR", username: "qatest5", name: "QA", surname: "Test", avatar: "a.png",
-                banner: "", bio: "all good", joinedAt: "2026-09-02", password: "", followers: 2, following: 3,
-            } as Record<string, unknown>];
-            const sdk = copyStore(calls, stored);
-            const { files } = compileProject(tweetProject());
-            runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-            new (registered0(sdk).mod)().OnModPackageLoaded();
-            const q = new (registered0(sdk).quests[0])();
-            q.OnStart();
-            await settle();
-            expect(calls.filter((c) => c === "addUser" || c === "createUser")).toEqual([]);
-            expect(stored[0].bio).toBe("all good");
-        });
-    });
-
     it("never touches the player's IP unless the author asked for it", async () => {
         const calls: string[] = [];
-        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
-        // The loader throws for an undeclared permission — exactly as the log shows.
-        sdk.Network = {
-            getPlayerIp: () => {
-                calls.push("getPlayerIp");
-                throw new Error('[ContentSDK] Mod tried to use Network.getPlayerIp without "network" permission.');
-            },
+        const sdk = stubSdk(calls, []) as any;
+        // The loader throws for an undeclared permission, exactly as the log shows.
+        sdk.Network.getPlayerIp = () => {
+            calls.push("getPlayerIp");
+            throw new Error('[ContentSDK] tried to use Network.getPlayerIp without "network" permission.');
         };
-        const { files } = compileProject(tweetProject());
-        expect(JSON.parse(files.find((f) => f.path === "manifest.json")!.content).permissions).not.toContain("network");
-        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const p = notifyProject("Nothing to see here");
+        const { files } = compileProject(p);
+        expect(JSON.parse(files.find((f) => f.path === "manifest.json")!.content).permissions)
+            .not.toContain("network");
 
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
         const q = new (registered0(sdk).quests[0])();
         expect(() => q.OnStart()).not.toThrow();
         q.OnObjectivesStart();
         await settle();
         expect(calls).not.toContain("getPlayerIp");
+        expect(calls).toContain("notify:Nothing to see here");
     });
 
-    it("asks for the permission when a token does need the player's IP", () => {
-        const p = tweetProject();
-        (p.quests[0].graph.nodes[1].data as { content: string }).content = "Your IP is {{player.ip}}";
-        expect(computePermissions(p)).toContain("network");
-        const { files } = compileProject(p);
-        expect(JSON.parse(files.find((f) => f.path === "manifest.json")!.content).permissions).toContain("network");
+    it("asks for the permission a token needs", () => {
+        expect(computePermissions(notifyProject("Your IP is {{player.ip}}"))).toContain("network");
+        expect(computePermissions(notifyProject("Mail: {{player.email}}"))).toContain("mail");
+        expect(computePermissions(notifyProject("Hello {{player.username}}"))).toContain("shell");
+        expect(computePermissions(notifyProject("Plain text"))).not.toContain("network");
     });
 
     it("still resolves the token when the permission is there", async () => {
         const calls: string[] = [];
-        const sdk = twotterStore(calls, halfBuiltUser("qatest5"));
-        sdk.Network = { getPlayerIp: () => "10.0.0.7" };
-        sdk.UI = { notify: (m: string) => calls.push(`notify:${m}`) };
-        const p = tweetProject();
-        const notify = node("fx.notify", { message: "IP {{player.ip}}", variant: "notify" });
-        p.quests[0].graph.nodes.push(notify);
-        p.quests[0].graph.edges.push(edge(p.quests[0].graph.nodes[0].id, notify.id, "flow"));
-        const { files } = compileProject(p);
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network.getPlayerIp = () => "10.0.0.7";
+        const { files } = compileProject(notifyProject("IP {{player.ip}}"));
         runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
         const q = new (registered0(sdk).quests[0])();
         q.OnStart();
         await settle();
         expect(calls).toContain("notify:IP 10.0.0.7");
+    });
+
+    it("hands back an empty string instead of throwing when a lookup fails", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Shell.getUsername = () => { throw new Error("nope"); };
+        const { files } = compileProject(notifyProject("Hi {{player.username}}!"));
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(() => q.OnStart()).not.toThrow();
+        await settle();
+        expect(calls).toContain("notify:Hi !");
     });
 });

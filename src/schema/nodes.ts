@@ -342,39 +342,6 @@ export const WeeChatNodeDataSchema = z.object({
     messages: z.array(WeeChatMessageSchema).default([]),
 });
 
-export const TweetNodeDataSchema = z.object({
-    accountId: z.string().default(""),
-    content: z.string().default(""),
-    /**
-     * Post the moment the story reaches this node (through the platform's live
-     * post API) instead of having it on Twotter from the quest's start.
-     * Off by default: the declarative path is the one the engine scopes and
-     * cleans up for us, and the live API was found wanting in rounds 21–22.
-     */
-    postLive: z.boolean().default(false),
-    /** Optional attached picture, embedded as a data URL. */
-    image: z.string().optional(),
-    likes: z.number().optional(),
-    comments: z.number().optional(),
-    shares: z.number().optional(),
-    views: z.number().optional(),
-    /**
-     * How the post's timestamp is decided:
-     *  - "now": no stored date; the game shows it relative to real time (its
-     *    natural, always-valid fallback).
-     *  - "relative": an age string like "2 days" (SDK `postedAgo`).
-     *  - "absolute": a specific calendar date the author picks (`postedAt`),
-     *    which the compiler turns into the age string the SDK understands.
-     */
-    timeMode: z.enum(["now", "relative", "absolute"]).default("now"),
-    /** Relative age, SDK format, e.g. "2 days" / "1 month". Used when timeMode = "relative". */
-    postedAgo: z.string().optional(),
-    /** A specific date (yyyy-mm-dd). Used when timeMode = "absolute". */
-    postedAt: z.string().optional(),
-    /** Also surface this post in the main Twotter timeline, not just the profile. */
-    showInTimeline: z.boolean().default(false),
-});
-
 /**
  * The general dialogue node: one node, four flavours. The payload for every
  * flavour lives on the node; `kind` selects which one the editor shows and the
@@ -540,7 +507,6 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("world.files", FilesNodeDataSchema),
     node("world.toolResponse", ToolResponseNodeDataSchema),
     node("comms.dialogue", DialogueNodeDataSchema),
-    node("comms.tweet", TweetNodeDataSchema),
     node("reply.hackertyper", HackertyperNodeDataSchema),
     node("reply.input", ManualInputNodeDataSchema),
     node("fx.pay", PayNodeDataSchema),

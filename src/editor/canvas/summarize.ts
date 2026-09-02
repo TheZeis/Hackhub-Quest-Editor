@@ -184,18 +184,6 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             ];
         }
 
-        case "comms.tweet": {
-            // Resolve the picked account so the card shows the handle the
-            // author typed, not the internal id it is stored under.
-            const account = quest?.twotterAccounts?.find((a) => a.id === d.accountId);
-            const who = account
-                ? `@${account.username || account.displayName || account.id}`
-                : d.accountId
-                  ? `@${clip(String(d.accountId), 20)} — account not in this quest`
-                  : "no account yet";
-            return [who, d.content ? clip(String(d.content), 56) : "no tweet yet"];
-        }
-
         case "reply.hackertyper":
             return [
                 { website: "Website page", app: "Desktop app", phoneApp: "Phone app" }[

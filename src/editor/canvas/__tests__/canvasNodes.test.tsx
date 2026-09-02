@@ -315,61 +315,6 @@ describe("reroute grab area", () => {
     });
 });
 
-describe("tweet account picker", () => {
-    /**
-     * The reported bug: the dropdown showed the first account while the node
-     * card still said "no account yet". A <select> with a value that matches no
-     * option displays its first option, so an unset account *looked* set.
-     */
-    function tweetWithAccounts() {
-        const st = useEditor.getState();
-        const id = st.addNode("comms.tweet", { x: 0, y: 0 })!;
-        act(() =>
-            useEditor.getState().updateQuest(quest().id, {
-                twotterAccounts: [
-                    { id: "acc1", username: "Test", displayName: "Testacc", avatar: "", verified: false },
-                ],
-            } as never),
-        );
-        act(() => useEditor.getState().select({ nodeIds: [id], edgeIds: [] }));
-        return id;
-    }
-
-    it("never shows an account that has not actually been chosen", async () => {
-        tweetWithAccounts();
-        render(<App />);
-
-        const select = (await waitFor(() => {
-            const el = document.querySelector('select[aria-label="Account"]') as HTMLSelectElement;
-            expect(el).toBeTruthy();
-            return el;
-        })) as HTMLSelectElement;
-
-        expect(select.value).toBe("");
-        expect(select.options[0].textContent).toMatch(/pick an account/i);
-        // and the editor says out loud that nothing is posted yet
-        expect(document.body.textContent).toContain("Nothing is posted until you choose an account");
-    });
-
-    it("writes the choice, and the node card then shows the handle", async () => {
-        const user = userEvent.setup();
-        const id = tweetWithAccounts();
-        render(<App />);
-
-        const select = (await waitFor(() => {
-            const el = document.querySelector('select[aria-label="Account"]') as HTMLSelectElement;
-            expect(el).toBeTruthy();
-            return el;
-        })) as HTMLSelectElement;
-
-        await user.selectOptions(select, "acc1");
-
-        const node = quest().graph.nodes.find((n) => n.id === id)!;
-        expect((node.data as { accountId: string }).accountId).toBe("acc1");
-        await waitFor(() => expect(document.body.textContent).toContain("@Test"));
-    });
-});
-
 describe("wire motion", () => {
     beforeEach(() => {
         document.documentElement.style.removeProperty(DASH_VAR);

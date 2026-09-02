@@ -763,15 +763,6 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             ],
         },
     },
-    "comms.tweet": {
-        accountId: "dockwatch",
-        content: "Something moved on the night of the 14th that isn't in any manifest.",
-        likes: 42,
-        comments: 7,
-        shares: 11,
-        views: 3180,
-        postedAgo: "3h",
-    },
     "reply.hackertyper": {
         surface: "website",
         targetRef: "docknet.internal",
@@ -959,7 +950,7 @@ export const TEMPLATES: Template[] = [
         description:
             "Every node type on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 41,
+        nodeCount: 40,
         build: buildReference,
     },
 ];

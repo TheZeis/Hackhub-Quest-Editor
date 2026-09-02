@@ -1,50 +1,12 @@
 /**
- * Node-card copy and the small pieces of editor memory around it: the tweet
- * card resolving its account, and tags the author invents being offered back
- * in the next mod.
+ * Node-card copy and the small pieces of editor memory around it: what each
+ * card says at a glance, and tags the author invents being offered back in the
+ * next mod.
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { summarize } from "@/editor/canvas/summarize";
-import { createQuest } from "@/schema/project";
-import { nodeTypeDef } from "@/schema/registry";
 import { forgetTag, rememberTags, rememberedTags } from "@/lib/tagMemory";
 import type { NodeDoc } from "@/schema/nodes";
-
-function tweetNode(patch: Record<string, unknown>): NodeDoc {
-    return {
-        id: "t1",
-        type: "comms.tweet",
-        position: { x: 0, y: 0 },
-        data: { ...(nodeTypeDef("comms.tweet").create() as object), ...patch },
-    } as NodeDoc;
-}
-
-describe("tweet card", () => {
-    it("shows the handle of the account picked in the inspector", () => {
-        const quest = createQuest();
-        // The picker stores the account's id; the card must show the @handle.
-        quest.twotterAccounts = [
-            { id: "acc_9f2", username: "dockwatch", displayName: "Dock Watch", avatar: "", verified: false },
-        ];
-        const lines = summarize(tweetNode({ accountId: "acc_9f2", content: "Something moved." }), quest);
-        expect(lines[0]).toBe("@dockwatch");
-        expect(lines[1]).toBe("Something moved.");
-    });
-
-    it("still says so when no account has been picked", () => {
-        const quest = createQuest();
-        quest.twotterAccounts = [
-            { id: "acc_9f2", username: "dockwatch", displayName: "Dock Watch", avatar: "", verified: false },
-        ];
-        expect(summarize(tweetNode({ accountId: "" }), quest)[0]).toBe("no account yet");
-    });
-
-    it("flags an account that was deleted from the quest", () => {
-        const quest = createQuest();
-        quest.twotterAccounts = [];
-        expect(summarize(tweetNode({ accountId: "acc_gone" }), quest)[0]).toContain("not in this quest");
-    });
-});
 
 describe("sequence card", () => {
     it("reads out the outputs and the total run time", () => {
