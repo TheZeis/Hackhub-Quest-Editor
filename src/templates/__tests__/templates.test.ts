@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { ProjectSchema } from "@/schema/project";
 import { NodeSchema, type NodeDoc, type NodeType } from "@/schema/nodes";
 import { EdgeSchema, canConnect, type EdgeKind } from "@/schema/edges";
-import { nodeTypeDef, NODE_TYPES_REGISTRY } from "@/schema/registry";
+import { nodeTypeDef, NODE_TYPES_REGISTRY, sourcesOf } from "@/schema/registry";
 import { summarize } from "@/editor/canvas/summarize";
 import { getTemplate, TEMPLATES } from "@/templates";
 import { analyseGraph } from "@/analysis/graph";
@@ -20,6 +20,7 @@ describe("template registry", () => {
             "wifi-hack",
             "investigation",
             "contract-hack",
+            "dirhunter-leak",
             "reference",
         ]);
         expect(getTemplate("wifi-hack")?.name).toBe("Simple Linear Wi-Fi Hack");
@@ -30,6 +31,18 @@ describe("template registry", () => {
         expect(contract.websites).toHaveLength(1);
         expect(contract.websites[0].host).toBe("meridian-capital.net");
         expect(contract.websites[0].pages.some((p) => !p.seo)).toBe(true);
+        // The dirhunter template's whole puzzle is the unlisted page: the
+        // password rule is printed there and nowhere in the quest text.
+        const leak = getTemplate("dirhunter-leak")!.build();
+        const helpdesk = leak.websites[0].pages.find((p) => p.path === "/it/helpdesk");
+        expect(helpdesk, "the NAZA site must still ship its help-desk page").toBeDefined();
+        expect(helpdesk!.seo, "the help-desk page has to stay out of search").toBe(false);
+        expect(helpdesk!.content).toContain("first initial");
+        // …and the account it unlocks must match the rule the page prints.
+        const box = (leak.quests[0].graph.nodes.find((n) => n.type === "world.network")!.data as {
+            device: { children: { users: { username: string; password: string }[] }[] };
+        }).device.children[0];
+        expect(box.users[0]).toMatchObject({ username: "t.reyes", password: "treyes3419" });
         expect(getTemplate("nope")).toBeUndefined();
     });
 
@@ -102,7 +115,9 @@ describe("template registry", () => {
                 expect(source, `edge ${edge.id} references missing source ${edge.source}`).toBeDefined();
                 expect(target, `edge ${edge.id} references missing target ${edge.target}`).toBeDefined();
 
-                const sourceSpec = nodeTypeDef(source!.type).sources.find((h) => h.id === edge.sourceHandle);
+                // Dynamic sockets count: a Sequence node's outputs come from
+                // its own steps, exactly as the canvas resolves them.
+                const sourceSpec = sourcesOf(source!).find((h) => h.id === edge.sourceHandle);
                 const targetSpec = nodeTypeDef(target!.type).targets.find((h) => h.id === edge.targetHandle);
                 expect(sourceSpec, `${source!.type} has no source handle "${edge.sourceHandle}"`).toBeDefined();
                 expect(targetSpec, `${target!.type} has no target handle "${edge.targetHandle}"`).toBeDefined();

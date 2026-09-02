@@ -1087,3 +1087,76 @@ describe("seeding files", () => {
         await settle();
     });
 });
+
+/**
+ * The Help Desk Leak template: the closing scene is a Sequence with a timed
+ * Kisscord conversation on one of its beats, so this exercises the two newest
+ * flow features through shipped content.
+ */
+describe("the dirhunter template runs", () => {
+    it("plays its closing scene in order once the file is taken", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners) as any;
+        sdk.Kisscord = {
+            sendMessage: (_channel: string, content: string) => calls.push(`kc:${String(content).slice(0, 12)}`),
+        };
+        sdk.Bank = { transaction: (t: { amount: number }) => calls.push(`pay:${t.amount}`), getBalance: () => 0 };
+        sdk.Random = { sleep: () => Promise.resolve() };
+        const project = getTemplate("dirhunter-leak")!.build();
+        runMod(compileProject(project).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        q.OnObjectivesStart();
+        await settle();
+
+        // Nothing has happened yet: the scene waits for the download.
+        expect(calls.some((c) => c.startsWith("pay:"))).toBe(false);
+
+        for (const [event, cb] of listeners) {
+            if (event === "Files.Transfer") cb({ type: "DOWNLOAD", file: { id: "f1", name: "abort-report.pdf" } });
+        }
+        await settle();
+
+        expect(calls).toContain("toast:Upload complete.");
+        expect(calls.some((c) => c.startsWith("kc:Got it."))).toBe(true);
+        expect(calls).toContain("pay:3200");
+        // in that order: confirmation, then her reading it, then the money
+        expect(calls.indexOf("toast:Upload complete.")).toBeLessThan(calls.indexOf("pay:3200"));
+    });
+
+    it("ignores a download of the wrong file", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners) as any;
+        sdk.Bank = { transaction: (t: { amount: number }) => calls.push(`pay:${t.amount}`), getBalance: () => 0 };
+        sdk.Random = { sleep: () => Promise.resolve() };
+        runMod(compileProject(getTemplate("dirhunter-leak")!.build()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnObjectivesStart();
+        await settle();
+        for (const [event, cb] of listeners) {
+            if (event === "Files.Transfer") cb({ type: "DOWNLOAD", file: { id: "f9", name: "cafeteria-menu.pdf" } });
+        }
+        await settle();
+        expect(calls.some((c) => c.startsWith("pay:"))).toBe(false);
+    });
+
+    it("puts the report on the box, behind the account the website's clue unlocks", async () => {
+        const built: any[] = [];
+        const sdk = stubSdk([], []) as any;
+        sdk.Network = { ...sdk.Network, createSubnetNetwork: (d: unknown) => { built.push(d); return "ip"; } };
+        runMod(compileProject(getTemplate("dirhunter-leak")!.build()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        await settle();
+
+        expect(built[0].domain).toEqual({ name: "naza.gov" });
+        const user = built[0].children[0].users[0];
+        expect(user.username).toBe("t.reyes");
+        expect(user.files.map((f: { name: string }) => f.name)).toContain("abort-report");
+    });
+});

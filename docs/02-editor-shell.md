@@ -1155,3 +1155,45 @@ Device mapping also stopped dropping `name`, `lanIp` and `isIpHidden`.
 
 **Verification:** 409 tests (19 files, +22), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r32"`.
+
+## Round 33 — the template audit, part two: the dirhunter loop
+
+**“The Help Desk Leak”** (Intermediate, 21 nodes, 1 website) — the other job the
+game is built around: a site that says no, and a page it forgot to list.
+
+> brief → the public site → the employee portal refuses you → `dirhunter naza.gov`
+> finds `/it/helpdesk` → that page prints the temp-password rule → the public
+> directory gives the employee ID → `ssh t.reyes@10.10.4.7` → download the abort
+> report → paid.
+
+The point of the template is **where the clue lives**: not in quest text, but in
+the website. The NAZA site template already had all three pieces and nothing
+used them — an unlisted help-desk page explaining that temporary passwords are
+“first initial + last name + last 4 of the employee ID”, a public directory
+listing Tomás Reyes as NZA-3419, and a portal that denies everyone. The quest
+just puts an SSH account behind `t.reyes` / `treyes3419` and lets the player
+assemble it. A test pins the page, its `seo: false` and the matching credential
+together, so editing one without the other fails the suite.
+
+It also carries the closing scene as a **Sequence**: confirmation toast → 3.5s →
+a **timed Kisscord conversation** (`postLive`) → 2s → payment, which is the first
+shipped content to use either feature. Both directions are played through in the
+tests, including a download of the wrong file paying nothing.
+
+Two smaller fixes this round:
+
+- `makeEdge` in the template builder resolved sockets from the **static**
+  registry, so a Sequence node's per-step outputs (`step-<id>`) could not be
+  wired by a template at all. It — and the templates' "only wires compatible
+  handles" test — now use `sourcesOf()`, the same resolution the canvas uses.
+- Port version hint, from QA: **plain numbers**. A letter in a version string
+  (`7.2p2`) has been seen in-game to stop metasploit matching an exploit to the
+  port, so both new templates use `7.2` / `8.4` and the field says why.
+
+Also recorded from QA: **log cleaning needs no node.** The game logs connections
+on the machine itself, the player wipes that log from its own UI, and skipping it
+costs suspicion — all engine-side.
+
+**Verification:** 424 tests (19 files, +15), `tsc --noEmit` clean, `vite build`
+clean. Every template is now issue-free on the canvas except the reference sheet,
+which is a catalogue by design. Export stamp: `EDITOR_BUILD = "2026-09-02.r33"`.
