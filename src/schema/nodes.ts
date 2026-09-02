@@ -190,6 +190,8 @@ export const LayoutGroupNodeDataSchema = z.object({
     comment: z.string().default(""),
     w: z.number().default(360),
     h: z.number().default(240),
+    /** Title-bar colour. Any CSS hex; older drafts fall back to slate. */
+    color: z.string().default("#64748b"),
 });
 export const EntryLoadData = empty;
 export const EntryCompleteData = empty;
@@ -471,6 +473,24 @@ export const RandomPickNodeDataSchema = z.object({
     storeAs: z.string().optional(),
 });
 
+/**
+ * Fire several outputs one after another, with an author-set pause before each.
+ *
+ * Every step owns one output socket (`step-<id>`), so the sockets a Sequence
+ * node shows are derived from its own data rather than fixed in the registry.
+ */
+export const SequenceStepSchema = z.object({
+    id: z.string(),
+    label: z.string().default("Step"),
+    /** Pause before this output fires, in milliseconds. */
+    delayMs: z.number().min(0).default(0),
+});
+export type SequenceStep = z.infer<typeof SequenceStepSchema>;
+
+export const SequenceNodeDataSchema = z.object({
+    steps: z.array(SequenceStepSchema).default([]),
+});
+
 export const NoteNodeDataSchema = z.object({
     text: z.string().default(""),
     width: z.number().default(240),
@@ -520,6 +540,7 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("flow.branch", BranchNodeDataSchema),
     node("flow.delay", DelayNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),
+    node("flow.sequence", SequenceNodeDataSchema),
     node("flow.note", NoteNodeDataSchema),
     node("flow.reroute", RerouteNodeDataSchema),
     node("layout.group", LayoutGroupNodeDataSchema),

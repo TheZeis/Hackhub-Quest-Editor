@@ -78,7 +78,17 @@ var __QE = (function () {
         }
         return a === e;
     }
-    function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+    function sleep(ms) {
+        /* Prefer the game's own timer (SDK 0.21.0 Random.sleep) so waits obey
+           whatever the game does with time; fall back to a plain timeout when
+           the API is not there. */
+        try {
+            if (typeof sdk !== "undefined" && sdk && sdk.Random && sdk.Random.sleep) {
+                return Promise.resolve(sdk.Random.sleep(ms));
+            }
+        } catch (e) { /* fall through to the timeout below */ }
+        return new Promise(function (res) { setTimeout(res, ms); });
+    }
     return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, ageStringFromDate: ageStringFromDate };
 })();
 
@@ -463,6 +473,26 @@ function __qeRegisterProject(sdk, PROJECT) {
                     return next();
                 case "flow.delay":
                     return __QE.sleep(Math.max(0, Number(d.seconds || 0)) * 1000).then(next);
+                case "flow.sequence": {
+                    /* Fire each output in author order, pausing the step's own
+                       delay (milliseconds) before it. Steps own their sockets:
+                       socket id is "step-" + step.id. */
+                    var seqSteps = d.steps || [];
+                    var seqOuts = flowOuts(nodeId);
+                    return seqSteps.reduce(function (chain, step) {
+                        return chain.then(function () {
+                            var wait = Math.max(0, Number(step.delayMs || 0));
+                            var handleId = "step-" + step.id;
+                            var branch = seqOuts.filter(function (e) { return e.sourceHandle === handleId; });
+                            var fire = function () {
+                                return branch.reduce(function (p, e) {
+                                    return p.then(function () { return runFlow(e.target, ctx, depth + 1); });
+                                }, Promise.resolve());
+                            };
+                            return wait > 0 ? __QE.sleep(wait).then(fire) : fire();
+                        });
+                    }, Promise.resolve());
+                }
                 case "objective":
                     /* When the story flow reaches an objective, tick it off.
                        (Objectives with a trigger event complete via the SDK

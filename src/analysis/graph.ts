@@ -8,7 +8,7 @@
  */
 import type { EdgeDoc } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
-import { nodeTypeDef } from "@/schema/registry";
+import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import type { Position } from "@/schema/common";
 
 export interface GraphIssue {
@@ -89,19 +89,28 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
         }
 
         // A branch or reply with an unwired outcome is a dead end the player hits.
-        if (node.type === "flow.branch" || node.type === "reply.input") {
-            const sockets = def.sources.map((s) => s.id);
+        if (
+            node.type === "flow.branch" ||
+            node.type === "reply.input" ||
+            node.type === "flow.sequence"
+        ) {
+            const outputs = sourcesOf(node);
+            const sockets = outputs.map((s) => s.id);
             const used = new Set(
                 edges.filter((e) => e.source === node.id).map((e) => e.sourceHandle),
             );
             const missing = sockets.filter((s) => !used.has(s));
             if (missing.length > 0) {
+                const names = missing
+                    .map((m) => outputs.find((s) => s.id === m)?.label ?? m)
+                    .join("” and “");
                 issues.push({
                     nodeId: node.id,
                     label: "Dead end",
-                    detail: `The “${missing
-                        .map((m) => def.sources.find((s) => s.id === m)?.label ?? m)
-                        .join("” and “")}” outcome goes nowhere, so the quest stalls if the player takes it.`,
+                    detail:
+                        node.type === "flow.sequence"
+                            ? `The “${names}” output goes nowhere, so that step of the sequence does nothing. Wire it up or remove the output.`
+                            : `The “${names}” outcome goes nowhere, so the quest stalls if the player takes it.`,
                     severity: "warn",
                 });
             }

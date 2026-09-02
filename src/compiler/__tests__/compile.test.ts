@@ -720,3 +720,113 @@ describe("random target ip: CreateData + {{data.targetIp}}", () => {
         expect(await q.CreateData()).toEqual({});
     });
 });
+
+describe("flow.sequence fires its outputs in order, with the author's pauses", () => {
+    /**
+     * The SDK has no scheduling API of its own (grep: no timer/schedule/
+     * sequence anywhere in index.d.ts), so sequencing lives in the emitted
+     * interpreter. Its step delays mirror the SDK's own convention for chat
+     * chains: `delayMs`, applied *before* the item fires.
+     */
+    function sequenceProject(): { project: ProjectDocument; ids: string[] } {
+        const project = createProject();
+        const quest = project.quests[0];
+        quest.autoStart = true;
+
+        const entry = node("entry.start");
+        const seqNode = node("flow.sequence", {
+            steps: [
+                { id: "a", label: "First", delayMs: 0 },
+                { id: "b", label: "Second", delayMs: 60 },
+                { id: "c", label: "Third", delayMs: 60 },
+            ],
+        });
+        const one = node("fx.notify", { message: "one" });
+        const two = node("fx.notify", { message: "two" });
+        const three = node("fx.notify", { message: "three" });
+
+        quest.graph.nodes = [entry, seqNode, one, two, three];
+        quest.graph.edges = [
+            edge(entry.id, seqNode.id, "flow"),
+            edge(seqNode.id, one.id, "flow", "step-a"),
+            edge(seqNode.id, two.id, "flow", "step-b"),
+            edge(seqNode.id, three.id, "flow", "step-c"),
+        ];
+        return { project, ids: [entry.id, seqNode.id] };
+    }
+
+    it("runs every output top to bottom", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []);
+        const { files } = compileProject(sequenceProject().project);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        // Real timers: the steps really do wait.
+        await new Promise((r) => setTimeout(r, 400));
+        await settle();
+
+        expect(calls).toEqual(["notify:one", "notify:two", "notify:three"]);
+    });
+
+    it("waits the step's delay before firing it", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []);
+        const { project } = sequenceProject();
+        // Long enough that flushing microtasks cannot outrun the timer.
+        const steps = (project.quests[0].graph.nodes[1].data as { steps: { delayMs: number }[] }).steps;
+        steps[1].delayMs = 600;
+        steps[2].delayMs = 600;
+        const { files } = compileProject(project);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle(); // no real time has passed yet
+        expect(calls).toEqual(["notify:one"]); // only the 0 ms step has fired
+
+        await new Promise((r) => setTimeout(r, 1500));
+        await settle();
+        expect(calls).toEqual(["notify:one", "notify:two", "notify:three"]);
+    });
+
+    it("uses the game's own timer when the SDK exposes one", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        // SDK 0.21.0 ships Random.sleep(ms): Promise<void>.
+        sdk.Random = { sleep: (ms: number) => { calls.push(`sleep:${ms}`); return Promise.resolve(); } };
+        const { files } = compileProject(sequenceProject().project);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+
+        expect(calls).toEqual([
+            "notify:one",
+            "sleep:60",
+            "notify:two",
+            "sleep:60",
+            "notify:three",
+        ]);
+    });
+
+    it("an output with nothing wired to it simply does nothing", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []);
+        const { project } = sequenceProject();
+        // Drop the wire from the middle step.
+        const quest = project.quests[0];
+        quest.graph.edges = quest.graph.edges.filter((e) => e.sourceHandle !== "step-b");
+        const { files } = compileProject(project);
+        runMod(files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await new Promise((r) => setTimeout(r, 400));
+        await settle();
+
+        expect(calls).toEqual(["notify:one", "notify:three"]);
+    });
+});

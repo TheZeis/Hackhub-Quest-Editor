@@ -7,7 +7,7 @@ import { Handle, NodeResizer, Position, useConnection, type Node, type NodeProps
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
-import { categoryOf, nodeTypeDef } from "@/schema/registry";
+import { categoryOf, nodeTypeDef, sourcesOf } from "@/schema/registry";
 import { selectActiveQuest, useEditor } from "@/store/editor";
 import { HANDLE_STYLE, type EdgeKind } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
@@ -33,6 +33,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const doc = data.doc;
     const issue = data.issue;
     const def = nodeTypeDef(doc.type);
+    const sources = useMemo(() => sourcesOf(doc), [doc]);
     const category = categoryOf(doc.type);
     const quest = useEditor(selectActiveQuest);
     const updateNodeData = useEditor((s) => s.updateNodeData);
@@ -48,13 +49,17 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     const isNote = doc.type === "flow.note";
 
     if (doc.type === "layout.group") {
-        const gd = doc.data as { label?: string; comment?: string; w?: number; h?: number };
+        const gd = doc.data as { label?: string; comment?: string; w?: number; h?: number; color?: string };
+        const color = gd.color || "#64748b";
         return (
             <>
                 <NodeResizer
                     isVisible={!!selected}
                     minWidth={160}
                     minHeight={120}
+                    // 30% larger than React Flow's 5px default, so the corners
+                    // are grabbable without hunting for them.
+                    handleStyle={{ width: 9, height: 9, borderRadius: 3 }}
                     onResize={(_e, params) =>
                         updateNodeData(doc.id, {
                             w: Math.round(params.width),
@@ -64,16 +69,33 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 />
                 <div
                     className={cn(
-                        "rounded-lg border-2 border-dashed px-3 py-2",
-                        selected ? "border-accent/70 bg-accent/5" : "border-line-strong/60 bg-surface-2/30",
+                        "overflow-hidden rounded-lg border-2 border-dashed",
+                        selected ? "bg-accent/5" : "bg-surface-2/30",
                     )}
-                    style={{ width: gd.w ?? 360, height: gd.h ?? 240 }}
+                    style={{
+                        width: gd.w ?? 360,
+                        height: gd.h ?? 240,
+                        borderColor: selected
+                            ? "var(--color-accent)"
+                            : `color-mix(in srgb, ${color} 65%, transparent)`,
+                    }}
                 >
-                    <p className="text-[12px] font-semibold tracking-wide text-ink-2">
-                        {gd.label || "Group"}
-                    </p>
+                    {/* Title bar: spans the frame and carries the group's name. */}
+                    <div
+                        className="flex items-center gap-1.5 px-2.5 py-1.5"
+                        style={{ background: color }}
+                        title={gd.label || "Group"}
+                    >
+                        <Icon name="layers" size={11} className="shrink-0" style={{ color: readableOn(color) }} />
+                        <span
+                            className="truncate text-[12px] font-semibold tracking-wide"
+                            style={{ color: readableOn(color) }}
+                        >
+                            {gd.label || "Group"}
+                        </span>
+                    </div>
                     {gd.comment && (
-                        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-ink-3">
+                        <p className="px-3 py-2 whitespace-pre-wrap break-words text-[11px] leading-relaxed text-ink-3">
                             {gd.comment}
                         </p>
                     )}
@@ -83,16 +105,40 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
     }
 
     if (doc.type === "flow.reroute") {
+        // One visible dot, two stacked sockets: wires arrive at and leave from
+        // the same point, and the ring around it is the node's own grab area.
+        const socketStyle: React.CSSProperties = {
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+        };
         return (
-            <div className="relative size-4" title="Reroute — wires pass through here unchanged">
-                <Handle id="in" type="target" position={Position.Left} data-kind="flow" title="In" />
+            <div
+                className="qe-reroute relative flex size-9 items-center justify-center"
+                title="Reroute — wires pass through here unchanged. Drag the ring to move it; drag from the dot to wire it onwards."
+            >
                 <div
                     className={cn(
-                        "size-4 rounded-full border-2 bg-surface transition-colors",
+                        "size-[22px] rounded-full border-2 bg-surface transition-colors",
                         selected ? "border-accent ring-2 ring-accent/40" : "border-line-strong hover:border-accent",
                     )}
                 />
-                <Handle id="out" type="source" position={Position.Right} data-kind="flow" title="Out" />
+                <Handle
+                    id="in"
+                    type="target"
+                    position={Position.Left}
+                    data-kind="flow"
+                    title="In"
+                    style={socketStyle}
+                />
+                <Handle
+                    id="out"
+                    type="source"
+                    position={Position.Right}
+                    data-kind="flow"
+                    title="Out — drag as many wires from here as you like"
+                    style={{ ...socketStyle, zIndex: 1 }}
+                />
             </div>
         );
     }
@@ -124,12 +170,17 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 selected ? "border-transparent ring-2" : "border-line hover:border-line-strong",
             )}
             style={
-                selected
-                    ? ({
-                          ["--tw-ring-color" as string]: category.color,
-                          borderColor: category.color,
-                      } as React.CSSProperties)
-                    : undefined
+                {
+                    // Grow with the socket count so a node with many outputs
+                    // (a Sequence) never crams its dots on top of each other.
+                    minHeight: 48 + Math.max(0, Math.max(sources.length, def.targets.length) - 2) * 26,
+                    ...(selected
+                        ? {
+                              ["--tw-ring-color" as string]: category.color,
+                              borderColor: category.color,
+                          }
+                        : null),
+                } as React.CSSProperties
             }
         >
             {/* problem badge — the shortest possible route from "something is
@@ -204,7 +255,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 />
             ))}
 
-            {def.sources.map((handle, i) => (
+            {sources.map((handle, i) => (
                 <Handle
                     key={handle.id}
                     id={handle.id}
@@ -212,7 +263,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                     position={Position.Right}
                     data-kind={handle.kind}
                     title={handle.label}
-                    style={{ top: socketTop(i, def.sources.length) }}
+                    style={{ top: socketTop(i, sources.length) }}
                 />
             ))}
 
@@ -232,12 +283,12 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                     </SocketLabel>
                 ))}
             {showLabels &&
-                def.sources.length > 1 &&
-                def.sources.map((h, i) => (
+                sources.length > 1 &&
+                sources.map((h, i) => (
                     <SocketLabel
                         key={h.id}
                         side="right"
-                        top={socketTop(i, def.sources.length)}
+                        top={socketTop(i, sources.length)}
                         kind={h.kind}
                     >
                         {h.label}
@@ -245,6 +296,22 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 ))}
         </div>
     );
+}
+
+/**
+ * Black or white text for a coloured title bar, picked by perceived luminance
+ * so a light frame colour never leaves the group's name unreadable.
+ */
+export function readableOn(hex: string): string {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+    if (!m) return "#08090d";
+    const n = parseInt(m[1], 16);
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.42 ? "#08090d" : "#f5f7fa";
 }
 
 function SocketLabel({

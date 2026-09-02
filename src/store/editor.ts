@@ -13,7 +13,7 @@ import type { ProjectDocument, QuestDoc, ModDoc, WebsiteDoc, WebPageDoc } from "
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { ProjectSchema, createProject, createQuest } from "@/schema/project";
-import { nodeTypeDef } from "@/schema/registry";
+import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import { layeredLayout } from "@/analysis/graph";
 import { canConnect, type EdgeKind } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
@@ -369,9 +369,19 @@ export const useEditor = create<EditorStore>()((set, get) => {
             mutate((project) => {
                 const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
                 const node = quest?.graph.nodes.find((n) => n.id === nodeId);
-                if (!node) return;
+                if (!node || !quest) return;
                 for (const [path, value] of Object.entries(patch)) {
                     setPath(node.data as unknown as Record<string, unknown>, path, value);
+                }
+                // Nodes whose sockets come from their own data (Sequence) can
+                // lose a socket on edit. A wire hanging off a socket that no
+                // longer exists would be invisible but still compiled, so it
+                // goes with it.
+                if (nodeTypeDef(node.type).dynamicSources) {
+                    const live = new Set(sourcesOf(node).map((h) => h.id));
+                    quest.graph.edges = quest.graph.edges.filter(
+                        (e) => e.source !== node.id || live.has(e.sourceHandle),
+                    );
                 }
             }),
 
@@ -429,7 +439,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
             const targetNode = quest.graph.nodes.find((n) => n.id === target);
             if (!sourceNode || !targetNode) return false;
 
-            const sourceKind = nodeTypeDef(sourceNode.type).sources.find(
+            const sourceKind = sourcesOf(sourceNode).find(
                 (h) => h.id === sourceHandle,
             )?.kind;
             const targetKind = nodeTypeDef(targetNode.type).targets.find(

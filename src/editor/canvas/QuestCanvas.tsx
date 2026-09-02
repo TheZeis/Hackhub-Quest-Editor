@@ -27,7 +27,7 @@ import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
-import { categoryOf, nodeTypeDef, CATEGORY_HEX } from "@/schema/registry";
+import { categoryOf, nodeTypeDef, sourcesOf, CATEGORY_HEX } from "@/schema/registry";
 import { HANDLE_STYLE } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
 
@@ -141,12 +141,11 @@ function CanvasInner() {
         const list = quest?.graph.edges ?? [];
         return list.map((e) => {
             const sourceNode = quest?.graph.nodes.find((n) => n.id === e.source);
-            const label = sourceNode
-                ? nodeTypeDef(sourceNode.type).sources.find((h) => h.id === e.sourceHandle)?.label
-                : undefined;
+            const sockets = sourceNode ? sourcesOf(sourceNode) : [];
+            const label = sockets.find((h) => h.id === e.sourceHandle)?.label;
             // Only label sockets when the source actually has several outputs,
             // otherwise every edge gets a redundant "Out" tag.
-            const multi = sourceNode ? nodeTypeDef(sourceNode.type).sources.length > 1 : false;
+            const multi = sockets.length > 1;
             return toRFEdge(e, multi ? label : undefined);
         });
     }, [quest]);
@@ -185,7 +184,7 @@ function CanvasInner() {
         const sourceNode = q.graph.nodes.find((n) => n.id === connection.source);
         const targetNode = q.graph.nodes.find((n) => n.id === connection.target);
         if (!sourceNode || !targetNode) return false;
-        const sourceKind = nodeTypeDef(sourceNode.type).sources.find(
+        const sourceKind = sourcesOf(sourceNode).find(
             (h) => h.id === connection.sourceHandle,
         )?.kind;
         const targetKind = nodeTypeDef(targetNode.type).targets.find(
@@ -343,12 +342,16 @@ function CanvasInner() {
             <div className="pointer-events-none absolute top-3 right-3 flex flex-col gap-1 rounded-md border border-line bg-surface/90 px-2.5 py-2 backdrop-blur">
                 {(["flow", "condition", "unlock", "data"] as const).map((kind) => (
                     <div key={kind} className="flex items-center gap-2">
-                        <span
-                            className="block h-0 w-5 rounded"
-                            style={{
-                                borderTop: `2px ${HANDLE_STYLE[kind].dash ? "dashed" : "solid"} ${HANDLE_STYLE[kind].color}`,
-                            }}
-                        />
+                        <span className="relative block h-[7px] w-5">
+                            <span
+                                className="absolute top-1/2 left-0 block h-0 w-5 -translate-y-1/2 rounded"
+                                style={{ borderTop: `2px solid ${HANDLE_STYLE[kind].color}` }}
+                            />
+                            <span
+                                className="absolute top-1/2 left-2 block size-[5px] -translate-y-1/2 rounded-full"
+                                style={{ background: HANDLE_STYLE[kind].color }}
+                            />
+                        </span>
                         <span className="text-[10px] tracking-wide text-ink-4 uppercase">
                             {HANDLE_STYLE[kind].label}
                         </span>

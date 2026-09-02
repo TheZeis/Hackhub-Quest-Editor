@@ -814,6 +814,13 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
         ],
         storeAs: "containerId",
     },
+    "flow.sequence": {
+        steps: [
+            { id: "s1", label: "Lights out", delayMs: 0 },
+            { id: "s2", label: "Radio crackles", delayMs: 1500 },
+            { id: "s3", label: "Door unlocks", delayMs: 2500 },
+        ],
+    },
     "flow.note": {
         text: "This quest is a reference sheet, not a story.\n\nEvery node type is here once, filled with example input. Select any node and hover the ⓘ next to a field label to read what it does.",
         width: 300,
@@ -952,7 +959,7 @@ export const TEMPLATES: Template[] = [
         description:
             "Every node type on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 40,
+        nodeCount: 41,
         build: buildReference,
     },
 ];

@@ -22,6 +22,9 @@ export interface TypedEdgeData extends Record<string, unknown> {
 
 export type TypedRFEdge = Edge<TypedEdgeData, "typed">;
 
+/** Distance between two travelling dots, in pixels. Mirrored by the CSS keyframe. */
+const DOT_GAP = 14;
+
 export function toRFEdge(edge: EdgeDoc, socketLabel?: string): TypedRFEdge {
     return {
         id: edge.id,
@@ -50,18 +53,35 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
     const kind = data?.kind ?? "flow";
     const style = HANDLE_STYLE[kind];
     const text = data?.label || data?.socketLabel;
+    const color = selected ? "var(--color-accent)" : style.color;
+    const width = selected ? 2.5 : 1.75;
 
     return (
         <>
+            {/* The wire itself: one solid stroke in the colour of the socket it
+                leaves from. */}
             <BaseEdge
                 id={props.id}
                 path={path}
-                className={kind === "flow" ? "qe-flow-anim" : undefined}
                 style={{
-                    stroke: selected ? "var(--color-accent)" : style.color,
-                    strokeDasharray: kind === "flow" ? "8 6" : style.dash,
-                    strokeWidth: selected ? 2.5 : 1.75,
+                    stroke: color,
+                    strokeWidth: width,
                     opacity: selected ? 1 : 0.85,
+                }}
+            />
+            {/* Direction: round dots, a touch fatter than the wire, drifting
+                from the source towards the target. Purely decorative, so it
+                never intercepts clicks meant for the wire underneath. */}
+            <path
+                d={path}
+                fill="none"
+                className="qe-flow-dots"
+                style={{
+                    stroke: color,
+                    strokeWidth: width + 1.4,
+                    strokeLinecap: "round",
+                    strokeDasharray: `0.1 ${DOT_GAP}`,
+                    pointerEvents: "none",
                 }}
             />
             {text && (

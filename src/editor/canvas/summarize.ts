@@ -184,11 +184,17 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             ];
         }
 
-        case "comms.tweet":
-            return [
-                d.accountId ? `@${d.accountId}` : "no account yet",
-                d.content ? clip(String(d.content), 56) : "no tweet yet",
-            ];
+        case "comms.tweet": {
+            // Resolve the picked account so the card shows the handle the
+            // author typed, not the internal id it is stored under.
+            const account = quest?.twotterAccounts?.find((a) => a.id === d.accountId);
+            const who = account
+                ? `@${account.username || account.displayName || account.id}`
+                : d.accountId
+                  ? `@${clip(String(d.accountId), 20)} — account not in this quest`
+                  : "no account yet";
+            return [who, d.content ? clip(String(d.content), 56) : "no tweet yet"];
+        }
 
         case "reply.hackertyper":
             return [
@@ -242,6 +248,17 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
         case "flow.random": {
             const options = d.options as { label: string }[] | undefined;
             return [options?.length ? `${options.length} options` : "no options yet"];
+        }
+
+        case "flow.sequence": {
+            const steps = (d.steps as { label?: string; delayMs?: number }[] | undefined) ?? [];
+            if (steps.length === 0) return ["no outputs yet"];
+            const total = steps.reduce((sum, s) => sum + Number(s.delayMs ?? 0), 0);
+            return [
+                `${steps.length} output${steps.length === 1 ? "" : "s"}, in order`,
+                clip(steps.map((s) => s.label || "step").join(" → "), 46),
+                total > 0 ? `${total} ms end to end` : "no pauses",
+            ];
         }
 
         case "flow.note":

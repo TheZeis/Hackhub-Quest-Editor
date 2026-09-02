@@ -170,14 +170,22 @@
         @apply mb-1.5 block text-[11px] font-medium tracking-wide text-ink-3 uppercase;
     }
 
-    /* Subtle marching dashes on flow wires — shows which way the story runs. */
-    @keyframes qe-flow-march {
+    /* Wires: a solid line in the socket's colour with round dots drifting along
+       it towards the target. One dot every 14px, one gap per 1.4s — half the
+       speed of the marching dashes this replaced, which read as frantic. */
+    @keyframes qe-flow-dots {
         to {
-            stroke-dashoffset: -28;
+            stroke-dashoffset: -14;
         }
     }
-    .qe-flow-anim {
-        animation: qe-flow-march 1.4s linear infinite;
+    .qe-flow-dots {
+        animation: qe-flow-dots 1.4s linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .qe-flow-dots {
+            animation: none;
+        }
     }
 
     .field-hint {
@@ -318,6 +326,46 @@
 .react-flow__handle.invalid {
     background: var(--color-danger);
     border-color: var(--color-danger);
+}
+
+/* ── Reroute nodule ──────────────────────────────────────────────────────
+   Both of its sockets sit on the same spot so the nodule reads as ONE dot:
+   wires arrive at and leave from the centre. Their grab area is trimmed to
+   the dot itself, which leaves the ring around it free for grabbing, dragging
+   and selecting the nodule (the old 37px socket hit box swallowed the whole
+   node, so it could neither be picked up nor deleted with one click).
+   ─────────────────────────────────────────────────────────────────────── */
+.qe-reroute .react-flow__handle {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    border-width: 0;
+    background: transparent;
+}
+
+.qe-reroute .react-flow__handle::before {
+    inset: -2px;
+}
+
+.qe-reroute .react-flow__handle:hover,
+.qe-reroute .react-flow__handle.connecting {
+    background: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+
+/* ── Group-frame resize corners ──────────────────────────────────────────
+   React Flow ships 5px squares; these are ~30% larger and carry an invisible
+   pad so the corner can be grabbed without pixel-hunting.
+   ─────────────────────────────────────────────────────────────────────── */
+.react-flow__resize-control.handle {
+    border-radius: 3px;
+}
+
+.react-flow__resize-control.handle::before {
+    content: "";
+    position: absolute;
+    inset: -7px;
 }
 
 .react-flow__edge-path {

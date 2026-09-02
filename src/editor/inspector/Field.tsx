@@ -26,6 +26,18 @@ import {
 import type { NetworkDevice } from "@/schema/common";
 import type { ConditionClause } from "@/schema/nodes";
 
+/** Ready-made frame colours. Anything else is one click away in the picker. */
+const GROUP_COLORS = [
+    { value: "#64748b", label: "Slate" },
+    { value: "#60a5fa", label: "Blue" },
+    { value: "#34d399", label: "Green" },
+    { value: "#fbbf24", label: "Amber" },
+    { value: "#f472b6", label: "Pink" },
+    { value: "#a78bfa", label: "Violet" },
+    { value: "#fb923c", label: "Orange" },
+    { value: "#22d3ee", label: "Cyan" },
+] as const;
+
 export function Field({
     def,
     nodeId,
@@ -178,6 +190,43 @@ export function Field({
                     <div className="mt-0.5 flex justify-between text-[10px] text-ink-4">
                         <span>{def.min}</span>
                         <span>{def.max}</span>
+                    </div>
+                </FieldShell>
+            );
+        }
+
+        case "color": {
+            const current = asString(raw) || GROUP_COLORS[0].value;
+            return (
+                <FieldShell label={def.label} hint={def.hint}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {GROUP_COLORS.map((swatch) => (
+                            <button
+                                key={swatch.value}
+                                type="button"
+                                title={swatch.label}
+                                aria-label={swatch.label}
+                                aria-pressed={current.toLowerCase() === swatch.value.toLowerCase()}
+                                onClick={() => write(swatch.value)}
+                                className={cn(
+                                    "size-6 rounded-md border transition",
+                                    current.toLowerCase() === swatch.value.toLowerCase()
+                                        ? "border-ink ring-2 ring-accent/60"
+                                        : "border-line hover:border-line-strong",
+                                )}
+                                style={{ background: swatch.value }}
+                            />
+                        ))}
+                        <label className="ml-1 inline-flex items-center gap-1.5 text-[11px] text-ink-3">
+                            <input
+                                type="color"
+                                aria-label={`${def.label} — pick any colour`}
+                                value={/^#[0-9a-f]{6}$/i.test(current) ? current : "#64748b"}
+                                onChange={(e) => write(e.target.value)}
+                                className="size-6 cursor-pointer rounded-md border border-line bg-surface-2 p-0"
+                            />
+                            Custom
+                        </label>
                     </div>
                 </FieldShell>
             );

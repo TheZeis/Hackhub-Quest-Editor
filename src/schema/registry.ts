@@ -33,6 +33,7 @@ ClaimQuestNodeDataSchema,
     PortNodeDataSchema,
     RandomPickNodeDataSchema,
     SetDataNodeDataSchema,
+    SequenceNodeDataSchema,
     ShellExecNodeDataSchema,
     ToolResponseNodeDataSchema,
     TriggerEventDataSchema,
@@ -90,6 +91,7 @@ export type FieldDef =
           showWhen?: FieldShowWhen;
       }
     | { kind: "date"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
+    | { kind: "color"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "image"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "questAccount"; key: string; label: string; hint?: string }
     | { kind: "event"; key: string; label: string; hint?: string }
@@ -253,6 +255,12 @@ export interface NodeTypeDef {
     icon: string;
     targets: HandleSpec[];
     sources: HandleSpec[];
+    /**
+     * Sockets that depend on the node's own data (the Sequence node grows one
+     * output per step). When present it replaces `sources` for that node — the
+     * static list stays as the empty-state fallback.
+     */
+    dynamicSources?: (data: Record<string, unknown>) => HandleSpec[];
     /** Which lifecycle hook the compiler emits this node's statements into. */
     hook: "onStart" | "onObjectivesStart" | "onComplete" | "onAbandon" | "declarative";
     fields: FieldDef[];
@@ -947,7 +955,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "declarative",
         fields: [
             { kind: "note", tone: "info", text: "Draw a box around part of your quest to keep it tidy. Drag the frame and everything inside moves with it. It has no effect on how the mod runs." },
-            { kind: "text", key: "label", label: "Name", hint: "Shown in the frame's corner — name the cluster after what it does, e.g. “Act 1: recon”." },
+            { kind: "text", key: "label", label: "Name", hint: "Shown in the frame's title bar — name the cluster after what it does, e.g. “Act 1: recon”." },
+            { kind: "color", key: "color", label: "Title bar colour", hint: "Colour-code your frames however you like — e.g. one colour per act, or per character. It only changes how the frame looks in the editor." },
             { kind: "textarea", key: "comment", label: "Comment", rows: 3, hint: "A note to future-you about what this cluster does." },
         ],
         create: () => seed(LayoutGroupNodeDataSchema),
@@ -974,6 +983,57 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "text", key: "storeAs", hint: "A name you choose. The picked value is saved under it so you can read it back later with {{data.name}}.", label: "Store the result as", mono: true },
         ],
         create: () => seed(RandomPickNodeDataSchema),
+    },
+
+    "flow.sequence": {
+        type: "flow.sequence",
+        category: "flow",
+        label: "Sequence",
+        blurb: "Fire several outputs one after another",
+        icon: "list",
+        targets: [inFlow],
+        sources: [],
+        dynamicSources: (data) => sequenceSockets(data),
+        hook: "onStart",
+        fields: [
+            {
+                kind: "note",
+                tone: "info",
+                text: "One input, as many outputs as you like. When the story reaches this node the outputs fire from top to bottom, waiting the pause you set before each one. Add or remove outputs below — each row is a socket on the node.",
+            },
+            {
+                kind: "list",
+                key: "steps",
+                label: "Outputs, in order",
+                hint: "They fire top to bottom. Drag the rows' ✕ to remove an output — any wire attached to it is removed too.",
+                addLabel: "Add output",
+                itemTitle: (s, i) => String(s.label || `Step ${i + 1}`),
+                fields: [
+                    {
+                        kind: "text",
+                        key: "label",
+                        label: "Name",
+                        hint: "Free text — whatever helps you recognise this output on the canvas, e.g. “lights out” or “call Mara”.",
+                    },
+                    {
+                        kind: "number",
+                        key: "delayMs",
+                        label: "Wait before firing (milliseconds)",
+                        hint: "How long to pause before this output fires, counted from the previous one. 0 fires it immediately; 1000 is one second.",
+                        min: 0,
+                        step: 100,
+                    },
+                ],
+                newItem: () => ({ id: nanoid(8), label: "Step", delayMs: 500 }),
+            },
+        ],
+        create: () =>
+            seed(SequenceNodeDataSchema, {
+                steps: [
+                    { id: nanoid(8), label: "First", delayMs: 0 },
+                    { id: nanoid(8), label: "Then", delayMs: 1000 },
+                ],
+            }),
     },
 
     "flow.note": {
@@ -1005,6 +1065,36 @@ export function paletteGroups(): { category: (typeof CATEGORIES)[number]; types:
 
 export function nodeTypeDef(type: NodeType): NodeTypeDef {
     return NODE_TYPES_REGISTRY[type];
+}
+
+/**
+ * The output sockets a Sequence node shows: one per step, in author order.
+ * Lives here (not in the node component) because the canvas, the store, the
+ * analysis and the compiler all have to agree on the socket ids.
+ */
+export function sequenceSockets(data: unknown): HandleSpec[] {
+    const steps = (data as { steps?: { id: string; label?: string }[] })?.steps ?? [];
+    return steps.map((step, i) => ({
+        id: `step-${step.id}`,
+        kind: "flow" as const,
+        label: step.label?.trim() || `Step ${i + 1}`,
+    }));
+}
+
+/**
+ * Every output socket of a concrete node — dynamic when the type derives its
+ * sockets from data, otherwise the registry's static list.
+ */
+export function sourcesOf(node: { type: NodeType; data: unknown }): HandleSpec[] {
+    const def = NODE_TYPES_REGISTRY[node.type];
+    return def.dynamicSources
+        ? def.dynamicSources((node.data ?? {}) as Record<string, unknown>)
+        : def.sources;
+}
+
+/** Input sockets of a concrete node. Symmetrical with `sourcesOf`. */
+export function targetsOf(node: { type: NodeType; data: unknown }): HandleSpec[] {
+    return NODE_TYPES_REGISTRY[node.type].targets;
 }
 
 export function categoryOf(type: NodeType) {

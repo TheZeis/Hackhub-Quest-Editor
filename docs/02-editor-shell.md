@@ -710,3 +710,71 @@ with the fixed compiler and running the emitted `mod.js` against a stub
 platform yields a complete user record (every `TwotterUser` field defined),
 no quest-level double registration, and the tweet resolving to the right
 account id. 324 tests green.
+
+---
+
+## Addendum — Round 24: canvas polish, a Sequence node, and remembered tags
+
+Seven items from the user, checked against the SDK (`@hotbunny/hackhub-content-sdk@0.21.0`
+`index.d.ts`) before any test was written.
+
+**1. Tweet card said “no account yet” after an account was picked.** The card
+printed the raw `accountId`; with an id like `acc_9f2` and no lookup, an empty
+picker and a filled one read almost the same. `summarize()` now resolves the id
+against `quest.twotterAccounts` and shows the real `@handle`, or says the
+account is “not in this quest” if it was deleted. (SDK: `TweetDefinition.accountId`
+must match a `TwotterAccountDefinition.id` — the id is the right thing to store,
+only the display was wrong.)
+
+**2–4. Reroute nodule.** Its two 13px sockets each carried a 37px invisible grab
+ring, so the entire 16px nodule was socket: it could not be clicked, dragged or
+selected — which is why pressing Delete removed the wires (those *were*
+selectable) and left the nodule behind. It is now a 36px node with a 22px ring
+you grab, and its sockets are trimmed to the dot in the middle (`.qe-reroute`
+rules in `index.css`). Both sockets sit on the same point, so the nodule reads
+as **one** dot: wires arrive at and leave from the centre, and any number of
+wires can be dragged out of it. Deletion needed no store change — proven by a
+mounted-app test that selects the nodule, presses Delete and asserts both the
+node and its wires are gone.
+
+**5. Group frames** grew a colour-picked title bar spanning the frame (8 preset
+swatches plus a full colour picker; `color` on `LayoutGroupNodeDataSchema`,
+default slate for older drafts). The label's ink flips between near-black and
+near-white by luminance, so a yellow frame is still readable. Resize corners went
+from React Flow's 5px to 9px with an invisible 7px pad around them.
+
+**6. Wires** are now a solid line in the colour of the socket they leave, with a
+row of round dots — slightly fatter than the wire — drifting along it towards
+the target. One dot every 14px, one gap per 1.4s: exactly half the speed of the
+marching dashes it replaces (28px/1.4s). The dot overlay is `pointer-events:
+none`, so clicking a wire still selects the wire. The canvas legend was redrawn
+to match. Honours `prefers-reduced-motion`.
+
+**7. New node — `flow.sequence` (Flow control → “Sequence”).** One input, as many
+outputs as the author adds; each output has a name and a pause in milliseconds,
+and they fire top to bottom. Sockets are *derived from data*: `NodeTypeDef` gained
+an optional `dynamicSources(data)`, and `sourcesOf(node)` (registry) is now the
+single answer for “what outputs does this node have”, used by the canvas, the
+store's `connect`, the analysis and the tests. Removing a step removes any wire
+attached to it (`updateNodeData` prunes sockets that no longer exist), and an
+unwired output is reported as a “Dead end” with sequence-specific wording.
+
+*SDK grounding:* there is **no** scheduling/timer/sequence API anywhere in the
+d.ts, so sequencing has to live in the emitted interpreter — but the step field
+mirrors the SDK's own convention for chat chains (`delayMs`, “applied before it
+is sent”). Waits now prefer `Random.sleep(ms): Promise<void>` (SDK 0.21.0) when
+present and fall back to `setTimeout`; quest hooks may return promises
+(`OnStart(): void | Promise<void>`), so awaiting a sequence is legal.
+
+**8. The Mod tab remembers tags** the author invents (`src/lib/tagMemory.ts`,
+browser-local, capped at 60, never exported). They appear in autocomplete and in
+a “Your tags” strip, each removable from the memory.
+
+**Launch.bat** now polls port 5173 and closes itself as soon as the editor
+answers (opening the browser first); if the port never answers within a minute it
+stays open with an explanation instead. No PowerShell on the PC → short fixed
+wait.
+
+**Verification:** 358 tests (17 files, +27), `tsc --noEmit` clean, `vite build`
+clean. Node types: 31 → **32** (schema, reference template and its `nodeCount`
+updated together). Export stamp: `EDITOR_BUILD = "2026-09-02.r24"`.
