@@ -488,6 +488,17 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }
                     return next();
                 }
+                case "world.files":
+                    /* Only the player's own machine can be written to from
+                       here: Files.* resolves against the current session, and
+                       at quest start there is no remote one. Files for a remote
+                       device belong in that device's tree, where the engine
+                       mounts them before anyone connects. */
+                    if (d.target === "player" && sdk.Files && sdk.Files.createTree) {
+                        return Promise.resolve(sdk.Files.createTree(d.parentPath || "~/", mapFiles(d.files)))
+                            .then(next, next);
+                    }
+                    return next();
                 case "fx.shell":
                     if (sdk.Shell && sdk.Shell.execute) sdk.Shell.execute(__QE.fill(d.command, scope));
                     return next();
@@ -536,6 +547,21 @@ function __qeRegisterProject(sdk, PROJECT) {
             }
         }
 
+        /* Editor file entries → the SDK's NetworkFileMap/FileDefinition: drop
+           the editor's own id, and "locked" is the engine's "readonly". */
+        function mapFiles(list) {
+            return (list || []).map(function (f) {
+                var o = { name: f.name };
+                if (f.extension) o.extension = f.extension;
+                if (f.data) o.data = f.data;
+                if (f.isFolder) o.isFolder = true;
+                if (f.locked) o.readonly = true;
+                if (f.hidden) o.hidden = true;
+                if (f.children && f.children.length) o.children = mapFiles(f.children);
+                return o;
+            });
+        }
+
         function mapDevice(dev) {
             var out = {
                 ip: dev.ip,
@@ -549,16 +575,31 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var o = sdk.Network.createUser ? sdk.Network.createUser({ username: u.username, password: u.password }) : { username: u.username, password: u.password };
                     if (u.firstName) o.firstName = u.firstName;
                     if (u.lastName) o.lastName = u.lastName;
+                    /* A user's files mount in their home directory — this is the
+                       only way to put a file on a remote machine before the
+                       player ever connects to it. */
+                    if (u.files && u.files.length) o.files = mapFiles(u.files);
+                    if (u.online != null) o.online = !!u.online;
+                    if (u.acceptReverseTCP != null) o.acceptReverseTCP = !!u.acceptReverseTCP;
+                    if (u.emailAddress) o.email = { address: u.emailAddress, password: u.emailPassword || "" };
                     return o;
                 }),
                 children: (dev.children || []).map(mapDevice),
             };
+            if (dev.name) out.name = dev.name;
+            if (dev.lanIp) out.lanIp = dev.lanIp;
+            if (dev.isIpHidden != null) out.isIpHidden = !!dev.isIpHidden;
             if (dev.model) out.model = dev.model;
             if (dev.accessable != null) out.accessable = dev.accessable;
             if (dev.rules) out.rules = dev.rules;
-            if (dev.rootFiles) out.rootFiles = dev.rootFiles;
-            if (dev.vulnerabilities) out.vulnerabilities = dev.vulnerabilities;
-            if (dev.domainName) out.domainName = dev.domainName;
+            if (dev.rootFiles && dev.rootFiles.length) out.rootFiles = mapFiles(dev.rootFiles);
+            if (dev.files && dev.files.length) out.rootFiles = (out.rootFiles || []).concat(mapFiles(dev.files));
+            /* The engine takes a domain as { name, vulnerabilities }, not a
+               bare string, and has no place for vulnerabilities outside it. */
+            if (dev.domainName) {
+                out.domain = { name: dev.domainName };
+                if (dev.vulnerabilities && dev.vulnerabilities.length) out.domain.vulnerabilities = dev.vulnerabilities;
+            }
             return out;
         }
 
@@ -638,6 +679,39 @@ function __qeRegisterProject(sdk, PROJECT) {
                         .forEach(function (n) {
                             self.Events.on(__qeHtEvent(n), function () {
                                 flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: {}, vars: {} }, 0); });
+                            });
+                        });
+                    /* An objective's "On complete" output. The SDK ticks the
+                       objective off from its own declarative trigger and tells
+                       nobody, so the story after it would never run: listen to
+                       the same event with the same conditions and follow the
+                       wire once. (An objective the story flow *reaches*
+                       continues from runFlow instead, so this only covers the
+                       ones the player completes by playing.) */
+                    objectiveNodes
+                        .filter(function (n) {
+                            return g.edges.some(function (e) {
+                                return e.source === n.id && e.sourceHandle === "done" && e.kind === "flow";
+                            });
+                        })
+                        .forEach(function (n) {
+                            var trig = g.edges
+                                .filter(function (e) { return e.kind === "condition" && e.target === n.id; })
+                                .map(function (e) { return byId[e.source]; })
+                                .filter(function (s) { return s && s.type === "trigger.event"; })[0];
+                            if (!trig) return;
+                            var fired = false;
+                            self.Events.on(trig.data.event, function (data) {
+                                if (fired) return;
+                                if (!__QE.matchAll(trig.data.conditions, data, dataScope())) return;
+                                fired = true;
+                                g.edges
+                                    .filter(function (e) {
+                                        return e.source === n.id && e.kind === "flow" && e.sourceHandle === "done";
+                                    })
+                                    .forEach(function (e) {
+                                        runFlow(e.target, { payload: data, vars: {} }, 0);
+                                    });
                             });
                         });
                     g.nodes

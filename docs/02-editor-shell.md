@@ -1093,3 +1093,65 @@ Two fixes found while chasing the crash are unrelated to Twotter and stay:
 and the real QATest7 export re-opened through the editor: it loads, the tweet node
 is gone, and the compiled `dist/mod.js` mentions Twotter only where the author
 typed it in their own mod name. Export stamp: `EDITOR_BUILD = "2026-09-02.r31"`.
+
+## Round 32 — the template audit, part one: the standard contract hack
+
+The templates all built and all passed their tests, but they were written before
+the website builder existed and before half the node types did. Coverage before
+this round:
+
+| Template | Websites | Never shown |
+|---|---|---|
+| Blank | 0 | everything |
+| Hello Hack | 0 | sequence, reroute, group, hackertyper, input, shell, files, database |
+| Simple Linear Wi-Fi Hack | 0 | the same list |
+| Complex Branching Investigation | 0 | sequence, reroute, groups, hackertyper, shell, tool response, database |
+
+**Not one template contained a website** — the builder, unlisted pages and the
+whole `dirhunter` loop were invisible to anyone starting from a template.
+
+### The new template: “Standard Contract Hack”
+
+The job the game hands out constantly, end to end, exactly as an author would
+build it:
+
+> mail with a name → `lynx "Anselm Ritter"` → the company site → `whois` →
+> the IP → `nmap -sV` → port 22, OpenSSH 7.2p2 → metasploit → delete
+> `ledger_q3.xlsx` → reply to the client.
+
+Every objective is completed by a real event, checked against
+`reference/hackhub-events.json`: `Mail.Read`, `Terminal.Lynx.Search`,
+`Terminal.Whois`, `Terminal.NmapScan`, `Metasploit.Meterpreter.Connected`,
+`Files.Deleted`. It ships the Meridian Capital website (including its unlisted
+page), so the trail leads somewhere real, and it ends on the pattern most quests
+eventually need: deleting the file writes `ledger=deleted`, and the reply
+**branches on that** — claim the job is done without doing it and the client
+writes back “you must be joking” instead of paying.
+
+29 nodes, 14 node kinds, one website. Played through in the test suite in both
+directions: paid, and not paid.
+
+### Three bugs the template found — all of them silent
+
+1. **An objective's “On complete” output never fired.** The SDK ticks an
+   objective off from its own declarative trigger and tells nobody, so anything
+   wired after it simply never ran — including in the shipped *Investigation*
+   template, which has used that wire since round 12. The runtime now listens to
+   the same event with the same conditions and follows the wire once.
+2. **A device's domain was emitted as `domainName`.** The engine takes
+   `domain: { name, vulnerabilities? }`. A bare string is ignored, so a
+   mod-registered domain never resolved — `whois`/`nslookup` would have
+   dead-ended the trail at step two. Vulnerabilities move inside the domain,
+   where the SDK actually keeps them.
+3. **There was no way to put a file on a remote machine.** `mapDevice` dropped a
+   user's `files` (and `acceptReverseTCP`, `online`, `email`), and a “Seed files”
+   node compiled to nothing at all. Now: user files mount in that user's home,
+   root files mount at `/`, editor ids are stripped and `locked` becomes the
+   engine's `readonly`; a “Seed files” node aimed at **the player's own PC**
+   compiles to `Files.createTree`, and one aimed at a device says so plainly in
+   the export notes instead of pretending.
+
+Device mapping also stopped dropping `name`, `lanIp` and `isIpHidden`.
+
+**Verification:** 409 tests (19 files, +22), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r32"`.

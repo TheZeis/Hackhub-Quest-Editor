@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r31";
+export const EDITOR_BUILD = "2026-09-02.r32";
 
 export interface CompiledFile {
     path: string;
@@ -124,8 +124,14 @@ export function computeWarnings(project: ProjectDocument): string[] {
         }
         for (const n of q.graph.nodes) {
             switch (n.type) {
-                case "world.port":
                 case "world.files":
+                    if ((n.data as { target?: string }).target !== "player") {
+                        warnings.push(
+                            `${q.name}: files for a remote device are placed in that device's own tree, under the user who owns them — a “Seed files” node pointed at a device exports as a note. Files on the player's own PC work as written.`,
+                        );
+                    }
+                    break;
+                case "world.port":
                 case "world.firewall":
                 case "world.domain":
                 case "world.database":

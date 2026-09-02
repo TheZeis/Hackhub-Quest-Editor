@@ -19,10 +19,17 @@ describe("template registry", () => {
             "hello-hack",
             "wifi-hack",
             "investigation",
+            "contract-hack",
             "reference",
         ]);
         expect(getTemplate("wifi-hack")?.name).toBe("Simple Linear Wi-Fi Hack");
         expect(getTemplate("reference")?.difficulty).toBe("Reference");
+        // The standard contract hack ships the website its trail leads to —
+        // a quest template with no site would teach half the tool.
+        const contract = getTemplate("contract-hack")!.build();
+        expect(contract.websites).toHaveLength(1);
+        expect(contract.websites[0].host).toBe("meridian-capital.net");
+        expect(contract.websites[0].pages.some((p) => !p.seo)).toBe(true);
         expect(getTemplate("nope")).toBeUndefined();
     });
 

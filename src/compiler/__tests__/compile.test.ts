@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
+import { getTemplate } from "@/templates";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 
@@ -110,7 +111,12 @@ function stubSdk(calls: string[], listeners: [string, (d: unknown) => void][]) {
         sendMail(i: number) { calls.push(`sendMail:${i}`); }
         createDialog(b: string) { calls.push(`createDialog:${b}`); }
         completeObjective(n: string) { calls.push(`complete:${n}`); }
-        SetData(k: string, v: unknown) { calls.push(`setData:${k}=${v}`); }
+        SetData(k: string, v: unknown) {
+            calls.push(`setData:${k}=${v}`);
+            // The real SDK persists it on the quest's Data; tests that read
+            // {{data.x}} back need the same.
+            this.Data[k] = v;
+        }
     }
     class Website {}
     class Command {}
@@ -858,5 +864,226 @@ describe("token values cost nothing until a token asks for them", () => {
         expect(() => q.OnStart()).not.toThrow();
         await settle();
         expect(calls).toContain("notify:Hi !");
+    });
+});
+
+/**
+ * An objective's "On complete" output used to go nowhere. The SDK ticks the
+ * objective off from its own declarative trigger and tells nobody, so anything
+ * wired after it never ran — including in the shipped Investigation template.
+ * The runtime now listens to the same event with the same conditions.
+ */
+describe("an objective's On complete output", () => {
+    function objectiveProject() {
+        const p = createProject();
+        const q = p.quests[0];
+        q.name = "Done";
+        q.autoStart = true;
+        const obj = node("objective", { name: "delete-it", description: "Delete the file" });
+        const trigger = node("trigger.event", {
+            event: "Files.Deleted",
+            conditions: [{ id: "c1", join: "and", field: "name", op: "contains", value: "ledger" }],
+        });
+        const remember = node("fx.setData", { key: "ledger", value: "deleted" });
+        const shout = node("fx.notify", { message: "gone: {{data.ledger}}", variant: "notify" });
+        q.graph.nodes = [obj, trigger, remember, shout];
+        q.graph.edges = [
+            { id: "e1", source: trigger.id, sourceHandle: "when", target: obj.id, targetHandle: "trigger", kind: "condition" },
+            { id: "e2", source: obj.id, sourceHandle: "done", target: remember.id, targetHandle: "in", kind: "flow" },
+            { id: "e3", source: remember.id, sourceHandle: "out", target: shout.id, targetHandle: "in", kind: "flow" },
+        ] as typeof q.graph.edges;
+        return p;
+    }
+
+    async function play(payload: Record<string, unknown>) {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners) as any;
+        runMod(compileProject(objectiveProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        q.OnObjectivesStart();
+        await settle();
+        for (const [event, cb] of listeners) if (event === "Files.Deleted") cb(payload);
+        await settle();
+        return { calls, q };
+    }
+
+    it("follows the wire when the player completes the objective", async () => {
+        const { calls, q } = await play({ id: "f1", name: "ledger_q3.xlsx" });
+        expect(q.Data.ledger).toBe("deleted");
+        expect(calls).toContain("notify:gone: deleted");
+    });
+
+    it("stays quiet when the event does not match the objective's condition", async () => {
+        const { calls, q } = await play({ id: "f2", name: "holiday-photos.zip" });
+        expect(q.Data.ledger).toBeUndefined();
+        expect(calls.filter((c) => c.startsWith("notify:"))).toEqual([]);
+    });
+
+    it("runs once, however many times the event fires", async () => {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners) as any;
+        runMod(compileProject(objectiveProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnObjectivesStart();
+        await settle();
+        for (const [event, cb] of listeners) {
+            if (event !== "Files.Deleted") continue;
+            cb({ name: "ledger_q3.xlsx" });
+            cb({ name: "ledger_q3.xlsx" });
+        }
+        await settle();
+        expect(calls.filter((c) => c.startsWith("notify:"))).toHaveLength(1);
+    });
+});
+
+/**
+ * The Standard Contract Hack template, played through: the world it builds on
+ * claim, and the honesty check at the end — the client pays only if the file is
+ * actually gone.
+ */
+describe("the contract hack template runs", () => {
+    async function playTemplate(deleteTheFile: boolean) {
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners) as any;
+        sdk.Shell = { ...sdk.Shell, addCommandData: (c: string, input: unknown) => calls.push(`cmd:${c}:${JSON.stringify(input)}`) };
+        sdk.Files = { create: (...a: unknown[]) => calls.push(`files:${JSON.stringify(a[0])}`) };
+        sdk.Bank = { transaction: (t: { amount: number }) => calls.push(`pay:${t.amount}`), getBalance: () => 0 };
+        const project = getTemplate("contract-hack")!.build();
+        runMod(compileProject(project).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.sendMail = (i: number) => calls.push(`mail:${i}`);
+        q.OnStart();
+        q.OnObjectivesStart();
+        await settle();
+        if (deleteTheFile) {
+            for (const [event, cb] of listeners) if (event === "Files.Deleted") cb({ id: "f1", name: "ledger_q3.xlsx" });
+            await settle();
+        }
+        for (const [event, cb] of listeners) if (event === "QE.reply.sent") cb({});
+        await settle();
+        return { calls, q };
+    }
+
+    it("builds the world the trail leads through", async () => {
+        const { calls } = await playTemplate(false);
+        expect(calls.some((c) => c.startsWith("net:45.33.32.156"))).toBe(true);
+        // lynx answers for the name in the brief, whois for the domain
+        expect(calls.some((c) => c.startsWith("cmd:lynx"))).toBe(true);
+        expect(calls.some((c) => c.startsWith("cmd:whois"))).toBe(true);
+    });
+
+    it("hands the engine a network the file can actually be deleted from", async () => {
+        const built: Record<string, unknown>[] = [];
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network = {
+            ...sdk.Network,
+            createSubnetNetwork: (d: Record<string, unknown>) => { built.push(d); return d.ip; },
+        };
+        const project = getTemplate("contract-hack")!.build();
+        runMod(compileProject(project).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        await settle();
+
+        const router = built[0] as any;
+        // The domain the whois trail resolves is a { name } object, not a bare
+        // string — the engine ignores anything else, and then whois finds
+        // nothing and the quest dead-ends at step two.
+        expect(router.domain).toEqual({ name: "meridian-capital.net" });
+        expect(router.ports.map((p: { external: number }) => p.external)).toContain(22);
+
+        const host = router.children[0];
+        const user = host.users[0];
+        expect(user.username).toBe("aritter");
+        // The file the whole contract is about: mounted in the user's home
+        // before the player ever connects, with the editor's own id stripped.
+        expect(user.files).toEqual([
+            expect.objectContaining({ name: "ledger_q3", extension: "xlsx" }),
+            expect.objectContaining({ name: "reminders", extension: "txt" }),
+        ]);
+        expect(user.files[0].id).toBeUndefined();
+        expect(user.acceptReverseTCP).toBe(true);
+    });
+
+    it("pays when the file is really gone", async () => {
+        const { calls, q } = await playTemplate(true);
+        expect(q.Data.ledger).toBe("deleted");
+        expect(calls.some((c) => c.startsWith("pay:"))).toBe(true);
+    });
+
+    it("does not pay for a reply that is not true", async () => {
+        const { calls, q } = await playTemplate(false);
+        expect(q.Data.ledger).toBeUndefined();
+        expect(calls.some((c) => c.startsWith("pay:"))).toBe(false);
+    });
+});
+
+/**
+ * Files on the player's own PC. A "Seed files" node aimed at the player used to
+ * compile to nothing at all — the quest said it dropped a file and no file
+ * appeared.
+ */
+describe("seeding files", () => {
+    function filesProject(target: "player" | "device") {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const files = node("world.files", {
+            target,
+            ip: "10.0.0.12",
+            parentPath: "~/work",
+            files: [
+                { id: "a", name: "brief", extension: "txt", isFolder: false, data: "read me", locked: true },
+                {
+                    id: "b", name: "evidence", isFolder: true,
+                    children: [{ id: "c", name: "photo", extension: "png", isFolder: false, hidden: true }],
+                },
+            ],
+        });
+        q.graph.nodes = [entry, files];
+        q.graph.edges = [edge(entry.id, files.id, "flow")];
+        return p;
+    }
+
+    it("creates the tree on the player's machine", async () => {
+        const calls: string[] = [];
+        const trees: [string, unknown][] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Files = { createTree: (parent: string, tree: unknown) => { trees.push([parent, tree]); return Promise.resolve(); } };
+        runMod(compileProject(filesProject("player")).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+
+        expect(trees).toHaveLength(1);
+        expect(trees[0][0]).toBe("~/work");
+        // `locked` is the engine's `readonly`, and the editor's ids do not travel.
+        expect(trees[0][1]).toEqual([
+            { name: "brief", extension: "txt", data: "read me", readonly: true },
+            { name: "evidence", isFolder: true, children: [{ name: "photo", extension: "png", hidden: true }] },
+        ]);
+    });
+
+    it("says plainly that a remote device needs its files in the device tree", () => {
+        expect(computeWarnings(filesProject("device")).join("\n")).toContain("device's own tree");
+        expect(computeWarnings(filesProject("player")).join("\n")).not.toContain("device's own tree");
+    });
+
+    it("does not fall over when the game offers no Files API", async () => {
+        const sdk = stubSdk([], []) as any;
+        runMod(compileProject(filesProject("player")).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(() => q.OnStart()).not.toThrow();
+        await settle();
     });
 });

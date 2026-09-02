@@ -11,6 +11,7 @@ import { NODE_TYPES_REGISTRY, nodeTypeDef } from "@/schema/registry";
 import type { NodeDoc, NodeType } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { layeredLayout } from "@/analysis/graph";
+import { SITE_TEMPLATES } from "@/templates/pages";
 
 let counter = 0;
 function resetIds() {
@@ -647,6 +648,339 @@ function buildInvestigation(): ProjectDocument {
     });
 }
 
+/* ── The standard contract hack ──────────────────────────────────────────── */
+
+/**
+ * The shape of job the game hands out constantly: a name in an e-mail, and a
+ * file that has to stop existing.
+ *
+ *   mail (a name)  →  lynx <name>  →  their website  →  whois <domain>  →  IP
+ *   →  nmap -sV  →  port 22 is open  →  metasploit  →  delete the file
+ *   →  reply to the client — which only pays out if the file is really gone.
+ *
+ * Every step is a real game event (checked against `reference/hackhub-events.json`),
+ * every clue is placed by a node the author can edit, and the last step shows
+ * the pattern most quests eventually need: a branch that tells the difference
+ * between "the player did the work" and "the player says they did the work".
+ */
+function buildContractHack(): ProjectDocument {
+    resetIds();
+    const TARGET = "Anselm Ritter";
+    const DOMAIN = "meridian-capital.net";
+    const IP = "45.33.32.156";
+    const HOST_IP = "10.0.0.12";
+    const FILE = "ledger_q3";
+
+    const quest = createQuest({
+        id: "q-contract-hack",
+        name: "TheLedgerContract",
+        title: "Contract: The Q3 Ledger",
+        description: "A client wants one file gone from one man's machine. Find him, find his server, get in, delete it.",
+        group: "side",
+        rewards: { money: 4000, xp: 180 },
+        employer: { firstName: "Ines", lastName: "Faber", email: "i.faber@ghostmail.io" },
+        dataKeys: [{ key: "ledger", type: "string" }],
+    });
+
+    const claim = makeNode("entry.start", { x: 0, y: 0 });
+    const load = makeNode("entry.load", { x: 0, y: 200 });
+    const complete = makeNode("entry.complete", { x: 0, y: 400 });
+
+    /* ── the world the player will explore ──────────────────────────────── */
+
+    const network = makeNode("world.network", { x: 300, y: 0 }, {
+        ipMode: "fixed",
+        destroyOnComplete: true,
+        device: {
+            id: "dev-router",
+            ip: IP,
+            name: "meridian-edge",
+            type: "ROUTER",
+            model: "MikroTik hEX S",
+            domainName: DOMAIN,
+            accessable: true,
+            vulnerabilities: [],
+            users: [],
+            ports: [
+                { id: "p-http", external: 80, internal: 80, active: true, service: "http" },
+                { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2p2" },
+            ],
+            rules: [],
+            files: [],
+            children: [
+                {
+                    id: "dev-host",
+                    ip: HOST_IP,
+                    name: "ritter-ws",
+                    type: "DEVICE",
+                    vulnerabilities: [],
+                    ports: [
+                        { id: "p-ssh-host", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2p2" },
+                    ],
+                    users: [
+                        {
+                            id: "u-ritter",
+                            username: "aritter",
+                            password: "Sommer2019!",
+                            firstName: "Anselm",
+                            lastName: "Ritter",
+                            acceptReverseTCP: true,
+                            /* Files on a user mount in that user's home
+                               directory, which is how a file gets onto a remote
+                               machine before anyone connects to it. */
+                            files: [
+                                {
+                                    id: "f-ledger",
+                                    name: FILE,
+                                    extension: "xlsx",
+                                    isFolder: false,
+                                    data: "Q3 consolidated ledger - internal only. Rows 412-478 flagged by compliance.",
+                                },
+                                {
+                                    id: "f-notes",
+                                    name: "reminders",
+                                    extension: "txt",
+                                    isFolder: false,
+                                    data: "Renew the cert. Call Ines back. Stop keeping the ledger on this machine.",
+                                },
+                            ],
+                        },
+                    ],
+                    rules: [],
+                    files: [],
+                    children: [],
+                },
+            ],
+        },
+    });
+
+    /* The one thing the world cannot answer by itself: who this person is.
+       `lynx` is an OSINT lookup keyed by the name the player types. */
+    const osint = makeNode("world.toolResponse", { x: 620, y: 0 }, {
+        command: "lynx",
+        input: TARGET,
+        dataText: [
+            `Name:      ${TARGET}`,
+            "Role:      Head of Compliance, Meridian Capital AG",
+            "Location:  Munich, DE",
+            `Web:       https://${DOMAIN}`,
+            "Email:     a.ritter@meridian-capital.net",
+            "Social:    @a_ritter_mc",
+        ].join("\n"),
+        removeOnComplete: true,
+    });
+
+    /* whois answers for the domain the router registers. Scripted here so the
+       trail is explicit and editable — change the name, change this line. */
+    const whois = makeNode("world.toolResponse", { x: 940, y: 0 }, {
+        command: "whois",
+        input: DOMAIN,
+        dataText: [
+            `Domain:     ${DOMAIN}`,
+            `IP:         ${IP}`,
+            "Registrant: Meridian Capital AG",
+            "Contact:    hostmaster@meridian-capital.net",
+            "Status:     active",
+        ].join("\n"),
+        removeOnComplete: true,
+    });
+
+    /* ── the brief ──────────────────────────────────────────────────────── */
+
+    const brief = makeNode("comms.dialogue", { x: 300, y: 200 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "One file, one man, no trace",
+            content: [
+                `<p>His name is <b>${TARGET}</b>. That is all you get, and all you need.</p>`,
+                `<p>On his machine there is a spreadsheet called <b>${FILE}.xlsx</b>. I want it gone. Not copied, not read to me — gone.</p>`,
+                "<p>Reply to this mail when it is done. I check.</p>",
+            ].join(""),
+            replyable: true,
+        },
+    });
+
+    /* ── objectives, in the order a player actually works ───────────────── */
+
+    const oRead = makeNode("objective", { x: 620, y: 200 }, {
+        name: "read-brief",
+        description: "Read the contract",
+        hint: "It is in your mailbox.",
+    });
+    const oFind = makeNode("objective", { x: 940, y: 200 }, {
+        name: "identify-target",
+        description: `Find out who ${TARGET} is`,
+        hint: "lynx looks people up. Give it the full name, in quotes.",
+        terminalCommand: `lynx "${TARGET}"`,
+    });
+    const oServer = makeNode("objective", { x: 1260, y: 200 }, {
+        name: "find-server",
+        description: "Find the server behind his company's website",
+        hint: "whois turns a domain into an address.",
+        terminalCommand: `whois ${DOMAIN}`,
+    });
+    const oScan = makeNode("objective", { x: 1580, y: 200 }, {
+        name: "scan-server",
+        description: "See which services that server is running",
+        hint: "nmap with -sV reports versions as well as open ports. Versions are what exploits are picked by.",
+        terminalCommand: `nmap ${IP} -sV`,
+    });
+    const oAccess = makeNode("objective", { x: 1900, y: 200 }, {
+        name: "get-a-shell",
+        description: "Get onto the machine",
+        hint: "Port 22 is answering, and the SSH version is old. metasploit has a module for it.",
+        terminalCommand: "msfconsole",
+    });
+    const oDelete = makeNode("objective", { x: 2220, y: 200 }, {
+        name: "delete-ledger",
+        description: `Delete ${FILE}.xlsx from his home directory`,
+        hint: "It is in /home/aritter.",
+        terminalCommand: `rm ${FILE}.xlsx`,
+    });
+    const oReply = makeNode("objective", { x: 2540, y: 200 }, {
+        name: "report-back",
+        description: "Tell the client the job is done",
+        hint: "She left a reply terminal on the drop site. Mash the keys — the words are already written.",
+    });
+
+    const t1 = triggerFor(oRead, "Mail.Read", [{ field: "subject", op: "contains", value: "One file" }], { x: 620, y: 360 });
+    const t2 = triggerFor(oFind, "Terminal.Lynx.Search", [{ field: "query", op: "contains", value: "Ritter" }], { x: 940, y: 360 });
+    const t3 = triggerFor(oServer, "Terminal.Whois", [{ field: "domain", op: "equals", value: DOMAIN }], { x: 1260, y: 360 });
+    const t4 = triggerFor(oScan, "Terminal.NmapScan", [{ field: "ip", op: "equals", value: IP }], { x: 1580, y: 360 });
+    /* No condition on purpose: whether the session reports the router's public
+       address or the workstation's differs by route in, and a template should
+       not fail for taking the other one. */
+    const t5 = triggerFor(oAccess, "Metasploit.Meterpreter.Connected", [], { x: 1900, y: 360 });
+    const t6 = triggerFor(oDelete, "Files.Deleted", [{ field: "name", op: "contains", value: FILE }], { x: 2220, y: 360 });
+    const t7 = triggerFor(oReply, "QE.reply.sent", [], { x: 2540, y: 360 });
+
+    /* ── the honesty check ──────────────────────────────────────────────── */
+
+    /* The deletion is what the client actually pays for, so it is written down
+       the moment it happens. "On complete" on an objective follows this wire
+       when the player finishes it by playing. */
+    const remember = makeNode("fx.setData", { x: 2220, y: 520 }, { key: "ledger", value: "deleted" });
+
+    const reply = makeNode("reply.hackertyper", { x: 2540, y: 520 }, {
+        surface: "website",
+        targetRef: DOMAIN,
+        heading: "SECURE REPLY — FABER",
+        text: "> job closed\n> ledger_q3.xlsx no longer exists on the host\n> logs cleared\n> send the rest of the money",
+        charsPerKeypress: 4,
+        eventName: "QE.reply.sent",
+    });
+
+    const honest = makeNode("flow.branch", { x: 2860, y: 520 }, {
+        source: "data",
+        conditions: [{ id: "h1", join: "and", field: "ledger", op: "equals", value: "deleted" }],
+    });
+
+    const paid = makeNode("comms.dialogue", { x: 3180, y: 400 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "Received",
+            content: "<p>Checked. It is gone. The rest of the money is with you.</p><p>I will have more work.</p>",
+            replyable: false,
+        },
+    });
+    const pay = makeNode("fx.pay", { x: 3500, y: 400 }, {
+        amount: 4000,
+        description: "Contract settled",
+        fromName: "I. Faber",
+    });
+    const joking = makeNode("comms.dialogue", { x: 3180, y: 640 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "Re: job closed",
+            content: `<p>You must be joking. The file is still sitting in his home directory — I am looking at it.</p><p>Do the job, then write to me.</p>`,
+            replyable: false,
+        },
+    });
+
+    const wrapUp = makeNode("fx.notify", { x: 300, y: 400 }, {
+        message: "Contract closed. Faber will be in touch.",
+        variant: "toast",
+        tone: "success",
+    });
+
+    const note = makeNode("flow.note", { x: 300, y: 640 }, {
+        text: [
+            "The trail: a name in the mail → lynx finds the company → whois finds the server → nmap finds port 22 → metasploit gets a shell → the file is deleted.",
+            "",
+            "Each objective is completed by a real game event (the grey node under it). Change an IP or a name and change it in the matching trigger too.",
+            "",
+            "The last part is the useful pattern: deleting the file writes ledger=deleted, and the reply branches on it — so claiming the job is done without doing it gets the player told off instead of paid.",
+        ].join("\n"),
+        width: 340,
+    });
+
+    quest.graph = {
+        nodes: [
+            claim, load, complete,
+            network, osint, whois, brief, wrapUp,
+            oRead, oFind, oServer, oScan, oAccess, oDelete, oReply,
+            t1.trigger, t2.trigger, t3.trigger, t4.trigger, t5.trigger, t6.trigger, t7.trigger,
+            remember, reply, honest, paid, pay, joking, note,
+        ],
+        edges: [
+            // world setup, in order, on claim
+            makeEdge(claim, "out", network, "in"),
+            makeEdge(network, "out", osint, "in"),
+            makeEdge(osint, "out", whois, "in"),
+            makeEdge(whois, "out", brief, "in"),
+            // the objective chain: each one unlocks the next
+            makeEdge(oRead, "unlock", oFind, "unlocked-by"),
+            makeEdge(oFind, "unlock", oServer, "unlocked-by"),
+            makeEdge(oServer, "unlock", oScan, "unlocked-by"),
+            makeEdge(oScan, "unlock", oAccess, "unlocked-by"),
+            makeEdge(oAccess, "unlock", oDelete, "unlocked-by"),
+            makeEdge(oDelete, "unlock", oReply, "unlocked-by"),
+            // their triggers
+            t1.edge, t2.edge, t3.edge, t4.edge, t5.edge, t6.edge, t7.edge,
+            // remember the deletion, then judge the reply
+            makeEdge(oDelete, "done", remember, "in"),
+            makeEdge(load, "out", reply, "in"),
+            makeEdge(oReply, "done", honest, "in"),
+            makeEdge(honest, "true", paid, "in"),
+            makeEdge(paid, "out", pay, "in"),
+            makeEdge(honest, "false", joking, "in"),
+            makeEdge(complete, "out", wrapUp, "in"),
+        ],
+    };
+
+    applyLayout(quest);
+
+    return createProject({
+        mod: {
+            id: "the-ledger-contract",
+            name: "The Ledger Contract",
+            version: "1.0.0",
+            author: "",
+            description:
+                "The standard contract hack: a name, an OSINT lookup, a whois, a scan, an exploit, a deleted file — and a client who checks before she pays.",
+            tags: ["quest", "hacking", "recon", "metasploit", "beginner-friendly"],
+            dependencies: [],
+            minSdkVersion: "0.21.0",
+            apiVersion: 1,
+        },
+        quests: [quest],
+        websites: [
+            {
+                id: "site-meridian",
+                host: DOMAIN,
+                name: "Meridian Capital",
+                pages: SITE_TEMPLATES.find((t) => t.id === "corp")!
+                    .make()
+                    .pages.map((page, i) => ({ id: `page-meridian-${i + 1}`, ...page })),
+            },
+        ],
+        editor: { activeQuestId: quest.id, viewports: {} },
+    });
+}
+
 /* ── The reference quest ─────────────────────────────────────────────────── */
 
 /**
@@ -943,6 +1277,15 @@ export const TEMPLATES: Template[] = [
         difficulty: "Advanced",
         nodeCount: 29,
         build: buildInvestigation,
+    },
+    {
+        id: "contract-hack",
+        name: "Standard Contract Hack",
+        description:
+            "The job the game hands out constantly: a name in an e-mail, an OSINT lookup, whois, a scan, an exploit, and one file that has to stop existing — with a client who checks before she pays.",
+        difficulty: "Intermediate",
+        nodeCount: 29,
+        build: buildContractHack,
     },
     {
         id: "reference",
