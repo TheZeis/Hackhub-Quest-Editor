@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-02.r33";
+export const EDITOR_BUILD = "2026-09-02.r34";
 
 export interface CompiledFile {
     path: string;
@@ -118,8 +118,13 @@ export function computeWarnings(project: ProjectDocument): string[] {
     const warnings: string[] = [];
     for (const q of project.quests) {
         if (!q.autoStart) {
+            /* Without auto-start, the only way in is the Hackhub feed post that
+               advertises the quest. With neither, the quest is in the mod and
+               unreachable — worth saying outright rather than as a nicety. */
             warnings.push(
-                `${q.title || q.name}: starts only when the player accepts it (e.g. from the quest board) — nothing in it runs before then. Turn on “Start automatically” in the quest's Behaviour settings if it should begin on its own.`,
+                q.hackhubPost
+                    ? `${q.title || q.name}: the player claims this one from its Hackhub feed post — nothing in it runs until they do. Turn on “Start automatically” in the quest's Behaviour settings if it should begin the moment the mod loads.`
+                    : `${q.title || q.name}: nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed, so the player has no way to claim it. Turn on “Start automatically” in the quest's Behaviour settings, or give it a feed post.`,
             );
         }
         for (const n of q.graph.nodes) {
@@ -131,13 +136,15 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         );
                     }
                     break;
-                case "world.port":
                 case "world.firewall":
-                case "world.domain":
-                case "world.database":
-                    warnings.push(
-                        `${q.name}: “${n.type}” nodes export as notes only — fold them into a network's device tree for full effect.`,
-                    );
+                case "world.port":
+                    /* Both act on a machine that must already exist: the engine
+                       has no rule to add and no port to open otherwise. */
+                    if (!(n.data as { ip?: string }).ip) {
+                        warnings.push(
+                            `${q.name}: a “${n.type === "world.port" ? "Change port" : "Add firewall rule"}” node has no device IP, so it has nothing to act on. Point it at a machine one of your network nodes created.`,
+                        );
+                    }
                     break;
                 case "fx.handbook":
                     warnings.push(`${q.name}: handbook nodes are not compiled yet.`);
@@ -181,7 +188,7 @@ export function computeWarnings(project: ProjectDocument): string[] {
         const hidden = w.pages.filter((p) => !p.seo);
         if (hidden.length) {
             warnings.push(
-                `${w.host}: ${hidden.length} unlisted page${hidden.length > 1 ? "s" : ""} (${hidden.map((p) => p.path).join(", ")}) — reachable by address but hidden from the in-game search.`,
+                `${w.host}: ${hidden.length} unlisted page${hidden.length > 1 ? "s" : ""} (${hidden.map((p) => p.path).join(", ")}). Nothing links to ${hidden.length > 1 ? "them" : "it"} and the in-game search will not show ${hidden.length > 1 ? "them" : "it"}, so the player reaches ${hidden.length > 1 ? "them" : "it"} only by typing the address or by running dirhunter on the host — which is exactly what makes a good hiding place for a clue. If you meant ${hidden.length > 1 ? "these" : "this"} to be findable normally, turn on “Listed in search” for the page.`,
             );
         }
     }

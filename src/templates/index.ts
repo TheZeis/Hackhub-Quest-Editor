@@ -111,7 +111,7 @@ export interface Template {
  */
 function buildBlank(): ProjectDocument {
     resetIds();
-    const quest = createQuest({ id: "q-blank", name: "NewQuest", title: "New Quest" });
+    const quest = createQuest({ id: "q-blank", name: "NewQuest", title: "New Quest", autoStart: true });
     const claim = makeNode("entry.start", { x: 0, y: 0 });
     const load = makeNode("entry.load", { x: 0, y: 150 });
     const complete = makeNode("entry.complete", { x: 0, y: 300 });
@@ -131,6 +131,9 @@ function buildHelloHack(): ProjectDocument {
         id: "q-hello-hack",
         name: "HelloHack",
         title: "Hello Hack",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "Scan a target and collect the bounty.",
         rewards: { money: 500, xp: 25 },
     });
@@ -190,6 +193,9 @@ function buildWifiHack(): ProjectDocument {
         id: "q-wifi-hack",
         name: "NeighbourWifi",
         title: "The Neighbour's Wi-Fi",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "Crack the access point next door and see what is on the network.",
         group: "side",
         rewards: { money: 2500, xp: 120 },
@@ -318,6 +324,9 @@ function buildInvestigation(): ProjectDocument {
         description:
             "A whistleblower wants a set of books out of Meridian Capital's internal network. Two ways in, and only one of them is quiet.",
         group: "side",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         rewards: { money: 18000, xp: 640 },
         dataKeys: [
             { key: "targetIp", type: "string" },
@@ -677,6 +686,9 @@ function buildContractHack(): ProjectDocument {
         id: "q-contract-hack",
         name: "TheLedgerContract",
         title: "Contract: The Q3 Ledger",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "A client wants one file gone from one man's machine. Find him, find his server, get in, delete it.",
         group: "side",
         rewards: { money: 4000, xp: 180 },
@@ -1014,6 +1026,9 @@ function buildDirhunter(): ProjectDocument {
         id: "q-dirhunter",
         name: "TheHelpDeskLeak",
         title: "The Help Desk Leak",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "An agency portal that will not let you in, and an internal page it forgot to hide.",
         group: "side",
         rewards: { money: 3200, xp: 150 },

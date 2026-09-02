@@ -1197,3 +1197,68 @@ costs suspicion — all engine-side.
 **Verification:** 424 tests (19 files, +15), `tsc --noEmit` clean, `vite build`
 clean. Every template is now issue-free on the canvas except the reference sheet,
 which is a catalogue by design. Export stamp: `EDITOR_BUILD = "2026-09-02.r33"`.
+
+## Round 34 — templates that can actually start, and four nodes that finally do something
+
+Two QA findings from playing the Ledger template in-game, and the sweep they led to.
+
+### 1. No template could ever start
+
+`autoStart` defaults to off and **no template had ever set it** — six templates
+that build a whole world in-game and then sit there, unclaimable. The export
+even warned about it, in wording so gentle it read like a preference.
+
+- Every playable template now sets `autoStart: true` (Blank, Hello Hack, Wi-Fi,
+  Investigation, Contract Hack, Help Desk Leak). Only the Node Reference stays
+  off — it is a catalogue, not a quest.
+- The warning now distinguishes the two cases. With a Hackhub feed post it is a
+  heads-up (“the player claims this one from its feed post”). With neither, it
+  says what is actually true: **“nothing can start this quest… the player has no
+  way to claim it.”**
+- Two template tests make it impossible to ship this again: every template
+  except the reference must be claimable, and no template may export with an
+  unplayable warning.
+
+### 2. “Unlisted page” told the author a fact, not what to do with it
+
+Rewritten to explain the mechanic: nothing links to it, in-game search will not
+show it, the player reaches it by typing the address **or by running dirhunter
+on the host** — which is what makes it a good hiding place for a clue — and if
+that was not the intent, turn on “Listed in search”.
+
+### 3. Four world nodes exported as nothing at all
+
+The sweep for other “exports as notes only” cases found that **Register domain,
+Add firewall rule, Change port and Create database compiled to no code**, while
+the SDK has a real call for each. An author's firewall rule simply did not exist
+in the game.
+
+| Node | Now emits | Cleanup |
+|---|---|---|
+| Register domain | `Network.registerDomain(domain, ip, vulns)` | `removeDomain` |
+| Add firewall rule | `Network.addFirewallRule(ip, rule)` | `removeFirewallRule(ip, port)` |
+| Change port | `openPort` / `closePort` / `addPort` / `removePort` | optional “put it back” |
+| Create database | `Database.create({ host, user, password, tables })` | `Database.remove(id)` |
+
+Cleanup is collected as the flow runs — a node the story never reached added
+nothing, so nothing is removed for it — and drained in `OnComplete`/`OnAbandon`,
+each call guarded so a half-torn-down world cannot block the rest. Ports restore
+to their opposite (an opened port closes, an added port is removed) only when the
+author asks for it.
+
+The remaining honest warnings: Wi-Fi creation (no SDK), handbook nodes (not
+compiled), remote-device “Seed files” (belongs in the device tree), and a port or
+firewall node with no device IP, which now says so instead of being silent.
+
+### A note on sources
+
+Added to the docs' standing rules, prompted by a community wiki that turned out
+to be generic infosec text with the game's name on it: **the SDK declarations are
+ground truth, in-game testing is second, everything else is unverified until one
+of those two confirms it.** That page described `traceroute`, `scp`, `systemctl`
+and `apt install nmap` while never mentioning `dirhunter`, `fern` or `bettercap`.
+Its Metasploit *loop* (search → use → set options → exploit → session) does match
+the SDK's event set, so that much is usable — nothing else from it was taken.
+
+**Verification:** 445 tests (19 files, +21), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r34"`.

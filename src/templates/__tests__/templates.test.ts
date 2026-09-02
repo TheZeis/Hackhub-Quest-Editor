@@ -11,6 +11,7 @@ import { nodeTypeDef, NODE_TYPES_REGISTRY, sourcesOf } from "@/schema/registry";
 import { summarize } from "@/editor/canvas/summarize";
 import { getTemplate, TEMPLATES } from "@/templates";
 import { analyseGraph } from "@/analysis/graph";
+import { computeWarnings } from "@/compiler/compile";
 
 describe("template registry", () => {
     it("ships the templates named in the plan", () => {
@@ -44,6 +45,26 @@ describe("template registry", () => {
         }).device.children[0];
         expect(box.users[0]).toMatchObject({ username: "t.reyes", password: "treyes3419" });
         expect(getTemplate("nope")).toBeUndefined();
+    });
+
+    /**
+     * QA, round 33: the Ledger template loaded its whole world in-game and then
+     * sat there, because no template had ever set `autoStart` — there was no way
+     * for the player to claim any of them. A template that cannot be played is
+     * not a template.
+     */
+    it.each(TEMPLATES.filter((t) => t.id !== "reference"))("%s: can actually be started", (template) => {
+        for (const quest of template.build().quests) {
+            expect(
+                quest.autoStart || quest.hackhubPost != null,
+                `${quest.name} has no way in: turn on autoStart or advertise it with a Hackhub feed post`,
+            ).toBe(true);
+        }
+    });
+
+    it.each(TEMPLATES.filter((t) => t.id !== "reference"))("%s: exports without an unplayable warning", (template) => {
+        const warnings = computeWarnings(template.build());
+        expect(warnings.filter((w) => /nothing can start this quest/.test(w))).toEqual([]);
     });
 
     it.each(TEMPLATES)("%s: parses against the project schema", (template) => {

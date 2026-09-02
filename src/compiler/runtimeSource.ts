@@ -256,6 +256,27 @@ function __qeRegisterProject(sdk, PROJECT) {
             }, Promise.resolve());
         }
 
+        /* Everything this quest added to the world that should disappear with
+           it. Filled as the flow runs (a node the story never reaches added
+           nothing), drained in OnComplete/OnAbandon. */
+        var questCleanup = [];
+
+        function runQuestCleanup() {
+            while (questCleanup.length) {
+                var item = questCleanup.pop();
+                try {
+                    if (item.kind === "domain" && sdk.Network.removeDomain) sdk.Network.removeDomain(item.domain);
+                    if (item.kind === "firewall" && sdk.Network.removeFirewallRule) sdk.Network.removeFirewallRule(item.ip, item.port);
+                    if (item.kind === "database" && sdk.Database && sdk.Database.remove) sdk.Database.remove(item.id);
+                    if (item.kind === "port") {
+                        if (item.action === "open" && sdk.Network.closePort) sdk.Network.closePort(item.ip, item.port);
+                        if (item.action === "close" && sdk.Network.openPort) sdk.Network.openPort(item.ip, item.port);
+                        if (item.action === "add" && sdk.Network.removePort) sdk.Network.removePort(item.ip, item.port);
+                    }
+                } catch (e) { /* the world may already be gone; never block cleanup */ }
+            }
+        }
+
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });
         var questRef = null;
         var needsTargetIp = g.nodes.some(function (n) {
@@ -417,6 +438,70 @@ function __qeRegisterProject(sdk, PROJECT) {
                             users: d.users || [],
                             children: d.children || [],
                         }));
+                    }
+                    return next();
+                }
+                case "world.domain": {
+                    /* A domain the player can whois / nslookup their way to. */
+                    var domIp = __QE.fill(d.ip || "", scope) || ((questRef && questRef.Data && questRef.Data.targetIp) || "");
+                    if (sdk.Network && sdk.Network.registerDomain && d.domain && domIp) {
+                        sdk.Network.registerDomain(d.domain, domIp, d.vulnerabilities || []);
+                        if (d.removeOnComplete !== false) questCleanup.push({ kind: "domain", domain: d.domain });
+                    }
+                    return next();
+                }
+                case "world.firewall": {
+                    var fwIp = __QE.fill(d.ip || "", scope);
+                    if (sdk.Network && sdk.Network.addFirewallRule && fwIp && d.rule) {
+                        var rule = {
+                            allowed: !!d.rule.allowed,
+                            port: Number(d.rule.port || 0),
+                        };
+                        if (d.rule.source) rule.source = d.rule.source;
+                        if (d.rule.destination) rule.destination = d.rule.destination;
+                        if (d.rule.locked != null) rule.locked = !!d.rule.locked;
+                        sdk.Network.addFirewallRule(fwIp, rule);
+                        if (d.removeOnComplete !== false) questCleanup.push({ kind: "firewall", ip: fwIp, port: rule.port });
+                    }
+                    return next();
+                }
+                case "world.port": {
+                    var portIp = __QE.fill(d.ip || "", scope);
+                    var portNo = Number((d.port && d.port.external) || 0);
+                    if (sdk.Network && portIp && portNo) {
+                        if (d.action === "open" && sdk.Network.openPort) sdk.Network.openPort(portIp, portNo);
+                        if (d.action === "close" && sdk.Network.closePort) sdk.Network.closePort(portIp, portNo);
+                        if (d.action === "add" && sdk.Network.addPort) {
+                            var np = {
+                                external: portNo,
+                                internal: Number(d.port.internal || portNo),
+                                active: d.port.active !== false,
+                            };
+                            if (d.port.service) np.service = d.port.service;
+                            if (d.port.version) np.version = d.port.version;
+                            sdk.Network.addPort(portIp, np);
+                        }
+                        if (d.action === "remove" && sdk.Network.removePort) sdk.Network.removePort(portIp, portNo);
+                        /* Put it back the way it was found, if asked. */
+                        if (d.restoreOnComplete) {
+                            questCleanup.push({ kind: "port", ip: portIp, port: portNo, action: d.action });
+                        }
+                    }
+                    return next();
+                }
+                case "world.database": {
+                    if (sdk.Database && sdk.Database.create && d.host) {
+                        var tables = {};
+                        (d.tables || []).forEach(function (t) {
+                            if (t.name) tables[t.name] = t.rows || [];
+                        });
+                        var dbId = sdk.Database.create({
+                            host: __QE.fill(d.host, scope),
+                            user: d.user || "",
+                            password: d.password || "",
+                            tables: tables,
+                        });
+                        if (d.removeOnComplete !== false && dbId) questCleanup.push({ kind: "database", id: dbId });
                     }
                     return next();
                 }
@@ -729,6 +814,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 OnComplete() {
                     var ctx = { payload: {}, vars: {} };
+                    runQuestCleanup();
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
                     });
@@ -738,6 +824,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 OnAbandon() {
                     var ctx = { payload: {}, vars: {} };
+                    runQuestCleanup();
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
                     });

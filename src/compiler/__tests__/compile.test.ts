@@ -422,13 +422,34 @@ describe("export build stamp", () => {
 });
 
 describe("quest behaviour toggles", () => {
-    it("advises when a quest will not start on its own", () => {
+    it("says outright when nothing can start a quest", () => {
+        // No auto-start and no feed post: the quest is in the mod and
+        // unreachable. QA hit exactly this with a shipped template.
         const result = compileProject(createProject());
-        expect(result.warnings.some((w) => /starts only when the player accepts/.test(w))).toBe(true);
-        // and stays quiet once auto-start is on
+        expect(result.warnings.some((w) => /nothing can start this quest/.test(w))).toBe(true);
+
+        // A feed post is a real way in, so the wording softens to a heads-up.
+        const posted = createProject();
+        posted.quests[0].hackhubPost = { content: "Anyone free for a small job?", comments: [] };
+        const postedWarnings = compileProject(posted).warnings;
+        expect(postedWarnings.some((w) => /nothing can start this quest/.test(w))).toBe(false);
+        expect(postedWarnings.some((w) => /claims this one from its Hackhub feed post/.test(w))).toBe(true);
+
+        // and it stays quiet once auto-start is on
+        const auto = createProject();
+        auto.quests[0].autoStart = true;
+        expect(compileProject(auto).warnings.some((w) => /start/.test(w))).toBe(false);
+    });
+
+    it("explains what an unlisted page is for, not just that it exists", () => {
         const p = createProject();
-        p.quests[0].autoStart = true;
-        expect(compileProject(p).warnings.some((w) => /starts only when/.test(w))).toBe(false);
+        p.websites.push({
+            id: "w1", host: "example.net", name: "Example",
+            pages: [{ id: "p1", path: "/files/internal/memo", title: "Memo", seo: false, content: "<html></html>" }],
+        });
+        const note = compileProject(p).warnings.find((w) => w.includes("/files/internal/memo"))!;
+        expect(note).toContain("dirhunter");
+        expect(note).toContain("Listed in search");
     });
 });
 
@@ -1158,5 +1179,144 @@ describe("the dirhunter template runs", () => {
         const user = built[0].children[0].users[0];
         expect(user.username).toBe("t.reyes");
         expect(user.files.map((f: { name: string }) => f.name)).toContain("abort-report");
+    });
+});
+
+/**
+ * Four world nodes — Register domain, Add firewall rule, Change port and
+ * Create database — used to compile to nothing at all: the export said
+ * "exports as notes only" and the author's firewall simply did not exist
+ * in-game. Every one of them has a real SDK call.
+ */
+describe("world nodes that used to be notes", () => {
+    function worldProject(extra: Record<string, unknown>[]) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const nodes = extra.map((e) => node(e.type as Parameters<typeof node>[0], e.data as Record<string, unknown>));
+        q.graph.nodes = [entry, ...nodes];
+        q.graph.edges = nodes.map((n, i) => edge(i === 0 ? entry.id : nodes[i - 1].id, n.id, "flow"));
+        return p;
+    }
+
+    function worldSdk(calls: string[]) {
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network = {
+            ...sdk.Network,
+            registerDomain: (d: string, ip: string) => calls.push(`domain:${d}=${ip}`),
+            removeDomain: (d: string) => calls.push(`domain-gone:${d}`),
+            addFirewallRule: (ip: string, r: { port: number; allowed: boolean }) => calls.push(`fw:${ip}:${r.port}:${r.allowed}`),
+            removeFirewallRule: (ip: string, port: number) => calls.push(`fw-gone:${ip}:${port}`),
+            openPort: (ip: string, p: number) => calls.push(`open:${ip}:${p}`),
+            closePort: (ip: string, p: number) => calls.push(`close:${ip}:${p}`),
+            addPort: (ip: string, p: { external: number }) => calls.push(`addport:${ip}:${p.external}`),
+            removePort: (ip: string, p: number) => calls.push(`rmport:${ip}:${p}`),
+        };
+        sdk.Database = {
+            create: (def: { host: string; tables: Record<string, unknown[]> }) => {
+                calls.push(`db:${def.host}:${Object.keys(def.tables).join("+")}`);
+                return "db-1";
+            },
+            remove: (id: string) => calls.push(`db-gone:${id}`),
+        };
+        return sdk;
+    }
+
+    async function play(extra: Record<string, unknown>[]) {
+        const calls: string[] = [];
+        const sdk = worldSdk(calls);
+        runMod(compileProject(worldProject(extra)).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = q.CreateData();
+        q.OnStart();
+        await settle();
+        return { calls, q };
+    }
+
+    it("registers a domain, and takes it away with the quest", async () => {
+        const { calls, q } = await play([
+            { type: "world.domain", data: { domain: "meridian-capital.net", ip: "45.33.32.156", vulnerabilities: [], removeOnComplete: true } },
+        ]);
+        expect(calls).toContain("domain:meridian-capital.net=45.33.32.156");
+        q.OnComplete();
+        expect(calls).toContain("domain-gone:meridian-capital.net");
+    });
+
+    it("adds a firewall rule and removes exactly that rule afterwards", async () => {
+        const { calls, q } = await play([
+            { type: "world.firewall", data: { ip: "10.0.0.1", rule: { id: "r", allowed: false, port: 22, source: "*" }, removeOnComplete: true } },
+        ]);
+        expect(calls).toContain("fw:10.0.0.1:22:false");
+        q.OnAbandon();
+        expect(calls).toContain("fw-gone:10.0.0.1:22");
+    });
+
+    it("opens, closes, adds and removes ports", async () => {
+        const { calls } = await play([
+            { type: "world.port", data: { ip: "10.0.0.2", action: "open", port: { id: "p", external: 22, internal: 22, active: true } } },
+            { type: "world.port", data: { ip: "10.0.0.2", action: "close", port: { id: "p", external: 80, internal: 80, active: true } } },
+            { type: "world.port", data: { ip: "10.0.0.2", action: "add", port: { id: "p", external: 8080, internal: 8080, active: true, service: "http" } } },
+            { type: "world.port", data: { ip: "10.0.0.2", action: "remove", port: { id: "p", external: 21, internal: 21, active: true } } },
+        ]);
+        expect(calls).toEqual(expect.arrayContaining([
+            "open:10.0.0.2:22", "close:10.0.0.2:80", "addport:10.0.0.2:8080", "rmport:10.0.0.2:21",
+        ]));
+    });
+
+    it("puts a port back the way it found it when asked", async () => {
+        const { calls, q } = await play([
+            { type: "world.port", data: { ip: "10.0.0.2", action: "open", port: { id: "p", external: 22, internal: 22, active: true }, restoreOnComplete: true } },
+        ]);
+        q.OnComplete();
+        expect(calls).toEqual(["open:10.0.0.2:22", "close:10.0.0.2:22"]);
+    });
+
+    it("creates a database with its tables", async () => {
+        const { calls, q } = await play([
+            {
+                type: "world.database",
+                data: {
+                    host: "db.meridian-capital.net", user: "root", password: "hunter2",
+                    tables: [
+                        { id: "t1", name: "employees", rows: [{ name: "A. Ritter", role: "compliance" }] },
+                        { id: "t2", name: "payments", rows: [] },
+                    ],
+                    removeOnComplete: true,
+                },
+            },
+        ]);
+        expect(calls).toContain("db:db.meridian-capital.net:employees+payments");
+        q.OnComplete();
+        expect(calls).toContain("db-gone:db-1");
+    });
+
+    it("no longer tells the author these nodes are decorative", () => {
+        const warnings = computeWarnings(worldProject([
+            { type: "world.domain", data: { domain: "x.net", ip: "1.2.3.4", vulnerabilities: [] } },
+            { type: "world.port", data: { ip: "1.2.3.4", action: "open", port: { id: "p", external: 22, internal: 22, active: true } } },
+            { type: "world.database", data: { host: "db.x.net", user: "r", password: "p", tables: [] } },
+        ]));
+        expect(warnings.join("\n")).not.toContain("notes only");
+    });
+
+    it("but does say when a port or rule has no machine to act on", () => {
+        const warnings = computeWarnings(worldProject([
+            { type: "world.port", data: { ip: "", action: "open", port: { id: "p", external: 22, internal: 22, active: true } } },
+        ]));
+        expect(warnings.join("\n")).toContain("has nothing to act on");
+    });
+
+    it("survives a game build without these APIs", async () => {
+        const sdk = stubSdk([], []) as any;
+        const p = worldProject([
+            { type: "world.domain", data: { domain: "x.net", ip: "1.2.3.4", vulnerabilities: [] } },
+            { type: "world.database", data: { host: "db.x.net", user: "r", password: "p", tables: [] } },
+        ]);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(() => q.OnStart()).not.toThrow();
+        await settle();
+        expect(() => q.OnComplete()).not.toThrow();
     });
 });
