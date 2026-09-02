@@ -341,6 +341,17 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
+/* ── Group frames ────────────────────────────────────────────────────────
+   A frame is moved by its title bar alone (React Flow dragHandle), so only
+   the title bar offers the grab cursor: over the body of a frame the pointer
+   stays exactly as it is over empty canvas, and what is inside the frame
+   keeps its own cursor.
+   ─────────────────────────────────────────────────────────────────────── */
+.react-flow__node.qe-frame-node,
+.react-flow__node.qe-frame-node.draggable {
+    cursor: default;
+}
+
 /* ── Group-frame resize corners ──────────────────────────────────────────
    React Flow ships 5px squares; these are ~30% larger and carry an invisible
    pad so the corner can be grabbed without pixel-hunting.

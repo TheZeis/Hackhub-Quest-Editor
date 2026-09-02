@@ -874,3 +874,28 @@ now says what each colour of wire actually does, in one sentence.
 
 **Verification:** 390 tests (18 files, +19), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r26"`.
+
+## Round 27 — the wire gestures, properly
+
+**Pulling a wire out of an input now works the way it reads.** Round 26 relied on
+React Flow's edge *reconnect*, which only triggers if you grab the wire itself
+within a few pixels of its end — grab the socket and you simply start a new wire,
+which is exactly what happened. Now `onConnectStart` does the work: begin a drag
+on an input that has exactly one wire and that wire comes with you (it leaves the
+graph immediately, because you are holding it). Drop it on a socket and it plugs
+in there; drop it on a node's body and it takes that node's one matching output;
+drop it on empty canvas and it is gone. Drop it back on the node it came from and
+it is put back, because nothing was meant by that. Inputs with several wires are
+left alone — there is no single wire to pick up. Edge reconnect still works too,
+with `reconnectRadius` raised to 26 px and a 26 px interaction band on every wire,
+so grabbing a wire mid-air is no longer needle-threading.
+
+**A frame's body no longer offers a grab it will not honour.** The frame node
+carries `qe-frame-node`, whose cursor is the plain canvas one; only the title bar
+shows `grab`.
+
+**Reroute nodule: 22 px dot, 42 px hitbox** (the white 50 % outline follows the
+hitbox, so what you see is what you can grab).
+
+**Verification:** 394 tests (18 files, +4), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r27"`.

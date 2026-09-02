@@ -26,13 +26,14 @@ import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
 import { setWireMotion, subscribeWireMotion, wireMotionEnabled } from "./wireMotion";
-import { nodeIdUnderPointer, soleMatchingInput } from "./wiring";
+import { nodeIdUnderPointer, soleEdgeInto, soleMatchingInput, soleMatchingOutput } from "./wiring";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
 import { categoryOf, nodeTypeDef, sourcesOf, CATEGORY_HEX } from "@/schema/registry";
 import { HANDLE_STYLE } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
+import type { EdgeDoc } from "@/schema/edges";
 
 const NODE_TYPES: NodeTypes = { qe: GraphNode };
 const EDGE_TYPES: EdgeTypes = { typed: TypedEdge };
@@ -166,6 +167,9 @@ function CanvasInner() {
             // it used to pick the whole group up, which made a reroute nodule
             // sitting inside one almost impossible to catch.
             dragHandle: doc.type === "layout.group" ? ".qe-group-grip" : undefined,
+            // Only the title bar of a frame offers to be dragged, so only the
+            // title bar shows the grab cursor.
+            className: doc.type === "layout.group" ? "qe-frame-node" : undefined,
             // Frames sit behind everything; cards keep the default layer.
             zIndex: doc.type === "layout.group" ? -1 : 0,
         }));
@@ -188,6 +192,12 @@ function CanvasInner() {
         () => edges.map((e) => (selection.edgeIds.includes(e.id) ? { ...e, selected: true } : e)),
         [edges, selection.edgeIds],
     );
+
+    /** The live quest document, read straight from the store on demand. */
+    const activeQuest = useCallback(() => {
+        const st = useEditor.getState();
+        return st.project.quests.find((x) => x.id === st.project.editor.activeQuestId);
+    }, []);
 
     const onConnect = useCallback(
         (connection: Connection) => {
@@ -241,6 +251,32 @@ function CanvasInner() {
     );
 
     /**
+     * Pulling a wire out of an input takes the existing wire with it: the
+     * author is holding that wire now, so it leaves the graph the moment the
+     * drag starts. Dropping it on a socket (or on a node that has one obvious
+     * socket) plugs it back in somewhere; dropping it on nothing is how you
+     * unplug something. If an input has several wires there is no single wire
+     * to pick up, so those are left alone.
+     */
+    const detached = useRef<{ edge: EdgeDoc; nodeId: string } | null>(null);
+
+    const onConnectStart = useCallback(
+        (
+            _event: unknown,
+            params: { nodeId: string | null; handleId: string | null; handleType: string | null },
+        ) => {
+            detached.current = null;
+            if (params.handleType !== "target" || !params.nodeId) return;
+            const q = activeQuest();
+            const held = soleEdgeInto(q?.graph.edges ?? [], params.nodeId, params.handleId ?? "");
+            if (!held) return;
+            detached.current = { edge: held, nodeId: params.nodeId };
+            removeEdges([held.id]);
+        },
+        [activeQuest, removeEdges],
+    );
+
+    /**
      * Dropping a new wire on a node's body — not on one of its sockets — wires
      * it to that node's only matching input. If the node has several inputs of
      * that kind there is no single obvious answer, so nothing happens and the
@@ -248,36 +284,60 @@ function CanvasInner() {
      */
     const onConnectEnd = useCallback(
         (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+            const pulled = detached.current;
+            detached.current = null;
             if (state.isValid) return; // already landed on a socket
+
             const from = state.fromHandle;
-            if (!from || from.type !== "source" || !from.nodeId) return;
+            const q = activeQuest();
+            if (!from || !from.nodeId || !q) return;
+            const fromNode = q.graph.nodes.find((n) => n.id === from.nodeId);
+            if (!fromNode) return;
 
-            const q = useEditor.getState().project.quests.find(
-                (x) => x.id === useEditor.getState().project.editor.activeQuestId,
-            );
-            if (!q) return;
-            const sourceNode = q.graph.nodes.find((n) => n.id === from.nodeId);
-            if (!sourceNode) return;
+            const overId = state.toNode?.id ?? nodeIdUnderPointer(event);
+            // Dropped back on the node it came from: nothing was meant by that,
+            // so put the wire back rather than silently eating it.
+            if (pulled && overId === pulled.nodeId) {
+                connect({
+                    source: pulled.edge.source,
+                    sourceHandle: pulled.edge.sourceHandle,
+                    target: pulled.edge.target,
+                    targetHandle: pulled.edge.targetHandle,
+                });
+                return;
+            }
+            if (!overId) return; // dropped on the canvas: a pulled wire stays gone
+            const overNode = q.graph.nodes.find((n) => n.id === overId);
+            if (!overNode) return;
 
-            const targetId = state.toNode?.id ?? nodeIdUnderPointer(event);
-            if (!targetId) return;
-            const targetNode = q.graph.nodes.find((n) => n.id === targetId);
-            if (!targetNode) return;
-
-            const targetHandle = soleMatchingInput(sourceNode, from.id ?? "", targetNode);
-            if (!targetHandle) return; // no input of that kind, or too many to guess
+            // One end is in hand; find the single obvious socket at the other.
+            const wire =
+                from.type === "source"
+                    ? {
+                          source: from.nodeId,
+                          sourceHandle: from.id ?? "",
+                          target: overId,
+                          targetHandle: soleMatchingInput(fromNode, from.id ?? "", overNode),
+                      }
+                    : {
+                          source: overId,
+                          sourceHandle: soleMatchingOutput(overNode, fromNode, from.id ?? ""),
+                          target: from.nodeId,
+                          targetHandle: from.id ?? "",
+                      };
+            if (!wire.sourceHandle || !wire.targetHandle) return; // nothing obvious to aim at
 
             const ok = connect({
-                source: from.nodeId,
-                sourceHandle: from.id ?? "",
-                target: targetId,
-                targetHandle,
+                source: wire.source,
+                sourceHandle: wire.sourceHandle,
+                target: wire.target,
+                targetHandle: wire.targetHandle,
             });
             if (!ok) {
                 useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
             }
         },
-        [connect],
+        [activeQuest, connect],
     );
 
     /**
@@ -372,10 +432,14 @@ function CanvasInner() {
                 nodeTypes={NODE_TYPES}
                 edgeTypes={EDGE_TYPES}
                 onConnect={onConnect}
+                onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
                 onReconnectStart={onReconnectStart}
                 onReconnect={onReconnect}
                 onReconnectEnd={onReconnectEnd}
+                // Grabbing a wire near its end picks that end up; 10px (the
+                // default) is a needle to thread with a mouse.
+                reconnectRadius={26}
                 isValidConnection={isValidConnection}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}

@@ -10,6 +10,50 @@
  */
 import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import type { NodeDoc } from "@/schema/nodes";
+import type { EdgeDoc } from "@/schema/edges";
+
+/**
+ * The single wire arriving at one input, or null when there is none — or more
+ * than one, in which case pulling on the socket cannot mean one wire in
+ * particular, so nothing is picked up.
+ */
+export function soleEdgeInto(
+    edges: EdgeDoc[],
+    nodeId: string,
+    handleId: string,
+): EdgeDoc | null {
+    const hits = edges.filter((e) => e.target === nodeId && e.targetHandle === handleId);
+    return hits.length === 1 ? hits[0] : null;
+}
+
+/**
+ * The kind of wire a socket carries, or null when the socket is unknown.
+ */
+export function kindOfHandle(
+    node: NodeDoc,
+    handleId: string,
+    side: "source" | "target",
+): string | null {
+    const list = side === "source" ? sourcesOf(node) : nodeTypeDef(node.type).targets;
+    return list.find((h) => h.id === handleId)?.kind ?? null;
+}
+
+/**
+ * The one output on `target` that could feed a wire arriving at `targetHandle`,
+ * mirror image of `soleMatchingInput` — used when the author pulls a wire out
+ * of an input and drops it on the body of the node that should feed it.
+ */
+export function soleMatchingOutput(
+    target: NodeDoc,
+    into: NodeDoc,
+    targetHandle: string,
+): string | null {
+    if (target.id === into.id) return null;
+    const kind = kindOfHandle(into, targetHandle, "target");
+    if (!kind) return null;
+    const outputs = sourcesOf(target).filter((h) => h.kind === kind);
+    return outputs.length === 1 ? outputs[0].id : null;
+}
 
 /**
  * The one input on `target` that a wire leaving `sourceHandle` could plug into,

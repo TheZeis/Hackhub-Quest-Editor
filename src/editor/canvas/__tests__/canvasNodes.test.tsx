@@ -301,6 +301,11 @@ describe("reroute grab area", () => {
             expect(el).toBeTruthy();
             return el;
         });
+        // 42px of grab area around a 22px dot: easy to catch, still reads as
+        // a small nodule on the wire.
+        expect(nodule.className).toContain("size-[42px]");
+        expect(nodule.querySelector("div.rounded-full")!.className).toContain("size-[22px]");
+
         const outline = nodule.querySelector("span.absolute") as HTMLElement;
         expect(outline).toBeTruthy();
         expect(outline.style.borderColor).toBe("rgba(255, 255, 255, 0.5)");
@@ -434,6 +439,9 @@ describe("group frames", () => {
         expect(grip).toBeTruthy();
         expect(grip.textContent).toContain("Group");
         expect(grip.className).toContain("cursor-grab");
+        // …and the frame itself is marked so its body keeps the plain canvas
+        // cursor instead of offering a grab it will not honour.
+        expect(frame.classList.contains("qe-frame-node")).toBe(true);
         // Exactly one grip, and it is not the frame itself: the body of the
         // frame stays free, so a reroute nodule sitting on top of one can
         // still be grabbed.

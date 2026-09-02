@@ -61,6 +61,10 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
             <BaseEdge
                 id={props.id}
                 path={path}
+                // A wire is 2px of ink; this is how much of the space around it
+                // answers the mouse, so a wire can be grabbed, selected or
+                // double-clicked without pixel-hunting.
+                interactionWidth={26}
                 style={{
                     stroke: color,
                     strokeWidth: width,

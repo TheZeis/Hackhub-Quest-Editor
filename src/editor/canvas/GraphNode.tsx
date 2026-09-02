@@ -114,7 +114,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
         };
         return (
             <div
-                className="qe-reroute relative flex size-9 items-center justify-center"
+                className="qe-reroute relative flex size-[42px] items-center justify-center"
                 title="Reroute — wires pass through here unchanged. Drag the ring to move it; drag from the dot to wire it onwards."
             >
                 {/* Shows where the nodule can be grabbed: everything inside this
@@ -126,7 +126,7 @@ export function GraphNode({ data, selected }: NodeProps<GraphRFNode>) {
                 />
                 <div
                     className={cn(
-                        "size-[26px] rounded-full border-2 bg-surface transition-colors",
+                        "size-[22px] rounded-full border-2 bg-surface transition-colors",
                         selected ? "border-accent ring-2 ring-accent/40" : "border-line-strong hover:border-accent",
                     )}
                 />

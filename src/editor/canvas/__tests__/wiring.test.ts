@@ -3,7 +3,12 @@
  * dropping a wire on a node's body, and dropping it on nothing.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { nodeIdUnderPointer, soleMatchingInput } from "@/editor/canvas/wiring";
+import {
+    nodeIdUnderPointer,
+    soleEdgeInto,
+    soleMatchingInput,
+    soleMatchingOutput,
+} from "@/editor/canvas/wiring";
 import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 
@@ -93,5 +98,51 @@ describe("finding the node under the pointer", () => {
     it("says nothing rather than guessing where hit testing is unavailable", () => {
         document.body.innerHTML = `<div class="react-flow__node" data-id="node-9"></div>`;
         expect(nodeIdUnderPointer(new MouseEvent("mouseup"))).toBeNull();
+    });
+});
+
+describe("pulling a wire out of an input", () => {
+    /** a → c and b → c, both into c's flow input. */
+    function twoInto() {
+        const st = useEditor.getState();
+        const a = st.addNode("fx.notify", { x: 0, y: 0 })!;
+        const b = st.addNode("fx.notify", { x: 0, y: 200 })!;
+        const c = st.addNode("fx.shell", { x: 300, y: 0 })!;
+        st.connect({ source: a, sourceHandle: "out", target: c, targetHandle: "in" });
+        st.connect({ source: b, sourceHandle: "out", target: c, targetHandle: "in" });
+        return { a, b, c };
+    }
+
+    it("picks up the one wire arriving at that socket", () => {
+        const st = useEditor.getState();
+        const a = st.addNode("fx.notify", { x: 0, y: 0 })!;
+        const b = st.addNode("fx.shell", { x: 300, y: 0 })!;
+        st.connect({ source: a, sourceHandle: "out", target: b, targetHandle: "in" });
+
+        const held = soleEdgeInto(quest().graph.edges, b, "in");
+        expect(held?.source).toBe(a);
+    });
+
+    it("picks up nothing when the socket is empty, or when several wires meet there", () => {
+        const { b, c } = twoInto();
+        expect(soleEdgeInto(quest().graph.edges, c, "in")).toBeNull(); // ambiguous
+        expect(soleEdgeInto(quest().graph.edges, b, "in")).toBeNull(); // nothing arrives
+    });
+
+    it("finds the one output that could feed the socket in hand", () => {
+        const st = useEditor.getState();
+        const a = st.addNode("fx.notify", { x: 0, y: 0 })!;
+        const b = st.addNode("fx.shell", { x: 300, y: 0 })!;
+        // Wire held by its input end, dropped on a's body: a has one output.
+        expect(soleMatchingOutput(nodeOf(a), nodeOf(b), "in")).toBe("out");
+    });
+
+    it("refuses to guess when the node offers several outputs of that kind", () => {
+        const st = useEditor.getState();
+        const branch = st.addNode("flow.branch", { x: 0, y: 0 })!; // true / false
+        const shell = st.addNode("fx.shell", { x: 300, y: 0 })!;
+        expect(soleMatchingOutput(nodeOf(branch), nodeOf(shell), "in")).toBeNull();
+        // …and it never wires a node to itself.
+        expect(soleMatchingOutput(nodeOf(shell), nodeOf(shell), "in")).toBeNull();
     });
 });
