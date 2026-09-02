@@ -7,12 +7,17 @@
  */
 import {
     Background,
+    Position,
+    type ConnectionLineComponentProps,
+    type InternalNode,
+    type Node as RFNode,
     SelectionMode,
     type OnNodeDrag,
     BackgroundVariant,
     Controls,
     MiniMap,
     ReactFlow,
+    getBezierPath,
     useReactFlow,
     type Connection,
     type NodeChange,
@@ -26,7 +31,13 @@ import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
 import { setWireMotion, subscribeWireMotion, wireMotionEnabled } from "./wireMotion";
-import { nodeIdUnderPointer, soleEdgeInto, soleMatchingInput, soleMatchingOutput } from "./wiring";
+import {
+    decideHeldDrop,
+    nodeIdUnderPointer,
+    soleEdgeInto,
+    soleMatchingInput,
+    soleMatchingOutput,
+} from "./wiring";
 import { analyseGraph, summariseIssues } from "@/analysis/graph";
 import { Icon } from "@/components/Icon";
 import { useEditor, selectActiveQuest } from "@/store/editor";
@@ -65,6 +76,25 @@ export function withAlpha(hex: string, alpha: number): string {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
+/**
+ * Where a socket actually is on screen, in flow coordinates. React Flow keeps
+ * handle boxes relative to their node, so add the node's absolute position and
+ * aim at the middle of the box.
+ */
+function handleAnchor(
+    node: InternalNode<RFNode> | undefined,
+    handleId: string,
+    side: "source" | "target",
+): { x: number; y: number } | null {
+    const bounds = node?.internals.handleBounds?.[side];
+    const h = bounds?.find((b) => b.id === handleId) ?? bounds?.[0];
+    if (!node || !h) return null;
+    return {
+        x: node.internals.positionAbsolute.x + h.x + h.width / 2,
+        y: node.internals.positionAbsolute.y + h.y + h.height / 2,
+    };
+}
+
 function CanvasInner() {
     const quest = useEditor(selectActiveQuest);
     const addNode = useEditor((s) => s.addNode);
@@ -79,7 +109,7 @@ function CanvasInner() {
     const selection = useEditor((s) => s.selection);
     const setViewport = useEditor((s) => s.setViewport);
     const applyLayout = useEditor((s) => s.applyLayout);
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, getInternalNode } = useReactFlow();
     // One animation loop drives every wire's dots; this is only its switch.
     const motion = useSyncExternalStore(
         subscribeWireMotion,
@@ -199,8 +229,57 @@ function CanvasInner() {
         return st.project.quests.find((x) => x.id === st.project.editor.activeQuestId);
     }, []);
 
+    /**
+     * Finish a wire the author pulled out of an input. The end still in the
+     * graph is the one it came FROM — pulling a wire out of node 2 leaves it
+     * hanging off node 1, so dropping it on node 3 must give 1 → 3, never
+     * 2 → 3.
+     */
+    const dropHeldWire = useCallback(
+        (held: { edge: EdgeDoc; nodeId: string }, dropNodeId: string | null, explicitHandle?: string | null) => {
+            const q = activeQuest();
+            const decision = decideHeldDrop(held, dropNodeId, explicitHandle ?? null, q?.graph.nodes ?? []);
+            if (decision.action === "delete") return;
+            const restore = () =>
+                connect({
+                    source: held.edge.source,
+                    sourceHandle: held.edge.sourceHandle,
+                    target: held.edge.target,
+                    targetHandle: held.edge.targetHandle,
+                });
+            if (decision.action === "restore") {
+                restore();
+                // Only say something when the author aimed at a node and it
+                // could not take the wire; putting it back silently after a
+                // drop on its own node is the quieter, obvious behaviour.
+                if (dropNodeId && dropNodeId !== held.nodeId) {
+                    useEditor.getState().toast("That node has no matching input — wire put back.", "warn");
+                }
+                return;
+            }
+            const ok = connect({
+                source: decision.source,
+                sourceHandle: decision.sourceHandle,
+                target: decision.target,
+                targetHandle: decision.targetHandle,
+            });
+            if (!ok) restore();
+        },
+        [activeQuest, connect],
+    );
+
     const onConnect = useCallback(
         (connection: Connection) => {
+            const held = detached.current;
+            detached.current = null;
+            if (held) {
+                // The drag began at an input, so React Flow reports the node
+                // that was dropped on as the "source". The wire in hand already
+                // has a source of its own; that node is the new destination.
+                const dropped = connection.source === held.nodeId ? connection.target : connection.source;
+                dropHeldWire(held, dropped, null);
+                return;
+            }
             const ok = connect({
                 source: connection.source,
                 sourceHandle: connection.sourceHandle ?? "",
@@ -211,14 +290,14 @@ function CanvasInner() {
                 useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
             }
         },
-        [connect],
+        [connect, dropHeldWire],
     );
 
     /**
-     * Dragging an existing wire's end away and dropping it on nothing deletes
-     * it — the shortest way to unplug something. `reconnectDone` distinguishes
-     * "dropped on a socket" (React Flow calls onReconnect) from "dropped on the
-     * pane" (it does not).
+     * Grabbing a wire near its end (rather than at the socket) and dropping it
+     * on nothing also deletes it — React Flow's own reconnect gesture.
+     * `reconnectDone` distinguishes "dropped on a socket" from "dropped on the
+     * pane": React Flow calls onReconnect only for the first.
      */
     const reconnectDone = useRef(false);
 
@@ -284,33 +363,28 @@ function CanvasInner() {
      */
     const onConnectEnd = useCallback(
         (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
-            const pulled = detached.current;
+            const held = detached.current;
             detached.current = null;
-            if (state.isValid) return; // already landed on a socket
+            if (state.isValid && !held) return; // landed on a socket; onConnect has it
+
+            const overId = state.toNode?.id ?? nodeIdUnderPointer(event);
+
+            if (held) {
+                // The socket it was dropped on, if the author aimed at one.
+                const onHandle = state.toHandle?.type === "target" ? state.toHandle.id : null;
+                dropHeldWire(held, overId, onHandle);
+                return;
+            }
 
             const from = state.fromHandle;
             const q = activeQuest();
-            if (!from || !from.nodeId || !q) return;
+            if (!from || !from.nodeId || !q || !overId) return;
             const fromNode = q.graph.nodes.find((n) => n.id === from.nodeId);
-            if (!fromNode) return;
-
-            const overId = state.toNode?.id ?? nodeIdUnderPointer(event);
-            // Dropped back on the node it came from: nothing was meant by that,
-            // so put the wire back rather than silently eating it.
-            if (pulled && overId === pulled.nodeId) {
-                connect({
-                    source: pulled.edge.source,
-                    sourceHandle: pulled.edge.sourceHandle,
-                    target: pulled.edge.target,
-                    targetHandle: pulled.edge.targetHandle,
-                });
-                return;
-            }
-            if (!overId) return; // dropped on the canvas: a pulled wire stays gone
             const overNode = q.graph.nodes.find((n) => n.id === overId);
-            if (!overNode) return;
+            if (!fromNode || !overNode) return;
 
-            // One end is in hand; find the single obvious socket at the other.
+            // A brand-new wire dropped on a node's body takes the one socket on
+            // that node it could possibly mean.
             const wire =
                 from.type === "source"
                     ? {
@@ -325,7 +399,7 @@ function CanvasInner() {
                           target: from.nodeId,
                           targetHandle: from.id ?? "",
                       };
-            if (!wire.sourceHandle || !wire.targetHandle) return; // nothing obvious to aim at
+            if (!wire.sourceHandle || !wire.targetHandle) return;
 
             const ok = connect({
                 source: wire.source,
@@ -337,7 +411,7 @@ function CanvasInner() {
                 useEditor.getState().toast("Those sockets are different kinds of connection.", "warn");
             }
         },
-        [activeQuest, connect],
+        [activeQuest, connect, dropHeldWire],
     );
 
     /**
@@ -404,6 +478,51 @@ function CanvasInner() {
         [removeEdges, select, selection.edgeIds],
     );
 
+    /**
+     * The line that follows the pointer mid-drag. For a wire pulled out of an
+     * input it must hang from the node that FEEDS it — the end still in the
+     * graph — not from the input it was just pulled out of, otherwise the
+     * picture contradicts what dropping it will do.
+     */
+    const ConnectionLine = useCallback(
+        (p: ConnectionLineComponentProps) => {
+            const held = detached.current;
+            let fromX = p.fromX;
+            let fromY = p.fromY;
+            let fromPosition = p.fromPosition;
+            let colour = "var(--color-accent)";
+            if (held) {
+                const anchor = handleAnchor(
+                    getInternalNode(held.edge.source),
+                    held.edge.sourceHandle,
+                    "source",
+                );
+                if (anchor) {
+                    fromX = anchor.x;
+                    fromY = anchor.y;
+                    fromPosition = Position.Right;
+                }
+                colour = HANDLE_STYLE[held.edge.kind].color;
+            }
+            const [path] = getBezierPath({
+                sourceX: fromX,
+                sourceY: fromY,
+                sourcePosition: fromPosition,
+                targetX: p.toX,
+                targetY: p.toY,
+                targetPosition: p.toPosition,
+                curvature: 0.28,
+            });
+            return (
+                <g>
+                    <path d={path} fill="none" stroke={colour} strokeWidth={2} />
+                    <circle cx={p.toX} cy={p.toY} r={3.5} fill={colour} />
+                </g>
+            );
+        },
+        [getInternalNode],
+    );
+
     const onDrop = useCallback(
         (event: React.DragEvent) => {
             event.preventDefault();
@@ -432,6 +551,7 @@ function CanvasInner() {
                 nodeTypes={NODE_TYPES}
                 edgeTypes={EDGE_TYPES}
                 onConnect={onConnect}
+                connectionLineComponent={ConnectionLine}
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
                 onReconnectStart={onReconnectStart}

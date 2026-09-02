@@ -899,3 +899,27 @@ hitbox, so what you see is what you can grab).
 
 **Verification:** 394 tests (18 files, +4), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r27"`.
+
+## Round 28 — a carried wire keeps the end it came from
+
+Round 27 unplugged the right wire but held it by the wrong end: React Flow
+anchors a drag at the socket it started on, so pulling 1 → 2 out of node 2 left
+the loose wire hanging off **node 2**, and dropping it on node 3 wired 2 → 3.
+
+The rule is now explicit and lives in one pure function,
+`decideHeldDrop(held, dropNodeId, explicitHandle, nodes)`
+(`src/editor/canvas/wiring.ts`): the end still in the graph is the one the wire
+came *from*. Pull 1 → 2 out of node 2 and drop it on node 3 → **1 → 3**. Drop it
+on a socket and that exact socket is used; on a node's body and its one matching
+input is; on empty canvas (or Escape) and the wire is gone; back on the node it
+came from and it is quietly restored. If the node it lands on cannot take the
+wire, it is handed back with a one-line toast rather than vanishing. Both
+`onConnect` (dropped on a real socket) and `onConnectEnd` (everything else) route
+through that one decision, so the two paths cannot drift apart.
+
+The rubber band now matches: a custom `connectionLineComponent` draws the carried
+wire from the socket that feeds it, in that wire's own colour, instead of from the
+input it was just pulled out of.
+
+**Verification:** 400 tests (18 files, +6), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r28"`.

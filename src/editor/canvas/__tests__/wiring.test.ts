@@ -4,6 +4,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+    decideHeldDrop,
     nodeIdUnderPointer,
     soleEdgeInto,
     soleMatchingInput,
@@ -144,5 +145,67 @@ describe("pulling a wire out of an input", () => {
         expect(soleMatchingOutput(nodeOf(branch), nodeOf(shell), "in")).toBeNull();
         // …and it never wires a node to itself.
         expect(soleMatchingOutput(nodeOf(shell), nodeOf(shell), "in")).toBeNull();
+    });
+});
+
+/**
+ * The gesture Zeis described: node 1 → node 2, pull the wire out of node 2,
+ * drop it on node 3, and get node 1 → node 3. The end still in the graph is
+ * the one the wire came FROM.
+ */
+describe("carrying a wire to a new node", () => {
+    function oneTwoThree() {
+        const st = useEditor.getState();
+        const one = st.addNode("fx.notify", { x: 0, y: 0 })!;
+        const two = st.addNode("fx.shell", { x: 300, y: 0 })!;
+        const three = st.addNode("fx.shell", { x: 600, y: 0 })!;
+        st.connect({ source: one, sourceHandle: "out", target: two, targetHandle: "in" });
+        const held = { edge: soleEdgeInto(quest().graph.edges, two, "in")!, nodeId: two };
+        return { one, two, three, held, nodes: () => quest().graph.nodes };
+    }
+
+    it("keeps the far end: 1 → 2 dropped on 3 becomes 1 → 3", () => {
+        const { one, three, held, nodes } = oneTwoThree();
+        expect(decideHeldDrop(held, three, null, nodes())).toEqual({
+            action: "connect",
+            source: one, // NOT node 2, which is where the wire was pulled from
+            sourceHandle: "out",
+            target: three,
+            targetHandle: "in",
+        });
+    });
+
+    it("uses the exact socket when the author aimed at one", () => {
+        const { one, held, nodes } = oneTwoThree();
+        const obj = useEditor.getState().addNode("objective", { x: 900, y: 0 })!;
+        expect(decideHeldDrop(held, obj, "in", quest().graph.nodes)).toMatchObject({
+            action: "connect",
+            source: one,
+            target: obj,
+            targetHandle: "in",
+        });
+        expect(nodes().length).toBe(4);
+    });
+
+    it("deletes the wire when it is let go over nothing", () => {
+        const { held, nodes } = oneTwoThree();
+        expect(decideHeldDrop(held, null, null, nodes())).toEqual({ action: "delete" });
+    });
+
+    it("puts the wire back when it lands where it started", () => {
+        const { two, held, nodes } = oneTwoThree();
+        expect(decideHeldDrop(held, two, null, nodes())).toEqual({ action: "restore" });
+    });
+
+    it("puts the wire back rather than wiring a node to itself", () => {
+        const { one, held, nodes } = oneTwoThree();
+        expect(decideHeldDrop(held, one, null, nodes())).toEqual({ action: "restore" });
+    });
+
+    it("puts the wire back when the node it landed on has no matching input", () => {
+        const { held } = oneTwoThree();
+        // A sticky note takes no wires at all.
+        const note = useEditor.getState().addNode("flow.note", { x: 0, y: 400 })!;
+        expect(decideHeldDrop(held, note, null, quest().graph.nodes)).toEqual({ action: "restore" });
     });
 });

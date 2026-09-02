@@ -90,3 +90,47 @@ export function nodeIdUnderPointer(event: MouseEvent | TouchEvent): string | nul
     const nodeEl = el?.closest?.(".react-flow__node") as HTMLElement | null;
     return nodeEl?.dataset.id ?? null;
 }
+
+/** A wire the author is carrying: the edge, and the input it was pulled out of. */
+export interface HeldWire {
+    edge: EdgeDoc;
+    nodeId: string;
+}
+
+/**
+ * What should happen when a carried wire is let go.
+ *
+ * The rule that matters: the end still in the graph is the one the wire came
+ * FROM. Pull a wire out of node 2 and it hangs off node 1; drop it on node 3
+ * and the answer is 1 → 3, never 2 → 3.
+ */
+export type HeldDrop =
+    | { action: "delete" }
+    | { action: "restore" }
+    | { action: "connect"; source: string; sourceHandle: string; target: string; targetHandle: string };
+
+export function decideHeldDrop(
+    held: HeldWire,
+    dropNodeId: string | null,
+    explicitHandle: string | null,
+    nodes: NodeDoc[],
+): HeldDrop {
+    // Let go over empty canvas (or Escape): the wire is unplugged for good.
+    if (!dropNodeId) return { action: "delete" };
+    // Let go back where it was picked up: nothing was meant by that.
+    if (dropNodeId === held.nodeId) return { action: "restore" };
+
+    const from = nodes.find((n) => n.id === held.edge.source);
+    const to = nodes.find((n) => n.id === dropNodeId);
+    if (!from || !to || to.id === from.id) return { action: "restore" };
+
+    const targetHandle = explicitHandle ?? soleMatchingInput(from, held.edge.sourceHandle, to);
+    if (!targetHandle) return { action: "restore" };
+    return {
+        action: "connect",
+        source: held.edge.source,
+        sourceHandle: held.edge.sourceHandle,
+        target: dropNodeId,
+        targetHandle,
+    };
+}
