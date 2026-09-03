@@ -1730,3 +1730,78 @@ builds its network, sends its mail via `Mail.send` (no fallback), and completes
 
 The SDK is now a pinned devDependency (`0.21.0`, exact) rather than an ad-hoc
 install, so the ground-truth declarations survive a clean checkout.
+
+## Round 42 — why an idle editor spun up a 4090
+
+The author reported that leaving the editor open made his graphics card audible
+within a minute or two, with lag that grew the longer he worked and stopped the
+instant he switched tabs. He captured a Firefox performance profile while idle,
+with the Ledger template open and nothing being touched.
+
+The profile named it immediately. In 16.3 seconds of doing nothing, the editor's
+tab spent **40.8% of its time** in `PresShell::DoFlushPendingNotifications` —
+style recalculation and display-list rebuilding — and the only JavaScript
+anywhere on the stack was two functions: `tick` and `paintDashOffset`, both from
+`wireMotion.ts`.
+
+### The cause
+
+Round 38 had made the travelling dots on the wires reliable by driving them from
+JavaScript: one `requestAnimationFrame` loop writing `--qe-dash-offset` onto
+`document.documentElement`, with every wire's dot layer reading it. That fixed
+the dots, which had genuinely not moved as CSS keyframes or SMIL.
+
+Setting a custom property on the **root element** invalidates every element that
+could inherit it — the whole document. So sixty times a second, the entire
+editor was restyled and its display list rebuilt, whether or not anything had
+changed.
+
+The JS cost nothing: 85 samples out of 8638. The invalidation cascade it
+triggered was the whole bill: 3,224 samples in layout flush, 1,236 in display
+list rebuilds. Two details in the report follow from this directly — it got
+worse as graphs grew (more wires, more to repaint), and it stopped dead on tab
+switch (browsers throttle `requestAnimationFrame` in background tabs). That
+second detail is also why this was never a memory leak; a leak does not stop
+politely when you look away.
+
+### The fix
+
+The dots are now animated by the browser's own animation engine via
+`Element.animate()`, on the canvas wrapper element rather than the document
+root. Two things change:
+
+- **The invalidation is scoped.** The property is written to the element that
+  contains the wires, so nothing outside the canvas is restyled.
+- **There is no per-frame JavaScript.** The animation engine interpolates the
+  value itself and can run it off the main thread; an idle editor now does no
+  work at all for the wires.
+
+`requestAnimationFrame` survives only as a fallback for engines without
+`Element.animate`, and even there it writes to the scoped element and is
+throttled to 15fps — the dots drift at 10px/s, so at 15fps each frame moves them
+less than a pixel and anything faster is invisible effort.
+
+The on/off toggle is unchanged and still works, and turning wire motion off
+remains a complete stop: no animation, no loop, nothing scheduled.
+
+### What keeps it fixed
+
+The old tests asserted the offset landed on `document.documentElement` — they
+encoded the bug. They now assert the opposite, plus the properties that matter:
+
+- the dash offset is **never** written to the document root;
+- the animation is handed to the browser (`iterations: Infinity`, `linear`, one
+  period), and **no** `requestAnimationFrame` loop is started when it is;
+- where the fallback is used, two frames 1ms apart do **not** both repaint, and
+  one a full throttle-period later does;
+- switching motion off leaves nothing running, and neither does unmounting the
+  canvas.
+
+**Verification:** 492 tests (19 files, +4), `tsc --noEmit` clean, `vite build`
+clean.
+
+A note for the wire-physics work that follows: it has to obey the same rule.
+Anything that animates per frame must write to an element inside the canvas, and
+ideally hand the interpolation to the browser. Building spring physics on top of
+a root-level invalidation loop would have been considerably worse than what was
+just removed.

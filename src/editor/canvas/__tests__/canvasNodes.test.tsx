@@ -4,7 +4,7 @@
  * own data. Both were reported from the real editor, so both are pinned here
  * against the mounted app rather than the store alone.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
@@ -15,10 +15,13 @@ import {
     DASH_VAR,
     DOT_GAP,
     DOT_PERIOD_S,
+    FALLBACK_FPS,
     paintDashOffset,
     setWireMotion,
+    setWireMotionHost,
     subscribeWireMotion,
     wireMotionEnabled,
+    wireMotionRunning,
 } from "@/editor/canvas/wireMotion";
 import { Position } from "@xyflow/react";
 import { TypedEdge } from "@/editor/canvas/TypedEdge";
@@ -315,48 +318,137 @@ describe("reroute grab area", () => {
     });
 });
 
+/**
+ * Round 42. These tests exist because of a real, measured regression.
+ *
+ * Round 38 animated the wire dots with a requestAnimationFrame loop that wrote
+ * `--qe-dash-offset` to `document.documentElement`. Setting a custom property
+ * on the root invalidates everything that could inherit it, so an IDLE editor
+ * spent 40.8% of its time in layout flush and repaint, the author's graphics
+ * card spun up, and lag grew with the size of the graph. It stopped the moment
+ * the tab was backgrounded, because rAF is throttled there.
+ *
+ * The rules below are what stops that coming back.
+ */
 describe("wire motion", () => {
+    let canvas: HTMLElement;
+
     beforeEach(() => {
         document.documentElement.style.removeProperty(DASH_VAR);
         localStorage.clear();
+        canvas = document.createElement("div");
+        document.body.appendChild(canvas);
+        setWireMotionHost(canvas);
+    });
+
+    afterEach(() => {
+        setWireMotionHost(null);
+        canvas.remove();
+    });
+
+    it("never writes the dash offset to the document root", () => {
+        // THE regression test. The offset changes ~60x/second; on the root that
+        // is a document-wide restyle every frame.
+        paintDashOffset(0);
+        paintDashOffset((DOT_PERIOD_S * 1000) / 4);
+        expect(document.documentElement.style.getPropertyValue(DASH_VAR)).toBe("");
+        expect(canvas.style.getPropertyValue(DASH_VAR)).not.toBe("");
     });
 
     it("moves the dots along the wire, one gap per cycle", () => {
         // Two moments a quarter-cycle apart must paint different offsets —
         // that difference IS the animation.
         paintDashOffset(0);
-        const start = document.documentElement.style.getPropertyValue(DASH_VAR);
+        const start = canvas.style.getPropertyValue(DASH_VAR);
         paintDashOffset((DOT_PERIOD_S * 1000) / 4);
-        const quarter = document.documentElement.style.getPropertyValue(DASH_VAR);
+        const quarter = canvas.style.getPropertyValue(DASH_VAR);
         paintDashOffset(DOT_PERIOD_S * 1000);
 
         expect(parseFloat(start)).toBe(0);
         expect(parseFloat(quarter)).toBeCloseTo(-DOT_GAP / 4, 1);
         // A full period brings it back to the start: the pattern repeats
         // seamlessly, so the dots read as a continuous drift.
-        expect(parseFloat(document.documentElement.style.getPropertyValue(DASH_VAR))).toBe(
-            parseFloat(start),
-        );
+        expect(parseFloat(canvas.style.getPropertyValue(DASH_VAR))).toBe(parseFloat(start));
     });
 
-    it("runs a single loop for the whole canvas while anything is subscribed", async () => {
-        const frames: number[] = [];
+    it("hands the animation to the browser instead of driving it frame by frame", () => {
+        // The browser's animation engine can run this off the main thread and
+        // costs nothing while idle. A per-frame JS loop cannot and does not.
+        const animate = vi.fn(
+            (_keyframes?: unknown, _options?: KeyframeAnimationOptions) =>
+                ({ cancel: vi.fn() }) as unknown as Animation,
+        );
+        (canvas as unknown as { animate: unknown }).animate = animate;
+        const raf = vi.spyOn(window, "requestAnimationFrame");
+
+        setWireMotionHost(null);
+        setWireMotionHost(canvas);
+        const off = subscribeWireMotion(() => {});
+
+        expect(animate).toHaveBeenCalledTimes(1);
+        // scoped to the canvas, and looping forever at a steady rate
+        const opts = animate.mock.calls[0][1]!;
+        expect(opts.iterations).toBe(Infinity);
+        expect(opts.easing).toBe("linear");
+        expect(opts.duration).toBe(DOT_PERIOD_S * 1000);
+        // and no per-frame loop was started
+        expect(raf).not.toHaveBeenCalled();
+
+        off();
+        raf.mockRestore();
+    });
+
+    it("falls back to a throttled loop only where the browser cannot animate", () => {
+        // Some engines have no Element.animate. They still get moving dots —
+        // but well below 60fps, because the dots drift at 10px/s and anything
+        // faster is invisible effort.
+        delete (canvas as unknown as { animate?: unknown }).animate;
+        const frames: FrameRequestCallback[] = [];
         const raf = vi
             .spyOn(window, "requestAnimationFrame")
-            .mockImplementation((() => {
-                frames.push(1);
+            .mockImplementation(((cb: FrameRequestCallback) => {
+                frames.push(cb);
                 return frames.length;
             }) as typeof requestAnimationFrame);
 
+        setWireMotionHost(null);
+        setWireMotionHost(canvas);
         const offA = subscribeWireMotion(() => {});
         const offB = subscribeWireMotion(() => {});
         expect(frames.length).toBe(1); // one loop, not one per subscriber
 
+        // Two frames 1ms apart must NOT both repaint: that is the throttle.
+        frames[frames.length - 1](0);
+        const first = canvas.style.getPropertyValue(DASH_VAR);
+        frames[frames.length - 1](1);
+        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe(first);
+        // A frame a full throttle-period later does repaint.
+        frames[frames.length - 1](1000 / FALLBACK_FPS + 1);
+        expect(canvas.style.getPropertyValue(DASH_VAR)).not.toBe(first);
+
         offA();
         offB();
         // The last unsubscriber stops the clock and parks the dots.
-        expect(document.documentElement.style.getPropertyValue(DASH_VAR)).toBe("0px");
+        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe("0px");
         raf.mockRestore();
+    });
+
+    it("stops completely when switched off, and leaves nothing running", () => {
+        const off = subscribeWireMotion(() => {});
+        expect(wireMotionRunning()).toBe(true);
+        setWireMotion(false);
+        expect(wireMotionRunning()).toBe(false);
+        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe("0px");
+        setWireMotion(true);
+        expect(wireMotionRunning()).toBe(true);
+        off();
+    });
+
+    it("does not animate a canvas that has gone away", () => {
+        const off = subscribeWireMotion(() => {});
+        setWireMotionHost(null);
+        expect(wireMotionRunning()).toBe(false);
+        off();
     });
 
     it("can be switched off and remembers the choice", () => {
