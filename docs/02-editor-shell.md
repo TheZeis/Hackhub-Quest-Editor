@@ -2730,3 +2730,64 @@ ROUTER 45.33.32.156 meridian-edge
 **Verification:** 581 tests (19 files, +1 net; three that pinned the old
 topology rewritten), `tsc --noEmit` clean, `vite build` clean. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r58"`.
+
+## Round 59 — a blank briefing, and the trade that caused it
+
+The read-the-contract objective stopped completing. The probe line said why in
+one go:
+
+```
+Mail.Read fired but did not match. Event carried:
+{ from="i.faber@ghostmail.io", subject="", content="" }
+```
+
+The mail arrived **empty**. The trigger matches on the subject, and there was no
+subject to match.
+
+Reading up the log gives the whole chain:
+
+```
+network 45.33.32.156 already exists in this save; replacing it
+node world-toolResponse5 failed: Mod "null" ... without "shell" permission
+Mail.send failed: Mod "null" ... without "mail" permission
+mail "One file, one man, no trace" sent via Quest.sendMail(0)
+```
+
+This is r56's doing. That round chose to wait for `destroyNetwork` when a stale
+network was present, and accepted losing the mod's permissions for the rest of
+that run as a fair price. It is not a fair price. Everything after the await ran
+without rights: the tool responses were skipped, `Mail.send` was refused, and
+the mail went out through `Quest.sendMail(0)` — which sends whatever the
+**engine** holds in `this.Mails[0]`, not the text we filled in. The engine had
+never taken our Mails array, so it delivered a blank mail and reported success.
+
+A quest that half-builds is worse than one that visibly does nothing, because it
+looks like it worked.
+
+### Two fixes
+
+**The destroy is no longer awaited.** It is fired on the way past and left to
+settle; the create is synchronous, so the quest keeps its permissions for the
+whole of `OnStart`. Where the engine replaces by address, that is all that was
+ever needed; where it does not, the destroy still lands and the next run is
+clean. Either way the player gets a working mod.
+
+**The fallback refuses to send a blank mail.** It now checks that the engine's
+own copy has a subject before trusting `Quest.sendMail`, and says so plainly
+when it does not, instead of reporting a delivery that never happened.
+
+Fixing that exposed a related trap a few lines above: the code that keeps the
+declared copy in step with the sent text would happily write into an entry the
+engine had left empty — repairing the very evidence the guard needs. It now only
+refreshes an entry that already has a subject.
+
+Verified by replaying QA's exact conditions — a stale network present *and*
+permissions revoked the moment `OnStart` returns:
+
+```
+mails sent: 1 {"subject":"One file, one man, no trace", "body":"His name is Anselm Ritter. That is all y…"}
+objective "read-brief" completed by Mail.Read
+```
+
+**Verification:** 586 tests (19 files, +4), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r59"`.

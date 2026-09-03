@@ -2996,17 +2996,18 @@ describe("networks are torn down when the quest ends", () => {
         expect(calls.join(",")).not.toContain("destroy:45.33.32.156");
     });
 
-    it("replaces a network the save already holds, and waits for it to go first", async () => {
-        /* r55 fired destroyNetwork and built immediately. Because the destroy
-           is async it landed AFTER the create and deleted the new network:
-           QA got "Host is down ... No ports found" on an address the mod had
-           just built. The create has to wait. */
+    it("replaces a network the save already holds without pausing the quest", async () => {
+        /* The trade r56 got wrong. Waiting for destroyNetwork hands control
+           back to the engine, and everything after it loses the mod's
+           permissions (r45) — QA's log showed the tool responses skipped and
+           Mail.send refused, with the mail then delivered EMPTY through the
+           fallback. The destroy is fired and left to settle; the create is
+           synchronous, so the quest keeps its rights. */
         const calls: string[] = [];
         const sdk = stubSdk(calls, []) as any;
-        let live = true; // something is already at this address
-        sdk.Network.getSubnet = (ip: string) => (live && ip === "45.33.32.156" ? { ip } : null);
+        sdk.Network.getSubnet = (ip: string) => ({ ip });
         sdk.Network.destroyNetwork = (ip: string) =>
-            new Promise<void>((res) => setTimeout(() => { live = false; calls.push(`destroy:${ip}`); res(); }, 0));
+            new Promise<void>((res) => setTimeout(() => { calls.push(`destroy:${ip}`); res(); }, 0));
 
         const p = createProject();
         p.quests[0].autoStart = true;
@@ -3016,22 +3017,62 @@ describe("networks are torn down when the quest ends", () => {
             device: {
                 id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", children: [],
                 users: [{ id: "u1", username: "admin", password: "pw" }],
-                ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh" }],
+                ports: [{ id: "p1", external: 80, internal: 80, active: true, service: "http" }],
             },
         });
-        p.quests[0].graph.nodes = [entry, net];
-        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+        const after = node("fx.notify", { message: "after", variant: "toast", tone: "info" });
+        p.quests[0].graph.nodes = [entry, net, after];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow"), edge(net.id, after.id, "flow")];
         runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
         const quest = new (registered0(sdk).quests[0])();
         quest.Data = {};
         quest.OnStart();
-        await settle();
 
-        const order = calls.join(",");
-        expect(order).toContain("destroy:45.33.32.156");
-        expect(order).toContain("net:45.33.32.156");
-        // and in that order — the whole point
-        expect(order.indexOf("destroy:45.33.32.156")).toBeLessThan(order.indexOf("net:45.33.32.156"));
+        /* Everything must already have happened, with no await in between:
+           the network built AND the node after it run. */
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        expect(calls.join(",")).toContain("toast:after");
+        await settle();
+        expect(calls.join(",")).toContain("destroy:45.33.32.156");
+    });
+
+    it("keeps its permissions through a replacement, so the mail still goes out", async () => {
+        /* The symptom QA actually saw. Model the engine revoking rights the
+           moment OnStart returns; a quest that pauses mid-build loses them. */
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        let current = false;
+        sdk.Network.getSubnet = (ip: string) => ({ ip });
+        sdk.Network.destroyNetwork = () => new Promise<void>((res) => setTimeout(res, 0));
+        sdk.Network.createSubnetNetwork = (d: { ip: string }) => {
+            if (!current) throw new Error('Mod "null" tried to use Network.createSubnetNetwork');
+            calls.push(`net:${d.ip}`);
+            return d.ip;
+        };
+        sdk.UI.toast = (m: string) => {
+            if (!current) throw new Error('Mod "null" tried to use UI.toast');
+            calls.push(`toast:${m}`);
+        };
+
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "fixed",
+            device: { id: "r1", ip: "45.33.32.156", type: "ROUTER", users: [], ports: [], children: [] },
+        });
+        const after = node("fx.notify", { message: "after", variant: "toast", tone: "info" });
+        p.quests[0].graph.nodes = [entry, net, after];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow"), edge(net.id, after.id, "flow")];
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        current = true;
+        quest.OnStart();
+        current = false; // the engine takes the rights back
+
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        expect(calls.join(",")).toContain("toast:after");
     });
 
     it("still builds if destroying the old network fails", async () => {
@@ -3215,5 +3256,79 @@ describe("machines carry the accounts the exploit looks for", () => {
         q.Data = {};
         expect(() => q.OnStart()).not.toThrow();
         expect(made[0].users.map((u: { username: string }) => u.username)).toContain("admin");
+    });
+});
+
+/**
+ * QA, round 59. The briefing arrived with an empty subject and an empty body,
+ * so the Mail.Read trigger could not match it:
+ *
+ *     Mail.Read fired but did not match. Event carried:
+ *     { from="i.faber@ghostmail.io", subject="", content="" }
+ *
+ * `Quest.sendMail(index)` sends whatever the ENGINE holds in `this.Mails` at
+ * that index — not the filled-in text we are holding. When the engine never
+ * took our Mails array, it sends a blank mail and reports success. Better to
+ * say nothing was sent than to deliver an empty one and call it delivered.
+ */
+describe("the mail fallback refuses to send a blank mail", () => {
+    function sendWith(prepare: (quest: any) => void) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const mail = node("comms.dialogue", {
+            kind: "mail",
+            mail: { from: "i.faber@ghostmail.io", subject: "One file, one man, no trace", content: "His name is Anselm Ritter." },
+        });
+        p.quests[0].graph.nodes = [entry, mail];
+        p.quests[0].graph.edges = [edge(entry.id, mail.id, "flow")];
+
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        delete sdk.Mail; // force the fallback path
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        prepare(quest);
+
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            quest.OnStart();
+        } finally {
+            console.log = orig;
+        }
+        return { log: said.join("\n"), calls };
+    }
+
+    it("sends through the fallback when the engine has the mail", () => {
+        const { log, calls } = sendWith(() => {});
+        expect(calls.join(",")).toContain("sendMail:0");
+        expect(log).toContain("sent via Quest.sendMail(0)");
+    });
+
+    it("refuses when the engine's copy is blank, and says why", () => {
+        const { log, calls } = sendWith((q) => {
+            q.Mails = [{ title: "", content: "" }];
+        });
+        expect(calls.join(",")).not.toContain("sendMail:0");
+        expect(log).toContain("would deliver a blank mail");
+        expect(log).toContain("is empty");
+    });
+
+    it("refuses when the engine has no copy at all", () => {
+        const { log, calls } = sendWith((q) => {
+            q.Mails = [];
+        });
+        expect(calls.join(",")).not.toContain("sendMail:0");
+        expect(log).toContain("is missing");
+    });
+
+    it("still reports plainly that the mail never went out", () => {
+        const { log } = sendWith((q) => {
+            q.Mails = [];
+        });
+        expect(log).toContain("could not be sent");
     });
 });

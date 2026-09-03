@@ -565,8 +565,14 @@ function __qeRegisterProject(sdk, PROJECT) {
 
             /* Keep the declared copy in step with what was actually sent, so a
                quest whose mail carries {{tokens}} still reads correctly if the
-               engine ever surfaces Quest.Mails itself. */
-            if (questRef && questRef.Mails && questRef.Mails[mi]) {
+               engine ever surfaces Quest.Mails itself.
+
+               Note what this does NOT do: it only refreshes an entry that is
+               already there. Writing into an array the engine never took would
+               make the fallback below believe it has a usable mail when the
+               engine has nothing. */
+            if (questRef && questRef.Mails && questRef.Mails[mi] &&
+                String(questRef.Mails[mi].title || "").length > 0) {
                 var filledMail = { title: subject, content: content };
                 if (baseMail.replyable) filledMail.replyable = true;
                 if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
@@ -598,13 +604,30 @@ function __qeRegisterProject(sdk, PROJECT) {
                quest-scoped path, so nothing regresses on a build where it is
                the only one that exists. */
             if (!how) {
-                try {
-                    if (questRef && questRef.sendMail) {
-                        questRef.sendMail(mi, from || undefined);
-                        how = "Quest.sendMail(" + mi + ")";
+                /* Quest.sendMail(index) sends whatever the ENGINE holds in
+                   this.Mails at that index - not the text we just filled in.
+                   When the engine has not taken our Mails array (which happens
+                   when the quest was registered without permissions), it sends
+                   a mail with an empty subject and empty body. QA got exactly
+                   that: a briefing that arrived blank, and a Mail.Read trigger
+                   that could never match a subject of "".
+
+                   So check what the engine actually has before trusting it. */
+                var engineMail = questRef && questRef.Mails ? questRef.Mails[mi] : null;
+                var usable = engineMail && String(engineMail.title || "").length > 0;
+                if (!usable) {
+                    __QE.log("Quest.sendMail(" + mi + ") skipped: the engine has no usable copy of \"" +
+                        subject + "\" (its Mails[" + mi + "] is " +
+                        (engineMail ? "empty" : "missing") + "), so it would deliver a blank mail");
+                } else {
+                    try {
+                        if (questRef.sendMail) {
+                            questRef.sendMail(mi, from || undefined);
+                            how = "Quest.sendMail(" + mi + ")";
+                        }
+                    } catch (e2) {
+                        __QE.log("Quest.sendMail(" + mi + ") threw: " + (e2 && e2.message ? e2.message : e2));
                     }
-                } catch (e2) {
-                    __QE.log("Quest.sendMail(" + mi + ") threw: " + (e2 && e2.message ? e2.message : e2));
                 }
             }
 
@@ -1165,48 +1188,46 @@ function __qeRegisterProject(sdk, PROJECT) {
            the editor ever offered to make. */
         /* Create a network at an address, clearing whatever is already there.
 
-           Two rules pull in opposite directions here.
+           Three constraints meet here, and getting any one of them wrong has
+           cost a round:
 
-           A network the save already holds WINS over a new one at the same ip,
-           so a stale one has to go first (r55). But destroyNetwork returns a
-           PROMISE: firing it and building immediately means the destroy lands
-           AFTER the create and deletes the network we just made. QA saw
-           exactly that - "Host is down ... No ports found" on an address the
-           mod had just built.
+           1. A network the save already holds WINS over a new one at the same
+              ip, so a stale one has to go (r55).
+           2. destroyNetwork returns a PROMISE. Firing it and building on the
+              next line means the destroy lands after the create and deletes
+              the new network - "Host is down ... No ports found" (r56).
+           3. The engine only grants a mod its permissions while it is inside a
+              call the engine made. ANY await hands control back, and every SDK
+              call after it is refused as Mod "null" (r45).
 
-           And we cannot simply await it, because the engine only grants a mod
-           its permissions while it is inside a call the engine made. Work
-           pushed past an await happens after OnStart has returned, and every
-           SDK call is refused as Mod "null" (r45).
+           r56 waited for the destroy and accepted losing permissions for that
+           one run. That was the wrong trade: the rest of the quest then ran
+           without rights, so the tool responses were skipped and Mail.send was
+           refused, and the mail went out through a fallback that delivered an
+           EMPTY subject and body. A quest that half-builds is worse than one
+           that visibly does nothing, because it looks like it worked.
 
-           So: only pay the async cost when there IS something to clear.
-           getSubnet is synchronous, so the common case - a clean address -
-           stays entirely inside OnStart. When a stale network really is
-           present the create has to wait for the destroy, and permissions are
-           lost for that one run; the network still lands, and the run after it
-           is clean. That is strictly better than never building at all. */
+           So the create is never awaited. The stale network is destroyed on
+           the way past - the promise is left to settle on its own - and the
+           new one is created immediately and synchronously. Where the engine
+           replaces by address that is all that is needed; where it does not,
+           the destroy still lands and the following run is clean. Either way
+           the quest keeps its permissions and the player gets a working mod. */
         function buildNetwork(ip, definition, next) {
             var existing = __QE.safe(function () {
                 return sdk.Network.getSubnet ? sdk.Network.getSubnet(ip) : null;
             });
-            if (!existing) {
-                sdk.Network.createSubnetNetwork(definition);
-                return next();
+            if (existing && sdk.Network.destroyNetwork) {
+                __QE.log("network " + ip + " already exists in this save; replacing it");
+                /* Deliberately NOT awaited: see above. Swallow the rejection so
+                   an unhandled promise cannot surface as an error in the log. */
+                __QE.safe(function () {
+                    var p = sdk.Network.destroyNetwork(ip);
+                    if (p && typeof p.then === "function") p.then(null, function () {});
+                });
             }
-            __QE.log("network " + ip + " already exists in this save; replacing it");
-            if (!sdk.Network.destroyNetwork) {
-                /* Nothing we can do but try; the engine keeps the old one. */
-                sdk.Network.createSubnetNetwork(definition);
-                return next();
-            }
-            return Promise.resolve(sdk.Network.destroyNetwork(ip)).then(function () {
-                __QE.safe(function () { sdk.Network.createSubnetNetwork(definition); });
-                return next();
-            }, function (e) {
-                __QE.log("could not replace network " + ip + ": " + (e && e.message ? e.message : e));
-                __QE.safe(function () { sdk.Network.createSubnetNetwork(definition); });
-                return next();
-            });
+            sdk.Network.createSubnetNetwork(definition);
+            return next();
         }
 
         function mapUsers(dev) {
