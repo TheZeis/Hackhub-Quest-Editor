@@ -1226,9 +1226,23 @@ function __qeRegisterProject(sdk, PROJECT) {
                 return o;
             });
             var kind = String(dev.type || "").toUpperCase();
-            /* Splitters and firewalls are plumbing; nobody logs into them, and
-               giving them a guest account would be noise on the player's map. */
-            if (kind === "SPLITTER" || kind === "FIREWALL") return made;
+            /* Only DEVICES get the default schema.
+
+               The reference mod is precise about this: 25 createDefaultUserSchema
+               calls across 26 Devices, and none at all on its 7 Routers, which
+               carry a plain list of named accounts. r53 applied it everywhere,
+               which put a guest account on the edge router - and the SSH
+               exploit then logged in as the easiest account it could find:
+
+                   [*] UID: uid=0(guest) gid=0(guest).
+                   [*] Found shell.
+
+               A guest shell is not the way in the quest intends. The named
+               account with acceptReverseTCP is, and that is what the exploit
+               reaches once guest is not sitting in front of it. Routers,
+               splitters and firewalls keep exactly the accounts the author
+               wrote. */
+            if (kind !== "DEVICE") return made;
             if (sdk.Network.createDefaultUserSchema) {
                 return sdk.Network.createDefaultUserSchema(made, { guest: true });
             }

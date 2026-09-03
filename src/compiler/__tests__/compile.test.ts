@@ -3132,9 +3132,26 @@ describe("machines carry the accounts the exploit looks for", () => {
         ...extra,
     });
 
-    it("asks for a guest account, which is what the exploit hunts for", () => {
+    it("gives a device the guest account the exploit hunts for", () => {
+        const built = usersOf({
+            id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [], ports: [],
+            children: [{
+                id: "d1", ip: "10.0.0.12", name: "ws", type: "DEVICE",
+                users: [{ id: "u2", username: "aritter", password: "pw" }],
+                ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh" }],
+            }],
+        });
+        expect(built.children[0].users.map((u: { username: string }) => u.username)).toContain("guest");
+    });
+
+    it("does NOT put a guest account on a router", () => {
+        /* r53 applied the default schema everywhere. The guest it added to the
+           edge router became the account the SSH exploit logged in as
+           (`uid=0(guest)`), which yields a plain shell instead of reaching the
+           named account behind it. The reference mod calls the schema on its
+           26 Devices and on none of its 7 Routers. */
         const built = usersOf(router());
-        expect(built.users.map((u: { username: string }) => u.username)).toContain("guest");
+        expect(built.users.map((u: { username: string }) => u.username)).toEqual(["admin"]);
     });
 
     it("marks the author's own users online, so they can be attacked", () => {

@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **End of the Ledger chain (metasploit → delete → reply)** | 4/5 confirmed in-game. r55 clears any existing network at the address before building, which is what finally lets r53's guest accounts and r54's closed port reach the game. The last two objectives have not been reached in a real run yet. |
+| 1 | **End of the Ledger chain (delete → reply)** | The exploit now succeeds and opens a shell. It logged in as `guest` and got a plain command shell rather than meterpreter — r57 removes the guest account from routers so the exploit reaches the named reverse-TCP user instead. The last two objectives have not been reached in a real run yet. |
 | 2 | **Date deprecation warning (`moment` RFC2822)** | Only appears with a quest-editor mod installed. **Not** the `Mail.send` call: r48's session sent mail and completed four objectives with no warning at all, and `to`/`attachments` are set identically there. It is a *renderer* warning (the game formatting a date for display) that fires 30-90s later, when a browser/Twotter screen is opened. Next step: find which of our content carries a date-shaped string the game tries to parse. |
 | 3 | Old quest mail is never cleaned up | Mail sent by an uninstalled mod stays in the inbox. `Mail` has no delete/remove in the SDK, so there may be nothing we can do — but confirm before dismissing. (Same *family* as the r52 network bug: things we create outliving the quest.) |
 | 4 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
@@ -46,6 +46,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r57 | The exploit succeeded but logged in as `guest` and opened a plain shell, not meterpreter. r53 had put a guest account on *every* machine; the reference mod puts one on its 26 Devices and none of its 7 Routers. Routers now keep only the accounts the author wrote. |
 | r56 | r55 broke the network entirely (“Host is down… No ports found”): `destroyNetwork` returns a promise, so firing it and building immediately meant the destroy landed *after* the create and deleted the new network. Now the address is checked first — a clean one builds synchronously, a stale one waits for the destroy. |
 | r55 | A network already in the save wins over a new one at the same ip, and r52's teardown only ran on complete/abandon — which a player replacing a mod never triggers. Networks are now destroyed *before* being created, so every run starts from the network the mod describes. |
 | r54 | Debug probes name themselves from the node and socket they are wired to (`OnComplete-Objective-DeleteLedger`), still editable. Ledger's port 80 is now closed — visible but not an unscripted second way in. |

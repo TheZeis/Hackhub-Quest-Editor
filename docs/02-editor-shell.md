@@ -2617,3 +2617,51 @@ a dirty one — plus a case where the destroy rejects.
 
 **Verification:** 579 tests (19 files, +2), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r56"`.
+
+## Round 57 — the exploit worked, and took the easy door
+
+r56 landed. The network exists, port 80 is closed, port 22 answers with
+`OpenSSH 7.2.0`, metasploit accepts the version, and the attack **succeeds**:
+
+```
+[*] 45.33.32.156:22 - Backdoor service has been spawned, handling...
+[*] 45.33.32.156:22 - UID: uid=0(guest) gid=0(guest).
+[*] Found shell.
+[*] Command shell session opened
+```
+
+Three rounds of network faults are behind us. What is left is in that third
+line: `uid=0(guest)`. The exploit logged in as the **guest** account and opened
+a plain command shell. In the base game a successful exploit hands the player a
+meterpreter session, which is what the quest's next objective waits for
+(`Metasploit.Meterpreter.Connected`).
+
+The guest account was ours. r53 fixed "No guest account or online user found" by
+routing every device through `createDefaultUserSchema(users, { guest: true })` —
+correct diagnosis, too broad a fix. The reference mod is precise about where it
+applies that call:
+
+```
+Routers: 7   Devices: 26   createDefaultUserSchema calls: 25
+```
+
+Twenty-five calls for twenty-six devices, and **none** on any router. Its
+routers carry a plain list of named accounts built with `createUser`. The one
+user in the whole mod with `acceptReverseTCP: true` is a named, online account
+on a *device* — not a guest.
+
+So a guest on the edge router was a door standing open in front of the one the
+quest intended. The exploit is not wrong to walk through it; it is doing what it
+says on the tin and finding the easiest account available.
+
+Only `DEVICE` now gets the default schema. Routers, splitters and firewalls keep
+exactly the accounts the author wrote. Verified on the template: the edge router
+offers `admin` alone (online, reverse-TCP), and the workstation behind it offers
+`aritter` plus a guest.
+
+A test from r53 had to be inverted rather than kept — it asserted a router gets
+a guest account, which was the bug. It now asserts the opposite, with the
+reference mod's counts recorded in the comment so the reasoning survives.
+
+**Verification:** 580 tests (19 files, +1), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r57"`.
