@@ -2969,11 +2969,27 @@ describe("networks are torn down when the quest ends", () => {
         expect(calls.join(",")).toContain("destroy:45.33.32.156");
     });
 
-    it("leaves the network alone when the author turned the toggle off", () => {
+    it("leaves the network standing after the quest when the toggle is off", () => {
         const { quest, calls } = build({ destroyOnComplete: false });
         quest.OnStart();
+        const afterStart = calls.length;
         quest.OnComplete();
-        expect(calls.join(",")).not.toContain("destroy:");
+        /* "Destroy when the quest ends" is about what survives the quest, not
+           about the clear-before-create that stops a stale network shadowing
+           this one. Only the teardown at the end is suppressed. */
+        expect(calls.slice(afterStart).join(",")).not.toContain("destroy:");
+    });
+
+    it("clears whatever is already at the address before building, toggle or not", () => {
+        // A network the save already holds wins over a new one at the same ip,
+        // so every run has to start from a clean address (r55).
+        for (const patch of [{}, { destroyOnComplete: false }]) {
+            const { quest, calls } = build(patch);
+            quest.OnStart();
+            const order = calls.join(",");
+            expect(order).toContain("destroy:45.33.32.156");
+            expect(order.indexOf("destroy:45.33.32.156")).toBeLessThan(order.indexOf("net:45.33.32.156"));
+        }
     });
 
     it("destroys the ip it really used, not the one in the template", () => {

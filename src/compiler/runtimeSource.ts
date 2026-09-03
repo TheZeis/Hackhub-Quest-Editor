@@ -718,6 +718,26 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var netIp = d.ipMode === "random"
                         ? ((questRef && questRef.Data && questRef.Data.targetIp) || (sdk.Network.randomIp ? sdk.Network.randomIp() : d.device.ip))
                         : d.device.ip;
+                    /* Clear anything already at this address first.
+
+                       A network the save already holds WINS over one created
+                       at the same ip: the engine keeps the old one and the new
+                       definition is ignored. r52 added teardown on
+                       complete/abandon, which is right but not enough - a
+                       player who simply stops playing, or replaces the mod
+                       with a newer build, never triggers either. The engine's
+                       own PruneOrphanQuests drops the stale QUEST record but
+                       leaves the network standing.
+
+                       QA saw the consequence three rounds running: a port
+                       closed in the project still showing OPEN in game, and an
+                       exploit failing against a machine whose guest account
+                       had been added two builds earlier. Both were the old
+                       network answering. Destroying first makes every run
+                       start from the network the mod actually describes. */
+                    if (sdk.Network.destroyNetwork) {
+                        __QE.safe(function () { sdk.Network.destroyNetwork(netIp); });
+                    }
                     sdk.Network.createSubnetNetwork(mapDevice(Object.assign({}, d.device, { ip: netIp })));
                     /* Tear the network down again when the quest ends. The
                        editor has always offered this toggle; the compiler
@@ -748,6 +768,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                             model: d.model,
                         });
                     } else {
+                        /* Same reason as world.network above. */
+                        if (sdk.Network.destroyNetwork) {
+                            __QE.safe(function () { sdk.Network.destroyNetwork(wifiIp); });
+                        }
                         sdk.Network.createSubnetNetwork(mapDevice({
                             ip: wifiIp,
                             type: "ROUTER",

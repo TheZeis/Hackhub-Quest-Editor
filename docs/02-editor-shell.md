@@ -2511,3 +2511,58 @@ Three details worth stating:
 
 **Verification:** 576 tests (19 files, +12), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r54"`.
+
+## Round 55 — the save keeps the first network it ever saw
+
+Two symptoms this round, and one cause behind both. Port 80 was closed in the
+project, verified closed in the exported bundle, and displayed **OPEN** in game.
+The exploit still reported `No guest account or online user found`, from a build
+whose export demonstrably carries a guest account on both machines.
+
+Running the shipped v15 zip settles what we send:
+
+```
+createDefaultUserSchema called: 2 [{"n":1,"opts":{"guest":true}}, …]
+ROUTER 45.33.32.156 meridian-edge
+   port 80 active=false service=http
+   port 22 active=true  service=ssh
+   user admin online=true
+   user guest online=true
+```
+
+Every value is right. The game was not looking at it.
+
+### Why r52's fix was not enough
+
+r52 taught the compiler to destroy its networks — on `OnComplete` and
+`OnAbandon`. Both are correct, and neither ever fired: **the Ledger quest has
+never been completed.** Each test installs a new version, plays four objectives,
+and stops. The engine's own `PruneOrphanQuests` drops the stale *quest record*
+(the log says so, every run), but nothing calls `OnAbandon` on it, so the
+network it built stays standing.
+
+A network already in the save then wins over a new one created at the same
+address. So the network answering nmap was v14's — which had port 80 open, and
+predated the guest accounts entirely. That single fact predicts all three
+oddities: the port that would not close, the guest account that would not
+appear, and the version that *did* look fixed (7.2.0 in both builds, so nothing
+to notice).
+
+### The fix
+
+`world.network` and `world.wifi` now call `destroyNetwork(ip)` immediately
+**before** `createSubnetNetwork`, every run. Teardown at the end of the quest
+stays, but nothing depends on it any more: the address is cleared on the way in,
+so whatever a previous build left behind cannot shadow the current one.
+
+Writing the test caught a real ambiguity in the author-facing toggle. "Destroy
+when the quest ends" is about what survives the quest — it must *not* suppress
+the clear-before-create, or turning it off would reintroduce exactly this bug.
+The test now says so explicitly, and a second test pins the ordering
+(destroy before create) with the toggle both on and off.
+
+**Verification:** 577 tests (19 files, +1 net, one rewritten), `tsc --noEmit`
+clean, `vite build` clean. Against the real template the operation order on
+quest start is now `destroy 45.33.32.156` then `create 45.33.32.156`.
+
+Export stamp: `EDITOR_BUILD = "2026-09-03.r55"`.
