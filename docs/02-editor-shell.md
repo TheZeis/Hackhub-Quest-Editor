@@ -2665,3 +2665,68 @@ reference mod's counts recorded in the comment so the reasoning survives.
 
 **Verification:** 580 tests (19 files, +1), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r57"`.
+
+## Round 58 — the router is the way in, not the target
+
+QA's point, and it is the right one: a hacker comes in through the edge and logs
+in to somebody's PC. That is how the game plays, and it is what the reference
+mod does without exception.
+
+Counting its seven networks:
+
+```
+router ports: ['http']   x7      — no SSH on any router, ever
+```
+
+Every router serves port 80, `locked: true`, with no version banner. The
+exploitable SSH service is always on a Device behind it, `locked: false`, with a
+version. The one account in the whole mod carrying `acceptReverseTCP: true` is a
+named user on such a device.
+
+Our template had SSH on the router *and* on the workstation, so the player
+attacked the edge and never went inside. The fix is structural rather than a
+patch:
+
+- **the edge router** serves the website only — port 80, active, locked — and
+  carries a plain `admin` account with no reverse-TCP flag. It is the way in;
+  there is nothing on it worth stealing;
+- **the workstation behind it** keeps port 22, active and explicitly unlocked,
+  with the old OpenSSH banner, the `aritter` account with `acceptReverseTCP`,
+  the guest account from the default schema, and the ledger file.
+
+### `locked` never reached the engine
+
+Along the way: `NetworkPort.locked` has been in our schema and in the port
+editor from the start, and the compiler dropped it. That is the fourth instance
+of a field the editor offers and the compiler ignores, after `destroyOnComplete`
+(r52), the objective trigger (r39) and the export shape (r43). It is emitted
+now, and r52's schema guard already fails the build if a `*OnComplete` flag goes
+unread — worth extending that idea to plain fields if a fifth turns up.
+
+### The quest text follows the world
+
+An objective that says "scan that server" is wrong when the interesting machine
+is one hop further in, so: the scan objective now says *see what is behind the
+company's edge router* and names the 10.0.0.x range in its hint, and the shell
+objective says *get onto Ritter's workstation* and names the address. The scan
+trigger accepts **either** address — the player must scan the edge to discover
+what is behind it, and scanning the workstation is just as much "seeing what is
+running". Failing them for taking the second step first would be pedantry.
+
+That needed `triggerFor` to support an `or` join, which it had never offered.
+
+Emitted network, for the record:
+
+```
+ROUTER 45.33.32.156 meridian-edge
+   port 80 http active=true locked=true
+   user admin    online=true
+  DEVICE 10.0.0.12 ritter-ws
+     port 22 ssh active=true locked=false ver=OpenSSH 7.2.0
+     user aritter  online=true reverseTCP=true
+     user guest
+```
+
+**Verification:** 581 tests (19 files, +1 net; three that pinned the old
+topology rewritten), `tsc --noEmit` clean, `vite build` clean. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r58"`.

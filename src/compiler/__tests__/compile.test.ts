@@ -1031,9 +1031,14 @@ describe("the contract hack template runs", () => {
         // string — the engine ignores anything else, and then whois finds
         // nothing and the quest dead-ends at step two.
         expect(router.domain).toEqual({ name: "meridian-capital.net" });
-        expect(router.ports.map((p: { external: number }) => p.external)).toContain(22);
+        /* The router serves the website and nothing else. SSH belongs on the
+           machine behind it, so the player comes in through the edge and logs
+           in to somebody's PC — which is how the game plays, and how every
+           network in the reference mod is shaped (r58). */
+        expect(router.ports.map((p: { external: number }) => p.external)).toEqual([80]);
 
         const host = router.children[0];
+        expect(host.ports.map((p: { external: number }) => p.external)).toContain(22);
         const user = host.users[0];
         expect(user.username).toBe("aritter");
         // The file the whole contract is about: mounted in the user's home

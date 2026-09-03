@@ -1255,6 +1255,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                 type: dev.type,
                 ports: (dev.ports || []).map(function (p) {
                     var o = { external: p.external, internal: p.internal, active: !!p.active, service: p.service };
+                    /* "locked" was in the schema and the inspector but never
+                       reached the engine. The reference mod is consistent
+                       about it: a router's web port is locked, and the SSH
+                       port the player is meant to exploit is explicitly
+                       unlocked. Send whatever the author chose. */
+                    if (p.locked != null) o.locked = !!p.locked;
                     if (p.version) o.version = p.version;
                     return o;
                 }),

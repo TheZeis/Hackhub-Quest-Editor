@@ -46,6 +46,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r58 | The Ledger network now has the shape every reference-mod network has: the router serves the website only (port 80, locked), and the exploitable SSH sits on the workstation behind it. `locked` was in the schema and inspector but never reached the engine — now it does. |
 | r57 | The exploit succeeded but logged in as `guest` and opened a plain shell, not meterpreter. r53 had put a guest account on *every* machine; the reference mod puts one on its 26 Devices and none of its 7 Routers. Routers now keep only the accounts the author wrote. |
 | r56 | r55 broke the network entirely (“Host is down… No ports found”): `destroyNetwork` returns a promise, so firing it and building immediately meant the destroy landed *after* the create and deleted the new network. Now the address is checked first — a clean one builds synchronously, a stale one waits for the destroy. |
 | r55 | A network already in the save wins over a new one at the same ip, and r52's teardown only ran on complete/abandon — which a player replacing a mod never triggers. Networks are now destroyed *before* being created, so every run starts from the network the mod describes. |

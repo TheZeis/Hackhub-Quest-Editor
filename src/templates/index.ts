@@ -81,12 +81,15 @@ function applyLayout(quest: ReturnType<typeof createQuest>): void {
 function triggerFor(
     objective: NodeDoc,
     event: string,
-    conditions: { field: string; op: string; value: string }[],
+    conditions: { field: string; op: string; value: string; join?: "and" | "or" }[],
     position: { x: number; y: number },
 ): { trigger: NodeDoc; edge: EdgeDoc } {
     const trigger = makeNode("trigger.event", position, {
+        /* join defaults to "and"; a clause can ask for "or" when either of two
+           values should count — e.g. scanning the router or the machine
+           behind it. */
+        conditions: conditions.map((c, i) => ({ id: `c${i + 1}`, join: c.join ?? "and", ...c })),
         event,
-        conditions: conditions.map((c, i) => ({ id: `c${i + 1}`, join: "and", ...c })),
     });
     return { trigger, edge: makeEdge(trigger, "when", objective, "trigger") };
 }
@@ -718,28 +721,24 @@ function buildContractHack(): ProjectDocument {
             domainName: DOMAIN,
             accessable: true,
             vulnerabilities: [],
-            /* A machine with an open SSH port and nobody to log in as cannot be
-               exploited: metasploit reports "Attack failed. Port 22 could not
-               be accessed." QA hit exactly that here. Every SSH-reachable
-               router in the working reference mod carries a user, so this one
-               does too. */
+            /* The router is the way IN, not the target. It carries the site's
+               admin account and nothing worth stealing — the ledger is on the
+               machine behind it. Matches how every network in the working
+               reference mod is shaped, and how the game actually plays: you
+               come in through the edge and log in to somebody's PC. */
             users: [
                 {
                     id: "u-edge",
                     username: "admin",
                     password: "M3ridian!edge",
-                    acceptReverseTCP: true,
                 },
             ],
             ports: [
-                /* Present but CLOSED. A web port on an edge router is what a
-                   real one looks like, and having it here shows the difference
-                   between a port that answers and one that does not — but the
-                   quest is written around the SSH route, and an open port 80
-                   invites the player down a path this template does not
-                   script. A second template can teach the web route properly. */
-                { id: "p-http", external: 80, internal: 80, active: false, service: "http" },
-                { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },
+                /* Web only, and locked. Every router in the reference mod
+                   serves exactly this: port 80, locked, no version banner.
+                   The exploitable SSH service belongs on the machine behind
+                   the router, so the player has to get past the edge first. */
+                { id: "p-http", external: 80, internal: 80, active: true, locked: true, service: "http" },
             ],
             rules: [],
             files: [],
@@ -750,8 +749,11 @@ function buildContractHack(): ProjectDocument {
                     name: "ritter-ws",
                     type: "DEVICE",
                     vulnerabilities: [],
+                    /* The real target. SSH open and explicitly UNLOCKED: the
+                       reference mod locks a router's web port and leaves the
+                       SSH port it wants exploited unlocked, without exception. */
                     ports: [
-                        { id: "p-ssh-host", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },
+                        { id: "p-ssh-host", external: 22, internal: 22, active: true, locked: false, service: "ssh", version: "OpenSSH 7.2.0" },
                     ],
                     users: [
                         {
@@ -864,14 +866,14 @@ function buildContractHack(): ProjectDocument {
     });
     const oScan = makeNode("objective", { x: 1580, y: 200 }, {
         name: "scan-server",
-        description: "See which services that server is running",
-        hint: "nmap with -sV reports versions as well as open ports. Versions are what exploits are picked by.",
+        description: "See what is behind the company's edge router",
+        hint: `nmap with -sV reports versions as well as open ports. Start at ${IP}; the machines behind it are on 10.0.0.x.`,
         terminalCommand: `nmap ${IP} -sV`,
     });
     const oAccess = makeNode("objective", { x: 1900, y: 200 }, {
         name: "get-a-shell",
-        description: "Get onto the machine",
-        hint: "Port 22 is answering, and the SSH version is old. metasploit has a module for it.",
+        description: "Get onto Ritter's workstation",
+        hint: `The edge router only serves the website. ${HOST_IP} behind it is answering on port 22 with an old SSH — metasploit has a module for that.`,
         terminalCommand: "msfconsole",
     });
     const oDelete = makeNode("objective", { x: 2220, y: 200 }, {
@@ -889,7 +891,19 @@ function buildContractHack(): ProjectDocument {
     const t1 = triggerFor(oRead, "Mail.Read", [{ field: "subject", op: "contains", value: "One file" }], { x: 620, y: 360 });
     const t2 = triggerFor(oFind, "Terminal.Lynx.Search", [{ field: "query", op: "contains", value: "Ritter" }], { x: 940, y: 360 });
     const t3 = triggerFor(oServer, "Terminal.Whois", [{ field: "domain", op: "equals", value: DOMAIN }], { x: 1260, y: 360 });
-    const t4 = triggerFor(oScan, "Terminal.NmapScan", [{ field: "ip", op: "equals", value: IP }], { x: 1580, y: 360 });
+    /* Either address counts. The player has to scan the edge to find the
+       machines behind it, and scanning the workstation itself is just as much
+       "seeing what is running" — failing the objective for taking the second
+       step first would be pedantry. */
+    const t4 = triggerFor(
+        oScan,
+        "Terminal.NmapScan",
+        [
+            { field: "ip", op: "equals", value: IP },
+            { join: "or", field: "ip", op: "equals", value: HOST_IP },
+        ],
+        { x: 1580, y: 360 },
+    );
     /* No condition on purpose: whether the session reports the router's public
        address or the workstation's differs by route in, and a template should
        not fail for taking the other one. */

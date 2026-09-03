@@ -367,28 +367,61 @@ describe("template mail bodies are written as plain text", () => {
  * real one looks like, and having one closed next to one that answers shows the
  * difference. A later template can teach the web route properly.
  */
-describe("the contract template offers exactly one way in", () => {
-    const router = () => {
+describe("the contract template is shaped the way the game plays", () => {
+    const device = () => {
         const p = getTemplate("contract-hack")!.build();
         const net = p.quests[0].graph.nodes.find((n) => n.type === "world.network")!;
-        return (net.data as { device: { ports: { external: number; active?: boolean; service?: string }[] } }).device;
+        return (net.data as {
+            device: {
+                ports: { external: number; active?: boolean; locked?: boolean; service?: string }[];
+                users: { username: string }[];
+                children: {
+                    ports: { external: number; active?: boolean; locked?: boolean; service?: string }[];
+                    users: { username: string; acceptReverseTCP?: boolean }[];
+                }[];
+            };
+        }).device;
     };
 
-    it("keeps port 80 visible, so the network still reads as real", () => {
-        expect(router().ports.some((pt) => pt.external === 80)).toBe(true);
+    it("serves only the website from the edge router", () => {
+        // Every router in the reference mod: port 80, locked, no SSH.
+        const ports = device().ports;
+        expect(ports.map((pt) => pt.external)).toEqual([80]);
+        expect(ports[0].active).toBe(true);
+        expect(ports[0].locked).toBe(true);
     });
 
-    it("leaves port 80 closed", () => {
-        expect(router().ports.find((pt) => pt.external === 80)!.active).toBe(false);
-    });
-
-    it("leaves ssh open, since that is the route the quest scripts", () => {
-        const ssh = router().ports.find((pt) => pt.external === 22)!;
+    it("puts the exploitable SSH service on the machine behind it", () => {
+        const host = device().children[0];
+        const ssh = host.ports.find((pt) => pt.service === "ssh")!;
+        expect(ssh).toBeDefined();
+        expect(ssh.external).toBe(22);
         expect(ssh.active).toBe(true);
-        expect(ssh.service).toBe("ssh");
+        // The reference mod locks a router's web port and leaves the SSH port
+        // it wants exploited explicitly unlocked.
+        expect(ssh.locked).toBe(false);
     });
 
-    it("has exactly one open port to attack", () => {
-        expect(router().ports.filter((pt) => pt.active !== false)).toHaveLength(1);
+    it("gives the target machine the account the shell comes back to", () => {
+        const user = device().children[0].users.find((u) => u.username === "aritter")!;
+        expect(user).toBeDefined();
+        expect(user.acceptReverseTCP).toBe(true);
+    });
+
+    it("leaves the router with an admin account and no reverse-TCP user", () => {
+        // The router is the way in, not the target: nothing on it should be
+        // the thing metasploit connects back to.
+        const users = device().users;
+        expect(users.map((u) => u.username)).toEqual(["admin"]);
+        expect((users[0] as { acceptReverseTCP?: boolean }).acceptReverseTCP).toBeUndefined();
+    });
+
+    it("offers exactly one exploitable service across the whole network", () => {
+        const d = device();
+        const open = [
+            ...d.ports.filter((pt) => pt.active !== false && pt.service === "ssh"),
+            ...d.children.flatMap((c) => c.ports.filter((pt) => pt.active !== false && pt.service === "ssh")),
+        ];
+        expect(open).toHaveLength(1);
     });
 });
