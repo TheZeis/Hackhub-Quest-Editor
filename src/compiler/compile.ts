@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r40";
+export const EDITOR_BUILD = "2026-09-03.r41";
 
 export interface CompiledFile {
     path: string;
@@ -290,11 +290,16 @@ export function compileProject(project: ProjectDocument): CompileResult {
         author: project.mod.author || "Quest Mod Editor",
         description: project.mod.description || `${project.mod.name} — built with the HackHub Quest Mod Editor`,
         apiVersion: project.mod.apiVersion,
+        /* Declared even when empty: the working reference mod ships it, and
+           ModManifest lists it. */
+        dependencies: project.mod.dependencies ?? [],
         permissions,
         ...(project.mod.tags.length ? { tags: project.mod.tags } : {}),
         ...(iconAsset ? { icon: iconAsset.path } : project.mod.icon ? { icon: project.mod.icon } : {}),
         ...(coverAsset ? { cover: coverAsset.path } : project.mod.cover ? { cover: project.mod.cover } : {}),
     };
+
+    const manifestJson = JSON.stringify(manifest, null, 4) + "\n";
 
     const readme = [
         `# ${project.mod.name}`,
@@ -363,7 +368,18 @@ export function compileProject(project: ProjectDocument): CompileResult {
         permissions,
         warnings,
         files: [
-            { path: "manifest.json", content: JSON.stringify(manifest, null, 4) + "\n" },
+            { path: "manifest.json", content: manifestJson },
+            /* The loader reads the manifest that sits NEXT TO the bundle it
+               loads, not the one at the project root. The SDK's own build
+               script does this for you - prepareDist() in
+               @hotbunny/hackhub-content-sdk/build.mjs copies manifest.json
+               into dist/ before bundling - and a hand-built mod that works
+               in-game (Nemesis) ships manifest.json and mod.js side by side.
+               We wrote the manifest only at the root, so the game loaded the
+               bundle with no manifest attached: the mod had no name ("Mod
+               \"null\"" in the log) and therefore no permissions, and every
+               call to Network/Shell/Mail was refused. Ship both copies. */
+            { path: "dist/manifest.json", content: manifestJson },
             { path: "dist/mod.js", content: modJs },
             { path: "src/index.ts", content: modJs },
             { path: "README.md", content: readme },

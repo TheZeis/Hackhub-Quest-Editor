@@ -1959,3 +1959,76 @@ describe("generated websites set every member the SDK declares abstract", () => 
         expect(site.Icon).toBeDefined();
     });
 });
+
+/**
+ * QA, round 41 — the bug behind rounds 35-40.
+ *
+ * The game log for a fresh r40 export showed:
+ *
+ *   Mod "null" tried to use Network.createSubnetNetwork without "network"
+ *   permission. Add "network" to the permissions array in your manifest.json.
+ *
+ * ...for network, shell AND mail — even though manifest.json at the project
+ * root declared all three. The mod had no name at permission-check time, which
+ * is the giveaway: the loader had not found a manifest for it at all.
+ *
+ * The SDK's own build script explains why. `prepareDist()` in
+ * @hotbunny/hackhub-content-sdk/build.mjs copies manifest.json into `dist/`
+ * before bundling, so the manifest ends up NEXT TO the bundle. Nemesis, which
+ * works in-game, ships manifest.json and mod.js side by side. We only ever
+ * wrote the root copy, so the game loaded `dist/mod.js` with no manifest
+ * attached: no name, no permissions, and every Network/Shell/Mail call refused.
+ *
+ * This is what stopped the network being built and the objectives ticking. The
+ * r37 Mail.send -> Quest.sendMail fallback kept delivering the mail anyway,
+ * which masked it for three rounds.
+ */
+describe("the exported mod carries its manifest where the loader looks", () => {
+    const built = compileProject(getTemplate("contract-hack")!.build());
+    const at = (p: string) => built.files.find((f) => f.path === p);
+
+    it("writes manifest.json beside the bundle, not only at the project root", () => {
+        expect(at("manifest.json")).toBeDefined();
+        expect(at("dist/manifest.json")).toBeDefined();
+        expect(at("dist/mod.js")).toBeDefined();
+    });
+
+    it("ships the two copies identical, so neither can drift", () => {
+        expect(at("dist/manifest.json")!.content).toBe(at("manifest.json")!.content);
+    });
+
+    it("grants every permission the mod's own code needs", () => {
+        const m = JSON.parse(at("dist/manifest.json")!.content);
+        const js = at("dist/mod.js")!.content;
+        // Whatever the compiler emits calls, the manifest has to allow.
+        const needed: [string, RegExp][] = [
+            ["network", /sdk\.Network\./],
+            ["shell", /sdk\.Shell\./],
+            ["mail", /sdk\.Mail\.|questRef\.sendMail/],
+            ["ui", /sdk\.UI\./],
+            ["events", /sdk\.Events\.|\.Events\.on/],
+        ];
+        for (const [perm, used] of needed) {
+            if (used.test(js)) expect(m.permissions).toContain(perm);
+        }
+    });
+
+    it("uses only permission names the SDK's ModPermission union allows", () => {
+        const valid = ["filesystem", "network", "events", "mail", "bank", "shell", "ui"];
+        const m = JSON.parse(at("dist/manifest.json")!.content);
+        for (const p of m.permissions) expect(valid).toContain(p);
+    });
+
+    it("declares the manifest fields the working reference mod declares", () => {
+        const m = JSON.parse(at("dist/manifest.json")!.content);
+        // Matches Nemesis's manifest, which this build loads correctly.
+        for (const k of ["id", "name", "version", "author", "description", "apiVersion", "permissions", "dependencies"]) {
+            expect(m).toHaveProperty(k);
+        }
+        expect(typeof m.id).toBe("string");
+        expect(m.id.length).toBeGreaterThan(0);
+        expect(typeof m.name).toBe("string");
+        expect(m.name.length).toBeGreaterThan(0);
+        expect(Array.isArray(m.dependencies)).toBe(true);
+    });
+});

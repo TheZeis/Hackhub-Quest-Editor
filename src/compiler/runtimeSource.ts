@@ -1143,6 +1143,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                             return e.source === n.id && e.kind === "flow" && e.sourceHandle === "done";
                         });
                         var fired = false;
+                        /* Logged at registration, not just on completion: when
+                           an objective never ticks we have to be able to tell
+                           "the listener was never attached" from "it was
+                           attached and the event never arrived". Round 40 cost
+                           a full round for want of this line. */
+                        __QE.log("objective \"" + n.data.name + "\" is listening for " + trig.data.event);
                         self.Events.on(trig.data.event, function (data) {
                             if (fired) return;
                             if (!__QE.matchAll(trig.data.conditions, data, dataScope())) return;

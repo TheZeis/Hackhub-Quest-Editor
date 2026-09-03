@@ -1658,3 +1658,75 @@ objective "delete-ledger"   completed by Files.Deleted
 
 **Verification:** 483 tests (19 files, +11), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r40"`.
+
+## Round 41 — the mod had no manifest, so it had no permissions
+
+Rounds 35–40 chased a quest that would not progress: mail delivered, but the
+network never appeared and no objective ever ticked. The game log for a fresh
+r40 export finally named it:
+
+```
+[quest-editor] The Ledger Contract4 v4.0.0 loaded (editor build 2026-09-03.r40).
+[quest-editor] node world-network4 failed and was skipped: [ContentSDK] Mod "null"
+  tried to use Network.createSubnetNetwork without "network" permission.
+[quest-editor] node world-toolResponse5 failed and was skipped: ... "shell" ...
+[quest-editor] Mail.send failed ... : ... "mail" ...
+[quest-editor] mail "One file, one man, no trace" sent via Quest.sendMail(0)
+```
+
+Three permissions refused — all three of which `manifest.json` declared. The
+giveaway is **`Mod "null"`**: the mod had no name at permission-check time, so
+the loader had not found a manifest for it at all.
+
+The SDK's own build script says why. `prepareDist()` in
+`@hotbunny/hackhub-content-sdk/build.mjs` copies `manifest.json` into `dist/`
+before bundling, so the manifest ends up *next to* the bundle. Nemesis ships
+`manifest.json` and `mod.js` side by side. We wrote the manifest only at the
+project root, so the game loaded `dist/mod.js` with no manifest attached: no
+name, no permissions, every `Network`/`Shell`/`Mail` call refused.
+
+The export now writes both copies from one string, so they cannot drift.
+`dependencies: []` was added too — `ModManifest` lists it and the reference mod
+ships it.
+
+### Why five rounds of testing missed it
+
+Two reasons, both worth keeping in mind.
+
+- **The r37 fallback masked the symptom.** When `Mail.send` was refused, the
+  compiler fell back to `Quest.sendMail`, and the briefing arrived. The one part
+  of the quest anybody could see working was the part being rescued by a
+  fallback.
+- **No harness modelled permissions.** The vitest stub and the CJS loader script
+  granted everything implicitly, so the mod always had rights the real game was
+  refusing. A stub that cannot say "no" cannot catch a bug about being told no.
+
+There is now a permission-enforcing harness: it reads the emitted
+`dist/manifest.json`, grants exactly those permissions, and throws the same
+`[ContentSDK] Mod "…" tried to use X without "y" permission` error the game
+raises. Blanking the permissions in it reproduces the original log exactly.
+
+Compile-time tests assert the manifest sits beside the bundle, that both copies
+are byte-identical, that every permission the emitted code needs is granted
+(matched against the code itself, not a hand-written list), that the names are
+valid members of `ModPermission`, and that the manifest carries every field the
+working reference mod carries.
+
+### One more diagnostic
+
+Objective listeners now log at **registration**, not only on completion:
+
+```
+[quest-editor] objective "read-brief" is listening for Mail.Read
+```
+
+Round 40 was spent unable to tell "the listener was never attached" from "it was
+attached and the event never came". That question is now answered by the log.
+
+**Verification:** 488 tests (19 files, +5), `tsc --noEmit` clean, `vite build`
+clean. Driven through the permission-enforcing harness, the contract-hack export
+builds its network, sends its mail via `Mail.send` (no fallback), and completes
+`read-brief` on `Mail.Read`. Export stamp: `EDITOR_BUILD = "2026-09-03.r41"`.
+
+The SDK is now a pinned devDependency (`0.21.0`, exact) rather than an ad-hoc
+install, so the ground-truth declarations survive a clean checkout.
