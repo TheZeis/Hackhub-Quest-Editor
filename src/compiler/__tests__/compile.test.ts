@@ -2576,3 +2576,82 @@ describe("scripted tool responses line up with the events they should raise", ()
         }
     });
 });
+
+/**
+ * QA, round 49. The Ledger quest reached "Get onto the machine" and stopped:
+ *
+ *     msf6 auxiliary(scanner/ssh/ssh_login) > set Version 7.2
+ *     [*] Invalid version for option: Version
+ *
+ * The port advertised "OpenSSH 7.2". metasploit's Version option wants three
+ * numbers — its own default is 1.0.0, and every port in the working reference
+ * mod is x.y.z ("OpenSSH 1.6.8", "MariaDB 4.1.3", "Apache 2.4.13"). With two
+ * numbers the exploit cannot be configured, so the quest is unfinishable.
+ *
+ * The author had already suspected version strings were fussy after seeing
+ * another mod fail with "7.2p2"; a letter is a second, separate trap.
+ */
+describe("port versions are ones metasploit will accept", () => {
+    function warnFor(version: string) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [
+            node("world.network", {
+                ipMode: "fixed",
+                device: {
+                    id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", users: [], children: [],
+                    ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version }],
+                },
+            }),
+        ];
+        return computeWarnings(p).join("\n");
+    }
+
+    it("warns about a two-part version, the one that blocked QA", () => {
+        const w = warnFor("OpenSSH 7.2");
+        expect(w).toContain("two numbers");
+        expect(w).toContain("Invalid version for option");
+    });
+
+    it("warns about a bare single number", () => {
+        expect(warnFor("OpenSSH 7")).toContain("one number");
+    });
+
+    it("warns about a letter in the version", () => {
+        expect(warnFor("OpenSSH 7.2p2")).toContain("letter in the version");
+    });
+
+    it("says nothing about a proper three-part version", () => {
+        expect(warnFor("OpenSSH 7.2.0")).not.toContain("metasploit");
+        expect(warnFor("Apache 2.4.41")).not.toContain("metasploit");
+    });
+
+    it("says nothing when a port advertises no version at all", () => {
+        expect(warnFor("")).not.toContain("metasploit");
+    });
+
+    it("checks ports on machines behind the router too", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [
+            node("world.network", {
+                ipMode: "fixed",
+                device: {
+                    id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", users: [], ports: [],
+                    children: [{
+                        id: "d1", ip: "10.0.0.12", name: "workstation", type: "DEVICE", users: [],
+                        ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2" }],
+                    }],
+                },
+            }),
+        ];
+        const w = computeWarnings(p).join("\n");
+        expect(w).toContain("workstation port 22");
+    });
+
+    it("no shipped template advertises a version metasploit would refuse", () => {
+        for (const t of TEMPLATES) {
+            expect(computeWarnings(t.build()).join("\n"), t.id).not.toContain("Invalid version for option");
+        }
+    });
+});

@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r48";
+export const EDITOR_BUILD = "2026-09-03.r49";
 
 export interface CompiledFile {
     path: string;
@@ -175,6 +175,36 @@ export function computeWarnings(project: ProjectDocument): string[] {
                     if (strays.length) {
                         warnings.push(
                             `${q.name}: ${strays.join(", ")} carries firewall rules, but only a firewall device enforces them — they will be ignored. Put the rules on a Firewall device in front of the machine you want to protect.`,
+                        );
+                    }
+                    /* metasploit needs a three-part version. QA hit this with
+                       "OpenSSH 7.2": the exploit's own Version option refuses
+                       it ("Invalid version for option: Version") and the
+                       player simply cannot finish the quest. Every port in the
+                       working reference mod uses x.y.z, and metasploit's
+                       default is 1.0.0. Letters are a separate, already-known
+                       trap (7.2p2 stops it matching at all). */
+                    const badVersions: string[] = [];
+                    const checkPorts = (dv: { ip?: string; name?: string; ports?: { external?: number; version?: string }[]; children?: unknown[] }) => {
+                        for (const port of dv.ports ?? []) {
+                            const v = String(port.version ?? "").trim();
+                            if (!v) continue;
+                            const num = v.replace(/^[^0-9]*/, "");
+                            if (!num) continue;
+                            const parts = num.split(".");
+                            const where = `${dv.name || dv.ip || "a device"} port ${port.external ?? "?"}`;
+                            if (/[A-Za-z]/.test(num)) {
+                                badVersions.push(`${where} ("${v}") has a letter in the version number`);
+                            } else if (parts.length < 3) {
+                                badVersions.push(`${where} ("${v}") has only ${parts.length === 1 ? "one number" : "two numbers"}`);
+                            }
+                        }
+                        (dv.children ?? []).forEach((c) => checkPorts(c as Parameters<typeof checkPorts>[0]));
+                    };
+                    checkPorts((n.data as { device?: Parameters<typeof checkPorts>[0] }).device ?? {});
+                    if (badVersions.length) {
+                        warnings.push(
+                            `${q.name}: ${badVersions.join("; ")}. metasploit needs three numbers (for example "OpenSSH 7.2.0") — it rejects anything else with “Invalid version for option: Version”, and the player cannot run the exploit at all.`,
                         );
                     }
                     break;

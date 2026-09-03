@@ -2195,3 +2195,51 @@ than an error — nothing is broken by it today.
 
 **Verification:** 523 tests (19 files, +8), `tsc --noEmit` clean. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r48"`.
+
+## Round 49 — the version number metasploit would not take
+
+Four of five objectives now complete in-game: read the brief, `lynx`, `whois`,
+`nmap`. The quest then stopped dead at "Get onto the machine":
+
+```
+msf6 auxiliary(scanner/ssh/ssh_login) > set Version 7.2
+[*] Invalid version for option: Version
+```
+
+The port advertised `OpenSSH 7.2`. metasploit's Version option wants **three
+numbers** — its own default is `1.0.0`, and every single port in the working
+reference mod is `x.y.z`: `OpenSSH 1.6.8`, `MariaDB 4.1.3`, `Apache 2.4.13`,
+39 of them without exception. With two numbers the exploit cannot be
+configured at all, so the quest is unfinishable.
+
+The author had suspected version strings were fussy several rounds ago, after
+watching another mod fail with `7.2p2`. That instinct was right, and the letter
+was a second, separate trap — this one is purely the number of parts.
+
+Every template port now uses three numbers (`OpenSSH 7.2.0`, `OpenSSH 8.9.0`,
+`OpenSSH 8.4.0`), and export warns about any that does not, naming the device
+and port and quoting the error the player would see. The Version field's hint
+says it too. A test asserts no shipped template can regress.
+
+### The date warning: one candidate eliminated, not yet solved
+
+The `moment` RFC2822 warning is ours — QA confirmed it disappears with the mod
+uninstalled. Two candidates were on the table: the `to` address we set from
+`Mail.getPlayerEmail()`, and the `attachments` array.
+
+**`attachments` is ruled out.** The Ledger template's three mails carry no
+attachment at all, and the warning still appears. That leaves `to` — the
+reference mod omits it on the mail it originates, and only sets it when replying
+to a mail it received.
+
+That is suggestive but still a theory, and shipping fixes for theories is what
+cost rounds 41 and 43. The cheap experiment is one the author can run in a
+single session, and it is recorded on the roadmap rather than guessed at here.
+
+**Verification:** 530 tests (19 files, +7), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r49"`.
+
+A note on the hint that failed its own test while being written: the schema
+suite caps field hints at 260 characters, and the first draft of the version
+hint ran to 313. The guardrail is a good one — a hint nobody reads helps nobody
+— and the short version says the same thing.

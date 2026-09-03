@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **Rest of the Ledger chain (whois → nmap → metasploit → delete → reply)** | Everything up to `identify-target` now works in-game. r47 fixed lynx; the remaining objectives use payload shapes that have not been confirmed against a real run yet. |
+| 1 | **End of the Ledger chain (metasploit → delete → reply)** | 4/5 objectives confirmed in-game. r49 fixed the port version metasploit refused; the last two objectives have not been reached in a real run yet. |
 | 2 | **Date deprecation warning traced to our mod** | QA confirmed the `moment` RFC2822 warning appears only when a quest-editor mod is installed, and only after a mail is sent. We never set a date on a mail, so the game is defaulting one — likely from `Mail.send`. Harmless so far (a warning, not an error) but it is ours. Needs the mail-timestamp path narrowed down. |
 | 3 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
@@ -45,6 +45,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r49 | `OpenSSH 7.2` made the quest unfinishable: metasploit rejects a two-part version with “Invalid version for option: Version”. All template ports now use three numbers, and export warns about any that do not. |
 | r48 | Swept all 92 events: the 19 declared as single-field objects (lynx's risk class) plus the 3 declared primitives are now proven to match in *both* the declared shape and as a bare value, so no other tool can fail the way lynx did. |
 | r47 | `Terminal.Lynx.Search` is declared `{ query: string }` but the game emits a bare string, so the condition read `undefined` and the objective never ticked. Field lookup now copes with a payload that is not the declared shape. |
 | r46 | Text conditions now ignore quotes, case and stray whitespace, so `lynx "Anselm Ritter"` and `lynx Anselm Ritter` both count. Non-matching events are logged with their real payload. The contract template no longer advertises a Twotter handle — searching one with no profile behind it crashes the game and corrupts the save; export now warns about it. |

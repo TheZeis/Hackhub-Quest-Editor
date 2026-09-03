@@ -354,7 +354,7 @@ function buildInvestigation(): ProjectDocument {
             { id: "u1", username: "admin", password: "changeme", firstName: "Site", lastName: "Admin", emailAddress: "admin@meridian-capital.net" },
         ],
         ports: [
-            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9" },
+            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9.0" },
             { id: "p2", external: 80, internal: 80, active: true, service: "http", version: "Apache 2.4.41" },
         ],
         rules: [],
@@ -721,7 +721,7 @@ function buildContractHack(): ProjectDocument {
             users: [],
             ports: [
                 { id: "p-http", external: 80, internal: 80, active: true, service: "http" },
-                { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2" },
+                { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },
             ],
             rules: [],
             files: [],
@@ -733,7 +733,7 @@ function buildContractHack(): ProjectDocument {
                     type: "DEVICE",
                     vulnerabilities: [],
                     ports: [
-                        { id: "p-ssh-host", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2" },
+                        { id: "p-ssh-host", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },
                     ],
                     users: [
                         {
@@ -1079,7 +1079,7 @@ function buildDirhunter(): ProjectDocument {
                     ports: [
                         /* Plain numbers in the version: a letter in it has been
                            seen to stop the in-game metasploit matching. */
-                        { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "8.4" },
+                        { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.4.0" },
                     ],
                     users: [
                         {
@@ -1315,7 +1315,7 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             { id: "u1", username: "admin", password: "changeme", firstName: "Site", lastName: "Admin", emailAddress: "admin@meridian-capital.net" },
         ],
         ports: [
-            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9" },
+            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9.0" },
             { id: "p2", external: 80, internal: 80, active: true, service: "http", version: "Apache 2.4.41" },
         ],
         rules: [],

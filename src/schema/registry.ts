@@ -165,7 +165,7 @@ const portFields: FieldDef[] = [
     { kind: "number", key: "external", hint: "The port number as seen from outside. This is what nmap reports and what the player connects to.", label: "External port", min: 0, max: 65535 },
     { kind: "number", key: "internal", hint: "The port the service actually listens on inside the machine. Leave equal to the external port unless you are deliberately redirecting.", label: "Internal port", min: 0, max: 65535 },
     { kind: "text", key: "service", hint: "What nmap prints next to the port, e.g. http, ssh, ftp, mysql. Free text — it is a label, not a real service.", label: "Service", placeholder: "ssh", mono: true },
-    { kind: "text", key: "version", hint: "The banner nmap -sV prints, e.g. \"Apache 2.4.41\". Plain numbers are the safe choice: a letter in the version (7.2p2) has been seen to stop the in-game metasploit matching an exploit to it. Blank omits the version line.", label: "Version", placeholder: "OpenSSH 8.9", mono: true },
+    { kind: "text", key: "version", hint: "The banner nmap -sV prints. Use three numbers and no letters — metasploit refuses \"7.2\" and \"7.2p2\", leaving the player unable to run the exploit. Blank omits the version line.", label: "Version", placeholder: "OpenSSH 8.9.0", mono: true },
     { kind: "toggle", key: "active", label: "Open", hint: "Closed ports show as filtered to nmap." },
 ];
 
