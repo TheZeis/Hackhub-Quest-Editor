@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r45";
+export const EDITOR_BUILD = "2026-09-03.r46";
 
 export interface CompiledFile {
     path: string;
@@ -176,6 +176,26 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         warnings.push(
                             `${q.name}: ${strays.join(", ")} carries firewall rules, but only a firewall device enforces them — they will be ignored. Put the rules on a Firewall device in front of the machine you want to protect.`,
                         );
+                    }
+                    break;
+                }
+                case "world.toolResponse": {
+                    /* A social handle in lynx output is a lead the player will
+                       follow. The built-in Twotter search crashes on a handle
+                       no profile backs - it reads a field off the missing
+                       profile - and takes the save file with it. This build's
+                       SDK cannot create a Twotter profile, so any handle an
+                       author writes here is one that does not exist. */
+                    const d = n.data as { command?: string; dataText?: string };
+                    if (d.command === "lynx" && d.dataText) {
+                        const handles = d.dataText.match(/(^|\s)@[A-Za-z0-9_]{2,}/g);
+                        if (handles) {
+                            warnings.push(
+                                `${q.name}: the lynx result advertises ${handles.map((h) => h.trim()).join(", ")}. ` +
+                                `Searching a social handle that has no profile behind it crashes the game and corrupts the player's save, ` +
+                                `and this build of the SDK cannot create one. Remove the handle, or point the player at something that exists — a website, an e-mail address, an IP.`,
+                            );
+                        }
                     }
                     break;
                 }

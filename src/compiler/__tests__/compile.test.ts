@@ -9,7 +9,7 @@ import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } fro
 import { mailBodyText } from "@/compiler/mailText";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
-import { getTemplate } from "@/templates";
+import { getTemplate, TEMPLATES } from "@/templates";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 
@@ -2215,5 +2215,144 @@ describe("the quest does its work while the engine is still listening", () => {
         expect(calls.join(",")).not.toContain("toast:later"); // deliberately deferred
         await settle();
         expect(calls.join(",")).toContain("toast:later");
+    });
+});
+
+/**
+ * QA, round 46. `lynx Anselm Ritter` printed the right dossier in-game but did
+ * not tick its objective, with or without quotes around the name.
+ *
+ * Two things text matching has to survive, neither of which is about the story:
+ *
+ *  - the player typing `lynx "Anselm Ritter"` rather than `lynx Anselm Ritter`,
+ *    which raises the same event with a different query string;
+ *  - a capital letter, anywhere, deciding whether an objective completes.
+ *
+ * Regex (`matches`) and the numeric comparisons are deliberately left exact:
+ * an author reaching for those wants precise control.
+ */
+describe("conditions match what a player would actually type", () => {
+    const check = (op: string, field: string, value: string, payload: Record<string, unknown>) => {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const obj = node("objective", { name: "obj", description: "Do the thing" });
+        const trig = node("trigger.event", {
+            event: "Terminal.Lynx.Search",
+            conditions: [{ id: "c1", join: "and", field, op, value }],
+        });
+        q.graph.nodes = [entry, obj, trig];
+        q.graph.edges = [edge(trig.id, obj.id, "condition")];
+
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnObjectivesStart();
+        for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) h(payload);
+        return calls.includes("complete:obj");
+    };
+
+    it("ignores the quotes a player puts around a multi-word search", () => {
+        expect(check("contains", "query", "Ritter", { query: '"Anselm Ritter"' })).toBe(true);
+        expect(check("equals", "query", "Anselm Ritter", { query: '"Anselm Ritter"' })).toBe(true);
+    });
+
+    it("ignores capitalisation on both sides", () => {
+        expect(check("contains", "query", "Ritter", { query: "anselm ritter" })).toBe(true);
+        expect(check("equals", "query", "ANSELM RITTER", { query: "Anselm Ritter" })).toBe(true);
+    });
+
+    it("ignores stray whitespace", () => {
+        expect(check("equals", "query", "Anselm Ritter", { query: "  Anselm Ritter  " })).toBe(true);
+    });
+
+    it("still says no when the value genuinely differs", () => {
+        expect(check("contains", "query", "Ritter", { query: "someone else" })).toBe(false);
+        expect(check("equals", "query", "Anselm Ritter", { query: "Anselm" })).toBe(false);
+    });
+
+    it("says so in the log when an event fires but does not match", () => {
+        // Silence here is what made this take a round to find: a wrong field
+        // name and an event that never fires look identical.
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const obj = node("objective", { name: "obj", description: "d" });
+        const trig = node("trigger.event", {
+            event: "Terminal.Lynx.Search",
+            conditions: [{ id: "c1", join: "and", field: "query", op: "contains", value: "nope" }],
+        });
+        p.quests[0].graph.nodes = [obj, trig];
+        p.quests[0].graph.edges = [edge(trig.id, obj.id, "condition")];
+
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk([], listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnObjectivesStart();
+
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) {
+                h({ query: "Anselm Ritter" });
+            }
+        } finally {
+            console.log = orig;
+        }
+        const line = said.join("\n");
+        expect(line).toContain("fired but did not match");
+        expect(line).toContain("query="); // and it shows what the event carried
+        expect(line).toContain("Anselm Ritter");
+    });
+});
+
+/**
+ * QA, round 46. Searching the handle our own lynx output advertised
+ * (`@a_ritter_mc`) crashed the game and corrupted the save: the built-in
+ * Twotter search reads a field off a profile that does not exist. This build's
+ * SDK cannot create a Twotter profile, so every handle an author writes into a
+ * lynx result is a handle with nothing behind it.
+ */
+describe("lynx results do not send the player somewhere that crashes", () => {
+    it("warns about a social handle in a lynx result", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [
+            node("world.toolResponse", {
+                command: "lynx",
+                input: "Anselm Ritter",
+                dataText: "Name: Anselm Ritter\nSocial: @a_ritter_mc",
+            }),
+        ];
+        const w = computeWarnings(p).join("\n");
+        expect(w).toContain("@a_ritter_mc");
+        expect(w).toContain("corrupts the player's save");
+    });
+
+    it("says nothing when the lynx result points only at things that exist", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [
+            node("world.toolResponse", {
+                command: "lynx",
+                input: "Anselm Ritter",
+                dataText: "Name: Anselm Ritter\nEmail: a.ritter@meridian-capital.net\nWeb: https://meridian-capital.net",
+            }),
+        ];
+        // an e-mail address contains an @ but is not a handle
+        expect(computeWarnings(p).join("\n")).not.toContain("crashes the game");
+    });
+
+    it("no shipped template advertises a social handle", () => {
+        for (const t of TEMPLATES) {
+            const w = computeWarnings(t.build()).join("\n");
+            expect(w).not.toContain("corrupts the player's save");
+        }
     });
 });

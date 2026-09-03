@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **Objectives do not tick in-game** | Root cause found in r45: the quest graph ran in a microtask *after* `OnStart` returned, by which point the engine no longer knows which mod is calling and refuses every permission (`Mod "null"`). The graph is now synchronous. Needs an in-game re-test. |
+| 1 | **`lynx` objective may still not tick** | r46 makes text conditions case-insensitive and quote-tolerant, which is the likely cause, and logs `fired but did not match` with the event's actual fields when a condition rejects an event. If the next log shows neither line, the game is not raising `Terminal.Lynx.Search` for a scripted lynx result and the objective needs a different trigger. |
 | 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -44,6 +44,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r46 | Text conditions now ignore quotes, case and stray whitespace, so `lynx "Anselm Ritter"` and `lynx Anselm Ritter` both count. Non-matching events are logged with their real payload. The contract template no longer advertises a Twotter handle — searching one with no profile behind it crashes the game and corrupts the save; export now warns about it. |
 | r45 | `Mod "null"`: the quest graph ran in a microtask after `OnStart` had returned, so the engine had no mod bound and refused every SDK call. The graph now runs synchronously and only defers where the author asked for a wait. |
 | r44 | An idle editor still spent 29% of its time in style recalculation: the shared dash-offset property had to be inherited, so every descendant of the canvas restyled 60×/second. Each wire now animates its own `stroke-dashoffset` and nothing is inherited. |
 | r43 | Mod identified itself as `Mod "null"` and was refused every permission — the bundle must install `module.exports` *before* it registers anything, the way esbuild does. Wire dots frozen since r42: a custom property must be registered with `@property` before the browser will interpolate it. |

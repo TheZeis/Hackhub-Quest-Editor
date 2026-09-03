@@ -783,7 +783,13 @@ function buildContractHack(): ProjectDocument {
             "Location:  Munich, DE",
             `Web:       https://${DOMAIN}`,
             "Email:     a.ritter@meridian-capital.net",
-            "Social:    @a_ritter_mc",
+            /* No social handle. lynx output is a lead the player will follow,
+               and a handle that no Twotter profile backs sends them to a
+               search that crashes the game (QA, r45: the built-in Twotter
+               search calls .toLowerCase() on a field the missing profile does
+               not have, and the save is corrupted). Only advertise accounts
+               that exist - and the SDK has no way to create a Twotter profile
+               in this build, so for now: none. */
         ].join("\n"),
         removeOnComplete: true,
     });

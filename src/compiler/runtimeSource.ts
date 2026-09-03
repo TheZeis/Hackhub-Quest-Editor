@@ -70,16 +70,34 @@ var __QE = (function () {
         }
         return "just now";
     }
+    /* Text coming back from the game is whatever the player typed, and the
+       value beside it is whatever the author typed. Matching those two byte
+       for byte fails for reasons that have nothing to do with the story:
+       lynx "Anselm Ritter" and lynx Anselm Ritter raise the same event with a
+       different query string, and nobody expects a capital letter to decide
+       whether an objective ticks. So text comparisons are case-insensitive,
+       trimmed, and blind to surrounding quotes. Numeric and regex comparisons
+       are untouched - a regex means the author wants exact control. */
+    function loose(x) {
+        var t = asString(x).trim();
+        var first = t.charAt(0);
+        var last = t.charAt(t.length - 1);
+        if (t.length > 1 && (first === "\"" || first === "'") && last === first) t = t.slice(1, -1).trim();
+        return t.toLowerCase();
+    }
+
     function matchClause(c, payload, scope) {
         var raw = getPath(payload, c.field);
         var val = fill(c.value, scope);
+        var a = loose(raw);
+        var b = loose(val);
         switch (c.op) {
-            case "equals": return asString(raw) === val;
-            case "notEquals": return asString(raw) !== val;
-            case "contains": return asString(raw).indexOf(val) >= 0;
-            case "notContains": return asString(raw).indexOf(val) < 0;
-            case "startsWith": return asString(raw).indexOf(val) === 0;
-            case "endsWith": { var s = asString(raw); return s.slice(s.length - val.length) === val; }
+            case "equals": return a === b;
+            case "notEquals": return a !== b;
+            case "contains": return a.indexOf(b) >= 0;
+            case "notContains": return a.indexOf(b) < 0;
+            case "startsWith": return a.indexOf(b) === 0;
+            case "endsWith": return a.slice(a.length - b.length) === b;
             case "matches": try { return new RegExp(val).test(asString(raw)); } catch (e) { return false; }
             case "exists": return raw !== undefined;
             case "notEmpty": return asString(raw).length > 0;
@@ -136,6 +154,29 @@ var __QE = (function () {
        the SDK no longer knows who is calling and refuses everything with
        Mod "null". A plain reduce over Promise.resolve() defers even purely
        synchronous work, so the entire quest graph was running too late. */
+    /* A short, readable rendering of an event payload, for the log. Keeps the
+       whole thing to one line and one screenful: the point is to show which
+       fields exist and roughly what is in them, not to dump the object. */
+    function describe(data) {
+        if (data == null) return String(data);
+        if (typeof data !== "object") return JSON.stringify(data);
+        var parts = [];
+        for (var k in data) {
+            if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
+            var v = data[k];
+            var shown;
+            if (v == null) shown = String(v);
+            else if (typeof v === "object") shown = Array.isArray(v) ? "[" + v.length + " items]" : "{object}";
+            else {
+                shown = String(v);
+                if (shown.length > 60) shown = shown.slice(0, 57) + "...";
+                shown = JSON.stringify(shown);
+            }
+            parts.push(k + "=" + shown);
+        }
+        return parts.length ? "{ " + parts.join(", ") + " }" : "{ no fields }";
+    }
+
     function seq(list, fn, onError) {
         var i = 0;
         function step() {
@@ -172,7 +213,7 @@ var __QE = (function () {
         } catch (e) { /* fall through to the timeout below */ }
         return new Promise(function (res) { setTimeout(res, ms); });
     }
-    return { getPath: getPath, fill: fill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, seq: seq, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
+    return { getPath: getPath, fill: fill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, seq: seq, describe: describe, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -1212,7 +1253,18 @@ function __qeRegisterProject(sdk, PROJECT) {
                         __QE.log("objective \"" + n.data.name + "\" is listening for " + trig.data.event);
                         self.Events.on(trig.data.event, function (data) {
                             if (fired) return;
-                            if (!__QE.matchAll(trig.data.conditions, data, dataScope())) return;
+                            if (!__QE.matchAll(trig.data.conditions, data, dataScope())) {
+                                /* The event arrived but the author's conditions
+                                   said no. Without this line, a mistyped field
+                                   name or a case mismatch is indistinguishable
+                                   from the game never raising the event at all,
+                                   and the log stays silent either way. Print
+                                   what actually turned up so the author can see
+                                   which field to match on. */
+                                __QE.log("objective \"" + n.data.name + "\": " + trig.data.event +
+                                    " fired but did not match. Event carried: " + __QE.describe(data));
+                                return;
+                            }
                             fired = true;
                             if (n.data.name) {
                                 try {
@@ -1234,10 +1286,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                             return !g.edges.some(function (e) { return e.source === n.id && e.kind === "condition"; });
                         })
                         .forEach(function (n) {
+                            __QE.log("trigger " + n.id + " is listening for " + n.data.event);
                             self.Events.on(n.data.event, function (data) {
-                                if (__QE.matchAll(n.data.conditions, data, dataScope())) {
-                                    flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: data, vars: {} }, 0); });
+                                if (!__QE.matchAll(n.data.conditions, data, dataScope())) {
+                                    __QE.log("trigger " + n.id + ": " + n.data.event +
+                                        " fired but did not match. Event carried: " + __QE.describe(data));
+                                    return;
                                 }
+                                flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: data, vars: {} }, 0); });
                             });
                         });
                 }

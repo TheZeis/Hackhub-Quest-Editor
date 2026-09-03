@@ -2026,3 +2026,66 @@ frames while idle.
 
 **Verification:** 500 tests (19 files, +3), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r45"`.
+
+## Round 46 — the quest runs; now it has to survive a real player
+
+r45 landed. In-game: the mail arrives, the network is built, and reading the
+brief ticks its objective and advances the quest. The remaining faults are of a
+different kind — not "nothing works" but "works only if the player behaves like
+a test harness".
+
+### `lynx Anselm Ritter` printed the dossier but did not tick
+
+Text comparisons were exact. The author writes `Ritter`; the game reports
+whatever the player typed, and `lynx "Anselm Ritter"` and `lynx Anselm Ritter`
+raise the same event with different query strings. Nobody expects a quotation
+mark or a capital letter to decide whether an objective completes.
+
+`equals`, `contains`, `startsWith` and `endsWith` are now trimmed,
+case-insensitive, and blind to surrounding quotes on either side. `matches`
+(regex) and the numeric comparisons are untouched: an author reaching for those
+wants exact control.
+
+This is the likeliest cause, but it is not proven, because the log said nothing
+at all — which was its own bug. A condition that rejects an event now logs it,
+with the event's real contents:
+
+```
+objective "identify-target": Terminal.Lynx.Search fired but did not match.
+Event carried: { query: "Anselm Ritter" }
+```
+
+An event that never fires and a condition that never matches used to look
+identical in a log. They no longer do, and the line prints the field names the
+event actually carries, so a mismatched field is visible rather than deduced.
+Standalone triggers log the same way.
+
+### Our own lynx output was luring players into a crash
+
+Searching `@a_ritter_mc` on Twotter crashed the game and corrupted the save:
+
+```
+TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at Array.filter ...
+```
+
+The handle came from **our** template. The lynx dossier advertised a Twotter
+account, the player did the obvious thing, and the built-in search read a field
+off a profile that does not exist. This build's SDK cannot create a Twotter
+profile at all (which is why Twotter was withdrawn in r31), so *any* handle in a
+lynx result is one with nothing behind it.
+
+The handle is gone from the template, and export now warns when a lynx result
+contains one, naming it and saying why. A test asserts no shipped template ever
+advertises one again. E-mail addresses are not flagged: they contain an `@` but
+are not handles, and they are a perfectly good lead.
+
+The crash is the game's, not ours — but the bait was ours, and a template should
+not hand a player a save-corrupting instruction.
+
+**Verification:** 508 tests (19 files, +8), `tsc --noEmit` clean, `vite build`
+clean. Driven through the permission-enforcing harness with deliberately awkward
+input — quotes around the lynx name, `Meridian-Capital.NET` for the whois — the
+contract template now completes read-brief, identify-target, find-server,
+scan-server, get-a-shell and delete-ledger in order. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r46"`.
