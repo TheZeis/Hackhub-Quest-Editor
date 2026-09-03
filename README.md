@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **Objectives do not tick in-game** | The chain works under test; in-game the mod is refused its permissions, which stops the network being built. Fixed in r43 — needs an in-game re-test to confirm. |
+| 1 | **The quest's `OnStart` never runs in-game** | r43 fixed the permissions (`Mod "null"` is gone from the log). But now nothing from `OnStart` happens at all — no network, no mail, no errors. `OnObjectivesStart` *does* run. r44 logs `quest "…" started` unconditionally so the next log says which of the two it is. |
 | 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -44,6 +44,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r44 | An idle editor still spent 29% of its time in style recalculation: the shared dash-offset property had to be inherited, so every descendant of the canvas restyled 60×/second. Each wire now animates its own `stroke-dashoffset` and nothing is inherited. |
 | r43 | Mod identified itself as `Mod "null"` and was refused every permission — the bundle must install `module.exports` *before* it registers anything, the way esbuild does. Wire dots frozen since r42: a custom property must be registered with `@property` before the browser will interpolate it. |
 | r42 | An idle editor repainted the whole page 60×/second (40.8% of frame time) because the wire animation wrote a custom property to the document root. Now scoped to the canvas and handed to the browser's animation engine. |
 | r41 | `manifest.json` is now shipped beside the bundle as well as at the project root, matching the SDK's own build script. |

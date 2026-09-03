@@ -26,11 +26,11 @@ import {
     type NodeTypes,
     type EdgeTypes,
 } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { altersSelection, nextSelection } from "./applyChanges";
 import { TypedEdge, toRFEdge, type TypedRFEdge } from "./TypedEdge";
-import { setWireMotion, setWireMotionHost, subscribeWireMotion, wireMotionEnabled } from "./wireMotion";
+import { setWireMotion, subscribeWireMotion, wireMotionEnabled } from "./wireMotion";
 import {
     decideHeldDrop,
     nodeIdUnderPointer,
@@ -117,14 +117,6 @@ function CanvasInner() {
         () => false, // server/jsdom: nothing is animating anyway
     );
 
-    /* Give the animation the canvas element to write its dash offset onto.
-       Scoping it here rather than on the document root is what keeps an idle
-       editor idle: the offset changes ~60 times a second, and on the root that
-       invalidated the whole page every time (see wireMotion.ts). */
-    useEffect(() => {
-        setWireMotionHost(wrapperRef.current);
-        return () => setWireMotionHost(null);
-    }, []);
 
     // Analysis is cheap and pure, so it can run on every render.
     const analysis = useMemo(

@@ -1880,3 +1880,77 @@ Export stamp: `EDITOR_BUILD = "2026-09-03.r43"`.
 
 The README's "Status" section is now a **Roadmap**: what is in progress, what is
 next, known limitations that are not bugs, and what was fixed recently.
+
+## Round 44 — the permissions are fixed; the quest never starts
+
+### What r43 fixed
+
+The permission errors are gone from the game log. `Mod "null"` no longer
+appears, so exporting the module the way esbuild does — a lazy `default` getter
+installed before anything registers — was the right diagnosis. The dots move
+again too.
+
+### What is left
+
+The r43 log is now *quieter than it should be*:
+
+```
+The Ledger Contract6 v6.0.0 loaded (editor build 2026-09-03.r43).
+objective "read-brief" is listening for Mail.Read
+... all seven objectives ...
+```
+
+...and nothing else. No network, no mail, and **no errors**. Compare r41, which
+at least reported failures. Those lines all come from `OnObjectivesStart`. Not
+one line comes from `OnStart` — which is where the network is built and the
+briefing is sent.
+
+Run against the exact zip QA installed, `OnStart` works: it builds the network
+and sends the mail. So the method is fine and the game is not calling it, or is
+calling it on an instance whose work goes nowhere.
+
+`OnStart` now logs unconditionally:
+
+```
+[quest-editor] quest "TheLedgerContract6" started (1 entry point)
+[quest-editor] quest "TheLedgerContract6" objectives started
+```
+
+A quest whose `OnStart` never runs and one whose `OnStart` runs and does nothing
+look identical in a log otherwise, and that ambiguity has now cost two rounds.
+Nemesis is a useful contrast here: it sets `AutoStart = false` and ships a
+`HackhubPost`, so the player claims it from the feed. Ours sets
+`AutoStart = true`. If the next log shows the objectives line but not the
+started line, auto-start is the difference and that is where to look next.
+
+### The objective counter is not evidence
+
+QA established that "0/1 completed" is the count of objectives in the *current*
+step, not the whole quest — the same panel shows "0/2" for a built-in mission
+that has many more. Two earlier rounds treated that number as a symptom. It is
+not one, and no more time should be spent on it.
+
+### 29% of an idle frame, and no JavaScript at all
+
+A second profile, captured on r43, showed the wire animation had improved but
+not enough: repaint time fell from 40.8% to 29.0%, and **zero** JS frames were
+sampled — so no editor code was running, yet the browser was still recalculating
+styles every frame.
+
+The cause was in the fix. `--qe-dash-offset` had to be declared
+`inherits: true`, because each wire reads it from an ancestor. Inheriting a
+changing property invalidates every descendant of the element it is set on —
+every node, port, label and badge on the canvas — sixty times a second.
+
+So nothing inherits any more. Each wire's dot layer registers itself with
+`wireMotion` and gets its own animation on `stroke-dashoffset` directly. The
+browser restyles only the paths whose dots actually move. The `@property` rule
+and the shared custom property are both gone. All wires share one phase origin,
+so they still drift in step regardless of when each was added.
+
+Writing the test for it caught a real bug: unregistering the last wire left its
+final offset frozen on the element, because `stop()` only reaches wires that are
+still registered.
+
+**Verification:** 497 tests, `tsc --noEmit` clean, `vite build` clean. Export
+stamp: `EDITOR_BUILD = "2026-09-03.r44"`.

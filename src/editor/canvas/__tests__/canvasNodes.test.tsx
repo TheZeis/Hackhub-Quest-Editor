@@ -4,9 +4,7 @@
  * own data. Both were reported from the real editor, so both are pinned here
  * against the mounted app rather than the store alone.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
@@ -14,14 +12,12 @@ import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
 import { withAlpha } from "@/editor/canvas/QuestCanvas";
 import {
-    DASH_VAR,
     DOT_GAP,
     DOT_PERIOD_S,
     FALLBACK_FPS,
     paintDashOffset,
+    registerWireDots,
     setWireMotion,
-    setWireMotionHost,
-    subscribeWireMotion,
     wireMotionEnabled,
     wireMotionRunning,
 } from "@/editor/canvas/wireMotion";
@@ -240,7 +236,9 @@ describe("wires", () => {
         // The dots read the canvas's own animation clock, so nothing outside
         // the editor (stylesheet order, an OS "reduce animation" setting) can
         // hold them still.
-        expect(dots.style.strokeDashoffset).toBe("var(--qe-dash-offset, 0px)");
+        // stroke-dashoffset is set by the browser animation at runtime, not
+        // in the markup: nothing is inherited any more (see wireMotion.ts).
+        expect(dots.style.strokeDashoffset).toBe("");
     });
 
     it("takes its colour from the kind of socket it leaves", () => {
@@ -332,79 +330,100 @@ describe("reroute grab area", () => {
  *
  * The rules below are what stops that coming back.
  */
+/**
+ * Rounds 38 and 42-44. The wire dots have been reported broken three times and
+ * have twice pinned the GPU; every rule here comes from a measured profile.
+ *
+ * r38: one rAF loop wrote a custom property to document.documentElement. An
+ * IDLE editor spent 40.8% of its time in style recalc and repaint.
+ * r43: scoped to the canvas and handed to the browser. No JS ran at all — but
+ * the property has to INHERIT for the wires to read it, and re-inheriting it
+ * invalidates every descendant of the canvas 60x/second: still 29%.
+ * r44: nothing inherits. Each wire animates its own stroke-dashoffset.
+ */
 describe("wire motion", () => {
-    let canvas: HTMLElement;
+    function dotPath(): SVGPathElement {
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        document.body.appendChild(el);
+        return el;
+    }
 
     beforeEach(() => {
-        document.documentElement.style.removeProperty(DASH_VAR);
         localStorage.clear();
-        canvas = document.createElement("div");
-        document.body.appendChild(canvas);
-        setWireMotionHost(canvas);
-    });
-
-    afterEach(() => {
-        setWireMotionHost(null);
-        canvas.remove();
     });
 
     it("never writes the dash offset to the document root", () => {
-        // THE regression test. The offset changes ~60x/second; on the root that
-        // is a document-wide restyle every frame.
-        paintDashOffset(0);
+        // THE r38 regression test.
+        const el = dotPath();
+        const un = registerWireDots(el);
         paintDashOffset((DOT_PERIOD_S * 1000) / 4);
-        expect(document.documentElement.style.getPropertyValue(DASH_VAR)).toBe("");
-        expect(canvas.style.getPropertyValue(DASH_VAR)).not.toBe("");
+        expect(document.documentElement.style.getPropertyValue("--qe-dash-offset")).toBe("");
+        expect(document.documentElement.getAttribute("style")).toBeNull();
+        un();
+        el.remove();
+    });
+
+    it("animates each wire directly, inheriting nothing", () => {
+        // THE r43 regression test: no shared custom property means the browser
+        // restyles only the paths whose dots move, not the whole canvas.
+        const el = dotPath();
+        const anim = { cancel: vi.fn(), currentTime: 0 };
+        el.animate = vi.fn(() => anim as unknown as Animation) as typeof el.animate;
+        const raf = vi.spyOn(window, "requestAnimationFrame");
+
+        const un = registerWireDots(el);
+        expect(el.animate).toHaveBeenCalledTimes(1);
+        const [frames, opts] = (el.animate as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+        // it animates the paint property itself, not a variable others inherit
+        expect(JSON.stringify(frames)).toContain("strokeDashoffset");
+        expect((opts as KeyframeAnimationOptions).iterations).toBe(Infinity);
+        expect((opts as KeyframeAnimationOptions).easing).toBe("linear");
+        expect(raf).not.toHaveBeenCalled();
+
+        un();
+        expect(anim.cancel).toHaveBeenCalled();
+        raf.mockRestore();
+        el.remove();
+    });
+
+    it("keeps every wire drifting in step", () => {
+        // Wires mount at different times; the dots must not scatter out of phase.
+        const a = dotPath();
+        const b = dotPath();
+        const mk = () => ({ cancel: vi.fn(), currentTime: 0 }) as unknown as Animation;
+        a.animate = vi.fn(mk) as typeof a.animate;
+        b.animate = vi.fn(mk) as typeof b.animate;
+        const unA = registerWireDots(a);
+        const unB = registerWireDots(b);
+        // both are seeded from one shared origin rather than from mount time
+        expect(a.animate).toHaveBeenCalled();
+        expect(b.animate).toHaveBeenCalled();
+        unA();
+        unB();
+        a.remove();
+        b.remove();
     });
 
     it("moves the dots along the wire, one gap per cycle", () => {
-        // Two moments a quarter-cycle apart must paint different offsets —
-        // that difference IS the animation.
-        paintDashOffset(0);
-        const start = canvas.style.getPropertyValue(DASH_VAR);
-        paintDashOffset((DOT_PERIOD_S * 1000) / 4);
-        const quarter = canvas.style.getPropertyValue(DASH_VAR);
-        paintDashOffset(DOT_PERIOD_S * 1000);
+        const el = dotPath();
+        const un = registerWireDots(el);
+        paintDashOffset(0, el);
+        const start = el.style.strokeDashoffset;
+        paintDashOffset((DOT_PERIOD_S * 1000) / 4, el);
+        const quarter = el.style.strokeDashoffset;
+        paintDashOffset(DOT_PERIOD_S * 1000, el);
 
         expect(parseFloat(start)).toBe(0);
         expect(parseFloat(quarter)).toBeCloseTo(-DOT_GAP / 4, 1);
-        // A full period brings it back to the start: the pattern repeats
-        // seamlessly, so the dots read as a continuous drift.
-        expect(parseFloat(canvas.style.getPropertyValue(DASH_VAR))).toBe(parseFloat(start));
-    });
-
-    it("hands the animation to the browser instead of driving it frame by frame", () => {
-        // The browser's animation engine can run this off the main thread and
-        // costs nothing while idle. A per-frame JS loop cannot and does not.
-        const animate = vi.fn(
-            (_keyframes?: unknown, _options?: KeyframeAnimationOptions) =>
-                ({ cancel: vi.fn() }) as unknown as Animation,
-        );
-        (canvas as unknown as { animate: unknown }).animate = animate;
-        const raf = vi.spyOn(window, "requestAnimationFrame");
-
-        setWireMotionHost(null);
-        setWireMotionHost(canvas);
-        const off = subscribeWireMotion(() => {});
-
-        expect(animate).toHaveBeenCalledTimes(1);
-        // scoped to the canvas, and looping forever at a steady rate
-        const opts = animate.mock.calls[0][1]!;
-        expect(opts.iterations).toBe(Infinity);
-        expect(opts.easing).toBe("linear");
-        expect(opts.duration).toBe(DOT_PERIOD_S * 1000);
-        // and no per-frame loop was started
-        expect(raf).not.toHaveBeenCalled();
-
-        off();
-        raf.mockRestore();
+        // A full period returns to the start: the pattern repeats seamlessly.
+        expect(parseFloat(el.style.strokeDashoffset)).toBe(parseFloat(start));
+        un();
+        el.remove();
     });
 
     it("falls back to a throttled loop only where the browser cannot animate", () => {
-        // Some engines have no Element.animate. They still get moving dots —
-        // but well below 60fps, because the dots drift at 10px/s and anything
-        // faster is invisible effort.
-        delete (canvas as unknown as { animate?: unknown }).animate;
+        const el = dotPath();
+        // jsdom has no Element.animate, which is the fallback path.
         const frames: FrameRequestCallback[] = [];
         const raf = vi
             .spyOn(window, "requestAnimationFrame")
@@ -413,44 +432,34 @@ describe("wire motion", () => {
                 return frames.length;
             }) as typeof requestAnimationFrame);
 
-        setWireMotionHost(null);
-        setWireMotionHost(canvas);
-        const offA = subscribeWireMotion(() => {});
-        const offB = subscribeWireMotion(() => {});
-        expect(frames.length).toBe(1); // one loop, not one per subscriber
+        const un = registerWireDots(el);
+        expect(frames.length).toBe(1); // one loop for the whole canvas
 
-        // Two frames 1ms apart must NOT both repaint: that is the throttle.
         frames[frames.length - 1](0);
-        const first = canvas.style.getPropertyValue(DASH_VAR);
+        const first = el.style.strokeDashoffset;
         frames[frames.length - 1](1);
-        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe(first);
-        // A frame a full throttle-period later does repaint.
+        expect(el.style.strokeDashoffset).toBe(first); // throttled
         frames[frames.length - 1](1000 / FALLBACK_FPS + 1);
-        expect(canvas.style.getPropertyValue(DASH_VAR)).not.toBe(first);
+        expect(el.style.strokeDashoffset).not.toBe(first);
 
-        offA();
-        offB();
-        // The last unsubscriber stops the clock and parks the dots.
-        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe("0px");
+        un();
+        expect(el.style.strokeDashoffset).toBe("0px"); // parked
         raf.mockRestore();
+        el.remove();
     });
 
     it("stops completely when switched off, and leaves nothing running", () => {
-        const off = subscribeWireMotion(() => {});
+        const el = dotPath();
+        el.animate = vi.fn(() => ({ cancel: vi.fn(), currentTime: 0 }) as unknown as Animation) as typeof el.animate;
+        const un = registerWireDots(el);
         expect(wireMotionRunning()).toBe(true);
         setWireMotion(false);
         expect(wireMotionRunning()).toBe(false);
-        expect(canvas.style.getPropertyValue(DASH_VAR)).toBe("0px");
         setWireMotion(true);
         expect(wireMotionRunning()).toBe(true);
-        off();
-    });
-
-    it("does not animate a canvas that has gone away", () => {
-        const off = subscribeWireMotion(() => {});
-        setWireMotionHost(null);
+        un();
         expect(wireMotionRunning()).toBe(false);
-        off();
+        el.remove();
     });
 
     it("can be switched off and remembers the choice", () => {
@@ -489,38 +498,3 @@ describe("group frames", () => {
     });
 });
 
-/**
- * Round 43. The dots stopped moving again after r42 — the third time this
- * animation has been reported broken, and the second time I broke it.
- *
- * r42 handed the animation to the browser via Element.animate() to stop a
- * document-wide repaint. But a custom property that has not been REGISTERED
- * has no type, so the animation engine cannot interpolate it: it flips the
- * value once at the end of each cycle. The dots hold still and jump, which
- * reads exactly like "not animating at all".
- *
- * The registration is a `@property --qe-dash-offset` rule in index.css. It
- * cannot live in TypeScript, so this test guards the stylesheet instead.
- */
-describe("the wire dots can actually be interpolated", () => {
-    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
-
-    it("registers the dash offset as a typed custom property", () => {
-        // Without this the browser animates it discretely and the dots freeze.
-        expect(css).toMatch(/@property\s+--qe-dash-offset\s*\{/);
-    });
-
-    it("gives it a length type, inheritance, and a starting value", () => {
-        const block = css.slice(css.indexOf("@property --qe-dash-offset"));
-        const body = block.slice(0, block.indexOf("}"));
-        // <length> is what makes 0px -> -14px a smooth drift rather than a jump.
-        expect(body).toMatch(/syntax:\s*"<length>"/);
-        // The wires read the value from an ancestor, so it has to inherit.
-        expect(body).toMatch(/inherits:\s*true/);
-        expect(body).toMatch(/initial-value:\s*0px/);
-    });
-
-    it("registers the same property name the animation writes", () => {
-        expect(css).toContain(DASH_VAR);
-    });
-});

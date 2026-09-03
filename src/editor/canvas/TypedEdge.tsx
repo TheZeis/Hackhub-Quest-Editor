@@ -11,7 +11,8 @@ import {
     type EdgeProps,
 } from "@xyflow/react";
 import { HANDLE_STYLE, type EdgeDoc, type EdgeKind } from "@/schema/edges";
-import { DASH_VAR, DOT_GAP } from "./wireMotion";
+import { DOT_GAP, registerWireDots } from "./wireMotion";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 
 export interface TypedEdgeData extends Record<string, unknown> {
@@ -48,6 +49,11 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
         curvature: 0.28,
     });
 
+    /* Each wire's dots are animated individually by the browser: see
+       wireMotion.ts for why nothing inherits a shared custom property. */
+    const dotsRef = useRef<SVGPathElement | null>(null);
+    useEffect(() => registerWireDots(dotsRef.current), []);
+
     const kind = data?.kind ?? "flow";
     const style = HANDLE_STYLE[kind];
     const text = data?.label || data?.socketLabel;
@@ -78,6 +84,7 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
                 visible in the DOM, so it can be tested. Purely decorative, so
                 it never intercepts clicks meant for the wire underneath. */}
             <path
+                ref={dotsRef}
                 d={path}
                 fill="none"
                 className="qe-flow-dots"
@@ -86,12 +93,10 @@ export function TypedEdge(props: EdgeProps<TypedRFEdge>) {
                     strokeWidth: width + 1.4,
                     strokeLinecap: "round",
                     strokeDasharray: `0.1 ${DOT_GAP}`,
-                    // Driven by the canvas's single animation loop (wireMotion),
-                    // not by CSS keyframes or SMIL: those were both reported as
-                    // "not moving" on the author's machine, and neither can be
-                    // observed from a test. Purely decorative, so it never
-                    // intercepts a click meant for the wire underneath.
-                    strokeDashoffset: `var(${DASH_VAR}, 0px)`,
+                    // Animated by the browser, per wire, via wireMotion —
+                    // never through an inherited custom property, which
+                    // restyles the whole canvas every frame. Purely decorative,
+                    // so it never intercepts a click meant for the wire.
                     pointerEvents: "none",
                 }}
             />

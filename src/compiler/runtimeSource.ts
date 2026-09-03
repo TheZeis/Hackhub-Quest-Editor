@@ -1080,9 +1080,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                        whatever the last constructor saw. */
                     questRef = this;
                     var ctx = { payload: {}, vars: {} };
-                    g.nodes
-                        .filter(function (n) { return n.type === "entry.start"; })
-                        .forEach(function (n) { runFlow(n.id, ctx, 0); });
+                    var starts = g.nodes.filter(function (n) { return n.type === "entry.start"; });
+                    /* Logged unconditionally. A quest whose OnStart never runs
+                       looks exactly like a quest whose OnStart ran and did
+                       nothing, and telling those apart from a player's log file
+                       is worth one line. */
+                    __QE.log("quest \"" + qd.name + "\" started (" + starts.length +
+                        " entry point" + (starts.length === 1 ? "" : "s") + ")");
+                    starts.forEach(function (n) { runFlow(n.id, ctx, 0); });
                 }
                 OnObjectivesStart() {
                     /* The engine may build this class more than once (metadata
@@ -1092,6 +1097,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                        whatever the last constructor saw. */
                     questRef = this;
                     var self = this;
+                    __QE.log("quest \"" + qd.name + "\" objectives started");
                     var ctx = { payload: {}, vars: {} };
                     refillComms();
                     weechatServers.forEach(function (s) {
