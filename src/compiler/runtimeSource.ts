@@ -408,6 +408,7 @@ function __qeRegisterProject(sdk, PROJECT) {
             while (questCleanup.length) {
                 var item = questCleanup.pop();
                 try {
+                    if (item.kind === "network" && sdk.Network.destroyNetwork) sdk.Network.destroyNetwork(item.ip);
                     if (item.kind === "domain" && sdk.Network.removeDomain) sdk.Network.removeDomain(item.domain);
                     if (item.kind === "commandData" && sdk.Shell && sdk.Shell.removeCommandData) sdk.Shell.removeCommandData(item.command, item.input);
                     if (item.kind === "firewall" && sdk.Network.removeFirewallRule) sdk.Network.removeFirewallRule(item.ip, item.port);
@@ -718,6 +719,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                         ? ((questRef && questRef.Data && questRef.Data.targetIp) || (sdk.Network.randomIp ? sdk.Network.randomIp() : d.device.ip))
                         : d.device.ip;
                     sdk.Network.createSubnetNetwork(mapDevice(Object.assign({}, d.device, { ip: netIp })));
+                    /* Tear the network down again when the quest ends. The
+                       editor has always offered this toggle; the compiler
+                       ignored it, so nothing was ever destroyed. A network the
+                       game has already saved at an IP wins over the one a
+                       later version of the mod tries to create there - which
+                       is why QA saw a port banner ("OpenSSH 7.2") that no
+                       longer existed in the project, unchanged across three
+                       re-exports, and an exploit that failed against a machine
+                       whose users had since been added. */
+                    if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: netIp });
                     return next();
                 }
                 case "world.wifi": {
@@ -746,6 +757,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                             children: d.children || [],
                         }));
                     }
+                    /* Same as world.network: without this the network outlives
+                       the quest and the next version of the mod cannot replace
+                       it. */
+                    if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: wifiIp });
                     return next();
                 }
                 case "world.domain": {

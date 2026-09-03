@@ -2363,3 +2363,51 @@ method for it" has been wrong before.
 
 **Verification:** 551 tests (19 files, +8), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r51"`.
+
+## Round 52 — the network that would not go away
+
+QA set a port version to `OpenSSH 1.7.2`, re-exported, and the game still showed
+`OpenSSH 7.2`. Then did it again. Then a third time, with a fresh mod version
+each time. r51 had already proved the export was correct by printing exactly
+what reaches `Network.createSubnetNetwork`, so the export and the display
+disagreed — and the author's instinct that "it's probably not just a display
+thing" was right.
+
+**Networks were never destroyed.** `world.network` created a subnet and
+registered no cleanup at all. `destroyOnComplete` has been in the schema and on
+the inspector since the node was written; the compiler simply never read it. So
+the first network the save ever saw at `45.33.32.156` stayed there, and every
+later version of the mod created a network the game already had.
+
+That single fault explains both symptoms that cost the last three rounds:
+
+- **the port version that would not change** — the banner came from the network
+  in the save, not from the export;
+- **the exploit that kept failing** — the `admin` account added to the router in
+  r51 never reached the game, because the game was still using the old,
+  userless network. The r51 fix was right and had no way to take effect.
+
+`world.network` and `world.wifi` now register a `destroyNetwork` cleanup, using
+the IP actually used (which matters for `ipMode: "random"`, where the address
+comes from `CreateData`). Cleanup already ran on both complete and abandon.
+
+### The general lesson, made mechanical
+
+This is the third fault of the same shape: the editor promises the author
+something the compiler does not do — r39's objective trigger, r43's export
+order, and now a toggle that was pure decoration. A new schema test walks
+`src/schema/nodes.ts` for every `*OnComplete` flag and fails if the runtime
+never mentions it, and asserts every world-mutating kind has both a
+registration and a matching teardown. A toggle that lies to the author is worse
+than no toggle.
+
+### A note for the next test run
+
+The stale network lives in the **save**, not the mod. Installing r52 does not
+retroactively remove it: the quest has to complete or be abandoned once with a
+build that knows how to tear it down, or the test has to start from a fresh
+save. Worth knowing before concluding that r52 did not work either.
+
+**Verification:** 558 tests (19 files, +7), `tsc --noEmit` clean, `vite build`
+clean. Removing the new cleanup call makes three of the new tests fail, so the
+coverage is real. Export stamp: `EDITOR_BUILD = "2026-09-03.r52"`.

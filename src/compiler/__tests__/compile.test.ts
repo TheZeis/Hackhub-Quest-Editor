@@ -2905,3 +2905,106 @@ describe("machines the player is meant to break into can actually be broken into
         }
     });
 });
+
+/**
+ * QA, round 52 — the network that would not go away.
+ *
+ * QA changed a port version to "OpenSSH 1.7.2", re-exported, and the game still
+ * showed "OpenSSH 7.2". Three times, across three versions of the mod. The
+ * export was correct every time — printing what reaches
+ * `Network.createSubnetNetwork` proved that in r51 — so the game was showing a
+ * network it already had.
+ *
+ * The cause: `world.network` never registered any cleanup. The editor has
+ * always offered a "Destroy when the quest ends" toggle, `destroyOnComplete`
+ * has been in the schema since the beginning, and the compiler simply ignored
+ * it. Nothing was ever destroyed, so the first network the save ever saw at
+ * 45.33.32.156 outlived every later version of the mod: the stale banner, and
+ * an exploit that kept failing against a router whose `admin` user had been
+ * added two rounds earlier and never reached the game.
+ *
+ * This is the same class of fault as r39's objective trigger and r43's export
+ * shape: something the editor promises the author, that the compiler does not
+ * actually do.
+ */
+describe("networks are torn down when the quest ends", () => {
+    function build(patch: Record<string, unknown> = {}) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "fixed",
+            device: {
+                id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", children: [],
+                users: [{ id: "u1", username: "admin", password: "pw" }],
+                ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" }],
+            },
+            ...patch,
+        });
+        q.graph.nodes = [entry, net];
+        q.graph.edges = [edge(entry.id, net.id, "flow")];
+
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network.destroyNetwork = (ip: string) => calls.push(`destroy:${ip}`);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        return { quest, calls };
+    }
+
+    it("destroys the network it created when the quest completes", () => {
+        const { quest, calls } = build();
+        quest.OnStart();
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        quest.OnComplete();
+        expect(calls.join(",")).toContain("destroy:45.33.32.156");
+    });
+
+    it("destroys it when the quest is abandoned too", () => {
+        const { quest, calls } = build();
+        quest.OnStart();
+        quest.OnAbandon();
+        expect(calls.join(",")).toContain("destroy:45.33.32.156");
+    });
+
+    it("leaves the network alone when the author turned the toggle off", () => {
+        const { quest, calls } = build({ destroyOnComplete: false });
+        quest.OnStart();
+        quest.OnComplete();
+        expect(calls.join(",")).not.toContain("destroy:");
+    });
+
+    it("destroys the ip it really used, not the one in the template", () => {
+        // With ipMode "random" the address comes from CreateData, so cleanup
+        // has to follow the live value or it removes nothing.
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "random",
+            device: { id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [], ports: [], children: [] },
+        });
+        p.quests[0].graph.nodes = [entry, net];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network.destroyNetwork = (ip: string) => calls.push(`destroy:${ip}`);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = quest.CreateData ? quest.CreateData() : {};
+        quest.OnStart();
+        quest.OnComplete();
+        // stubSdk's randomIp returns 10.9.9.9
+        expect(calls.join(",")).toContain("destroy:10.9.9.9");
+        expect(calls.join(",")).not.toContain("destroy:1.1.1.1");
+    });
+
+    it("survives a build with no destroyNetwork at all", () => {
+        const { quest } = build();
+        quest.OnStart();
+        expect(() => quest.OnComplete()).not.toThrow();
+    });
+});

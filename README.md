@@ -20,9 +20,9 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **End of the Ledger chain (metasploit → delete → reply)** | 4/5 confirmed in-game. The exploit failed because the router had an open SSH port and no users — fixed in r51. The last two objectives have not been reached in a real run yet. |
+| 1 | **End of the Ledger chain (metasploit → delete → reply)** | 4/5 confirmed in-game. r52 found the real blocker: networks were never destroyed, so the save kept the *first* version ever created at that IP and no later fix could reach the game. **Delete the old save's network by completing/abandoning the quest once on r52+, or use a fresh save.** |
 | 2 | **Date deprecation warning (`moment` RFC2822)** | Only appears with a quest-editor mod installed. **Not** the `Mail.send` call: r48's session sent mail and completed four objectives with no warning at all, and `to`/`attachments` are set identically there. It is a *renderer* warning (the game formatting a date for display) that fires 30-90s later, when a browser/Twotter screen is opened. Next step: find which of our content carries a date-shaped string the game tries to parse. |
-| 3 | Old quest mail is never cleaned up | Mail sent by an uninstalled mod stays in the player's inbox. `Mail` has no delete/remove in the SDK, so there may be nothing we can do — but confirm before dismissing. |
+| 3 | Old quest mail is never cleaned up | Mail sent by an uninstalled mod stays in the inbox. `Mail` has no delete/remove in the SDK, so there may be nothing we can do — but confirm before dismissing. (Same *family* as the r52 network bug: things we create outliving the quest.) |
 | 4 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -46,6 +46,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r52 | Networks were never destroyed: `destroyOnComplete` existed in the schema and the inspector from day one and the compiler never read it. A stale network in the save shadowed every re-export — the cause of the port version that would not change and the exploit that kept failing. |
 | r51 | The exploit failed with “Port 22 could not be accessed”: the router opened SSH but had no user accounts, so there was nobody to log in as. Template fixed, and export now warns for any machine with a login service and no users. |
 | r50 | New **Debug probe** node: drop it into any chain to print, in the player's log, that the flow reached that point, what the event really carried, and what the quest has saved. |
 | r49 | `OpenSSH 7.2` made the quest unfinishable: metasploit rejects a two-part version with “Invalid version for option: Version”. All template ports now use three numbers, and export warns about any that do not. |

@@ -3,6 +3,8 @@
  * compiler cannot emit and the inspector would render fields for data that is
  * never there. These tests are the guard rail for that.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { canConnect, EDGE_KINDS, type EdgeKind } from "@/schema/edges";
 import {
@@ -230,5 +232,37 @@ describe("node documents", () => {
         expect(objective.data).toHaveProperty("name");
         expect(wifi.data).toHaveProperty("ssid");
         expect((wifi.data as Record<string, unknown>).name).toBeUndefined();
+    });
+});
+
+/**
+ * QA, round 52. `destroyOnComplete` sat in the schema and in the inspector from
+ * the beginning, and the compiler never read it — so every network a quest
+ * created outlived the quest, and re-exporting a mod could not replace a
+ * network the save already had. Three rounds were spent on symptoms of that.
+ *
+ * A toggle the editor shows an author is a promise. This checks the promises
+ * about cleanup are all kept, so the next one added cannot be forgotten.
+ */
+describe("cleanup toggles the editor offers are honoured by the compiler", () => {
+    const runtime = readFileSync(resolve(process.cwd(), "src/compiler/runtimeSource.ts"), "utf8");
+
+    it("reads every cleanup flag the schema defines", () => {
+        const schema = readFileSync(resolve(process.cwd(), "src/schema/nodes.ts"), "utf8");
+        const flags = new Set(
+            [...schema.matchAll(/^\s*(\w*[Oo]nComplete)\s*:/gm)].map((m) => m[1]),
+        );
+        expect(flags.size).toBeGreaterThan(0);
+        const ignored = [...flags].filter((f) => !runtime.includes(f));
+        expect(ignored).toEqual([]);
+    });
+
+    it("registers cleanup for everything it creates in the world", () => {
+        // Each of these leaves something behind in the player's save if it is
+        // never undone.
+        for (const kind of ["network", "domain", "commandData", "firewall", "database", "port"]) {
+            expect(runtime, kind).toContain(`kind: "${kind}"`);
+            expect(runtime, kind).toContain(`item.kind === "${kind}"`);
+        }
     });
 });
