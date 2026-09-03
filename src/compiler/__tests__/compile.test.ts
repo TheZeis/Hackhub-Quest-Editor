@@ -3008,3 +3008,115 @@ describe("networks are torn down when the quest ends", () => {
         expect(() => quest.OnComplete()).not.toThrow();
     });
 });
+
+/**
+ * QA, round 53. With the stale network finally gone (r52), the exploit ran
+ * against the right machine and failed with a *different* message:
+ *
+ *     [*] Attack failed.
+ *     [*] Backdoor service could not be accessed.
+ *     [*] No guest account or online user found.
+ *
+ * That last line is the specification. The SSH exploit does not log in as
+ * whoever is listed on the device — it wants a **guest account** or a user who
+ * is **online**, and the router had a named `admin` who was neither.
+ *
+ * The working reference mod never hands the engine a bare user array: all 25 of
+ * its machines wrap them in `createDefaultUserSchema(users, { guest: true })`,
+ * which is what adds the accounts the exploit actually attacks. We had never
+ * called that function once.
+ */
+describe("machines carry the accounts the exploit looks for", () => {
+    function usersOf(device: Record<string, unknown>) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", { ipMode: "fixed", device });
+        p.quests[0].graph.nodes = [entry, net];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+
+        const made: any[] = [];
+        const sdk = stubSdk([], []) as any;
+        sdk.Network.createSubnetNetwork = (d: unknown) => { made.push(d); return (d as any).ip; };
+        sdk.Network.createUser = (u: Record<string, unknown>) => ({ ...u });
+        sdk.Network.createDefaultUserSchema = (users: unknown[], opts?: { guest?: boolean }) => [
+            ...users,
+            ...(opts?.guest ? [{ username: "guest", password: "", online: true }] : []),
+        ];
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnStart();
+        return made[0];
+    }
+
+    const router = (extra: Record<string, unknown> = {}) => ({
+        id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", children: [],
+        users: [{ id: "u1", username: "admin", password: "pw" }],
+        ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" }],
+        ...extra,
+    });
+
+    it("asks for a guest account, which is what the exploit hunts for", () => {
+        const built = usersOf(router());
+        expect(built.users.map((u: { username: string }) => u.username)).toContain("guest");
+    });
+
+    it("marks the author's own users online, so they can be attacked", () => {
+        const built = usersOf(router());
+        const admin = built.users.find((u: { username: string }) => u.username === "admin");
+        expect(admin.online).toBe(true);
+    });
+
+    it("still lets an author deliberately mark someone offline", () => {
+        const built = usersOf(router({
+            users: [{ id: "u1", username: "admin", password: "pw", online: false }],
+        }));
+        const admin = built.users.find((u: { username: string }) => u.username === "admin");
+        expect(admin.online).toBe(false);
+    });
+
+    it("does the same for machines behind the router", () => {
+        const built = usersOf({
+            id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [], ports: [],
+            children: [{
+                id: "d1", ip: "10.0.0.12", name: "ws", type: "DEVICE",
+                users: [{ id: "u2", username: "aritter", password: "pw" }],
+                ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh" }],
+            }],
+        });
+        const names = built.children[0].users.map((u: { username: string }) => u.username);
+        expect(names).toContain("aritter");
+        expect(names).toContain("guest");
+    });
+
+    it("leaves plumbing alone — nobody logs into a splitter or a firewall", () => {
+        const built = usersOf({
+            id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [], ports: [],
+            children: [
+                { id: "s1", ip: "1.1.1.2", name: "LAN", type: "SPLITTER", users: [], ports: [], children: [] },
+                { id: "f1", ip: "1.1.1.3", name: "FW", type: "FIREWALL", users: [], ports: [], rules: [] },
+            ],
+        });
+        expect(built.children[0].users).toEqual([]);
+        expect(built.children[1].users).toEqual([]);
+    });
+
+    it("works on a build with no createDefaultUserSchema at all", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", { ipMode: "fixed", device: router() });
+        p.quests[0].graph.nodes = [entry, net];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+        const made: any[] = [];
+        const sdk = stubSdk([], []) as any;
+        sdk.Network.createSubnetNetwork = (d: unknown) => { made.push(d); return (d as any).ip; };
+        delete sdk.Network.createDefaultUserSchema;
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        expect(() => q.OnStart()).not.toThrow();
+        expect(made[0].users.map((u: { username: string }) => u.username)).toContain("admin");
+    });
+});

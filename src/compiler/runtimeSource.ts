@@ -1127,6 +1127,51 @@ function __qeRegisterProject(sdk, PROJECT) {
             return pairs.length ? generic : trimmed;
         }
 
+        /* Build a device's user list the way the engine expects to find it.
+
+           The SSH exploit does not log in as whoever happens to be listed. It
+           looks for a guest account or a user who is ONLINE, and says so when
+           it finds neither:
+
+               [*] Attack failed.
+               [*] No guest account or online user found.
+
+           QA hit exactly that with a device that had a perfectly good named
+           user on it. The working reference mod never hands over a bare array:
+           every one of its 25 machines wraps its users in
+           createDefaultUserSchema(users, { guest: true }), which is what adds
+           the accounts the engine actually attacks.
+
+           So we do the same, and mark the author's own users online unless they
+           deliberately said otherwise - a machine nobody is logged into cannot
+           be broken into through a login service, which is not a distinction
+           the editor ever offered to make. */
+        function mapUsers(dev) {
+            var made = (dev.users || []).map(function (u) {
+                var o = sdk.Network.createUser
+                    ? sdk.Network.createUser({ username: u.username, password: u.password })
+                    : { username: u.username, password: u.password };
+                if (u.firstName) o.firstName = u.firstName;
+                if (u.lastName) o.lastName = u.lastName;
+                /* A user's files mount in their home directory — this is the
+                   only way to put a file on a remote machine before the
+                   player ever connects to it. */
+                if (u.files && u.files.length) o.files = mapFiles(u.files);
+                o.online = u.online == null ? true : !!u.online;
+                if (u.acceptReverseTCP != null) o.acceptReverseTCP = !!u.acceptReverseTCP;
+                if (u.emailAddress) o.email = { address: u.emailAddress, password: u.emailPassword || "" };
+                return o;
+            });
+            var kind = String(dev.type || "").toUpperCase();
+            /* Splitters and firewalls are plumbing; nobody logs into them, and
+               giving them a guest account would be noise on the player's map. */
+            if (kind === "SPLITTER" || kind === "FIREWALL") return made;
+            if (sdk.Network.createDefaultUserSchema) {
+                return sdk.Network.createDefaultUserSchema(made, { guest: true });
+            }
+            return made;
+        }
+
         function mapDevice(dev) {
             var out = {
                 ip: dev.ip,
@@ -1136,19 +1181,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (p.version) o.version = p.version;
                     return o;
                 }),
-                users: (dev.users || []).map(function (u) {
-                    var o = sdk.Network.createUser ? sdk.Network.createUser({ username: u.username, password: u.password }) : { username: u.username, password: u.password };
-                    if (u.firstName) o.firstName = u.firstName;
-                    if (u.lastName) o.lastName = u.lastName;
-                    /* A user's files mount in their home directory — this is the
-                       only way to put a file on a remote machine before the
-                       player ever connects to it. */
-                    if (u.files && u.files.length) o.files = mapFiles(u.files);
-                    if (u.online != null) o.online = !!u.online;
-                    if (u.acceptReverseTCP != null) o.acceptReverseTCP = !!u.acceptReverseTCP;
-                    if (u.emailAddress) o.email = { address: u.emailAddress, password: u.emailPassword || "" };
-                    return o;
-                }),
+                users: mapUsers(dev),
             };
             /* The SDK's device definition is a discriminated union, and only
                some arms carry some fields: children belongs to Router and

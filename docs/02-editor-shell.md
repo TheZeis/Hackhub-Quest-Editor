@@ -2411,3 +2411,59 @@ save. Worth knowing before concluding that r52 did not work either.
 **Verification:** 558 tests (19 files, +7), `tsc --noEmit` clean, `vite build`
 clean. Removing the new cleanup call makes three of the new tests fail, so the
 coverage is real. Export stamp: `EDITOR_BUILD = "2026-09-03.r52"`.
+
+## Round 53 — the accounts the exploit is actually looking for
+
+r52 worked: with the stale network finally torn down, the port banner shows
+`OpenSSH 7.2.0` — the value the project has held since r49. Everything the
+previous three rounds fixed was real; it simply could not reach the game.
+
+With the right machine finally under attack, the exploit failed with a **new**
+message, and the change is the whole finding:
+
+```
+r51:  [*] Port 22 could not be accessed.
+r53:  [*] No guest account or online user found.
+```
+
+That second line is a specification. The SSH exploit does not log in as whoever
+happens to be listed on the device: it wants a **guest account**, or a user who
+is **online**. The router had a named `admin` — added in r51 to fix the first
+message — who was neither.
+
+The working reference mod never hands the engine a bare user array. All 25 of
+its machines wrap their users in
+
+```js
+Network.createDefaultUserSchema([ ...users ], { guest: true })
+```
+
+...and that call is what adds the accounts the exploit attacks. We had never
+called it once, on any device, in any template.
+
+Devices now go through it, and the author's own users default to `online: true`
+unless they explicitly said otherwise — a machine nobody is logged into cannot
+be broken into through a login service, and that was never a distinction the
+editor offered to make. Splitters and firewalls are excluded: they are plumbing,
+and a guest account on them would just be noise on the player's network map.
+
+Verified against the compiled template: the router and the workstation each
+arrive carrying their named user (online) **and** a guest account.
+
+### Three fixes, one symptom, in order
+
+Worth recording, because the sequence was only legible in hindsight. "The
+exploit fails" had three independent causes stacked on top of each other:
+
+1. **r51** — the machine had no users at all (`Port 22 could not be accessed`);
+2. **r52** — the fix could not reach the game, because a stale network in the
+   save shadowed every re-export;
+3. **r53** — the users it did have were the wrong kind
+   (`No guest account or online user found`).
+
+Each fix was necessary and none was sufficient. The error message changing is
+what proved progress each time, which is an argument for reading the exact
+wording rather than "it still fails".
+
+**Verification:** 564 tests (19 files, +6), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r53"`.
