@@ -1501,14 +1501,16 @@ describe("other calls that never matched the SDK", () => {
 });
 
 /**
- * QA, round 35: the Ledger quest called `sendMail(0, "i.faber@ghostmail.io")`
+ * QA, round 37. The Ledger quest called `sendMail(0, "i.faber@ghostmail.io")`
  * — verified by running the author's own exported mod against a stub engine —
- * and no mail ever arrived in-game. The call is right; the engine dropped it.
+ * and no mail ever arrived in-game, through two rounds of fixes.
  *
- * Two defences, both tested here: bind the live quest instance in every hook
- * (the engine may build the class more than once, and only one instance can
- * actually send), and check the inbox afterwards, delivering the mail directly
- * if the quest path lost it.
+ * The answer came from reading a working quest mod by another author
+ * (Nemesis) side by side with ours: it never uses Quest.Mails or
+ * this.sendMail at all. Every mail it sends, briefing included, goes out
+ * through the global `Mail.send({ from, subject, content })`. So that is the
+ * path taken first here; the quest-scoped call is kept only as a fallback for
+ * a build that has no Mail.send.
  */
 describe("a briefing mail that actually arrives", () => {
     function mailProject() {
@@ -1525,78 +1527,96 @@ describe("a briefing mail that actually arrives", () => {
         return p;
     }
 
-    /** A stub engine whose quest mail delivery works. */
-    function workingEngine(calls: string[]) {
+    function engineWithMailSend(calls: string[]) {
         const inbox: { id: string; subject: string }[] = [];
         const sdk = stubSdk(calls, []) as any;
         sdk.Mail = {
             getInbox: () => inbox,
             getPlayerEmail: () => "player@gomail.com",
-            send: (m: { subject: string }) => { calls.push(`Mail.send:${m.subject}`); inbox.push({ id: "d", subject: m.subject }); },
+            send: (m: { subject: string; from?: string; to?: string }) => {
+                calls.push(`Mail.send:${m.subject}:${m.from}:${m.to}`);
+                inbox.push({ id: "d", subject: m.subject });
+            },
         };
         return { sdk, inbox };
     }
 
+    function modJs() {
+        return compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
     it("keeps the mail's reply flag, which the engine needs to allow a reply", () => {
         const sdk = stubSdk([], []) as any;
-        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        runMod(modJs(), sdk);
         const q = new (registered0(sdk).quests[0])();
         expect(q.Mails[0]).toMatchObject({ title: "One file", replyable: true });
     });
 
-    it("sends through the quest, and says so once the inbox shows it", async () => {
+    it("sends through Mail.send, addressed from the sender to the player", async () => {
         const calls: string[] = [];
-        const { sdk, inbox } = workingEngine(calls);
+        const { sdk } = engineWithMailSend(calls);
         const said: string[] = [];
         const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
-        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        runMod(modJs(), sdk);
         const q = new (registered0(sdk).quests[0])();
-        // the working engine: sendMail puts it in the inbox
-        q.sendMail = (i: number, from: string) => {
-            calls.push(`sendMail:${i}:${from}`);
-            inbox.push({ id: "q", subject: q.Mails[i].title });
-        };
-        q.OnStart();
-        await new Promise((r) => setTimeout(r, 1700));
-        spy.mockRestore();
-
-        expect(calls).toContain("sendMail:0:i.faber@ghostmail.io");
-        expect(calls.filter((c) => c.startsWith("Mail.send"))).toEqual([]); // no double mail
-        expect(said.join("\n")).toContain('mail "One file" delivered');
-    });
-
-    it("delivers it directly when the quest path swallows it", async () => {
-        const calls: string[] = [];
-        const { sdk } = workingEngine(calls);
-        const said: string[] = [];
-        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
-        runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-        const q = new (registered0(sdk).quests[0])();
-        // the QA engine: the call is accepted and nothing happens
         q.sendMail = (i: number) => calls.push(`sendMail:${i}`);
         q.OnStart();
         await new Promise((r) => setTimeout(r, 1700));
         spy.mockRestore();
 
-        expect(calls).toContain("sendMail:0");
-        expect(calls).toContain("Mail.send:One file");
-        expect(said.join("\n")).toContain("never reached the inbox");
+        expect(calls).toContain("Mail.send:One file:i.faber@ghostmail.io:player@gomail.com");
+        // the path that QA proved silent is not used when Mail.send exists
+        expect(calls.filter((c) => c.startsWith("sendMail:"))).toEqual([]);
+        expect(said.join("\n")).toContain('mail "One file" sent via Mail.send');
+        expect(said.join("\n")).toContain('mail "One file" delivered');
     });
 
-    it("binds the instance the engine is actually running", async () => {
-        // The engine builds the class twice; only the second instance is live.
+    it("falls back to the quest's own sendMail when the build has no Mail.send", async () => {
         const calls: string[] = [];
-        const { sdk } = workingEngine(calls);
-        const Cls = (() => {
-            runMod(compileProject(mailProject()).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
-            return registered0(sdk).quests[0];
-        })();
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Mail = {}; // an engine without the global mail API
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        runMod(modJs(), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.sendMail = (i: number, from: string) => calls.push(`sendMail:${i}:${from}`);
+        q.OnStart();
+        await new Promise((r) => setTimeout(r, 1700));
+        spy.mockRestore();
+
+        expect(calls).toContain("sendMail:0:i.faber@ghostmail.io");
+        expect(said.join("\n")).toContain("sent via Quest.sendMail(0)");
+    });
+
+    it("reports a mail the engine accepted but never delivered", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Mail = {
+            getInbox: () => [],
+            getPlayerEmail: () => "player@gomail.com",
+            send: (m: { subject: string }) => calls.push(`Mail.send:${m.subject}`),
+        };
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        runMod(modJs(), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await new Promise((r) => setTimeout(r, 1700));
+        spy.mockRestore();
+
+        expect(said.join("\n")).toContain("is not in the inbox");
+    });
+
+    it("still binds the instance the engine is actually running", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Mail = {}; // force the quest-scoped path so the binding is observable
+        runMod(modJs(), sdk);
+        const Cls = registered0(sdk).quests[0];
         const dead = new Cls();
         const live = new Cls();
         dead.sendMail = () => calls.push("sendMail:DEAD");
         live.sendMail = (i: number) => calls.push(`sendMail:LIVE:${i}`);
-        // OnStart is called on the live one; the last-constructed reference is
-        // no longer a safe assumption, so the hook must rebind.
         const other = new Cls();
         other.sendMail = () => calls.push("sendMail:OTHER");
         live.OnStart();

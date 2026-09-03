@@ -90,6 +90,14 @@ var __QE = (function () {
     function log(msg) {
         try { if (typeof console !== "undefined" && console.log) console.log("[quest-editor] " + msg); } catch (e) { /* nothing to do */ }
     }
+    /* A wait that never depends on the game's clock. sleep() prefers
+       Random.sleep so story beats obey game time, but anything that has to
+       happen for certain (checking whether a mail actually arrived) uses this
+       instead: if Random.sleep were ever paused, stubbed or slow, a
+       verify-and-repair step hanging on it would silently never run. */
+    function wait(ms) {
+        return new Promise(function (res) { setTimeout(res, ms); });
+    }
     function sleep(ms) {
         /* Prefer the game's own timer (SDK 0.21.0 Random.sleep) so waits obey
            whatever the game does with time; fall back to a plain timeout when
@@ -101,7 +109,7 @@ var __QE = (function () {
         } catch (e) { /* fall through to the timeout below */ }
         return new Promise(function (res) { setTimeout(res, ms); });
     }
-    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
+    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -390,13 +398,21 @@ function __qeRegisterProject(sdk, PROJECT) {
            two nodes later was never sent - the player got a quest with an
            objective and nothing else. Now a node that throws is logged and the
            flow carries on to the next one. */
-        /* Sending a quest mail, and making sure it actually arrived.
-           QA hit a quest whose briefing mail never appeared even though
-           sendMail() was called with the right index: the engine accepted the
-           call and delivered nothing. So: send it, then look in the player's
-           inbox a moment later, and if it is not there, deliver the same mail
-           through the global Mail API instead. Whichever path worked is written
-           to the log, so a failure can be diagnosed from a report. */
+        /* Sending a mail from the story.
+
+           Two rounds of QA said the same thing: quests built here declared
+           their mail in Quest.Mails and sent it with this.sendMail(index), the
+           engine took the call without complaint, and nothing ever appeared in
+           GoMail. A working quest mod from another author (Nemesis) was read
+           side by side with ours and it never touches this.sendMail or
+           Quest.Mails at all - every mail it sends, including its opening
+           briefing, goes out through the global Mail.send({ from, subject,
+           content }). That is the path the game demonstrably delivers, so it is
+           the path used first here.
+
+           this.sendMail is still tried afterwards, but only if Mail.send was
+           not available, and the inbox is still checked so a report can say
+           which path carried the mail. */
         function sendQuestMail(node, scope) {
             var mi = mailIndex[node.id];
             var baseMail = Mails[mi];
@@ -405,57 +421,84 @@ function __qeRegisterProject(sdk, PROJECT) {
             var content = __QE.fill(baseMail.content || "", scope);
             var from = mailFrom[node.id] || "";
 
+            /* Keep the declared copy in step with what was actually sent, so a
+               quest whose mail carries {{tokens}} still reads correctly if the
+               engine ever surfaces Quest.Mails itself. */
             if (questRef && questRef.Mails && questRef.Mails[mi]) {
                 var filledMail = { title: subject, content: content };
                 if (baseMail.replyable) filledMail.replyable = true;
                 if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
                 questRef.Mails[mi] = filledMail;
             }
-            var sent = false;
-            try {
-                if (questRef && questRef.sendMail) {
-                    questRef.sendMail(mi, from || undefined);
-                    sent = true;
-                }
-            } catch (e) {
-                __QE.log("sendMail(" + mi + ") threw: " + (e && e.message ? e.message : e));
-            }
-            if (!sent) __QE.log("sendMail(" + mi + ") could not be called on this quest instance");
 
-            /* Verify, then repair. Delivery may be a tick or two behind, so the
-               check waits before deciding anything. */
-            __QE.sleep(1500).then(function () {
-                if (__qeInboxHas(subject)) {
-                    __QE.log("mail \"" + subject + "\" delivered");
-                    return;
+            var how = "";
+            if (sdk.Mail && sdk.Mail.send) {
+                var direct = { subject: subject, content: content };
+                if (from) direct.from = from;
+                var to = __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
+                if (to) direct.to = to;
+                if (baseMail.attachment && baseMail.attachment.name) {
+                    direct.attachments = [{
+                        name: baseMail.attachment.name,
+                        extension: baseMail.attachment.extension || "txt",
+                        data: baseMail.attachment.content || "",
+                    }];
                 }
-                if (sdk.Mail && sdk.Mail.send) {
-                    var direct = { subject: subject, content: content };
-                    if (from) direct.from = from;
-                    var to = __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
-                    if (to) direct.to = to;
-                    if (baseMail.attachment && baseMail.attachment.name) {
-                        direct.attachments = [{
-                            name: baseMail.attachment.name,
-                            extension: baseMail.attachment.extension || "txt",
-                            data: baseMail.attachment.content || "",
-                        }];
+                try {
+                    sdk.Mail.send(direct);
+                    how = "Mail.send";
+                } catch (e) {
+                    __QE.log("Mail.send failed for \"" + subject + "\": " + (e && e.message ? e.message : e));
+                }
+            }
+
+            /* Only if the global API is missing or refused the mail: the old
+               quest-scoped path, so nothing regresses on a build where it is
+               the only one that exists. */
+            if (!how) {
+                try {
+                    if (questRef && questRef.sendMail) {
+                        questRef.sendMail(mi, from || undefined);
+                        how = "Quest.sendMail(" + mi + ")";
                     }
-                    __QE.safe(function () { sdk.Mail.send(direct); return ""; });
-                    __QE.log("quest mail \"" + subject + "\" never reached the inbox; sent it directly with Mail.send instead");
+                } catch (e2) {
+                    __QE.log("Quest.sendMail(" + mi + ") threw: " + (e2 && e2.message ? e2.message : e2));
+                }
+            }
+
+            if (!how) {
+                __QE.log("mail \"" + subject + "\" could not be sent: this build offers neither Mail.send nor a usable Quest.sendMail");
+                return;
+            }
+            __QE.log("mail \"" + subject + "\" sent via " + how);
+
+            /* Confirm it landed. This wait is a plain timer on purpose - the
+               check must not be able to hang on the game's own clock, which is
+               what stopped the previous build from ever reporting anything. */
+            __QE.wait(1500).then(function () {
+                var inbox = __qeInbox();
+                if (inbox === null) return; /* engine does not let us look */
+                if (__qeInboxHas(inbox, subject)) {
+                    __QE.log("mail \"" + subject + "\" delivered");
                 } else {
-                    __QE.log("quest mail \"" + subject + "\" never reached the inbox, and this build has no Mail.send to fall back on");
+                    __QE.log("mail \"" + subject + "\" was accepted by " + how + " but is not in the inbox");
                 }
             });
         }
 
-        /* Is a mail with this subject in the player's inbox? Unknown (false)
-           when the game does not expose the inbox. */
-        function __qeInboxHas(subject) {
-            var inbox = __QE.safe(function () {
-                return sdk.Mail && sdk.Mail.getInbox ? sdk.Mail.getInbox() : null;
-            });
-            if (!inbox || !inbox.length) return false;
+        /* The player's inbox, or null when this build will not show it - null
+           and "empty" mean different things to the delivery check. */
+        function __qeInbox() {
+            try {
+                if (!sdk.Mail || !sdk.Mail.getInbox) return null;
+                var list = sdk.Mail.getInbox();
+                return list && list.length != null ? list : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function __qeInboxHas(inbox, subject) {
             for (var i = 0; i < inbox.length; i++) {
                 if (inbox[i] && inbox[i].subject === subject) return true;
             }

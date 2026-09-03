@@ -1388,3 +1388,65 @@ Two more faults in the same node, both about the player never finding the thing:
 
 **Verification:** 459 tests (19 files, +4), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-02.r36"`.
+
+## Round 37 — the mail bug, found by reading a mod that works
+
+Three rounds were spent on quest mail that never arrived. Round 35 fixed real
+SDK signature bugs around it, round 36 added a verify-and-repair fallback, and
+QA still reported the same thing: the quest auto-starts, the objective appears
+in the HUD, GoMail stays empty.
+
+This round had two pieces of evidence the earlier ones did not.
+
+### The game log said nothing at all
+
+The author's `hackhub-2026-09-03.log` contains **zero** `[quest-editor]` lines
+across four game sessions — while other mods log their load banners normally.
+So it was not that mail was sent and dropped. On the machine that reported the
+bug, none of our logging ran, which also means the round 36 fallback — which
+only runs *after* a `Random.sleep(1500)` — never got the chance to fire. Two
+consequences:
+
+- the verify-and-repair step no longer waits on the game's clock. It uses a
+  plain timer, so a paused or stubbed `Random.sleep` cannot swallow it.
+- every send now logs immediately, before any waiting, saying which path
+  carried the mail. A report can now distinguish "never ran" from "ran and the
+  engine ate it".
+
+### A working mod never uses the API we were using
+
+The author supplied `mod.js` from **Nemesis**, a quest mod by another author
+whose mails do arrive. Read next to ours, the difference is not subtle: Nemesis
+declares no `Mails` array and never calls `this.sendMail`. Its opening briefing,
+and every later mail, goes out through the global
+
+```js
+Mail.send({ from, subject, content })
+```
+
+That is the path the engine demonstrably delivers. `Quest.Mails` +
+`this.sendMail(index)` is documented in the SDK's type declarations, we were
+using it correctly, and it does not put mail in the player's inbox in build
+1.1.2.
+
+So the order is now inverted. `Mail.send` is the primary path, addressed from
+the mail node's sender to `Mail.getPlayerEmail()`; `this.sendMail` is kept only
+as a fallback for a build that has no global mail API, so nothing regresses.
+`Quest.Mails` is still declared and still kept in step with what was actually
+sent — it costs nothing and the engine may yet surface it.
+
+Run against the author's own exported Ledger project, the generated mod now
+logs:
+
+```
+[quest-editor] mail "One file, one man, no trace" sent via Mail.send
+[quest-editor] mail "One file, one man, no trace" delivered
+```
+
+and `Quest.sendMail` is never called.
+
+**Verification:** 460 tests (19 files), `tsc --noEmit` clean. The mail suite was
+rewritten around the new contract: Mail.send first with the right `from`/`to`,
+fallback when the global API is absent, and a distinct log line for a mail the
+engine accepted but did not deliver. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r37"`.
