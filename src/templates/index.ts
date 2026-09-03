@@ -732,7 +732,13 @@ function buildContractHack(): ProjectDocument {
                 },
             ],
             ports: [
-                { id: "p-http", external: 80, internal: 80, active: true, service: "http" },
+                /* Present but CLOSED. A web port on an edge router is what a
+                   real one looks like, and having it here shows the difference
+                   between a port that answers and one that does not — but the
+                   quest is written around the SSH route, and an open port 80
+                   invites the player down a path this template does not
+                   script. A second template can teach the web route properly. */
+                { id: "p-http", external: 80, internal: 80, active: false, service: "http" },
                 { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },
             ],
             rules: [],

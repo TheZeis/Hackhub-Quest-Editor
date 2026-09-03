@@ -2467,3 +2467,47 @@ wording rather than "it still fails".
 
 **Verification:** 564 tests (19 files, +6), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r53"`.
+
+## Round 54 — two small things before the next test
+
+### One way in
+
+The Ledger router advertised port 80 as open next to SSH. The quest is written
+entirely around the SSH route, so an open web port invites the player down a
+path the template does not script — and the HTTP exploit route has not been
+tested at all yet.
+
+The port stays, closed. An edge router with a web port is what a real one looks
+like, and one closed port beside one that answers teaches the difference at a
+glance. A later template can teach the web route properly, once it is known to
+work. Tests assert the port is present, closed, and that exactly one port on
+that router is open.
+
+### Probes that name themselves
+
+QA was hand-typing a name into each of ten debug probes on every test run, which
+is exactly the friction that stops a diagnostic from being used. The convention
+QA arrived at is a good one, so it is now generated:
+
+```
+<Socket>-<Node>-<Detail>
+```
+
+Wiring a probe to an objective's "On complete" socket names it
+`OnComplete-Objective-DeleteLedger`. On the real contract template the full set
+comes out as `Out-CreateNetwork-MeridianEdge`, `Out-ToolResponse-Lynx`,
+`When-WhenEvent-TerminalLynxSearch`, `Unlocks-Objective-GetAShell`, and so on.
+
+Three details worth stating:
+
+- **the socket comes first**, because the interesting probes hang off a
+  *particular* output — "Yes" against "No" on a branch, "Unlocks" against "On
+  complete" on an objective. The name uses the label the author sees on the
+  canvas, not the internal handle id (`done` → `OnComplete`);
+- **the detail is whatever tells two nodes of one type apart** — an objective's
+  name, a device's name, a trigger's event, a mail's subject line;
+- **it only ever fills a blank.** An author who types their own name keeps it,
+  including when the probe is later rewired to something else.
+
+**Verification:** 576 tests (19 files, +12), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r54"`.

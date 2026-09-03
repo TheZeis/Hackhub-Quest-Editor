@@ -1009,7 +1009,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "label", hint: "A name for this checkpoint, so you can tell several apart in the log.", label: "Label", placeholder: "after the exploit" },
+            { kind: "text", key: "label", hint: "Names itself after whatever you wire it to — socket, node and detail. Type your own to override it.", label: "Label", placeholder: "named when you connect it" },
             { kind: "toggle", key: "includeData", hint: "Print everything the quest has saved with a “Remember a value” node.", label: "Include saved values" },
             { kind: "toggle", key: "includePayload", hint: "Print the event that got here — the field names it really carries, which are not always the ones the docs promise.", label: "Include the event" },
             { kind: "toggle", key: "toast", hint: "Also show it on screen, so you can test without reading the log file.", label: "Show on screen too" },

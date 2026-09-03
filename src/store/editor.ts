@@ -15,6 +15,7 @@ import type { EdgeDoc } from "@/schema/edges";
 import { ProjectSchema, createProject, createQuest } from "@/schema/project";
 import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import { layeredLayout } from "@/analysis/graph";
+import { debugProbeName } from "@/editor/canvas/debugName";
 import { canConnect, type EdgeKind } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
 import type { Position, Viewport } from "@/schema/common";
@@ -468,7 +469,20 @@ export const useEditor = create<EditorStore>()((set, get) => {
             };
             mutate((p) => {
                 const q = p.quests.find((x) => x.id === quest.id);
-                q?.graph.edges.push(edge);
+                if (!q) return;
+                q.graph.edges.push(edge);
+
+                /* Name a debug probe after whatever it was just wired to.
+                   Hand-labelling ten probes per test run is the friction that
+                   stops a diagnostic being used, so the probe names itself:
+                   <Socket>-<Node>-<Detail>, the convention QA arrived at. Only
+                   ever fills a blank label — an author's own text is never
+                   overwritten, here or on a later rewire. */
+                const probe = q.graph.nodes.find((n) => n.id === target);
+                if (probe && probe.type === "flow.debug") {
+                    const data = probe.data as { label: string };
+                    if (!data.label.trim()) data.label = debugProbeName(sourceNode, sourceHandle);
+                }
             });
             return true;
         },

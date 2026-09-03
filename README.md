@@ -46,6 +46,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r54 | Debug probes name themselves from the node and socket they are wired to (`OnComplete-Objective-DeleteLedger`), still editable. Ledger's port 80 is now closed — visible but not an unscripted second way in. |
 | r53 | “No guest account or online user found”: the SSH exploit wants a guest account or an online user, not just any named user. Devices now go through `createDefaultUserSchema(users, { guest: true })` — which the working reference mod uses on all 25 of its machines and we had never called — and the author's own users default to online. |
 | r52 | Networks were never destroyed: `destroyOnComplete` existed in the schema and the inspector from day one and the compiler never read it. A stale network in the save shadowed every re-export — the cause of the port version that would not change and the exploit that kept failing. |
 | r51 | The exploit failed with “Port 22 could not be accessed”: the router opened SSH but had no user accounts, so there was nobody to log in as. Template fixed, and export now warns for any machine with a login service and no users. |

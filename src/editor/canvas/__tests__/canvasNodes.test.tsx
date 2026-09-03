@@ -10,6 +10,8 @@ import userEvent from "@testing-library/user-event";
 import App from "@/App";
 import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
+import { debugProbeName } from "@/editor/canvas/debugName";
+import type { NodeDoc } from "@/schema/nodes";
 import { withAlpha } from "@/editor/canvas/QuestCanvas";
 import {
     DOT_GAP,
@@ -498,3 +500,84 @@ describe("group frames", () => {
     });
 });
 
+
+/**
+ * Round 54. A probe is only useful if you can tell which one printed a line,
+ * and QA was hand-typing a name into each of ten probes on every test run.
+ * The convention QA settled on is <Socket>-<Node>-<Detail>, so that is what a
+ * probe now calls itself when it is wired up.
+ */
+describe("a debug probe names itself after what it is watching", () => {
+    const objective = (name: string): NodeDoc =>
+        ({ id: "o1", type: "objective", position: { x: 0, y: 0 }, data: { name, description: "d" } }) as NodeDoc;
+
+    it("uses the socket, the node and a distinguishing detail", () => {
+        expect(debugProbeName(objective("delete-ledger"), "done")).toBe("OnComplete-Objective-DeleteLedger");
+    });
+
+    it("names the socket the author sees, not the internal handle id", () => {
+        // "done" is the id; "On complete" is what is written on the canvas.
+        expect(debugProbeName(objective("x"), "done")).toContain("OnComplete");
+        expect(debugProbeName(objective("x"), "unlocks")).toContain("Unlocks");
+    });
+
+    it("distinguishes the branches of a decision", () => {
+        const branch = {
+            id: "b1", type: "flow.branch", position: { x: 0, y: 0 },
+            data: { conditions: [], source: "data" },
+        } as unknown as NodeDoc;
+        expect(debugProbeName(branch, "true")).not.toBe(debugProbeName(branch, "false"));
+        expect(debugProbeName(branch, "true")).toContain("Yes");
+        expect(debugProbeName(branch, "false")).toContain("No");
+    });
+
+    it("picks a detail that tells two nodes of the same type apart", () => {
+        const net = (deviceName: string) =>
+            ({
+                id: "n1", type: "world.network", position: { x: 0, y: 0 },
+                data: { ipMode: "fixed", device: { name: deviceName, type: "ROUTER" } },
+            }) as unknown as NodeDoc;
+        expect(debugProbeName(net("meridian-edge"), "out")).toContain("MeridianEdge");
+        expect(debugProbeName(net("ritter-ws"), "out")).toContain("RitterWs");
+    });
+
+    it("uses the event name for a trigger", () => {
+        const trig = {
+            id: "t1", type: "trigger.event", position: { x: 0, y: 0 },
+            data: { event: "Terminal.Lynx.Search", conditions: [] },
+        } as unknown as NodeDoc;
+        expect(debugProbeName(trig, "out")).toContain("TerminalLynxSearch");
+    });
+
+    it("uses the subject line for a mail", () => {
+        const mail = {
+            id: "m1", type: "comms.dialogue", position: { x: 0, y: 0 },
+            data: { kind: "mail", mail: { subject: "One file, one man, no trace" } },
+        } as unknown as NodeDoc;
+        expect(debugProbeName(mail, "out")).toContain("OneFileOneMan");
+    });
+
+    it("drops empty parts rather than leaving a dangling dash", () => {
+        const bare = { id: "s1", type: "entry.start", position: { x: 0, y: 0 }, data: {} } as NodeDoc;
+        const name = debugProbeName(bare, "out");
+        expect(name).not.toMatch(/--|^-|-$/);
+    });
+
+    it("names a probe on connect, and never overwrites what the author typed", () => {
+        const store = useEditor.getState();
+        const objId = store.addNode("objective", { x: 0, y: 0 })!;
+        useEditor.getState().updateNodeData(objId, { name: "get-a-shell" });
+        const probeId = useEditor.getState().addNode("flow.debug", { x: 300, y: 0 })!;
+
+        useEditor.getState().connect({ source: objId, sourceHandle: "done", target: probeId, targetHandle: "in" });
+        const named = quest().graph.nodes.find((n) => n.id === probeId)!;
+        expect((named.data as { label: string }).label).toBe("OnComplete-Objective-GetAShell");
+
+        // The author renames it; a later rewire must leave that alone.
+        useEditor.getState().updateNodeData(probeId, { label: "my own name" });
+        const other = useEditor.getState().addNode("objective", { x: 0, y: 200 })!;
+        useEditor.getState().connect({ source: other, sourceHandle: "done", target: probeId, targetHandle: "in" });
+        const after = quest().graph.nodes.find((n) => n.id === probeId)!;
+        expect((after.data as { label: string }).label).toBe("my own name");
+    });
+});

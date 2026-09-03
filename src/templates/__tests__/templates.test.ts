@@ -356,3 +356,39 @@ describe("template mail bodies are written as plain text", () => {
         expect(runOn).toEqual([]);
     });
 });
+
+/**
+ * Round 54. The Ledger router advertised port 80 as open. The quest is written
+ * entirely around the SSH route, so an open web port invites the player down a
+ * path the template does not script — and QA has not tested the HTTP exploit
+ * route yet either.
+ *
+ * The port stays in the list, closed: an edge router with a web port is what a
+ * real one looks like, and having one closed next to one that answers shows the
+ * difference. A later template can teach the web route properly.
+ */
+describe("the contract template offers exactly one way in", () => {
+    const router = () => {
+        const p = getTemplate("contract-hack")!.build();
+        const net = p.quests[0].graph.nodes.find((n) => n.type === "world.network")!;
+        return (net.data as { device: { ports: { external: number; active?: boolean; service?: string }[] } }).device;
+    };
+
+    it("keeps port 80 visible, so the network still reads as real", () => {
+        expect(router().ports.some((pt) => pt.external === 80)).toBe(true);
+    });
+
+    it("leaves port 80 closed", () => {
+        expect(router().ports.find((pt) => pt.external === 80)!.active).toBe(false);
+    });
+
+    it("leaves ssh open, since that is the route the quest scripts", () => {
+        const ssh = router().ports.find((pt) => pt.external === 22)!;
+        expect(ssh.active).toBe(true);
+        expect(ssh.service).toBe("ssh");
+    });
+
+    it("has exactly one open port to attack", () => {
+        expect(router().ports.filter((pt) => pt.active !== false)).toHaveLength(1);
+    });
+});
