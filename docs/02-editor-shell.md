@@ -1581,3 +1581,80 @@ clean. The author's own project, recompiled and driven through a CJS loader the
 way the game loads it, now prints the load banner, sends the briefing as clean
 prose, and completes `read-brief` when `Mail.Read` fires. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r39"`.
+
+## Round 40 — a full audit against a mod that works
+
+Rounds 35–39 all had the same shape: the SDK declared something, we used it
+correctly, and this build ignored it. Rather than wait for the next one to
+surface in play, every SDK surface the compiler touches was checked three ways:
+against the type declarations, against **Nemesis** (a large mod known to work in
+build 1.1.2), and by running the output.
+
+### What was already right
+
+- **Every namespace call.** All 38 `sdk.X.y()` calls the runtime makes exist in
+  the declarations, bar two deliberate guarded fallbacks
+  (`Network.createWifiNetwork`, `Shell.execute`), both behind `if` checks.
+- **The event catalogue.** `reference/hackhub-events.json` is generated from the
+  SDK's `ModEventMap`: 92 events, no drift in either direction, no payload
+  field mismatches. This is why the editor's condition builder has never offered
+  an event that does not exist.
+- **Quest, Command and CommandTools members**, and the shapes passed to
+  `Database.create`, `Bank.transaction`, `Kisscord.sendMessage`,
+  `WeeChat.sendMessage`, `Files.createTree` and `Network.createUser`.
+
+### Four faults found
+
+**1. Devices carried fields their union arm does not have.** The SDK's device
+definition is a discriminated union: `children` belongs to Router and Splitter,
+`rules` to Firewall, `model`/`accessable` to Router. We attached all of them to
+every device, so a plain DEVICE shipped with empty `children` and `rules`
+arrays, and routers shipped rules they cannot enforce. Nemesis — which builds
+far larger networks — never does this. Generated devices now match its output
+key for key:
+
+```
+ROUTER keys=[accessable,children,domain,ip,model,name,ports,type,users]
+  DEVICE keys=[ip,name,ports,type,users]
+```
+
+Because a device retyped after it was filled in can still be carrying fields it
+will now lose, export warns rather than dropping them silently.
+
+**2. Two templates triggered on an event that does not exist.**
+`Files.Downloaded` is not in the engine's event map; both the investigation and
+reference templates used it to detect a file being pulled off a box, so those
+objectives could never complete. The real event is
+`Terminal.SSH.FileDownload` (payload `id, name, extension`). A trigger naming a
+nonexistent event fails exactly like a trigger whose conditions have not matched
+yet, which is why it survived this long — so there is now a test that validates
+every shipped template trigger against the catalogue, name and field.
+
+**3. Websites never set `Icon`,** which the SDK declares abstract. Every website
+in Nemesis sets it, including to `""`. An absent abstract member is precisely
+the shape of fault that cost rounds 35–38.
+
+**4. Template mail bodies were written in HTML.** The Ledger brief that shipped
+reading `<p>His name is <b>Anselm Ritter</b>` was our own template text. r39's
+converter fixes it either way, but a template should not ship markup that has to
+be stripped back out; all six template mails are now plain text with blank-line
+paragraphs. Website page bodies remain HTML, as they should be.
+
+### Verified end to end
+
+The contract-hack template, compiled and driven through a CJS loader the way the
+game loads it, now reports:
+
+```
+The Ledger Contract loaded (editor build 2026-09-03.r40)
+mail "One file, one man, no trace" delivered
+objective "read-brief"      completed by Mail.Read
+objective "identify-target" completed by Terminal.Lynx.Search
+objective "find-server"     completed by Terminal.Whois
+objective "scan-server"     completed by Terminal.NmapScan
+objective "get-a-shell"     completed by Metasploit.Meterpreter.Connected
+objective "delete-ledger"   completed by Files.Deleted
+```
+
+**Verification:** 483 tests (19 files, +11), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r40"`.

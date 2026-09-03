@@ -983,14 +983,32 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (u.emailAddress) o.email = { address: u.emailAddress, password: u.emailPassword || "" };
                     return o;
                 }),
-                children: (dev.children || []).map(mapDevice),
             };
+            /* The SDK's device definition is a discriminated union, and only
+               some arms carry some fields: children belongs to Router and
+               Splitter, rules to Firewall, model/accessable to Router. We used
+               to attach all of them to everything, so a plain DEVICE went out
+               with an empty children array and an empty rules array. Nemesis,
+               which builds far larger networks than we do, never does that -
+               its DEVICE objects carry only ip/type/name/users/ports/rootFiles
+               /domain. Sending fields an arm does not declare is exactly the
+               kind of thing this engine ignores silently, so each field is now
+               attached only where it belongs. */
+            var kind = String(dev.type || "").toUpperCase();
+            if (kind === "ROUTER" || kind === "SPLITTER") {
+                out.children = (dev.children || []).map(mapDevice);
+            }
+            if (kind === "FIREWALL") {
+                out.rules = dev.rules || [];
+            }
             if (dev.name) out.name = dev.name;
             if (dev.lanIp) out.lanIp = dev.lanIp;
             if (dev.isIpHidden != null) out.isIpHidden = !!dev.isIpHidden;
-            if (dev.model) out.model = dev.model;
-            if (dev.accessable != null) out.accessable = dev.accessable;
-            if (dev.rules) out.rules = dev.rules;
+            /* model/accessable are Router-only in the union. */
+            if (kind === "ROUTER") {
+                if (dev.model) out.model = dev.model;
+                if (dev.accessable != null) out.accessable = dev.accessable;
+            }
             if (dev.rootFiles && dev.rootFiles.length) out.rootFiles = mapFiles(dev.rootFiles);
             if (dev.files && dev.files.length) out.rootFiles = (out.rootFiles || []).concat(mapFiles(dev.files));
             /* The engine takes a domain as { name, vulnerabilities }, not a
@@ -1260,6 +1278,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                 super(...arguments);
                 this.SiteName = w.name || w.host;
                 this.Host = w.host;
+                /* Icon is declared abstract on Website, so it is a member the
+                   engine expects to find. We have no icon to give a generated
+                   site, but every website in Nemesis sets it - including to ""
+                   - and an absent abstract member is precisely the kind of
+                   thing this build ignores without complaint. */
+                this.Icon = w.icon || "";
                 this.Pages = pages;
             }
         };

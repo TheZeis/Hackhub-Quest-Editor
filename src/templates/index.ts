@@ -211,7 +211,7 @@ function buildWifiHack(): ProjectDocument {
             from: "handler@anon.mail",
             subject: "Small job — the apartment next door",
             content:
-                "<p>There is an access point called <b>NEIGHBOUR_5Ghz</b> two walls away. Get on it, then get onto the machine behind it. Payment on delivery.</p>",
+                "There is an access point called NEIGHBOUR_5Ghz two walls away. Get on it, then get onto the machine behind it. Payment on delivery.",
             replyable: false,
         },
     });
@@ -404,7 +404,8 @@ function buildInvestigation(): ProjectDocument {
             from: "r.okafor@protonmail.com",
             subject: "You were recommended to me",
             content:
-                "<p>I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.</p><p>The intranet is at <b>intranet.meridian-capital.net</b>. Find your own way in — I cannot be seen helping.</p>",
+                "I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.\n\n" +
+                "The intranet is at intranet.meridian-capital.net. Find your own way in — I cannot be seen helping.",
             replyable: true,
             attachment: { name: "shift-roster", extension: "txt", content: "Night shift: 02:00-06:00. Badge logs disabled during maintenance windows." },
         },
@@ -547,9 +548,12 @@ function buildInvestigation(): ProjectDocument {
         { x: 660, y: 150 },
     );
     const tDirhunter = triggerFor(findPage, "Terminal.Dirhunter", [], { x: 660, y: 320 });
+    /* Terminal.SSH.FileDownload, not "Files.Downloaded" - the latter is not an
+       event this engine has, so this objective could never complete. Found by
+       validating every template trigger against the SDK's ModEventMap. */
     const tDownload = triggerFor(
         exfil,
-        "Files.Downloaded",
+        "Terminal.SSH.FileDownload",
         [{ field: "name", op: "contains", value: "ledger" }],
         { x: 1300, y: 560 },
     );
@@ -807,10 +811,10 @@ function buildContractHack(): ProjectDocument {
             from: "i.faber@ghostmail.io",
             subject: "One file, one man, no trace",
             content: [
-                `<p>His name is <b>${TARGET}</b>. That is all you get, and all you need.</p>`,
-                `<p>On his machine there is a spreadsheet called <b>${FILE}.xlsx</b>. I want it gone. Not copied, not read to me — gone.</p>`,
-                `<p>When it is done, tell me through the drop page: <b>${DOMAIN}/terminal/secure-reply</b>. Do not reply to this address.</p>`,
-            ].join(""),
+                `His name is ${TARGET}. That is all you get, and all you need.`,
+                `On his machine there is a spreadsheet called ${FILE}.xlsx. I want it gone. Not copied, not read to me — gone.`,
+                `When it is done, tell me through the drop page: ${DOMAIN}/terminal/secure-reply. Do not reply to this address.`,
+            ].join("\n\n"),
             replyable: true,
         },
     });
@@ -895,7 +899,7 @@ function buildContractHack(): ProjectDocument {
         mail: {
             from: "i.faber@ghostmail.io",
             subject: "Received",
-            content: "<p>Checked. It is gone. The rest of the money is with you.</p><p>I will have more work.</p>",
+            content: "Checked. It is gone. The rest of the money is with you.\n\nI will have more work.",
             replyable: false,
         },
     });
@@ -909,7 +913,7 @@ function buildContractHack(): ProjectDocument {
         mail: {
             from: "i.faber@ghostmail.io",
             subject: "Re: job closed",
-            content: `<p>You must be joking. The file is still sitting in his home directory — I am looking at it.</p><p>Do the job, then write to me.</p>`,
+            content: "You must be joking. The file is still sitting in his home directory — I am looking at it.\n\nDo the job, then write to me.",
             replyable: false,
         },
     });
@@ -1115,10 +1119,10 @@ function buildDirhunter(): ProjectDocument {
             from: "m.oyelaran@bcc-desk.net",
             subject: "The pad hold nobody will talk about",
             content: [
-                "<p>NAZA held the LV-9 launch at forty seconds and has said nothing since. There is an abort review sitting on one of their internal boxes.</p>",
-                `<p>Their site is <b>${HOST}</b>. The staff portal will not take a login you do not already have — but agencies are careless with the pages they do not link to.</p>`,
-                "<p>Bring me the report. No heroics.</p>",
-            ].join(""),
+                "NAZA held the LV-9 launch at forty seconds and has said nothing since. There is an abort review sitting on one of their internal boxes.",
+                `Their site is ${HOST}. The staff portal will not take a login you do not already have — but agencies are careless with the pages they do not link to.`,
+                "Bring me the report. No heroics.",
+            ].join("\n\n"),
             replyable: false,
         },
     });
@@ -1289,7 +1293,7 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
         hidden: false,
     },
     "trigger.event": {
-        event: "Files.Downloaded",
+        event: "Terminal.SSH.FileDownload",
         conditions: [{ id: "c1", join: "and", field: "name", op: "contains", value: "manifest" }],
     },
     "world.network": {

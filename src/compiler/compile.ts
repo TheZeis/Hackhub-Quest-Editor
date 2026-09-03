@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r39";
+export const EDITOR_BUILD = "2026-09-03.r40";
 
 export interface CompiledFile {
     path: string;
@@ -146,6 +146,39 @@ export function computeWarnings(project: ProjectDocument): string[] {
                         );
                     }
                     break;
+                case "world.network": {
+                    /* The engine's device definition only lets a Router or a
+                       Splitter hold other machines, and only a Firewall hold
+                       rules. The editor only offers those fields on those
+                       types, but a device retyped after it was filled in can
+                       still be carrying them, and they would vanish at export
+                       without a word. */
+                    const orphans: string[] = [];
+                    const strays: string[] = [];
+                    const walk = (d: {
+                        ip?: string; name?: string; type?: string;
+                        children?: unknown[]; rules?: unknown[];
+                    }) => {
+                        const kind = String(d.type ?? "").toUpperCase();
+                        const holds = kind === "ROUTER" || kind === "SPLITTER";
+                        const label = d.name || d.ip || "a device";
+                        if (!holds && d.children?.length) orphans.push(`${label} (${kind || "no type"})`);
+                        if (kind !== "FIREWALL" && d.rules?.length) strays.push(`${label} (${kind || "no type"})`);
+                        (d.children ?? []).forEach((c) => walk(c as Parameters<typeof walk>[0]));
+                    };
+                    walk((n.data as { device?: Parameters<typeof walk>[0] }).device ?? {});
+                    if (orphans.length) {
+                        warnings.push(
+                            `${q.name}: ${orphans.join(", ")} has machines behind it, but only a router or a splitter can hold other machines — those machines will not be built. Change the type to Router or Splitter, or move them.`,
+                        );
+                    }
+                    if (strays.length) {
+                        warnings.push(
+                            `${q.name}: ${strays.join(", ")} carries firewall rules, but only a firewall device enforces them — they will be ignored. Put the rules on a Firewall device in front of the machine you want to protect.`,
+                        );
+                    }
+                    break;
+                }
                 case "fx.handbook":
                     warnings.push(`${q.name}: handbook nodes are not compiled yet.`);
                     break;

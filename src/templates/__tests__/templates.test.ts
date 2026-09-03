@@ -12,6 +12,7 @@ import { summarize } from "@/editor/canvas/summarize";
 import { getTemplate, TEMPLATES } from "@/templates";
 import { analyseGraph } from "@/analysis/graph";
 import { computeWarnings } from "@/compiler/compile";
+import { getEvent, payloadFields } from "@/schema/events";
 
 describe("template registry", () => {
     it("ships the templates named in the plan", () => {
@@ -252,5 +253,106 @@ describe("node summaries", () => {
             .build()
             .quests[0].graph.nodes.find((n) => n.type === "world.wifi")!;
         expect(summarize(wifi).join(" ")).toContain("NEIGHBOUR_5Ghz");
+    });
+});
+
+/**
+ * QA, round 40. Three rounds of "the SDK described a thing but the build does
+ * not honour it" ended with a full audit of every SDK surface the compiler
+ * touches, against the declarations and against Nemesis — a large mod known to
+ * work in this build.
+ *
+ * This is the check that would have caught the worst of what the audit found:
+ * two templates triggered on `Files.Downloaded`, an event this engine does not
+ * have, so those objectives could never complete. A trigger naming an event
+ * that does not exist fails silently and looks exactly like a trigger whose
+ * conditions have not matched yet, which is why it survived so long.
+ */
+describe("every template triggers on events the engine actually raises", () => {
+    const shipped = TEMPLATES.flatMap((t) => {
+        const p = t.build();
+        return p.quests.flatMap((q) =>
+            q.graph.nodes
+                .filter((n) => n.type === "trigger.event")
+                .map((n) => ({
+                    template: t.id,
+                    quest: q.name,
+                    data: n.data as { event: string; conditions?: { field: string }[] },
+                })),
+        );
+    });
+
+    it("uses only event names the SDK declares (or our own QE.* events)", () => {
+        const unknown = shipped
+            .filter(({ data }) => !data.event.startsWith("QE.") && !getEvent(data.event))
+            .map(({ template, quest, data }) => `${template}/${quest}: ${data.event}`);
+        expect(unknown).toEqual([]);
+    });
+
+    it("matches only on fields those events actually carry", () => {
+        const wrong: string[] = [];
+        for (const { template, quest, data } of shipped) {
+            const ev = getEvent(data.event);
+            if (!ev) continue;
+            const fields = payloadFields(ev.payload);
+            if (!fields.length) continue; // primitive payload: nothing to match on
+            for (const c of data.conditions ?? []) {
+                const root = c.field.split(".")[0];
+                if (!fields.includes(root)) {
+                    wrong.push(`${template}/${quest}: ${data.event} has no "${c.field}" (has ${fields.join(", ")})`);
+                }
+            }
+        }
+        expect(wrong).toEqual([]);
+    });
+
+    it("still covers the templates whose objectives depend on a download", () => {
+        // Terminal.SSH.FileDownload replaced a nonexistent "Files.Downloaded";
+        // pin it so the fix cannot be quietly reverted.
+        const events = shipped.map((s) => s.data.event);
+        expect(events).toContain("Terminal.SSH.FileDownload");
+        expect(events).not.toContain("Files.Downloaded");
+    });
+});
+
+/**
+ * QA, round 40. The Ledger brief that shipped showing "<p>His name is
+ * <b>Anselm Ritter</b>" was our own template text, not something the author
+ * wrote. r39 taught the compiler to convert HTML to the plain text GoMail
+ * displays, which fixes it either way — but a template should not be shipping
+ * markup that has to be stripped back out. Website page bodies are still HTML,
+ * as they should be; this is mail only.
+ */
+describe("template mail bodies are written as plain text", () => {
+    const mails = TEMPLATES.flatMap((t) => {
+        const p = t.build();
+        return p.quests.flatMap((q) =>
+            q.graph.nodes
+                .filter((n) => n.type === "comms.dialogue" && (n.data as { kind: string }).kind === "mail")
+                .map((n) => ({
+                    where: `${t.id}/${q.name}`,
+                    mail: (n.data as { mail: { subject: string; content: string } }).mail,
+                })),
+        );
+    });
+
+    it("ships at least one mail to check", () => {
+        expect(mails.length).toBeGreaterThan(0);
+    });
+
+    it("contains no HTML tags", () => {
+        const withTags = mails
+            .filter(({ mail }) => /<\/?(p|b|i|br|div|span|ul|li|h[1-6])\b[^>]*>/i.test(mail.content))
+            .map(({ where, mail }) => `${where}: ${mail.subject}`);
+        expect(withTags).toEqual([]);
+    });
+
+    it("separates paragraphs with blank lines rather than running them together", () => {
+        // A body built from several sentences must not arrive as one wall of
+        // text: joining the parts with "" was how the tags had been hiding it.
+        const runOn = mails
+            .filter(({ mail }) => mail.content.length > 220 && !mail.content.includes("\n"))
+            .map(({ where, mail }) => `${where}: ${mail.subject}`);
+        expect(runOn).toEqual([]);
     });
 });

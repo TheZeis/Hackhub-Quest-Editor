@@ -1841,3 +1841,121 @@ describe("objectives the player completes by playing", () => {
         expect(q.Objectives[0].trigger.condition({ subject: "nope" })).toBe(false);
     });
 });
+
+/**
+ * QA, round 40 — audit against Nemesis.
+ *
+ * The SDK's device definition is a discriminated union: `children` belongs to
+ * Router and Splitter, `rules` to Firewall, `model`/`accessable` to Router. We
+ * were attaching all of them to every device, so a plain DEVICE shipped with an
+ * empty `children` array and an empty `rules` array. Nemesis — which builds far
+ * bigger networks than any of our templates — never does this: its DEVICE
+ * objects carry only ip/type/name/users/ports/rootFiles/domain.
+ */
+describe("network devices match the SDK's union, arm by arm", () => {
+    function networkProject(device: Record<string, unknown>) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", { ipMode: "fixed", destroyOnComplete: true, device });
+        q.graph.nodes = [entry, net];
+        q.graph.edges = [edge(entry.id, net.id, "flow")];
+        return compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    /* runFlow is async, so the node runs a microtask after OnStart returns. */
+    async function built(device: Record<string, unknown>) {
+        const made: any[] = [];
+        const sdk = stubSdk([], []) as any;
+        sdk.Network.createSubnetNetwork = (d: unknown) => { made.push(d); return (d as any).ip; };
+        runMod(networkProject(device), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnStart();
+        await settle();
+        expect(made).toHaveLength(1);
+        return made[0];
+    }
+
+    const leaf = { id: "d2", ip: "10.0.0.12", name: "workstation", type: "DEVICE", users: [], ports: [], rules: [], children: [] };
+
+    it("does not give a plain device children or rules", async () => {
+        const root = await built({
+            id: "d1", ip: "45.33.32.156", name: "edge", type: "ROUTER", model: "MikroTik",
+            accessable: true, users: [], ports: [], rules: [], children: [leaf],
+        });
+        const child = root.children[0];
+        expect(child.type).toBe("DEVICE");
+        expect(child).not.toHaveProperty("children");
+        expect(child).not.toHaveProperty("rules");
+        // and it keeps everything a device is allowed to have
+        expect(Object.keys(child).sort()).toEqual(["ip", "name", "ports", "type", "users"]);
+    });
+
+    it("keeps children on a router and a splitter", async () => {
+        const root = await built({
+            id: "d1", ip: "1.1.1.1", type: "ROUTER", users: [], ports: [], children: [
+                { id: "s", ip: "1.1.1.2", type: "SPLITTER", users: [], ports: [], children: [leaf] },
+            ],
+        });
+        expect(root.children[0].type).toBe("SPLITTER");
+        expect(root.children[0].children).toHaveLength(1);
+    });
+
+    it("gives rules only to a firewall, and router-only fields only to a router", async () => {
+        const root = await built({
+            id: "d1", ip: "1.1.1.1", type: "ROUTER", model: "MikroTik", accessable: true,
+            users: [], ports: [], rules: [{ allowed: false, port: 22, source: "*", destination: "10.0.0.9" }],
+            children: [
+                { id: "f", ip: "1.1.1.3", type: "FIREWALL", model: "nope", accessable: true, users: [], ports: [],
+                  rules: [{ allowed: false, port: 22, source: "*", destination: "10.0.0.9" }] },
+            ],
+        });
+        // the router keeps model/accessable but loses the rules it cannot enforce
+        expect(root.model).toBe("MikroTik");
+        expect(root.accessable).toBe(true);
+        expect(root).not.toHaveProperty("rules");
+        // the firewall keeps its rules but not the router-only fields
+        const fw = root.children[0];
+        expect(fw.rules).toHaveLength(1);
+        expect(fw).not.toHaveProperty("model");
+        expect(fw).not.toHaveProperty("accessable");
+    });
+
+    it("warns when a device is carrying machines or rules it cannot keep", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [node("world.network", {
+            ipMode: "fixed", destroyOnComplete: true,
+            device: { id: "d1", ip: "1.1.1.1", name: "box", type: "DEVICE", users: [], ports: [],
+                      rules: [{ allowed: false, port: 22, source: "*", destination: "x" }],
+                      children: [leaf] },
+        })];
+        const w = computeWarnings(p).join("\n");
+        expect(w).toContain("only a router or a splitter can hold other machines");
+        expect(w).toContain("only a firewall device enforces them");
+    });
+});
+
+/**
+ * QA, round 40. `Website.Icon` is declared abstract in the SDK, and every
+ * website in Nemesis sets it — including to the empty string. We never set it
+ * at all, and an absent abstract member is the shape of fault that cost rounds
+ * 35–38.
+ */
+describe("generated websites set every member the SDK declares abstract", () => {
+    it("sets SiteName, Host, Pages and Icon", () => {
+        const p = createProject();
+        p.websites = [{ id: "w1", host: "meridian-capital.net", name: "Meridian", pages: [
+            { id: "p1", path: "/", title: "Home", seo: true, content: "<h1>hi</h1>" },
+        ] }];
+        const sdk = stubSdk([], []) as any;
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const site = new (registered0(sdk).websites[0])();
+        expect(site.SiteName).toBe("Meridian");
+        expect(site.Host).toBe("meridian-capital.net");
+        expect(site.Pages).toHaveLength(1);
+        expect(site.Icon).toBeDefined();
+    });
+});
