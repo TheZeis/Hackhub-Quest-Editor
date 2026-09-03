@@ -74,7 +74,7 @@ they cannot reproduce this. Any new harness must simulate permission denial.
    That last detail = a permanent `requestAnimationFrame`/CSS animation loop
    (browsers throttle rAF in background tabs); a memory leak would not stop so
    cleanly. Suspects: animated wire/noodle rendering, always-on CSS animations,
-   React re-render storms on mousemove. **A performance capture is on the
+   React re-render storms on mousemove. **An idle Firefox performance capture is on the
    `QA-filedump` branch — fetch and read it.**
 7. Then the queued backlog: wire/noodle physics, contact-driven story template,
    branching-consequence template.
@@ -85,7 +85,7 @@ they cannot reproduce this. Any new harness must simulate permission denial.
 - Port version strings: plain numbers only (`7.2p2` broke metasploit).
 - SDK declarations = ground truth; Zeis's in-game testing = second; community
   wikis = unverified.
-- Templates must survive being hand-rearranged by Zeis.
+- Templates must survive being hand-rearranged by Zeis/other users.
 - `src/compiler/runtimeSource.ts` is a `String.raw` template: write regexes with
   SINGLE backslashes. Doubling them emits `\\s` and throws at `new Function`
   time (~63 tests fail at once).
