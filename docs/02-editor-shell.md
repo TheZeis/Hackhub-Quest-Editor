@@ -2136,3 +2136,62 @@ clean. Fired with the exact payloads the game sends — including the bare strin
 for lynx — the contract template completes read-brief, identify-target,
 find-server, scan-server, get-a-shell and delete-ledger in order. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r47"`.
+
+## Round 48 — the same question asked of every tool
+
+r47 fixed `lynx`. The right follow-up is the one QA asked: which of the other
+tools have the same problem?
+
+The honest answer is that nobody can know without running each one in-game. What
+*can* be guaranteed is that the compiler survives either shape for all of them,
+so the next event that disagrees costs a log line rather than a round.
+
+The risk class is precise. An event the SDK declares as an object with exactly
+**one** field can plausibly arrive as a bare value instead — that is exactly what
+`Terminal.Lynx.Search` does. Across the 92-event catalogue:
+
+- **3** are already declared as primitives (`AppStore.Downloaded`,
+  `Terminal.SSH.Connected`, `Terminal.SSH.Disconnected`);
+- **19** are single-field objects — lynx's risk class, including
+  `Terminal.Geoip`, `Terminal.Dig`, `Terminal.Cd`, `Terminal.Explorer`,
+  `Terminal.Openssl`, `WeeChat.Connected`/`Disconnected`, `PFSense.Login`,
+  `Sqlmap.ListTables` and `Mail.AccountLoggedIn`;
+- **70** carry several fields, where a bare value cannot stand in for the whole
+  payload and the declared shape is far likelier to be right.
+
+New tests drive **every** event in the catalogue through a real compiled mod:
+each single-field event in its declared shape *and* as a bare value, each
+declared primitive, and the first field of every multi-field event. All pass.
+Reverting the r47 fallback makes the bare-value sweep fail, so the coverage is
+real rather than decorative.
+
+A second test pins each scripted tool to the event it should raise and the field
+an author would match on — the nine pairs the Standard Contract Hack walkthrough
+depends on — against the SDK's own catalogue.
+
+Ambiguity is still refused: a multi-field payload whose named field is absent
+does not guess.
+
+### The date warning is ours
+
+QA noticed a `moment` deprecation warning
+(`value provided is not in a recognized RFC2822 or ISO format`) and did the
+right experiment: uninstalled the quest-editor mod, ran the game, and the
+warning did not appear. It is caused by our mod, and in every log it follows a
+mail being sent.
+
+We never set a date on a mail. `QuestMailDefinition` has no date field and
+`MailDefinition` (what `Mail.send` takes) has none either — `sentAt` appears
+only on `MailInfo`, which is what the game hands *back*. So the game is
+defaulting the timestamp and then parsing its own default with `moment`.
+
+That is as far as the evidence goes, and it is not enough to justify a change:
+the plausible culprits are the `to` address we set from `Mail.getPlayerEmail()`
+(the working reference mod omits `to` on its introduction mail) and the
+`attachments` array (which that mod never sends). Guessing between them would
+repeat the r41/r43 mistake of shipping a fix for an unconfirmed theory. It is
+recorded on the roadmap as ours, with the evidence, and it is a warning rather
+than an error — nothing is broken by it today.
+
+**Verification:** 523 tests (19 files, +8), `tsc --noEmit` clean. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r48"`.

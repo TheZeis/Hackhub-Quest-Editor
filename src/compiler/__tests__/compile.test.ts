@@ -10,6 +10,7 @@ import { mailBodyText } from "@/compiler/mailText";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
 import { getTemplate, TEMPLATES } from "@/templates";
+import { EVENTS, getEvent, payloadFields } from "@/schema/events";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 
@@ -2445,5 +2446,133 @@ describe("conditions survive an event whose real shape is not the declared one",
         quest.OnObjectivesStart();
         for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) h("Anselm Ritter");
         expect(calls).toContain("complete:identify-target");
+    });
+});
+
+/**
+ * QA, round 48 — the same sweep across every tool and every event.
+ *
+ * r47 fixed `lynx` by making a field lookup cope with a payload that is not the
+ * declared shape. The obvious question is which *other* events have the same
+ * problem, and the honest answer is that we cannot know without testing each
+ * one in-game. What we can do is guarantee the compiler survives either shape
+ * for all of them, so that when one does disagree it costs nobody a round.
+ *
+ * The risk class is precise: an event the SDK declares as an object with
+ * exactly ONE field can plausibly arrive as a bare value instead — that is what
+ * `Terminal.Lynx.Search` turned out to do. There are 19 such events, plus the
+ * 3 the SDK already declares as primitives.
+ */
+describe("every event the editor offers works in both shapes", () => {
+    function fires(event: string, field: string, value: string, payload: unknown) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const obj = node("objective", { name: "obj", description: "d" });
+        const trig = node("trigger.event", {
+            event,
+            conditions: [{ id: "c1", join: "and", field, op: "equals", value }],
+        });
+        p.quests[0].graph.nodes = [obj, trig];
+        p.quests[0].graph.edges = [edge(trig.id, obj.id, "condition")];
+
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnObjectivesStart();
+        for (const [, h] of listeners.filter(([e]) => e === event)) h(payload);
+        return calls.includes("complete:obj");
+    }
+
+    /** Events declared as an object with exactly one field. */
+    const singleField = EVENTS.filter((e) => payloadFields(e.payload).length === 1);
+
+    it("finds the single-field events, so this test cannot quietly cover nothing", () => {
+        expect(singleField.length).toBeGreaterThan(15);
+        expect(singleField.map((e) => e.name)).toContain("Terminal.Lynx.Search");
+    });
+
+    it("matches every single-field event in its DECLARED object shape", () => {
+        const broken: string[] = [];
+        for (const e of singleField) {
+            const f = payloadFields(e.payload)[0];
+            if (!fires(e.name, f, "value-x", { [f]: "value-x" })) broken.push(`${e.name}.${f}`);
+        }
+        expect(broken).toEqual([]);
+    });
+
+    it("matches every single-field event when it really arrives as a bare value", () => {
+        // This is the lynx case, applied to all 19 of its risk class.
+        const broken: string[] = [];
+        for (const e of singleField) {
+            const f = payloadFields(e.payload)[0];
+            if (!fires(e.name, f, "value-x", "value-x")) broken.push(`${e.name}.${f}`);
+        }
+        expect(broken).toEqual([]);
+    });
+
+    it("matches the events the SDK already declares as primitives", () => {
+        const prims = EVENTS.filter((e) => !e.payload.trim().startsWith("{"));
+        expect(prims.length).toBeGreaterThan(0);
+        const broken: string[] = [];
+        for (const e of prims) {
+            // The editor offers no field for these, so authors type their own.
+            if (!fires(e.name, "value", "10.0.0.5", "10.0.0.5")) broken.push(e.name);
+        }
+        expect(broken).toEqual([]);
+    });
+
+    it("matches the first field of every multi-field event in its declared shape", () => {
+        // The bulk of the catalogue: these are lower risk (a bare value cannot
+        // stand in for several fields), but they must not have regressed.
+        const broken: string[] = [];
+        for (const e of EVENTS) {
+            const fields = payloadFields(e.payload);
+            if (fields.length < 2) continue;
+            const f = fields[0];
+            const payload: Record<string, unknown> = {};
+            for (const k of fields) payload[k] = k === f ? "value-x" : "other";
+            if (!fires(e.name, f, "value-x", payload)) broken.push(`${e.name}.${f}`);
+        }
+        expect(broken).toEqual([]);
+    });
+
+    it("still refuses a multi-field event when the named field is absent and ambiguous", () => {
+        expect(fires("Terminal.Whois", "nope", "x", { domain: "x", whois: "y" })).toBe(false);
+    });
+});
+
+/**
+ * QA, round 48. Each scripted tool response has a matching trigger event, and
+ * the field an author would reach for has to be one the event really carries.
+ * These are the pairs the "Standard Contract Hack" walkthrough depends on.
+ */
+describe("scripted tool responses line up with the events they should raise", () => {
+    const PAIRS: [string, string, string][] = [
+        // tool             event                       field an author matches on
+        ["nmap", "Terminal.NmapScan", "ip"],
+        ["whois", "Terminal.Whois", "domain"],
+        ["nslookup", "Terminal.Nslookup", "domain"],
+        ["mxlookup", "Terminal.Mxlookup", "domain"],
+        ["ping", "Terminal.Ping", "ip"],
+        ["lynx", "Terminal.Lynx.Search", "query"],
+        ["geoip", "Terminal.Geoip", "ip"],
+        ["hydra", "Terminal.Hydra", "ip"],
+        ["ftp", "Terminal.FTP.Connect", "ip"],
+    ];
+
+    it("names only events the SDK declares", () => {
+        for (const [tool, event] of PAIRS) {
+            expect(getEvent(event), `${tool} -> ${event}`).toBeDefined();
+        }
+    });
+
+    it("matches on fields those events actually carry", () => {
+        for (const [tool, event, field] of PAIRS) {
+            const fields = payloadFields(getEvent(event)!.payload);
+            expect(fields, `${tool} -> ${event}`).toContain(field);
+        }
     });
 });

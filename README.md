@@ -21,15 +21,16 @@ dropped once it has stayed fixed for a few rounds.
 | # | Item | Notes |
 |---|---|---|
 | 1 | **Rest of the Ledger chain (whois → nmap → metasploit → delete → reply)** | Everything up to `identify-target` now works in-game. r47 fixed lynx; the remaining objectives use payload shapes that have not been confirmed against a real run yet. |
-| 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
+| 2 | **Date deprecation warning traced to our mod** | QA confirmed the `moment` RFC2822 warning appears only when a quest-editor mod is installed, and only after a mail is sent. We never set a date on a mail, so the game is defaulting one — likely from `Mail.send`. Harmless so far (a warning, not an error) but it is ours. Needs the mail-timestamp path narrowed down. |
+| 3 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
 
 | # | Item | Notes |
 |---|---|---|
-| 3 | Wire/noodle physics | Pulling a wire makes it hang and bounce; past a distance it pulls straight; releasing snaps it back before it disappears. Sag derived from slack, ~200ms non-interactive ghost on delete, physics only on the held wire, must honour the wire-motion toggle. **Must write inside the canvas, never the document root** (see r42). |
-| 4 | "Contact-driven story" template | Phone brief → Kisscord drip gated on objectives → WeeChat timed to a beat. |
-| 5 | "Branching consequence" template | A choice that changes which ending the player gets. |
+| 4 | Wire/noodle physics | Pulling a wire makes it hang and bounce; past a distance it pulls straight; releasing snaps it back before it disappears. Sag derived from slack, ~200ms non-interactive ghost on delete, physics only on the held wire, must honour the wire-motion toggle. **Must write inside the canvas, never the document root** (see r42). |
+| 5 | "Contact-driven story" template | Phone brief → Kisscord drip gated on objectives → WeeChat timed to a beat. |
+| 6 | "Branching consequence" template | A choice that changes which ending the player gets. |
 
 ### Known limitations (not bugs)
 
@@ -44,6 +45,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r48 | Swept all 92 events: the 19 declared as single-field objects (lynx's risk class) plus the 3 declared primitives are now proven to match in *both* the declared shape and as a bare value, so no other tool can fail the way lynx did. |
 | r47 | `Terminal.Lynx.Search` is declared `{ query: string }` but the game emits a bare string, so the condition read `undefined` and the objective never ticked. Field lookup now copes with a payload that is not the declared shape. |
 | r46 | Text conditions now ignore quotes, case and stray whitespace, so `lynx "Anselm Ritter"` and `lynx Anselm Ritter` both count. Non-matching events are logged with their real payload. The contract template no longer advertises a Twotter handle — searching one with no profile behind it crashes the game and corrupts the save; export now warns about it. |
 | r45 | `Mod "null"`: the quest graph ran in a microtask after `OnStart` had returned, so the engine had no mod bound and refused every SDK call. The graph now runs synchronously and only defers where the author asked for a wait. |
