@@ -2117,3 +2117,103 @@ describe("the bundle identifies itself before it registers anything", () => {
         expect(said.join("\n")).toContain("loaded (editor build");
     });
 });
+
+/**
+ * QA, round 45 — why the mod kept losing its permissions.
+ *
+ * The engine treats a mod as "current" only while it is inside a call it made:
+ * OnStart, OnObjectivesStart, an event handler. The moment one of those
+ * returns, the mod has no identity, and any SDK call after that is attributed
+ * to `Mod "null"` and refused. The game log said exactly this, in this order:
+ *
+ *     quest "TheLedgerContract7" started (1 entry point)
+ *     quest "TheLedgerContract7" objectives started
+ *     objective "read-brief" is listening for Mail.Read      (x7)
+ *     node world-network4 ... Mod "null" ... without "network" permission
+ *     Mail.send failed ... Mod "null" ... without "mail" permission
+ *
+ * Every failure arrives AFTER both lifecycle methods have finished — the tell
+ * that the work was running too late. `runFlow` chained every node through
+ * `Promise.resolve().then(...)`, so even wholly synchronous nodes were deferred
+ * into a microtask that ran once OnStart had already returned.
+ *
+ * The graph now runs synchronously as far as it can, and only becomes async
+ * where the author asked for a wait.
+ */
+describe("the quest does its work while the engine is still listening", () => {
+    /** A quest graph with no delays in it must finish inside OnStart(). */
+    function syncProject() {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "fixed",
+            device: { id: "r1", ip: "45.33.32.156", type: "ROUTER", users: [], ports: [], children: [] },
+        });
+        const notify = node("fx.notify", { message: "hello", variant: "toast", tone: "info" });
+        q.graph.nodes = [entry, net, notify];
+        q.graph.edges = [edge(entry.id, net.id, "flow"), edge(net.id, notify.id, "flow")];
+        return compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    it("builds the world before OnStart returns, not in a microtask after it", () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        runMod(syncProject(), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnStart();
+        // No awaits, no timers: everything must already have happened.
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        expect(calls.join(",")).toContain("toast:hello");
+    });
+
+    it("keeps working when the engine revokes permissions the moment OnStart returns", () => {
+        // Models the real failure: the SDK throws unless we are inside a call
+        // the engine made. This is what the game was doing to us.
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        let current = false;
+        const guard = <T extends (...a: any[]) => any>(label: string, fn: T) =>
+            ((...a: unknown[]) => {
+                if (!current) throw new Error(`[ContentSDK] Mod "null" tried to use ${label}`);
+                return fn(...a);
+            }) as T;
+        sdk.Network.createSubnetNetwork = guard("Network.createSubnetNetwork", (d: { ip: string }) => {
+            calls.push(`net:${d.ip}`);
+            return d.ip;
+        });
+        sdk.UI.toast = guard("UI.toast", (m: string) => calls.push(`toast:${m}`));
+
+        runMod(syncProject(), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        current = true;
+        q.OnStart();
+        current = false; // the engine returns; identity is gone
+
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        expect(calls.join(",")).toContain("toast:hello");
+    });
+
+    it("still honours a Delay node, which is allowed to be async", async () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const delay = node("flow.delay", { seconds: 0 });
+        const notify = node("fx.notify", { message: "later", variant: "toast", tone: "info" });
+        p.quests[0].graph.nodes = [entry, delay, notify];
+        p.quests[0].graph.edges = [edge(entry.id, delay.id, "flow"), edge(delay.id, notify.id, "flow")];
+
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnStart();
+        expect(calls.join(",")).not.toContain("toast:later"); // deliberately deferred
+        await settle();
+        expect(calls.join(",")).toContain("toast:later");
+    });
+});

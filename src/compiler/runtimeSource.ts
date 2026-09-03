@@ -127,6 +127,40 @@ var __QE = (function () {
     function wait(ms) {
         return new Promise(function (res) { setTimeout(res, ms); });
     }
+    /* Run fn over list in order, staying SYNCHRONOUS until something
+       actually returns a promise.
+
+       This exists because of how the engine scopes a mod's permissions: a mod
+       is only "current" while the engine is inside a call it made. Work pushed
+       into a microtask happens after that call has returned, by which point
+       the SDK no longer knows who is calling and refuses everything with
+       Mod "null". A plain reduce over Promise.resolve() defers even purely
+       synchronous work, so the entire quest graph was running too late. */
+    function seq(list, fn, onError) {
+        var i = 0;
+        function step() {
+            while (i < list.length) {
+                var item = list[i++];
+                var r;
+                try {
+                    r = fn(item);
+                } catch (e) {
+                    if (onError) onError(e);
+                    continue;
+                }
+                /* Only pay for a promise when the node really is async. */
+                if (r && typeof r.then === "function") {
+                    return r.then(step, function (e) {
+                        if (onError) onError(e);
+                        return step();
+                    });
+                }
+            }
+            return undefined;
+        }
+        return step();
+    }
+
     function sleep(ms) {
         /* Prefer the game's own timer (SDK 0.21.0 Random.sleep) so waits obey
            whatever the game does with time; fall back to a plain timeout when
@@ -138,7 +172,7 @@ var __QE = (function () {
         } catch (e) { /* fall through to the timeout below */ }
         return new Promise(function (res) { setTimeout(res, ms); });
     }
-    return { getPath: getPath, fill: fill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
+    return { getPath: getPath, fill: fill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, seq: seq, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -555,16 +589,19 @@ function __qeRegisterProject(sdk, PROJECT) {
         /* The wires out of a node, followed without running the node itself. */
         function continueFrom(nodeId, ctx, depth) {
             var node = byId[nodeId];
-            if (!node) return Promise.resolve();
-            return flowOuts(nodeId).reduce(function (p, e) {
-                return p.then(function () { return runFlow(e.target, ctx, depth + 1); });
-            }, Promise.resolve());
+            if (!node) return undefined;
+            /* Synchronous for the same reason as next() above: a skipped node
+               must not push the rest of the quest into a microtask, or
+               everything after it loses the mod's permissions. */
+            return __QE.seq(flowOuts(nodeId), function (e) {
+                return runFlow(e.target, ctx, depth + 1);
+            });
         }
 
         function runFlowStep(nodeId, ctx, depth) {
-            if (depth > 200) return Promise.resolve();
+            if (depth > 200) return undefined;
             var node = byId[nodeId];
-            if (!node) return Promise.resolve();
+            if (!node) return undefined;
             var scope = scopeOf(ctx);
             var next = function () {
                 var edges = flowOuts(nodeId);
@@ -575,9 +612,27 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var yes = __QE.matchAll(node.data.conditions, node.data.source === "data" ? (questRef ? questRef.Data : {}) : (ctx && ctx.payload) || {}, scopeOf(ctx));
                     edges = edges.filter(function (e) { return e.sourceHandle === (yes ? "true" : "false"); });
                 }
-                return edges.reduce(function (p, e) {
-                    return p.then(function () { return runFlow(e.target, ctx, depth + 1); });
-                }, Promise.resolve()).catch(function (e) {
+                /* Walk the wires SYNCHRONOUSLY for as long as we can.
+                   The engine only treats this mod as "current" while it is
+                   inside a call it made - OnStart, OnObjectivesStart, an event
+                   handler. The moment one of those returns, the mod loses its
+                   identity, and any SDK call made afterwards is attributed to
+                   Mod "null" and refused its permissions. Chaining every node
+                   through Promise.resolve().then(...) pushed ALL the real work
+                   into a microtask that ran after OnStart had returned, which
+                   is why the log read:
+
+                       quest "..." started (1 entry point)
+                       node world-network4 ... Mod "null" ... without "network"
+
+                   ...with the failures arriving after the start line. Only a
+                   node that genuinely has to wait (a Delay, a timed chat beat)
+                   may go async, and past that point the quest has already lost
+                   its permissions anyway - so waits are worth flagging rather
+                   than hiding. */
+                return __QE.seq(edges, function (e) {
+                    return runFlow(e.target, ctx, depth + 1);
+                }, function (e) {
                     __QE.log("flow after node " + nodeId + " stopped: " + (e && e.message ? e.message : e));
                 });
             };

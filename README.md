@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **The quest's `OnStart` never runs in-game** | r43 fixed the permissions (`Mod "null"` is gone from the log). But now nothing from `OnStart` happens at all — no network, no mail, no errors. `OnObjectivesStart` *does* run. r44 logs `quest "…" started` unconditionally so the next log says which of the two it is. |
+| 1 | **Objectives do not tick in-game** | Root cause found in r45: the quest graph ran in a microtask *after* `OnStart` returned, by which point the engine no longer knows which mod is calling and refuses every permission (`Mod "null"`). The graph is now synchronous. Needs an in-game re-test. |
 | 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -44,6 +44,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r45 | `Mod "null"`: the quest graph ran in a microtask after `OnStart` had returned, so the engine had no mod bound and refused every SDK call. The graph now runs synchronously and only defers where the author asked for a wait. |
 | r44 | An idle editor still spent 29% of its time in style recalculation: the shared dash-offset property had to be inherited, so every descendant of the canvas restyled 60×/second. Each wire now animates its own `stroke-dashoffset` and nothing is inherited. |
 | r43 | Mod identified itself as `Mod "null"` and was refused every permission — the bundle must install `module.exports` *before* it registers anything, the way esbuild does. Wire dots frozen since r42: a custom property must be registered with `@property` before the browser will interpolate it. |
 | r42 | An idle editor repainted the whole page 60×/second (40.8% of frame time) because the wire animation wrote a custom property to the document root. Now scoped to the canvas and handed to the browser's animation engine. |

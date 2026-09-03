@@ -1954,3 +1954,75 @@ still registered.
 
 **Verification:** 497 tests, `tsc --noEmit` clean, `vite build` clean. Export
 stamp: `EDITOR_BUILD = "2026-09-03.r44"`.
+
+## Round 45 — `Mod "null"` was a timing bug all along
+
+### Reading the log properly
+
+The r44 log finally had enough in it to be conclusive:
+
+```
+quest "TheLedgerContract7" started (1 entry point)
+quest "TheLedgerContract7" objectives started
+objective "read-brief" is listening for Mail.Read        (x7)
+node world-network4 ... Mod "null" ... without "network" permission
+node world-toolResponse5 ... Mod "null" ... without "shell" permission
+Mail.send failed ... Mod "null" ... without "mail" permission
+```
+
+Two things had been misread in earlier rounds.
+
+First, `Mod "null"` never went away. The r43 log looked clean only because
+`OnStart` had not run at all that time — silence was mistaken for success. That
+is a reminder to prefer positive evidence: the unconditional "quest started"
+line added in r44 is what made this readable.
+
+Second, and decisively: **every failure appears after both lifecycle lines.**
+`OnStart` and `OnObjectivesStart` had already returned by the time the network
+was attempted. That ordering is the entire diagnosis.
+
+### The cause
+
+The engine treats a mod as "current" only while it is inside a call it made —
+`OnStart`, `OnObjectivesStart`, an event handler. Once that call returns, the
+mod has no identity, and the next SDK call is attributed to `Mod "null"` and
+refused whatever the manifest says.
+
+`runFlow` walked the graph with
+
+```js
+edges.reduce((p, e) => p.then(() => runFlow(e.target, ...)), Promise.resolve())
+```
+
+`Promise.resolve().then(...)` defers even wholly synchronous work into a
+microtask. So every node — building the network, seeding tool output, sending
+the mail — ran *after* `OnStart` had returned, outside the window in which the
+mod was allowed to do anything. The quest never got a target machine, so nothing
+downstream of it could ever complete.
+
+This also explains why r41's `dist/manifest.json` change made no difference: the
+manifest was always fine, and always found. The mod was simply asking at the
+wrong moment.
+
+### The fix
+
+A small `__QE.seq` helper walks a list and stays synchronous until something
+genuinely returns a promise. `runFlow` and `continueFrom` both use it. A quest
+with no delays now completes entirely inside `OnStart`; a Delay node, a timed
+chat beat or a hackertyper moment still awaits, because those must.
+
+Reproduced first in a harness that revokes permissions the instant `OnStart`
+returns — which produced the author's four log lines exactly — and then fixed
+against it. Two of the new tests fail against the old code and pass against the
+new, so the regression is genuinely pinned rather than merely described.
+
+### On the wire animation frame rate
+
+Asked whether the 15fps throttle had been applied: yes, in r42
+(`FALLBACK_FPS = 15`), but it only governs the fallback loop for engines with no
+`Element.animate`. On Firefox and Chromium the browser drives the animation and
+there is no loop to throttle — which is why the second profile showed zero JS
+frames while idle.
+
+**Verification:** 500 tests (19 files, +3), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r45"`.
