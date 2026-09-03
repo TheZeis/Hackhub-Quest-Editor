@@ -2089,3 +2089,50 @@ input — quotes around the lynx name, `Meridian-Capital.NET` for the whois — 
 contract template now completes read-brief, identify-target, find-server,
 scan-server, get-a-shell and delete-ledger in order. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r46"`.
+
+## Round 47 — the declared payload was not the real one
+
+The logging added in r46 paid for itself on its first outing. One line:
+
+```
+objective "identify-target": Terminal.Lynx.Search fired but did not match.
+Event carried: "Anselm Ritter"
+```
+
+A **bare string**. The SDK declares the event as `{ query: string }`, the
+editor offers `query` as a field on that basis, and the condition dutifully read
+`.query` off a string, got `undefined`, and never matched. The dossier had been
+printing perfectly the whole time; only the objective was stuck.
+
+This is the fourth instance of the pattern that has run through this project:
+the declarations describe one thing and the build does another. Previous
+rounds fixed the specific case; this time the fix is general, because the next
+event to disagree would otherwise fail in exactly the same silent way:
+
+- if a payload is **not an object**, any field name resolves to the payload
+  itself — it is the only value there is, and unambiguously what the author
+  meant;
+- if a payload is an object with **exactly one primitive value** and the named
+  field is absent, that value is used — a mistyped field name should not be the
+  difference between a quest that works and one that stops dead;
+- if the object has **several** candidates, no guess is made. Guessing there
+  would be worse than saying no.
+
+Three events (`AppStore.Downloaded`, `Terminal.SSH.Connected` and
+`.Disconnected`) are declared as primitives, so this was always a shape the
+compiler had to handle; lynx simply proved the declarations can be wrong about
+which events those are.
+
+`Terminal.Lynx.Search` is also recorded in `PAYLOAD_IS_REALLY_PRIMITIVE`, so the
+condition builder describes it honestly instead of offering a field that will
+not be there. That list is for **in-game confirmed** discrepancies only — never
+inferred from declarations, which are precisely what proved unreliable here.
+
+Also confirmed by QA this round: the Twotter search no longer crashes, so
+removing the handle from the template closed a save-corrupting bug.
+
+**Verification:** 515 tests (19 files, +7), `tsc --noEmit` clean, `vite build`
+clean. Fired with the exact payloads the game sends — including the bare string
+for lynx — the contract template completes read-brief, identify-target,
+find-server, scan-server, get-a-shell and delete-ledger in order. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r47"`.

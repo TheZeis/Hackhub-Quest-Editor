@@ -2356,3 +2356,94 @@ describe("lynx results do not send the player somewhere that crashes", () => {
         }
     });
 });
+
+/**
+ * QA, round 47 — the SDK's declared payload shape is not always the truth.
+ *
+ * r46's "fired but did not match" logging paid for itself on its first outing:
+ *
+ *     objective "identify-target": Terminal.Lynx.Search fired but did not
+ *     match. Event carried: "Anselm Ritter"
+ *
+ * A bare string. The SDK declares `Terminal.Lynx.Search` as `{ query: string }`
+ * and the editor offers "query" as a field on that basis, so the condition read
+ * `.query` off a string, got undefined, and never matched. The dossier printed
+ * correctly the whole time — only the objective was stuck.
+ *
+ * This is a fourth instance of the pattern that has run through this whole
+ * project: the declarations describe one thing and the build does another. The
+ * fix is not to special-case lynx — the next event to disagree would break the
+ * same way — but to make a field lookup cope with a payload that is not the
+ * shape the declarations promised.
+ */
+describe("conditions survive an event whose real shape is not the declared one", () => {
+    function fires(event: string, conditions: unknown[], payload: unknown) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const obj = node("objective", { name: "obj", description: "d" });
+        const trig = node("trigger.event", { event, conditions });
+        p.quests[0].graph.nodes = [obj, trig];
+        p.quests[0].graph.edges = [edge(trig.id, obj.id, "condition")];
+
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnObjectivesStart();
+        for (const [, h] of listeners.filter(([e]) => e === event)) h(payload);
+        return calls.includes("complete:obj");
+    }
+
+    const onQuery = (op: string, value: string) => [{ id: "c1", join: "and", field: "query", op, value }];
+
+    it("matches a bare-string payload against the field the editor offered", () => {
+        // Exactly the case QA hit in-game.
+        expect(fires("Terminal.Lynx.Search", onQuery("contains", "Ritter"), "Anselm Ritter")).toBe(true);
+        expect(fires("Terminal.Lynx.Search", onQuery("equals", "Anselm Ritter"), "Anselm Ritter")).toBe(true);
+    });
+
+    it("still says no when a bare-string payload genuinely does not match", () => {
+        expect(fires("Terminal.Lynx.Search", onQuery("contains", "Ritter"), "someone else")).toBe(false);
+    });
+
+    it("keeps working for the events the SDK declares as primitives", () => {
+        // Terminal.SSH.Connected really is a bare IP string.
+        const ip = [{ id: "c1", join: "and", field: "ip", op: "equals", value: "10.0.0.12" }];
+        expect(fires("Terminal.SSH.Connected", ip, "10.0.0.12")).toBe(true);
+        expect(fires("Terminal.SSH.Connected", ip, "10.0.0.99")).toBe(false);
+    });
+
+    it("prefers the named field when the payload really is the declared object", () => {
+        const c = [{ id: "c1", join: "and", field: "domain", op: "equals", value: "example.net" }];
+        expect(fires("Terminal.Whois", c, { domain: "example.net", whois: "irrelevant" })).toBe(true);
+        expect(fires("Terminal.Whois", c, { domain: "other.net", whois: "example.net" })).toBe(false);
+    });
+
+    it("falls back to the only value when a single-field object is named wrongly", () => {
+        // A mistyped field name should not be the difference between a quest
+        // that works and one that stops dead, when there is only one candidate.
+        const c = [{ id: "c1", join: "and", field: "search", op: "contains", value: "Ritter" }];
+        expect(fires("Terminal.Lynx.Search", c, { query: "Anselm Ritter" })).toBe(true);
+    });
+
+    it("does not guess when a multi-field object could mean several things", () => {
+        // Two candidates: guessing here would be worse than saying no.
+        const c = [{ id: "c1", join: "and", field: "nope", op: "equals", value: "example.net" }];
+        expect(fires("Terminal.Whois", c, { domain: "example.net", whois: "text" })).toBe(false);
+    });
+
+    it("completes the contract template's lynx objective on the real payload", () => {
+        const p = getTemplate("contract-hack")!.build();
+        const calls: string[] = [];
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk(calls, listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnObjectivesStart();
+        for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) h("Anselm Ritter");
+        expect(calls).toContain("complete:identify-target");
+    });
+});

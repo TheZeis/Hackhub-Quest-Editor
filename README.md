@@ -20,7 +20,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **`lynx` objective may still not tick** | r46 makes text conditions case-insensitive and quote-tolerant, which is the likely cause, and logs `fired but did not match` with the event's actual fields when a condition rejects an event. If the next log shows neither line, the game is not raising `Terminal.Lynx.Search` for a scripted lynx result and the objective needs a different trigger. |
+| 1 | **Rest of the Ledger chain (whois → nmap → metasploit → delete → reply)** | Everything up to `identify-target` now works in-game. r47 fixed lynx; the remaining objectives use payload shapes that have not been confirmed against a real run yet. |
 | 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -44,6 +44,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r47 | `Terminal.Lynx.Search` is declared `{ query: string }` but the game emits a bare string, so the condition read `undefined` and the objective never ticked. Field lookup now copes with a payload that is not the declared shape. |
 | r46 | Text conditions now ignore quotes, case and stray whitespace, so `lynx "Anselm Ritter"` and `lynx Anselm Ritter` both count. Non-matching events are logged with their real payload. The contract template no longer advertises a Twotter handle — searching one with no profile behind it crashes the game and corrupts the save; export now warns about it. |
 | r45 | `Mod "null"`: the quest graph ran in a microtask after `OnStart` had returned, so the engine had no mod bound and refused every SDK call. The graph now runs synchronously and only defers where the author asked for a wait. |
 | r44 | An idle editor still spent 29% of its time in style recalculation: the shared dash-offset property had to be inherited, so every descendant of the canvas restyled 60×/second. Each wire now animates its own `stroke-dashoffset` and nothing is inherited. |
