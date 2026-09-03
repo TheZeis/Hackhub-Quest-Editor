@@ -718,7 +718,19 @@ function buildContractHack(): ProjectDocument {
             domainName: DOMAIN,
             accessable: true,
             vulnerabilities: [],
-            users: [],
+            /* A machine with an open SSH port and nobody to log in as cannot be
+               exploited: metasploit reports "Attack failed. Port 22 could not
+               be accessed." QA hit exactly that here. Every SSH-reachable
+               router in the working reference mod carries a user, so this one
+               does too. */
+            users: [
+                {
+                    id: "u-edge",
+                    username: "admin",
+                    password: "M3ridian!edge",
+                    acceptReverseTCP: true,
+                },
+            ],
             ports: [
                 { id: "p-http", external: 80, internal: 80, active: true, service: "http" },
                 { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" },

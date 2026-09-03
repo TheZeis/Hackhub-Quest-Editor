@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r50";
+export const EDITOR_BUILD = "2026-09-03.r51";
 
 export interface CompiledFile {
     path: string;
@@ -184,6 +184,40 @@ export function computeWarnings(project: ProjectDocument): string[] {
                        working reference mod uses x.y.z, and metasploit's
                        default is 1.0.0. Letters are a separate, already-known
                        trap (7.2p2 stops it matching at all). */
+                    /* A machine with a login service open but no users on it
+                       cannot be broken into: metasploit runs, finds nobody to
+                       authenticate as, and reports "Attack failed. Port 22
+                       could not be accessed." QA lost a session to this on a
+                       router whose users array was empty. Every SSH-reachable
+                       device in the working reference mod carries a user. */
+                    const LOGIN_SERVICES = ["ssh", "ftp", "telnet", "mysql", "rdp", "smb", "vnc"];
+                    const loginless: string[] = [];
+                    const findLoginless = (dv: {
+                        ip?: string; name?: string; type?: string;
+                        users?: unknown[]; ports?: { external?: number; active?: boolean; service?: string }[];
+                        children?: unknown[];
+                    }) => {
+                        const kind = String(dv.type ?? "").toUpperCase();
+                        /* Splitters and firewalls are plumbing: nobody logs into them. */
+                        if (kind !== "SPLITTER" && kind !== "FIREWALL") {
+                            const open = (dv.ports ?? []).filter(
+                                (pt) => pt.active !== false && LOGIN_SERVICES.includes(String(pt.service ?? "").toLowerCase()),
+                            );
+                            if (open.length && !(dv.users ?? []).length) {
+                                loginless.push(
+                                    `${dv.name || dv.ip || "a device"} (port ${open.map((pt) => pt.external).join(", ")})`,
+                                );
+                            }
+                        }
+                        (dv.children ?? []).forEach((c) => findLoginless(c as Parameters<typeof findLoginless>[0]));
+                    };
+                    findLoginless((n.data as { device?: Parameters<typeof findLoginless>[0] }).device ?? {});
+                    if (loginless.length) {
+                        warnings.push(
+                            `${q.name}: ${loginless.join(", ")} has a login service open but no user accounts, so the player cannot break in — metasploit reports “Attack failed. Port 22 could not be accessed.” Add a user to the device, or close the port.`,
+                        );
+                    }
+
                     const badVersions: string[] = [];
                     const checkPorts = (dv: { ip?: string; name?: string; ports?: { external?: number; version?: string }[]; children?: unknown[] }) => {
                         for (const port of dv.ports ?? []) {

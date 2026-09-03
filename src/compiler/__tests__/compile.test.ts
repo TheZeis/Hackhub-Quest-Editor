@@ -2599,7 +2599,11 @@ describe("port versions are ones metasploit will accept", () => {
             node("world.network", {
                 ipMode: "fixed",
                 device: {
-                    id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", users: [], children: [],
+                    /* A user, because an SSH port with nobody behind it draws
+                       its own (correct) warning — see the login-service test
+                       below. This case is only about the version string. */
+                    id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", children: [],
+                    users: [{ id: "u1", username: "admin", password: "pw" }],
                     ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version }],
                 },
             }),
@@ -2639,7 +2643,8 @@ describe("port versions are ones metasploit will accept", () => {
                 device: {
                     id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", users: [], ports: [],
                     children: [{
-                        id: "d1", ip: "10.0.0.12", name: "workstation", type: "DEVICE", users: [],
+                        id: "d1", ip: "10.0.0.12", name: "workstation", type: "DEVICE",
+                        users: [{ id: "u1", username: "aritter", password: "pw" }],
                         ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2" }],
                     }],
                 },
@@ -2800,5 +2805,103 @@ describe("the debug probe answers the questions a silent quest will not", () => 
             console.log = orig;
         }
         expect(said.join("\n")).toContain("Anselm Ritter");
+    });
+});
+
+/**
+ * QA, round 51. The Ledger quest reached the exploit and failed:
+ *
+ *     msf6 > set version 7.2.1
+ *     msf6 > exploit
+ *     [*] 45.33.32.156:22 - Launching attack.
+ *     [*] Attack failed.
+ *     [*] Backdoor service could not be accessed.
+ *     [*] Port 22 could not be accessed.
+ *
+ * The router had an SSH port open and an EMPTY users array. There was nobody to
+ * log in as, so the attack had nothing to attack. Every SSH-reachable device in
+ * the working reference mod carries at least one user; ours did not.
+ *
+ * Two things also learned from that screenshot, both corrections:
+ *  - the game DISPLAYS a truncated banner ("OpenSSH 7.2" for our "OpenSSH
+ *    1.7.2"), so the displayed text is not evidence about what we sent;
+ *  - three-part versions are accepted (`set version 7.2.1` worked), confirming
+ *    r49's fix even though the banner made it look unchanged.
+ */
+describe("machines the player is meant to break into can actually be broken into", () => {
+    function warnFor(device: Record<string, unknown>) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        p.quests[0].graph.nodes = [node("world.network", { ipMode: "fixed", device })];
+        return computeWarnings(p).join("\n");
+    }
+
+    const sshPort = [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 7.2.0" }];
+
+    it("warns when a router opens ssh but has no users", () => {
+        const w = warnFor({ id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", users: [], ports: sshPort, children: [] });
+        expect(w).toContain("edge (port 22)");
+        expect(w).toContain("no user accounts");
+        expect(w).toContain("Port 22 could not be accessed");
+    });
+
+    it("warns for a machine behind the router too", () => {
+        const w = warnFor({
+            id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [{ id: "u", username: "admin", password: "p" }], ports: [],
+            children: [{ id: "d1", ip: "10.0.0.12", name: "workstation", type: "DEVICE", users: [], ports: sshPort }],
+        });
+        expect(w).toContain("workstation (port 22)");
+    });
+
+    it("says nothing once the machine has someone to log in as", () => {
+        const w = warnFor({
+            id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", children: [],
+            users: [{ id: "u1", username: "admin", password: "M3ridian!edge" }],
+            ports: sshPort,
+        });
+        expect(w).not.toContain("no user accounts");
+    });
+
+    it("covers the other services a player logs in to", () => {
+        for (const service of ["ftp", "telnet", "mysql", "rdp", "smb", "vnc"]) {
+            const w = warnFor({
+                id: "r1", ip: "1.1.1.1", name: "box", type: "ROUTER", users: [], children: [],
+                ports: [{ id: "p1", external: 21, internal: 21, active: true, service }],
+            });
+            expect(w, service).toContain("no user accounts");
+        }
+    });
+
+    it("ignores a port nobody logs in to", () => {
+        const w = warnFor({
+            id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", users: [], children: [],
+            ports: [{ id: "p1", external: 80, internal: 80, active: true, service: "http" }],
+        });
+        expect(w).not.toContain("no user accounts");
+    });
+
+    it("ignores a closed port", () => {
+        const w = warnFor({
+            id: "r1", ip: "1.1.1.1", name: "edge", type: "ROUTER", users: [], children: [],
+            ports: [{ id: "p1", external: 22, internal: 22, active: false, service: "ssh" }],
+        });
+        expect(w).not.toContain("no user accounts");
+    });
+
+    it("does not nag about plumbing nobody logs into", () => {
+        const w = warnFor({
+            id: "r1", ip: "1.1.1.1", type: "ROUTER", users: [{ id: "u", username: "a", password: "b" }], ports: [],
+            children: [
+                { id: "s1", ip: "1.1.1.2", name: "LAN", type: "SPLITTER", users: [], ports: sshPort, children: [] },
+                { id: "f1", ip: "1.1.1.3", name: "FW", type: "FIREWALL", users: [], ports: sshPort, rules: [] },
+            ],
+        });
+        expect(w).not.toContain("no user accounts");
+    });
+
+    it("no shipped template leaves a machine impossible to break into", () => {
+        for (const t of TEMPLATES) {
+            expect(computeWarnings(t.build()).join("\n"), t.id).not.toContain("no user accounts");
+        }
     });
 });

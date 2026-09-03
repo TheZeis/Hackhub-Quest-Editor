@@ -2309,3 +2309,57 @@ setup no real quest would contain.
 
 **Verification:** 543 tests (19 files, +9), `tsc --noEmit` clean, `vite build`
 clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r50"`.
+
+## Round 51 — an open door with nobody behind it
+
+The debug probe earned its keep immediately: its first line in a real log
+(`reached "CreateRouterNode" | event: (none - not reached from a trigger) |
+saved: { no fields }`) confirmed the network node ran, which took the compiler
+out of the picture straight away.
+
+### The exploit had nothing to attack
+
+```
+msf6 > set version 7.2.1
+msf6 > exploit
+[*] 45.33.32.156:22 - Launching attack.
+[*] Attack failed.
+[*] Port 22 could not be accessed.
+```
+
+The router advertised SSH on port 22 and its `users` array was **empty**. There
+was nobody to log in as, so the attack had nothing to break into. Every
+SSH-reachable device in the working reference mod carries at least one user;
+ours did not.
+
+The template's edge router now has an `admin` account, and export warns for any
+device with a login service open (ssh, ftp, telnet, mysql, rdp, smb, vnc) and no
+users — naming the device and the port, and quoting the message the player would
+see. Splitters and firewalls are excluded: they are plumbing, and nobody logs
+into them. Writing the test surfaced the same fault in two of r49's own
+fixtures, which had empty routers for convenience.
+
+### Two corrections from the same screenshot
+
+**The game truncates the banner it displays.** We hand it `OpenSSH 1.7.2` and
+nmap prints `OpenSSH 7.2`. QA reasonably read that as the export ignoring the
+change; it is not. Verified by running the shipped v12 zip and printing exactly
+what reaches `Network.createSubnetNetwork` — the full three-part string is sent.
+**Displayed text is not evidence about what was exported**, which is worth
+remembering the next time a value looks wrong on screen.
+
+**r49's version fix was right.** The same screenshot shows `set version 7.2`
+refused and `set version 7.2.1` accepted. The banner made it look as though
+nothing had changed, but the three-part requirement is confirmed.
+
+### Old mail is not ours to clean up (probably)
+
+Mail sent by a since-removed mod stays in the inbox. The SDK's `Mail` namespace
+offers `send`, `getInbox`, `getPlayerEmail`, `registerTemplate` and
+`unregisterTemplate` — and **no** delete or remove of any kind. Quest cleanup
+runs on complete/abandon, but there is no API to withdraw a delivered mail. It
+is on the roadmap as unresolved rather than dismissed, because "the SDK has no
+method for it" has been wrong before.
+
+**Verification:** 551 tests (19 files, +8), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r51"`.
