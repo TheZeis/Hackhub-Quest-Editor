@@ -1450,3 +1450,66 @@ rewritten around the new contract: Mail.send first with the right `from`/`to`,
 fallback when the global API is absent, and a distinct log line for a mail the
 engine accepted but did not deliver. Export stamp:
 `EDITOR_BUILD = "2026-09-03.r37"`.
+
+## Round 38 — the mod was never loading
+
+Round 37 changed how mail is sent, on good evidence, and the mail still did not
+arrive. The evidence for what was actually wrong was in the same log, and it was
+an absence rather than a line.
+
+Across five game sessions, `hackhub-2026-09-03.log` names the load banner of
+every other installed mod — Markdown Note Editor, Nemesis Protocol, GhostLink,
+Lockchain Wallet, vault-manager, nine more — and never once mentions ours. Not
+an error, not a rejection, nothing. The quest appearing in the objective HUD had
+been read as proof the mod was running; it is not. That entry comes from saved
+quest state, and it kept appearing after a mod that had stopped loading.
+
+So r35, r36 and r37 were all fixing the mail path of a mod that was not
+executing. The mail code was never reached. Comparing our output with Nemesis
+line by line, one structural difference explains it.
+
+### The Bootstrap class has to come back out of the module
+
+Nemesis, like every hand-written mod, is built by esbuild from
+`export default class extends Bootstrap`, and its bundle ends:
+
+```js
+module.exports = __toCommonJS({ default: () => NemesisProtocolStage1 });
+```
+
+Ours called `sdk.RegisterModPackage(Mod)` and exported nothing. The SDK's own
+build script (`build.mjs`, shipped in the package) bundles every mod as CJS from
+`src/index.ts` with exactly that default-export shape, and the loader looks for
+the package class there. A mod that only calls `RegisterModPackage` is skipped
+without a word.
+
+Generated mods now end with:
+
+```js
+var __QE_MOD = __qeRegisterProject(sdk, PROJECT);
+module.exports = { __esModule: true, default: __QE_MOD };
+```
+
+`RegisterModPackage` is still called, so both discovery routes are satisfied.
+
+### A mod that says nothing cannot be debugged
+
+The second change is smaller and would have saved three rounds. Every other mod
+prints a load banner; ours printed nothing, so "the mail is broken" and "the mod
+never ran" looked identical from a log. The generated `Bootstrap` now implements
+`OnModPackageLoaded` and logs its name, version and editor build:
+
+```
+[quest-editor] The Ledger Contract v1.0.4 loaded (editor build 2026-09-03.r38).
+```
+
+If that line is missing from a report, the mod did not load and nothing about
+the story is worth investigating yet.
+
+**Verification:** 462 tests (19 files, +2), `tsc --noEmit` clean, `vite build`
+clean. The two new tests are the ones whose absence let this through: the
+compiled bundle must expose the registered Bootstrap class on
+`module.exports.default`, and it must announce itself on load. The author's own
+1.0.4 project, recompiled and loaded through a CJS loader the way the game does
+it, now reports the banner, then `mail "One file, one man, no trace" sent via
+Mail.send`, then `delivered`. Export stamp: `EDITOR_BUILD = "2026-09-03.r38"`.

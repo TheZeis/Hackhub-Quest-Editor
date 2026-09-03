@@ -153,11 +153,13 @@ const settle = async () => {
 const registered0 = (sdk: unknown) => (sdk as any).__registered;
 
 function runMod(modJs: string, sdk: unknown) {
+    const mod: { exports: any } = { exports: {} };
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     new Function("require", "module", "exports", modJs)((name: string) => {
         if (name === "@hotbunny/hackhub-content-sdk") return sdk;
         throw new Error(`unexpected require: ${name}`);
-    }, { exports: {} }, {});
+    }, mod, mod.exports);
+    return mod.exports;
 }
 
 describe("compile", () => {
@@ -1624,5 +1626,47 @@ describe("a briefing mail that actually arrives", () => {
         expect(calls).toContain("sendMail:LIVE:0");
         expect(calls).not.toContain("sendMail:OTHER");
         expect(calls).not.toContain("sendMail:DEAD");
+    });
+});
+
+/**
+ * QA, round 38. Round 37 changed how mail is sent and the mail still did not
+ * arrive - because the mod was never running at all. The game log named every
+ * other installed mod's load banner and ours was simply absent, with no error
+ * beside it.
+ *
+ * Two things separate our output from a hand-written mod that does load, and
+ * both are covered here. A mod's Bootstrap class has to come back out on the
+ * module's default export - that is what esbuild produces from
+ * `export default class extends Bootstrap`, and calling RegisterModPackage
+ * without it gets the mod skipped in silence. And a mod that says nothing when
+ * it loads cannot be told apart from a mod that never loaded, which is what
+ * cost three rounds.
+ */
+describe("a mod the loader can actually find", () => {
+    function anyMod() {
+        return compileProject(scenarioProject()).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    it("hands the Bootstrap class back on the default export", () => {
+        const sdk = stubSdk([], []) as any;
+        const exported = runMod(anyMod(), sdk);
+        expect(exported.default).toBeTypeOf("function");
+        expect(exported.__esModule).toBe(true);
+        // the same class the mod registered, not some other object
+        expect(exported.default).toBe(sdk.__registered.mod);
+        expect(Object.getPrototypeOf(exported.default)).toBe(sdk.Bootstrap);
+    });
+
+    it("announces itself in the game log, with name, version and build", () => {
+        const sdk = stubSdk([], []) as any;
+        const said: string[] = [];
+        const spy = vi.spyOn(console, "log").mockImplementation((m: unknown) => void said.push(String(m)));
+        const exported = runMod(anyMod(), sdk);
+        new exported.default().OnModPackageLoaded();
+        spy.mockRestore();
+        const line = said.find((l) => l.includes("loaded (editor build"));
+        expect(line).toBeDefined();
+        expect(line).toContain(EDITOR_BUILD);
     });
 });

@@ -1265,10 +1265,22 @@ function __qeRegisterProject(sdk, PROJECT) {
         });
         registerWebsite(w, extras);
     });
+    /* The mod package entry point. Every piece of content is registered by the
+       quest, website and command classes above, so this class has almost
+       nothing to do - except say, in the game's own log, that it loaded.
+
+       That line is not decoration. Two QA rounds were spent on mail that never
+       arrived, and the thing that finally identified the fault was a game log
+       in which every other installed mod printed a load banner and ours
+       printed nothing at all. A mod that announces itself turns "the mail is
+       broken" into "the mod never ran", which is a different bug entirely. */
     var Mod = class extends sdk.Bootstrap {
-        /* Nothing to do at package level: every piece of content is registered
-           by the quest, the website or the command classes above. */
+        OnModPackageLoaded() {
+            __QE.log(PROJECT.mod.name + " v" + PROJECT.mod.version +
+                " loaded (editor build " + __QE_BUILD + ").");
+        }
     };
     sdk.RegisterModPackage(Mod);
+    return Mod;
 }
 `;
