@@ -2,6 +2,27 @@
 @import "@xyflow/react/dist/style.css";
 
 /* ─────────────────────────────────────────────────────────────────────
+   The travelling dots on the wires.
+
+   `--qe-dash-offset` has to be REGISTERED for the browser to animate it.
+   An unregistered custom property has no type, so the animation engine can
+   only flip it from one value to the other at the end of the cycle - the
+   dots sit still and then jump, which reads as "the dots aren't moving".
+   That is exactly what happened in r42, and it is the third time this
+   animation has been reported as broken (see wireMotion.ts).
+
+   Declaring it as an <length> gives it a type the browser can interpolate,
+   which is what makes Element.animate() produce a smooth drift. The
+   animation is scoped to the canvas element rather than :root, so it never
+   restyles the rest of the page - see wireMotion.ts for why that matters.
+   ───────────────────────────────────────────────────────────────────── */
+@property --qe-dash-offset {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
    Quest Mod Editor — design tokens
 
    A dark, terminal-adjacent palette that stays professional: near-black

@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-03.r41";
+export const EDITOR_BUILD = "2026-09-03.r43";
 
 export interface CompiledFile {
     path: string;
@@ -271,9 +271,36 @@ export function compileProject(project: ProjectDocument): CompileResult {
            `export default class ... extends Bootstrap`). Calling
            RegisterModPackage alone is not enough: a mod that never exports
            its package class is skipped in silence - no banner, no error, and
-           none of its quests ever run. QA hit exactly that. */
-        "var __QE_MOD = __qeRegisterProject(sdk, PROJECT);",
-        "module.exports = { __esModule: true, default: __QE_MOD };",
+           none of its quests ever run. QA hit exactly that.
+
+           The SHAPE and the ORDER both matter, and this is what cost rounds
+           35-41. esbuild installs `module.exports` as a LAZY GETTER at the very
+           top of the bundle, before a single class is registered:
+
+               module.exports = __toCommonJS({ default: () => MyMod });
+               ... 3500 lines ...
+               MyMod = __decorateClass([RegisterModPackage], MyMod);
+
+           The loader reads `module.exports.default` to learn which mod it is
+           loading, and it does that BEFORE the registration calls take effect.
+           We were assigning a plain object at the END, after every
+           RegisterQuest/RegisterWebsite/RegisterCommand call had already run -
+           so at registration time the loader had no mod bound, every call was
+           attributed to `Mod "null"`, and the permission check that follows had
+           no manifest to check against. The log said as much on every run:
+
+               Mod "null" tried to use Network.createSubnetNetwork without
+               "network" permission.
+
+           ...even though manifest.json declared it. Matching esbuild exactly -
+           getter first, registration after - is what makes the mod identify
+           itself. */
+        "var __QE_MOD;",
+        "module.exports = Object.defineProperty({ __esModule: true }, \"default\", {",
+        "    get: function () { return __QE_MOD; },",
+        "    enumerable: true,",
+        "});",
+        "__QE_MOD = __qeRegisterProject(sdk, PROJECT);",
         "",
     ].join("\n");
 

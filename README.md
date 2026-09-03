@@ -10,11 +10,52 @@ moments, and export a complete, game-ready mod as a `.zip` — no coding at any 
 
 ---
 
-## Status
+## Roadmap
 
-**All four steps complete — the editor builds playable mods.**
+Live list of what is being worked on. Newest problems at the top of each
+section; anything ticked off moves to **Done recently** and is eventually
+dropped once it has stayed fixed for a few rounds.
 
-| Step | Deliverable | Status |
+### In progress
+
+| # | Item | Notes |
+|---|---|---|
+| 1 | **Objectives do not tick in-game** | The chain works under test; in-game the mod is refused its permissions, which stops the network being built. Fixed in r43 — needs an in-game re-test to confirm. |
+| 2 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
+
+### Next up
+
+| # | Item | Notes |
+|---|---|---|
+| 3 | Wire/noodle physics | Pulling a wire makes it hang and bounce; past a distance it pulls straight; releasing snaps it back before it disappears. Sag derived from slack, ~200ms non-interactive ghost on delete, physics only on the held wire, must honour the wire-motion toggle. **Must write inside the canvas, never the document root** (see r42). |
+| 4 | "Contact-driven story" template | Phone brief → Kisscord drip gated on objectives → WeeChat timed to a beat. |
+| 5 | "Branching consequence" template | A choice that changes which ending the player gets. |
+
+### Known limitations (not bugs)
+
+| Item | Why |
+|---|---|
+| No Wi-Fi networks | SDK 0.21.0 has no wireless API. "Create Wi-Fi" exports as a router network reachable by IP. |
+| No Twotter | Removed in r31: the SDK declares it but this build does not honour it. Revisit if a newer build ships it. |
+| Handbook nodes are not compiled | Declared in the editor, no export path yet. |
+| No log-cleaning node | Entirely engine-side: the game logs connections on the machine, and the player wipes them from its own UI. |
+
+### Done recently
+
+| Round | Item |
+|---|---|
+| r43 | Mod identified itself as `Mod "null"` and was refused every permission — the bundle must install `module.exports` *before* it registers anything, the way esbuild does. Wire dots frozen since r42: a custom property must be registered with `@property` before the browser will interpolate it. |
+| r42 | An idle editor repainted the whole page 60×/second (40.8% of frame time) because the wire animation wrote a custom property to the document root. Now scoped to the canvas and handed to the browser's animation engine. |
+| r41 | `manifest.json` is now shipped beside the bundle as well as at the project root, matching the SDK's own build script. |
+| r40 | Full audit against a known-working mod: device union arms, a trigger on an event that does not exist (`Files.Downloaded`), missing `Website.Icon`, template mail written in HTML. |
+| r39 | Mail bodies are sent as the plain text GoMail actually displays; objectives are completed imperatively rather than relying on the declarative `trigger`. |
+| r38 | The Bootstrap class is exported so the loader can find it, and the mod announces itself on load. |
+
+### Build status
+
+All four original steps are complete — the editor builds playable mods.
+
+| Step | Deliverable | |
 |---|---|---|
 | **1** | Schema analysis, tech stack, architecture | ✅ [docs/01-analysis-and-architecture.md](docs/01-analysis-and-architecture.md) |
 | **2** | Scaffolding + node editor canvas | ✅ [docs/02-editor-shell.md](docs/02-editor-shell.md) |

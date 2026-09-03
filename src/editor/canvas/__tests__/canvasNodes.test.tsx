@@ -5,6 +5,8 @@
  * against the mounted app rather than the store alone.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "@/App";
@@ -484,5 +486,41 @@ describe("group frames", () => {
         // still be grabbed.
         expect(frame.querySelectorAll(".qe-group-grip").length).toBe(1);
         expect(frame.classList.contains("qe-group-grip")).toBe(false);
+    });
+});
+
+/**
+ * Round 43. The dots stopped moving again after r42 — the third time this
+ * animation has been reported broken, and the second time I broke it.
+ *
+ * r42 handed the animation to the browser via Element.animate() to stop a
+ * document-wide repaint. But a custom property that has not been REGISTERED
+ * has no type, so the animation engine cannot interpolate it: it flips the
+ * value once at the end of each cycle. The dots hold still and jump, which
+ * reads exactly like "not animating at all".
+ *
+ * The registration is a `@property --qe-dash-offset` rule in index.css. It
+ * cannot live in TypeScript, so this test guards the stylesheet instead.
+ */
+describe("the wire dots can actually be interpolated", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+
+    it("registers the dash offset as a typed custom property", () => {
+        // Without this the browser animates it discretely and the dots freeze.
+        expect(css).toMatch(/@property\s+--qe-dash-offset\s*\{/);
+    });
+
+    it("gives it a length type, inheritance, and a starting value", () => {
+        const block = css.slice(css.indexOf("@property --qe-dash-offset"));
+        const body = block.slice(0, block.indexOf("}"));
+        // <length> is what makes 0px -> -14px a smooth drift rather than a jump.
+        expect(body).toMatch(/syntax:\s*"<length>"/);
+        // The wires read the value from an ancestor, so it has to inherit.
+        expect(body).toMatch(/inherits:\s*true/);
+        expect(body).toMatch(/initial-value:\s*0px/);
+    });
+
+    it("registers the same property name the animation writes", () => {
+        expect(css).toContain(DASH_VAR);
     });
 });

@@ -112,6 +112,12 @@ export function paintDashOffset(nowMs: number, target?: HTMLElement | null): voi
  * both can; where it is missing we fall back to a throttled rAF loop.
  */
 function canAnimateProperty(el: HTMLElement): boolean {
+    /* NB: `--qe-dash-offset` must also be REGISTERED, via @property in
+       index.css. Unregistered, a custom property has no type, so the engine
+       animates it discretely - the dots hold still and jump once per cycle,
+       which is exactly how "the dots aren't moving" was reported after r42.
+       The registration lives in the stylesheet because that is the only place
+       it can go; the test below (`animates smoothly...`) pins it there. */
     return typeof el.animate === "function";
 }
 

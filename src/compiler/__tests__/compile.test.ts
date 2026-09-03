@@ -2032,3 +2032,88 @@ describe("the exported mod carries its manifest where the loader looks", () => {
         expect(Array.isArray(m.dependencies)).toBe(true);
     });
 });
+
+/**
+ * QA, round 43 — the real cause of `Mod "null"`.
+ *
+ * r41 shipped manifest.json next to the bundle, which the SDK's own build
+ * script does. It made no difference: the game still logged
+ *
+ *   Mod "null" tried to use Network.createSubnetNetwork without "network"
+ *   permission.
+ *
+ * ...for network, shell and mail, with a manifest that declared all three.
+ *
+ * The difference is in the SHAPE and ORDER of the CommonJS export. esbuild —
+ * which every hand-written mod is built with — installs module.exports as a
+ * lazy getter at the very TOP of the bundle, thousands of lines before any
+ * class is registered:
+ *
+ *     module.exports = __toCommonJS({ default: () => NemesisProtocolStage1 });
+ *     ... 3500 lines ...
+ *     NemesisProtocolStage1 = __decorateClass([RegisterModPackage], ...);
+ *
+ * The loader reads `module.exports.default` to learn which mod it is loading,
+ * and it does so before the registration calls take effect. We assigned a plain
+ * object at the END, after every RegisterQuest/RegisterWebsite/RegisterCommand
+ * call had already run — so at registration time the loader had nothing bound,
+ * every call was attributed to `Mod "null"`, and the permission check had no
+ * manifest to consult.
+ */
+describe("the bundle identifies itself before it registers anything", () => {
+    const js = compileProject(getTemplate("contract-hack")!.build())
+        .files.find((f) => f.path === "dist/mod.js")!.content;
+
+    const exportAt = js.indexOf("module.exports");
+    /* The Register* calls sit inside __qeRegisterProject's body, so their text
+       position says nothing about when they run. What matters is the one
+       top-level statement that invokes it. */
+    const registrationRuns = js.indexOf("__QE_MOD = __qeRegisterProject(sdk, PROJECT)");
+
+    it("installs module.exports before the first Register call runs", () => {
+        expect(exportAt).toBeGreaterThan(-1);
+        expect(registrationRuns).toBeGreaterThan(-1);
+        expect(exportAt).toBeLessThan(registrationRuns);
+    });
+
+    it("registers nothing at the top level except through that one call", () => {
+        // Anything calling sdk.Register* outside the function body would run
+        // at an unknown point relative to the export.
+        for (const line of js.split("\n")) {
+            if (/^sdk\.Register/.test(line)) throw new Error("top-level registration: " + line);
+        }
+    });
+
+    it("exposes default as a getter, the way esbuild does", () => {
+        // A plain value would be captured before the Bootstrap class exists;
+        // the getter lets the loader read it whenever it likes.
+        expect(js).toMatch(/Object\.defineProperty\([^)]*"default"|get:\s*function/);
+        expect(js).toContain("__esModule");
+    });
+
+    it("still hands the loader the Bootstrap class", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        const exports = runMod(js, sdk);
+        expect(exports.__esModule).toBe(true);
+        expect(typeof exports.default).toBe("function");
+        // and it is the class RegisterModPackage was given
+        const inst = new exports.default();
+        expect(typeof inst.OnModPackageLoaded).toBe("function");
+    });
+
+    it("announces itself on load, so a silent failure is visible", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        const exports = runMod(js, sdk);
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            await new exports.default().OnModPackageLoaded();
+        } finally {
+            console.log = orig;
+        }
+        expect(said.join("\n")).toContain("loaded (editor build");
+    });
+});

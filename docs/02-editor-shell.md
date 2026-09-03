@@ -1805,3 +1805,78 @@ Anything that animates per frame must write to an element inside the canvas, and
 ideally hand the interpolation to the browser. Building spring physics on top of
 a root-level invalidation loop would have been considerably worse than what was
 just removed.
+
+## Round 43 — `Mod "null"`, and the dots that stopped again
+
+Two faults, one of them a regression I introduced in r42.
+
+### The mod could not say who it was
+
+r41 shipped `manifest.json` beside the bundle, matching the SDK's own build
+script. It changed nothing: the game still logged, for network, shell and mail,
+
+```
+Mod "null" tried to use Network.createSubnetNetwork without "network"
+permission. Add "network" to the permissions array in your manifest.json.
+```
+
+...with a manifest that declared all three. The manifest was never the problem.
+`Mod "null"` was the whole message: the loader had no identity bound at the
+moment our code called `RegisterQuest`.
+
+The difference is the shape and order of the CommonJS export. esbuild — which
+every hand-written mod is built with — installs `module.exports` as a **lazy
+getter at the very top of the bundle**, thousands of lines before anything is
+registered:
+
+```js
+module.exports = __toCommonJS({ default: () => NemesisProtocolStage1 });
+// ... 3500 lines ...
+NemesisProtocolStage1 = __decorateClass([RegisterModPackage], NemesisProtocolStage1);
+```
+
+The loader reads `module.exports.default` to learn which mod it is loading, and
+does so before the registrations take effect. We assigned a plain object at the
+**end**, after every `RegisterQuest`/`RegisterWebsite`/`RegisterCommand` call had
+already run. At registration time the loader had nothing bound, every call was
+attributed to `Mod "null"`, and the permission check had no manifest to consult.
+
+The bundle now declares `__QE_MOD`, installs `module.exports` with a getter for
+`default`, and only then runs the registration — the same order esbuild
+produces. Tests pin all three properties: the export is installed before the
+registration statement, `default` is a getter, and nothing calls `sdk.Register*`
+at the top level where its timing would be unclear.
+
+### The dots stopped moving
+
+r42 handed the wire animation to the browser to stop a document-wide repaint.
+Correct fix, incomplete: **a custom property must be registered before the
+browser will interpolate it.** Unregistered, `--qe-dash-offset` has no type, so
+the animation engine can only flip it from one value to the other at the end of
+each cycle. The dots hold still and jump — indistinguishable from not animating.
+
+`index.css` now registers it:
+
+```css
+@property --qe-dash-offset {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+```
+
+`<length>` is what turns `0px → -14px` into a drift rather than a jump, and
+`inherits: true` is required because the wires read the value from an ancestor.
+The registration has to live in the stylesheet, so a test reads `index.css` and
+asserts the rule, its syntax, its inheritance and its initial value. This is the
+third time this animation has been reported broken and the second time I broke
+it; it should now fail loudly in CI rather than quietly on the author's screen.
+
+**Verification:** 500 tests (19 files, +8), `tsc --noEmit` clean, `vite build`
+clean. Driven through a loader that binds identity from `module.exports.default`
+before running the quest — as the game does — the export builds its network,
+sends its mail through `Mail.send` with no fallback, and completes `read-brief`.
+Export stamp: `EDITOR_BUILD = "2026-09-03.r43"`.
+
+The README's "Status" section is now a **Roadmap**: what is in progress, what is
+next, known limitations that are not bugs, and what was fixed recently.
