@@ -249,6 +249,17 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             ];
         }
 
+        case "flow.debug": {
+            const bits: string[] = [];
+            if (d.includePayload) bits.push("the event");
+            if (d.includeData) bits.push("saved values");
+            return [
+                d.label ? clip(String(d.label), 46) : "unnamed checkpoint",
+                bits.length ? `prints ${bits.join(" and ")}` : "prints when it is reached",
+                d.toast ? "in the log and on screen" : "in the log",
+            ];
+        }
+
         case "flow.note":
             return d.text ? [clip(String(d.text), 120)] : ["Empty note"];
 

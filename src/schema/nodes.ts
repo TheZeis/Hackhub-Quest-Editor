@@ -475,6 +475,22 @@ export const SequenceNodeDataSchema = z.object({
     steps: z.array(SequenceStepSchema).default([]),
 });
 
+/**
+ * A checkpoint the author drops into a chain to see what is actually happening
+ * in-game. Exists because most of this project's hard bugs were invisible:
+ * the mod ran, nothing errored, and nothing happened.
+ */
+export const DebugNodeDataSchema = z.object({
+    /** Shown in the log line, so several probes can be told apart. */
+    label: z.string().default(""),
+    /** Also show it on screen, for testing without reading a log file. */
+    toast: z.boolean().default(false),
+    /** Print the quest's saved Data alongside the label. */
+    includeData: z.boolean().default(true),
+    /** Print the event payload that reached this point, if any. */
+    includePayload: z.boolean().default(true),
+});
+
 export const NoteNodeDataSchema = z.object({
     text: z.string().default(""),
     width: z.number().default(240),
@@ -524,6 +540,7 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("flow.delay", DelayNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),
     node("flow.sequence", SequenceNodeDataSchema),
+    node("flow.debug", DebugNodeDataSchema),
     node("flow.note", NoteNodeDataSchema),
     node("flow.reroute", RerouteNodeDataSchema),
     node("layout.group", LayoutGroupNodeDataSchema),

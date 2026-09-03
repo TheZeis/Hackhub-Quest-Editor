@@ -40,6 +40,8 @@ const PATHS: Record<string, string> = {
     clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 7v5l3 2",
     shuffle: "M16 3h5v5 M4 20 21 3 M21 16v5h-5 M15 15l6 6 M4 4l5 5",
     note: "M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-6-6Z M14 3v7h7",
+    /* A magnifier over a line: a checkpoint that looks at what is passing. */
+    bug: "M11 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z M14.5 13.5 20 19 M3 20h6",
     plus: "M12 5v14 M5 12h14",
     trash: "M3 6h18 M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
     undo: "M9 14 4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3",

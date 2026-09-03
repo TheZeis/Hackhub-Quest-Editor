@@ -1448,6 +1448,12 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             { id: "s3", label: "Door unlocks", delayMs: 2500 },
         ],
     },
+    "flow.debug": {
+        label: "after the exploit",
+        includeData: true,
+        includePayload: true,
+        toast: false,
+    },
     "flow.note": {
         text: "This quest is a reference sheet, not a story.\n\nEvery node type is here once, filled with example input. Select any node and hover the ⓘ next to a field label to read what it does.",
         width: 300,
@@ -1604,7 +1610,7 @@ export const TEMPLATES: Template[] = [
         description:
             "Every node type on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 40,
+        nodeCount: 41,
         build: buildReference,
     },
 ];

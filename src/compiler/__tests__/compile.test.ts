@@ -2655,3 +2655,150 @@ describe("port versions are ones metasploit will accept", () => {
         }
     });
 });
+
+/**
+ * QA, round 50 — the debug probe.
+ *
+ * Suggested by the author, and worth building because almost every hard bug in
+ * this project has been invisible rather than loud: the mod loads, nothing
+ * errors, and nothing happens. Rounds 35-49 were mostly spent answering three
+ * questions from a log that would not say —
+ *
+ *   did the flow get here at all?
+ *   what did the event really carry?
+ *   what has the quest actually saved?
+ *
+ * A probe answers all three where the author puts it, in the player's own log.
+ */
+describe("the debug probe answers the questions a silent quest will not", () => {
+    function runWithProbe(probe: Record<string, unknown>, payload?: Record<string, unknown>) {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const setData = node("fx.setData", { key: "ledger", value: "deleted" });
+        const dbg = node("flow.debug", probe);
+        const after = node("fx.notify", { message: "after", variant: "toast", tone: "info" });
+        p.quests[0].graph.nodes = [entry, setData, dbg, after];
+        p.quests[0].graph.edges = [
+            edge(entry.id, setData.id, "flow"),
+            edge(setData.id, dbg.id, "flow"),
+            edge(dbg.id, after.id, "flow"),
+        ];
+
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            q.OnStart();
+        } finally {
+            console.log = orig;
+        }
+        void payload;
+        return { log: said.join("\n"), calls };
+    }
+
+    it("says it was reached, under the name the author gave it", () => {
+        const { log } = runWithProbe({ label: "after the exploit" });
+        expect(log).toContain('reached "after the exploit"');
+    });
+
+    it("falls back to the node id when the probe has no label", () => {
+        const { log } = runWithProbe({ label: "" });
+        expect(log).toContain("reached");
+    });
+
+    it("prints what the quest has saved", () => {
+        const { log } = runWithProbe({ label: "p", includeData: true });
+        expect(log).toContain("saved:");
+        expect(log).toContain("ledger=");
+        expect(log).toContain("deleted");
+    });
+
+    it("says plainly when it was not reached from a trigger", () => {
+        // Rather than printing "{}" and leaving the author to wonder.
+        const { log } = runWithProbe({ label: "p", includePayload: true });
+        expect(log).toContain("not reached from a trigger");
+    });
+
+    it("can be told to print neither", () => {
+        const { log } = runWithProbe({ label: "quiet", includeData: false, includePayload: false });
+        expect(log).toContain('reached "quiet"');
+        expect(log).not.toContain("saved:");
+        expect(log).not.toContain("event:");
+    });
+
+    it("never stops the chain it is watching", () => {
+        // A probe that broke the quest it was diagnosing would be worse than none.
+        const { calls } = runWithProbe({ label: "p", toast: true });
+        expect(calls.join(",")).toContain("toast:after");
+    });
+
+    it("shows itself on screen only when asked", () => {
+        expect(runWithProbe({ label: "p", toast: true }).calls.join(",")).toContain("toast:debug: p");
+        expect(runWithProbe({ label: "p", toast: false }).calls.join(",")).not.toContain("toast:debug");
+    });
+
+    it("prints the event that reached it, fields and all", () => {
+        // The whole point: the declared shape is not always the real one, so
+        // the probe shows what actually turned up.
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const trig = node("trigger.event", { event: "Terminal.Lynx.Search", conditions: [] });
+        const dbg = node("flow.debug", { label: "on lynx", includePayload: true, includeData: false });
+        p.quests[0].graph.nodes = [trig, dbg];
+        p.quests[0].graph.edges = [edge(trig.id, dbg.id, "flow")];
+
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk([], listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnObjectivesStart();
+
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) {
+                h({ query: "Anselm Ritter" });
+            }
+        } finally {
+            console.log = orig;
+        }
+        const line = said.join("\n");
+        expect(line).toContain('reached "on lynx"');
+        expect(line).toContain("query=");
+        expect(line).toContain("Anselm Ritter");
+    });
+
+    it("handles a bare-value event, which is the case that cost a round", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const trig = node("trigger.event", { event: "Terminal.Lynx.Search", conditions: [] });
+        const dbg = node("flow.debug", { label: "bare", includePayload: true, includeData: false });
+        p.quests[0].graph.nodes = [trig, dbg];
+        p.quests[0].graph.edges = [edge(trig.id, dbg.id, "flow")];
+
+        const listeners: [string, (d: unknown) => void][] = [];
+        const sdk = stubSdk([], listeners);
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.Data = {};
+        q.OnObjectivesStart();
+
+        const said: string[] = [];
+        const orig = console.log;
+        console.log = (...a: unknown[]) => void said.push(a.map(String).join(" "));
+        try {
+            for (const [, h] of listeners.filter(([e]) => e === "Terminal.Lynx.Search")) h("Anselm Ritter");
+        } finally {
+            console.log = orig;
+        }
+        expect(said.join("\n")).toContain("Anselm Ritter");
+    });
+});

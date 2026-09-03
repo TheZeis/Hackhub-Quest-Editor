@@ -909,6 +909,31 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (sdk.Shell && sdk.Shell.execute) sdk.Shell.execute(shellCmd);
                     return next();
                 }
+                case "flow.debug": {
+                    /* A checkpoint the author dropped into the chain. Most of
+                       the hard bugs in this project were invisible - the mod
+                       ran, nothing errored, and nothing happened - so this
+                       prints three things that were each expensive to learn
+                       the hard way: that the flow reached here at all, what
+                       the event really carried (field names included, since
+                       the declared shape is not always the real one), and what
+                       the quest has saved. */
+                    var dbgLabel = __QE.fill(d.label || "", scope) || node.id;
+                    var dbgParts = ["reached \"" + dbgLabel + "\""];
+                    if (d.includePayload !== false) {
+                        var pay = ctx && ctx.payload;
+                        var hasPayload = pay != null && (typeof pay !== "object" || Object.keys(pay).length > 0);
+                        dbgParts.push("event: " + (hasPayload ? __QE.describe(pay) : "(none - not reached from a trigger)"));
+                    }
+                    if (d.includeData !== false) {
+                        dbgParts.push("saved: " + __QE.describe(questRef ? questRef.Data : null));
+                    }
+                    __QE.log(dbgParts.join(" | "));
+                    if (d.toast && sdk.UI && sdk.UI.toast) {
+                        __QE.safe(function () { sdk.UI.toast("debug: " + dbgLabel, "info"); });
+                    }
+                    return next();
+                }
                 case "flow.delay":
                     return __QE.sleep(Math.max(0, Number(d.seconds || 0)) * 1000).then(next);
                 case "flow.sequence": {

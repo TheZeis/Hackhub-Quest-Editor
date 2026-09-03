@@ -2243,3 +2243,69 @@ A note on the hint that failed its own test while being written: the schema
 suite caps field hints at 260 characters, and the first draft of the version
 hint ran to 313. The guardrail is a good one — a hint nobody reads helps nobody
 — and the short version says the same thing.
+
+## Round 50 — a probe for the bugs that make no noise
+
+### Correcting the date-warning theory
+
+Last round the `to` address was the surviving suspect for the `moment`
+deprecation warning. **It is not.** The r48 session sent mail and completed four
+objectives with no warning at all, and `to` is set on every `Mail.send`
+identically there. If `to` caused it, r48 would have shown it.
+
+Re-reading when it actually fires: 30-90 seconds *after* the mail, immediately
+before a browser or Twotter screen was opened, and the stack is a **renderer**
+one — the game formatting a date for display. So it is still ours in the sense
+that it needs our mod installed, but it is not the mail send, and the author's
+inbox screenshot is correct as it stands: no attachment, empty `to`. Nothing to
+change there. The roadmap entry now says what was eliminated and why, rather
+than pointing at the wrong thing.
+
+This is the second theory about this warning to die, which is the argument for
+the rest of this round.
+
+### The Debug probe
+
+The author asked whether a debug node would help. It is the most useful thing
+suggested in several rounds, because nearly every hard bug here has been *quiet*
+rather than loud — the mod loads, nothing throws, and nothing happens. Rounds
+35-49 were largely spent answering three questions a silent log would not:
+
+- did the flow reach this point at all?
+- what did the event really carry?
+- what has the quest actually saved?
+
+`flow.debug` answers all three, wherever the author drops it:
+
+```
+[quest-editor] reached "after the network is built" | event: (none - not
+reached from a trigger) | saved: { targetIp="45.33.32.156" }
+```
+
+It sits inline in a chain and passes the flow straight through, so it can be
+left in place while testing and deleted afterwards without rewiring. Four
+toggles: a label, whether to print the event, whether to print saved values, and
+whether to toast it on screen for testing without a log file.
+
+Two details are deliberate. It says *"not reached from a trigger"* rather than
+printing an empty object, because "no payload" and "empty payload" are different
+findings. And it prints field **names**, since the whole lesson of r47 was that
+the declared shape is not always the real one — a probe that showed only values
+would have hidden that bug too.
+
+A test asserts the probe never stops the chain it is watching: a diagnostic that
+breaks the thing it is diagnosing is worse than none.
+
+### On a dedicated debug template
+
+Also suggested, and deliberately **not** built. The existing templates are the
+better test bed precisely because they are what authors ship: every bug in
+rounds 35-49 was found in the Standard Contract Hack, and each fix hardened a
+template real players will use. A debug-only template would exercise a path
+nobody ships and could pass while the real ones fail. With the probe available,
+any template becomes a debug template wherever it is needed — which is the same
+benefit without the second, diverging code path. Revisit if a bug ever needs a
+setup no real quest would contain.
+
+**Verification:** 543 tests (19 files, +9), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r50"`.

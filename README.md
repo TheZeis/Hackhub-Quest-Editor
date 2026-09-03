@@ -21,7 +21,7 @@ dropped once it has stayed fixed for a few rounds.
 | # | Item | Notes |
 |---|---|---|
 | 1 | **End of the Ledger chain (metasploit → delete → reply)** | 4/5 objectives confirmed in-game. r49 fixed the port version metasploit refused; the last two objectives have not been reached in a real run yet. |
-| 2 | **Date deprecation warning traced to our mod** | QA confirmed the `moment` RFC2822 warning appears only when a quest-editor mod is installed, and only after a mail is sent. We never set a date on a mail, so the game is defaulting one — likely from `Mail.send`. Harmless so far (a warning, not an error) but it is ours. Needs the mail-timestamp path narrowed down. |
+| 2 | **Date deprecation warning (`moment` RFC2822)** | Only appears with a quest-editor mod installed. **Not** the `Mail.send` call: r48's session sent mail and completed four objectives with no warning at all, and `to`/`attachments` are set identically there. It is a *renderer* warning (the game formatting a date for display) that fires 30-90s later, when a browser/Twotter screen is opened. Next step: find which of our content carries a date-shaped string the game tries to parse. |
 | 3 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
 
 ### Next up
@@ -45,6 +45,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r50 | New **Debug probe** node: drop it into any chain to print, in the player's log, that the flow reached that point, what the event really carried, and what the quest has saved. |
 | r49 | `OpenSSH 7.2` made the quest unfinishable: metasploit rejects a two-part version with “Invalid version for option: Version”. All template ports now use three numbers, and export warns about any that do not. |
 | r48 | Swept all 92 events: the 19 declared as single-field objects (lynx's risk class) plus the 3 declared primitives are now proven to match in *both* the declared shape and as a bare value, so no other tool can fail the way lynx did. |
 | r47 | `Terminal.Lynx.Search` is declared `{ query: string }` but the game emits a bare string, so the condition read `undefined` and the objective never ticked. Field lookup now copes with a payload that is not the declared shape. |
