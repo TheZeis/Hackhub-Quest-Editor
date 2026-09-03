@@ -1513,3 +1513,71 @@ compiled bundle must expose the registered Bootstrap class on
 1.0.4 project, recompiled and loaded through a CJS loader the way the game does
 it, now reports the banner, then `mail "One file, one man, no trace" sent via
 Mail.send`, then `delivered`. Export stamp: `EDITOR_BUILD = "2026-09-03.r38"`.
+
+## Round 39 — the mail arrives, and now it has to read right
+
+With r38's loader fix in, the briefing mail landed in GoMail on the first try.
+Two faults were visible in the same screenshot.
+
+### The body showed its markup
+
+The mail read, on screen:
+
+```
+<p>His name is <b>Anselm Ritter</b>. That is all you get...
+```
+
+GoMail prints a mail body verbatim. The editor's Body field, meanwhile, carried
+the hint *"HTML tags are rendered as written, so `<b>` and `<p>` work"*, and the
+inspector preview rendered that HTML — so the editor showed formatted prose and
+the game showed tags. Nemesis, whose mail reads correctly, sends plain text with
+blank lines between paragraphs.
+
+The compiler now converts a mail body to text before it goes out: block tags
+become blank lines, `<br>` a newline, list items a bullet, entities are
+unescaped, and runs of blank lines collapse. Existing projects full of HTML keep
+working and simply read correctly.
+
+Two supporting changes, because the mismatch is what let this ship:
+
+- the inspector preview no longer renders HTML. It shows the converted text —
+  exactly the string the compiler will send — via a shared `mailBodyText`,
+  and a test asserts the preview and the generated mod agree on a set of
+  samples, so they cannot drift.
+- the Body hint no longer invites HTML. It says the game shows plain text, that
+  blank lines separate paragraphs, and that pasted HTML is converted for you.
+
+One bug the new tests caught immediately: the conversion ran twice (once when
+`Mails` was built, once on send), which ate a literal `<tag>` an author had
+actually written. It now runs once.
+
+### Reading the mail did not tick the objective off
+
+"Read the contract" stayed unticked. The objective carried a
+`QuestObjectiveDefinition.trigger` — the SDK's declarative form — and this build
+does not appear to act on it. That is the same shape of fault as the mail bug:
+an API the declarations describe and the engine ignores.
+
+The SDK's own `Quest` example does it imperatively:
+
+```js
+this.Events.on("Terminal.NmapScan", (data) => {
+    if (data.ip === this.Data.targetIp) this.completeObjective("scan");
+});
+```
+
+So `OnObjectivesStart` now listens to the trigger's event, checks the author's
+conditions, calls `completeObjective`, and then follows the "On complete" wire —
+one listener doing both, so the tick and the story beat after it can no longer
+disagree. It fires once however often the event repeats, and logs
+`objective "read-brief" completed by Mail.Read`.
+
+The declarative `trigger` is still declared as well. If a build honours it, the
+objective ticks off that way; completing an already-completed objective is a
+no-op, so the redundancy is free.
+
+**Verification:** 472 tests (19 files, +10), `tsc --noEmit` clean, `vite build`
+clean. The author's own project, recompiled and driven through a CJS loader the
+way the game loads it, now prints the load banner, sends the briefing as clean
+prose, and completes `read-brief` when `Mail.Read` fires. Export stamp:
+`EDITOR_BUILD = "2026-09-03.r39"`.

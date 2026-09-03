@@ -6,6 +6,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { compileProject, computePermissions, computeWarnings, EDITOR_BUILD } from "@/compiler/compile";
+import { mailBodyText } from "@/compiler/mailText";
 import { nodeTypeDef } from "@/schema/registry";
 import { createProject, type ProjectDocument } from "@/schema/project";
 import { getTemplate } from "@/templates";
@@ -1668,5 +1669,175 @@ describe("a mod the loader can actually find", () => {
         const line = said.find((l) => l.includes("loaded (editor build"));
         expect(line).toBeDefined();
         expect(line).toContain(EDITOR_BUILD);
+    });
+});
+
+/**
+ * QA, round 39. With the mod finally loading, the briefing mail arrived — and
+ * showed its markup: the body read "<p>His name is <b>Anselm Ritter</b>."
+ * on screen. GoMail prints the body verbatim; the editor's mail field is a
+ * rich-text box that produces HTML. Nemesis, whose mail reads correctly, sends
+ * plain text with blank lines between paragraphs.
+ */
+describe("mail bodies read as prose, not markup", () => {
+    function mailWith(content: string) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const entry = node("entry.start");
+        const mail = node("comms.dialogue", {
+            kind: "mail",
+            mail: { from: "i.faber@ghostmail.io", subject: "Brief", content },
+        });
+        q.graph.nodes = [entry, mail];
+        q.graph.edges = [edge(entry.id, mail.id, "flow")];
+        return compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    async function sentBody(content: string) {
+        const sent: { content: string }[] = [];
+        const sdk = stubSdk([], []) as any;
+        sdk.Mail = {
+            getInbox: () => [],
+            getPlayerEmail: () => "player@gomail.com",
+            send: (m: { content: string }) => sent.push(m),
+        };
+        runMod(mailWith(content), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        q.OnStart();
+        await settle();
+        return sent[0]?.content ?? "";
+    }
+
+    it("turns the rich-text editor's paragraphs into blank-line-separated prose", async () => {
+        const body = await sentBody(
+            "<p>His name is <b>Anselm Ritter</b>.</p><p>Delete <b>ledger_q3.xlsx</b>.</p>",
+        );
+        expect(body).toBe("His name is Anselm Ritter.\n\nDelete ledger_q3.xlsx.");
+        expect(body).not.toContain("<");
+    });
+
+    it("keeps line breaks, bullets and entities readable", async () => {
+        const body = await sentBody(
+            "<p>Line one<br>Line two</p><ul><li>first</li><li>second</li></ul><p>Tom &amp; Jerry &quot;quoted&quot; &lt;tag&gt;</p>",
+        );
+        expect(body).toContain("Line one\nLine two");
+        expect(body).toContain("\u2022 first");
+        expect(body).toContain('Tom & Jerry "quoted" <tag>');
+    });
+
+    it("leaves a plain-text body exactly as the author typed it", async () => {
+        const body = await sentBody("Just text.\n\nSecond paragraph.");
+        expect(body).toBe("Just text.\n\nSecond paragraph.");
+    });
+
+    it("previews in the inspector exactly what the runtime will send", async () => {
+        // The editor's preview and the generated mod must not drift apart:
+        // the whole bug was a preview that rendered HTML the game showed raw.
+        const samples = [
+            "<p>His name is <b>Anselm Ritter</b>.</p><p>Delete it.</p>",
+            "<p>Line one<br>Line two</p><ul><li>a</li><li>b</li></ul>",
+            "Tom &amp; Jerry said &quot;hi&quot;",
+            "plain text, no markup",
+        ];
+        for (const sample of samples) {
+            expect(mailBodyText(sample)).toBe(await sentBody(sample));
+        }
+    });
+
+    it("declares the quest's own Mails as text too", () => {
+        const sdk = stubSdk([], []) as any;
+        runMod(mailWith("<p>Hello <i>there</i>.</p>"), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Mails[0].content).toBe("Hello there.");
+    });
+});
+
+/**
+ * QA, round 39. Reading the contract mail did not tick "Read the contract" off
+ * the objective list. The objective carried a declarative
+ * QuestObjectiveDefinition.trigger, which this build does not appear to act on
+ * — the same shape of fault as the mail bug. The SDK's own Quest example
+ * completes objectives imperatively from an event listener, so the runtime now
+ * does both.
+ */
+describe("objectives the player completes by playing", () => {
+    function questWithTriggeredObjective(withDoneWire: boolean) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        const obj = node("objective", { name: "read-brief", description: "Read the contract" });
+        const trig = node("trigger.event", {
+            event: "Mail.Read",
+            conditions: [{ id: "c1", join: "and", field: "subject", op: "contains", value: "One file" }],
+        });
+        const after = node("fx.notify", { message: "on you go", variant: "toast", tone: "info" });
+        q.graph.nodes = [obj, trig, after];
+        q.graph.edges = [
+            edge(trig.id, obj.id, "condition"),
+            ...(withDoneWire ? [{ ...edge(obj.id, after.id, "flow"), sourceHandle: "done" }] : []),
+        ];
+        return compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    /** A stub whose Events.on records listeners so a game event can be fired. */
+    function listeningQuest(modJs: string, calls: string[]) {
+        const sdk = stubSdk(calls, []) as any;
+        sdk.UI = { toast: (m: string) => calls.push(`toast:${m}`), notify: () => {} };
+        runMod(modJs, sdk);
+        const listeners: Record<string, ((d: unknown) => void)[]> = {};
+        const q = new (registered0(sdk).quests[0])();
+        q.Events = {
+            on: (ev: string, fn: (d: unknown) => void) => {
+                (listeners[ev] ??= []).push(fn);
+            },
+        };
+        q.completeObjective = (name: string) => calls.push(`completeObjective:${name}`);
+        q.OnObjectivesStart();
+        return { fire: (ev: string, d: unknown) => (listeners[ev] ?? []).forEach((f) => f(d)) };
+    }
+
+    it("ticks the objective off when its trigger event matches", async () => {
+        const calls: string[] = [];
+        const { fire } = listeningQuest(questWithTriggeredObjective(false), calls);
+        fire("Mail.Read", { subject: "One file, one man, no trace" });
+        await settle();
+        expect(calls).toContain("completeObjective:read-brief");
+    });
+
+    it("leaves it alone when the conditions do not match", async () => {
+        const calls: string[] = [];
+        const { fire } = listeningQuest(questWithTriggeredObjective(false), calls);
+        fire("Mail.Read", { subject: "something else entirely" });
+        await settle();
+        expect(calls.filter((c) => c.startsWith("completeObjective"))).toEqual([]);
+    });
+
+    it("ticks it off exactly once, however often the event fires", async () => {
+        const calls: string[] = [];
+        const { fire } = listeningQuest(questWithTriggeredObjective(false), calls);
+        fire("Mail.Read", { subject: "One file" });
+        fire("Mail.Read", { subject: "One file" });
+        fire("Mail.Read", { subject: "One file" });
+        await settle();
+        expect(calls.filter((c) => c === "completeObjective:read-brief")).toHaveLength(1);
+    });
+
+    it("still follows the On complete wire after ticking it off", async () => {
+        const calls: string[] = [];
+        const { fire } = listeningQuest(questWithTriggeredObjective(true), calls);
+        fire("Mail.Read", { subject: "One file" });
+        await settle();
+        expect(calls).toContain("completeObjective:read-brief");
+        expect(calls).toContain("toast:on you go");
+    });
+
+    it("keeps declaring the SDK trigger as well, in case the build honours it", () => {
+        const sdk = stubSdk([], []) as any;
+        runMod(questWithTriggeredObjective(false), sdk);
+        const q = new (registered0(sdk).quests[0])();
+        expect(q.Objectives[0].trigger.event).toBe("Mail.Read");
+        expect(q.Objectives[0].trigger.condition({ subject: "One file" })).toBe(true);
+        expect(q.Objectives[0].trigger.condition({ subject: "nope" })).toBe(false);
     });
 });

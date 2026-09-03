@@ -19,6 +19,35 @@ var __QE = (function () {
         });
     }
     function asString(x) { return x == null ? "" : String(x); }
+    /* GoMail renders a mail body as plain text, so any HTML in it is shown
+       literally - QA got a briefing that read "<p>His name is <b>Anselm
+       Ritter</b>." on screen. The editor's mail field is a rich-text box that
+       produces HTML, so the two have to be reconciled here: turn the block
+       tags into line breaks, drop the inline ones, and unescape the entities.
+
+       Nemesis, whose mail displays correctly, sends plain text with blank
+       lines between paragraphs. That is what this produces. */
+    function htmlToText(html) {
+        var s = String(html == null ? "" : html);
+        if (s.indexOf("<") < 0 && s.indexOf("&") < 0) return s;
+        s = s.replace(/<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+        s = s.replace(/<\s*br\s*\/?\s*>/gi, "\n");
+        s = s.replace(/<\s*\/\s*(p|div|h[1-6]|li|tr|blockquote)\s*>/gi, "\n\n");
+        s = s.replace(/<\s*li[^>]*>/gi, "\u2022 ");
+        s = s.replace(/<\s*hr[^>]*\/?\s*>/gi, "\n----------\n");
+        s = s.replace(/<[^>]+>/g, "");
+        s = s.replace(/&nbsp;/gi, " ")
+             .replace(/&lt;/gi, "<")
+             .replace(/&gt;/gi, ">")
+             .replace(/&quot;/gi, "\"")
+             .replace(/&#39;/g, "'")
+             .replace(/&apos;/gi, "'")
+             .replace(/&amp;/gi, "&");
+        /* Collapse the runs of blank lines the block rules leave behind, and
+           trim the ends, without touching deliberate spacing inside. */
+        s = s.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+        return s.replace(/^\s+|\s+$/g, "");
+    }
     /* Turn an ISO-ish date (yyyy-mm-dd) into an age phrase ("3 days",
        "2 months", "1 year"). Returns "" for a blank or unparseable date. */
     function ageStringFromDate(value) {
@@ -109,7 +138,7 @@ var __QE = (function () {
         } catch (e) { /* fall through to the timeout below */ }
         return new Promise(function (res) { setTimeout(res, ms); });
     }
-    return { getPath: getPath, fill: fill, matchAll: matchAll, matchInput: matchInput, sleep: sleep, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
+    return { getPath: getPath, fill: fill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
@@ -142,7 +171,7 @@ function __qeRegisterProject(sdk, PROJECT) {
 
         var Mails = mailNodes.map(function (n) {
             var m = n.data.mail;
-            var out = { title: m.subject, content: m.content };
+            var out = { title: m.subject, content: __QE.htmlToText(m.content) };
             if (m.replyable) out.replyable = true;
             if (m.attachment && m.attachment.name) out.attachment = m.attachment;
             return out;
@@ -308,6 +337,10 @@ function __qeRegisterProject(sdk, PROJECT) {
             if (n.data.hint) o.hint = n.data.hint;
             if (n.data.info) o.info = n.data.info;
             if (n.data.terminalCommand) o.terminalCommand = n.data.terminalCommand;
+            /* The declarative trigger is still declared, even though
+               OnObjectivesStart now completes the objective imperatively as
+               well. Whichever one the build honours, the objective ticks off,
+               and completing an already-completed objective is a no-op. */
             if (trig) {
                 var clauses = trig.data.conditions;
                 o.trigger = {
@@ -418,6 +451,9 @@ function __qeRegisterProject(sdk, PROJECT) {
             var baseMail = Mails[mi];
             if (!baseMail) return;
             var subject = __QE.fill(baseMail.title || "", scope);
+            /* baseMail.content was already converted to plain text when Mails
+               was built - converting again here would strip a literal "<tag>"
+               the author actually wrote. Only the {{tokens}} are filled. */
             var content = __QE.fill(baseMail.content || "", scope);
             var from = mailFrom[node.id] || "";
 
@@ -1056,39 +1092,57 @@ function __qeRegisterProject(sdk, PROJECT) {
                                 flowOuts(n.id).forEach(function (e) { runFlow(e.target, { payload: {}, vars: {} }, 0); });
                             });
                         });
-                    /* An objective's "On complete" output. The SDK ticks the
-                       objective off from its own declarative trigger and tells
-                       nobody, so the story after it would never run: listen to
-                       the same event with the same conditions and follow the
-                       wire once. (An objective the story flow *reaches*
-                       continues from runFlow instead, so this only covers the
-                       ones the player completes by playing.) */
-                    objectiveNodes
-                        .filter(function (n) {
-                            return g.edges.some(function (e) {
-                                return e.source === n.id && e.sourceHandle === "done" && e.kind === "flow";
-                            });
-                        })
-                        .forEach(function (n) {
-                            var trig = g.edges
-                                .filter(function (e) { return e.kind === "condition" && e.target === n.id; })
-                                .map(function (e) { return byId[e.source]; })
-                                .filter(function (s) { return s && s.type === "trigger.event"; })[0];
-                            if (!trig) return;
-                            var fired = false;
-                            self.Events.on(trig.data.event, function (data) {
-                                if (fired) return;
-                                if (!__QE.matchAll(trig.data.conditions, data, dataScope())) return;
-                                fired = true;
-                                g.edges
-                                    .filter(function (e) {
-                                        return e.source === n.id && e.kind === "flow" && e.sourceHandle === "done";
-                                    })
-                                    .forEach(function (e) {
-                                        runFlow(e.target, { payload: data, vars: {} }, 0);
-                                    });
+                    /* Objectives that a game event completes.
+
+                       These used to rely on QuestObjectiveDefinition.trigger,
+                       the SDK's declarative form. QA reading the contract mail
+                       never ticked "Read the contract" off, which is the same
+                       shape of fault as the mail bug: an API the declarations
+                       describe but the build does not honour. The SDK's own
+                       Quest example completes objectives the imperative way -
+
+                           this.Events.on("Terminal.NmapScan", (data) => {
+                               if (data.ip === this.Data.targetIp)
+                                   this.completeObjective("scan");
+                           });
+
+                       - so that is what is emitted now: listen to the trigger's
+                       event, check the author's conditions, call
+                       completeObjective, then follow the "On complete" wire.
+                       One listener does both jobs, so the tick and the story
+                       beat after it can no longer disagree.
+
+                       (An objective the story flow *reaches* is ticked off in
+                       runFlow instead; this covers the ones the player
+                       completes by playing.) */
+                    objectiveNodes.forEach(function (n) {
+                        var trig = g.edges
+                            .filter(function (e) { return e.kind === "condition" && e.target === n.id; })
+                            .map(function (e) { return byId[e.source]; })
+                            .filter(function (s) { return s && s.type === "trigger.event"; })[0];
+                        if (!trig) return;
+                        var doneEdges = g.edges.filter(function (e) {
+                            return e.source === n.id && e.kind === "flow" && e.sourceHandle === "done";
+                        });
+                        var fired = false;
+                        self.Events.on(trig.data.event, function (data) {
+                            if (fired) return;
+                            if (!__QE.matchAll(trig.data.conditions, data, dataScope())) return;
+                            fired = true;
+                            if (n.data.name) {
+                                try {
+                                    self.completeObjective(n.data.name);
+                                    __QE.log("objective \"" + n.data.name + "\" completed by " + trig.data.event);
+                                } catch (e) {
+                                    __QE.log("could not complete objective \"" + n.data.name + "\": " +
+                                        (e && e.message ? e.message : e));
+                                }
+                            }
+                            doneEdges.forEach(function (e) {
+                                runFlow(e.target, { payload: data, vars: {} }, 0);
                             });
                         });
+                    });
                     g.nodes
                         .filter(function (n) {
                             if (n.type !== "trigger.event") return false;
