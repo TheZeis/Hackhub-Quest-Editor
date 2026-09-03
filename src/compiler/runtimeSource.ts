@@ -735,10 +735,8 @@ function __qeRegisterProject(sdk, PROJECT) {
                        had been added two builds earlier. Both were the old
                        network answering. Destroying first makes every run
                        start from the network the mod actually describes. */
-                    if (sdk.Network.destroyNetwork) {
-                        __QE.safe(function () { sdk.Network.destroyNetwork(netIp); });
-                    }
-                    sdk.Network.createSubnetNetwork(mapDevice(Object.assign({}, d.device, { ip: netIp })));
+                    if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: netIp });
+                    return buildNetwork(netIp, mapDevice(Object.assign({}, d.device, { ip: netIp })), next);
                     /* Tear the network down again when the quest ends. The
                        editor has always offered this toggle; the compiler
                        ignored it, so nothing was ever destroyed. A network the
@@ -748,8 +746,6 @@ function __qeRegisterProject(sdk, PROJECT) {
                        longer existed in the project, unchanged across three
                        re-exports, and an exploit that failed against a machine
                        whose users had since been added. */
-                    if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: netIp });
-                    return next();
                 }
                 case "world.wifi": {
                     var wifiIp = d.ipMode === "fixed" && d.ip
@@ -769,21 +765,18 @@ function __qeRegisterProject(sdk, PROJECT) {
                         });
                     } else {
                         /* Same reason as world.network above. */
-                        if (sdk.Network.destroyNetwork) {
-                            __QE.safe(function () { sdk.Network.destroyNetwork(wifiIp); });
-                        }
-                        sdk.Network.createSubnetNetwork(mapDevice({
+                        if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: wifiIp });
+                        return buildNetwork(wifiIp, mapDevice({
                             ip: wifiIp,
                             type: "ROUTER",
                             model: d.model,
                             ports: d.ports || [],
                             users: d.users || [],
                             children: d.children || [],
-                        }));
+                        }), next);
                     }
-                    /* Same as world.network: without this the network outlives
-                       the quest and the next version of the mod cannot replace
-                       it. */
+                    /* The createWifiNetwork branch (a future SDK) still needs
+                       its teardown registered. */
                     if (d.destroyOnComplete !== false) questCleanup.push({ kind: "network", ip: wifiIp });
                     return next();
                 }
@@ -1170,6 +1163,52 @@ function __qeRegisterProject(sdk, PROJECT) {
            deliberately said otherwise - a machine nobody is logged into cannot
            be broken into through a login service, which is not a distinction
            the editor ever offered to make. */
+        /* Create a network at an address, clearing whatever is already there.
+
+           Two rules pull in opposite directions here.
+
+           A network the save already holds WINS over a new one at the same ip,
+           so a stale one has to go first (r55). But destroyNetwork returns a
+           PROMISE: firing it and building immediately means the destroy lands
+           AFTER the create and deletes the network we just made. QA saw
+           exactly that - "Host is down ... No ports found" on an address the
+           mod had just built.
+
+           And we cannot simply await it, because the engine only grants a mod
+           its permissions while it is inside a call the engine made. Work
+           pushed past an await happens after OnStart has returned, and every
+           SDK call is refused as Mod "null" (r45).
+
+           So: only pay the async cost when there IS something to clear.
+           getSubnet is synchronous, so the common case - a clean address -
+           stays entirely inside OnStart. When a stale network really is
+           present the create has to wait for the destroy, and permissions are
+           lost for that one run; the network still lands, and the run after it
+           is clean. That is strictly better than never building at all. */
+        function buildNetwork(ip, definition, next) {
+            var existing = __QE.safe(function () {
+                return sdk.Network.getSubnet ? sdk.Network.getSubnet(ip) : null;
+            });
+            if (!existing) {
+                sdk.Network.createSubnetNetwork(definition);
+                return next();
+            }
+            __QE.log("network " + ip + " already exists in this save; replacing it");
+            if (!sdk.Network.destroyNetwork) {
+                /* Nothing we can do but try; the engine keeps the old one. */
+                sdk.Network.createSubnetNetwork(definition);
+                return next();
+            }
+            return Promise.resolve(sdk.Network.destroyNetwork(ip)).then(function () {
+                __QE.safe(function () { sdk.Network.createSubnetNetwork(definition); });
+                return next();
+            }, function (e) {
+                __QE.log("could not replace network " + ip + ": " + (e && e.message ? e.message : e));
+                __QE.safe(function () { sdk.Network.createSubnetNetwork(definition); });
+                return next();
+            });
+        }
+
         function mapUsers(dev) {
             var made = (dev.users || []).map(function (u) {
                 var o = sdk.Network.createUser

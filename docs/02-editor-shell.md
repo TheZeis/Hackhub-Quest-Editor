@@ -2566,3 +2566,54 @@ clean, `vite build` clean. Against the real template the operation order on
 quest start is now `destroy 45.33.32.156` then `create 45.33.32.156`.
 
 Export stamp: `EDITOR_BUILD = "2026-09-03.r55"`.
+
+## Round 56 — destroyNetwork returns a promise
+
+r55 made things worse. The network stopped existing at all:
+
+```
+nmap 45.33.32.156 -sV
+Host is down (0.44216s latency).
+No ports found
+```
+
+`Network.destroyNetwork(ip)` is declared `Promise<void>`. r55 fired it and
+called `createSubnetNetwork` on the very next line, so the destroy resolved
+*after* the create and removed the network the mod had just built. Every symptom
+followed from that: a host that was down, and a scan-server objective that still
+completed because the player had scanned an address the engine knew about a
+moment earlier.
+
+The obvious repair — await the destroy — is the r45 bug in a new coat. The
+engine only grants a mod its permissions while it is inside a call the engine
+made; anything past an `await` runs after `OnStart` has returned and is refused
+as `Mod "null"`. So the fix cannot simply be "wait".
+
+`Network.getSubnet(ip)` is synchronous, which resolves the conflict:
+
+- **the address is free** — the overwhelmingly common case — build immediately,
+  entirely inside `OnStart`, no promise involved;
+- **something is already there** — log it, wait for the destroy, then build. The
+  quest loses its permissions for the remainder of *that* run, but the network
+  lands and every run afterwards takes the fast path. A quest that half-runs
+  once beats one that never builds its world.
+
+A failed destroy still attempts the create rather than giving up.
+
+Verified against the real template, both paths:
+
+```
+clean address        synchronous create inside OnStart: true
+                       create  45.33.32.156
+stale network        synchronous create inside OnStart: false
+                       destroy 45.33.32.156
+                       create  45.33.32.156
+```
+
+One r55 test had to be rewritten rather than kept: it asserted the destroy
+happened unconditionally, which *was* the bug. It now pins the two behaviours
+separately — no destroy on a clean address, and strict destroy-before-create on
+a dirty one — plus a case where the destroy rejects.
+
+**Verification:** 579 tests (19 files, +2), `tsc --noEmit` clean, `vite build`
+clean. Export stamp: `EDITOR_BUILD = "2026-09-03.r56"`.

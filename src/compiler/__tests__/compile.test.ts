@@ -2980,16 +2980,75 @@ describe("networks are torn down when the quest ends", () => {
         expect(calls.slice(afterStart).join(",")).not.toContain("destroy:");
     });
 
-    it("clears whatever is already at the address before building, toggle or not", () => {
-        // A network the save already holds wins over a new one at the same ip,
-        // so every run has to start from a clean address (r55).
-        for (const patch of [{}, { destroyOnComplete: false }]) {
-            const { quest, calls } = build(patch);
-            quest.OnStart();
-            const order = calls.join(",");
-            expect(order).toContain("destroy:45.33.32.156");
-            expect(order.indexOf("destroy:45.33.32.156")).toBeLessThan(order.indexOf("net:45.33.32.156"));
-        }
+    it("builds straight away when the address is free, without waiting", () => {
+        /* destroyNetwork returns a promise. Awaiting it when there is nothing
+           to destroy would push createSubnetNetwork past the end of OnStart,
+           and the mod loses its permissions there (r45). The common case must
+           stay synchronous. */
+        const { quest, calls } = build();
+        quest.OnStart();
+        expect(calls.join(",")).toContain("net:45.33.32.156");
+        expect(calls.join(",")).not.toContain("destroy:45.33.32.156");
+    });
+
+    it("replaces a network the save already holds, and waits for it to go first", async () => {
+        /* r55 fired destroyNetwork and built immediately. Because the destroy
+           is async it landed AFTER the create and deleted the new network:
+           QA got "Host is down ... No ports found" on an address the mod had
+           just built. The create has to wait. */
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        let live = true; // something is already at this address
+        sdk.Network.getSubnet = (ip: string) => (live && ip === "45.33.32.156" ? { ip } : null);
+        sdk.Network.destroyNetwork = (ip: string) =>
+            new Promise<void>((res) => setTimeout(() => { live = false; calls.push(`destroy:${ip}`); res(); }, 0));
+
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "fixed",
+            device: {
+                id: "r1", ip: "45.33.32.156", name: "edge", type: "ROUTER", children: [],
+                users: [{ id: "u1", username: "admin", password: "pw" }],
+                ports: [{ id: "p1", external: 22, internal: 22, active: true, service: "ssh" }],
+            },
+        });
+        p.quests[0].graph.nodes = [entry, net];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnStart();
+        await settle();
+
+        const order = calls.join(",");
+        expect(order).toContain("destroy:45.33.32.156");
+        expect(order).toContain("net:45.33.32.156");
+        // and in that order — the whole point
+        expect(order.indexOf("destroy:45.33.32.156")).toBeLessThan(order.indexOf("net:45.33.32.156"));
+    });
+
+    it("still builds if destroying the old network fails", async () => {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.Network.getSubnet = (ip: string) => ({ ip });
+        sdk.Network.destroyNetwork = () => Promise.reject(new Error("nope"));
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const entry = node("entry.start");
+        const net = node("world.network", {
+            ipMode: "fixed",
+            device: { id: "r1", ip: "45.33.32.156", type: "ROUTER", users: [], ports: [], children: [] },
+        });
+        p.quests[0].graph.nodes = [entry, net];
+        p.quests[0].graph.edges = [edge(entry.id, net.id, "flow")];
+        runMod(compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.Data = {};
+        quest.OnStart();
+        await settle();
+        expect(calls.join(",")).toContain("net:45.33.32.156");
     });
 
     it("destroys the ip it really used, not the one in the template", () => {

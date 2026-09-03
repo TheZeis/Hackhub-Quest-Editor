@@ -46,6 +46,7 @@ dropped once it has stayed fixed for a few rounds.
 
 | Round | Item |
 |---|---|
+| r56 | r55 broke the network entirely (“Host is down… No ports found”): `destroyNetwork` returns a promise, so firing it and building immediately meant the destroy landed *after* the create and deleted the new network. Now the address is checked first — a clean one builds synchronously, a stale one waits for the destroy. |
 | r55 | A network already in the save wins over a new one at the same ip, and r52's teardown only ran on complete/abandon — which a player replacing a mod never triggers. Networks are now destroyed *before* being created, so every run starts from the network the mod describes. |
 | r54 | Debug probes name themselves from the node and socket they are wired to (`OnComplete-Objective-DeleteLedger`), still editable. Ledger's port 80 is now closed — visible but not an unscripted second way in. |
 | r53 | “No guest account or online user found”: the SSH exploit wants a guest account or an online user, not just any named user. Devices now go through `createDefaultUserSchema(users, { guest: true })` — which the working reference mod uses on all 25 of its machines and we had never called — and the author's own users default to online. |
