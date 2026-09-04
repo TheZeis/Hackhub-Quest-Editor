@@ -81,8 +81,26 @@ export function eventFields(name: string): string[] {
     return payloadFields(ev.payload);
 }
 
+/**
+ * Events the SDK types as an object but the game actually raises with a bare
+ * value.
+ *
+ * `Terminal.Lynx.Search` is declared `{ query: string }`; in build 1.1.2 the
+ * game emits the search term as a plain string, so a condition on `query` read
+ * undefined and silently never matched (QA, r47 — the objective stayed unticked
+ * while the dossier printed perfectly).
+ *
+ * The compiler copes with this generally: on a primitive payload any field name
+ * resolves to the payload itself. This list exists so the editor can *say so*
+ * in the condition builder rather than quietly offering a field that will not
+ * be there. Confirmed in-game only — add to it on the same evidence, never on
+ * the declarations alone.
+ */
+export const PAYLOAD_IS_REALLY_PRIMITIVE = new Set<string>(["Terminal.Lynx.Search"]);
+
 /** True when the payload is a primitive rather than an object (e.g. `string`). */
 export function isPrimitivePayload(name: string): boolean {
+    if (PAYLOAD_IS_REALLY_PRIMITIVE.has(name)) return true;
     const ev = byName.get(name);
     if (!ev) return false;
     return !ev.payload.trim().startsWith("{");

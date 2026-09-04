@@ -184,12 +184,6 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             ];
         }
 
-        case "comms.tweet":
-            return [
-                d.accountId ? `@${d.accountId}` : "no account yet",
-                d.content ? clip(String(d.content), 56) : "no tweet yet",
-            ];
-
         case "reply.hackertyper":
             return [
                 { website: "Website page", app: "Desktop app", phoneApp: "Phone app" }[
@@ -242,6 +236,28 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
         case "flow.random": {
             const options = d.options as { label: string }[] | undefined;
             return [options?.length ? `${options.length} options` : "no options yet"];
+        }
+
+        case "flow.sequence": {
+            const steps = (d.steps as { label?: string; delayMs?: number }[] | undefined) ?? [];
+            if (steps.length === 0) return ["no outputs yet"];
+            const total = steps.reduce((sum, s) => sum + Number(s.delayMs ?? 0), 0);
+            return [
+                `${steps.length} output${steps.length === 1 ? "" : "s"}, in order`,
+                clip(steps.map((s) => s.label || "step").join(" → "), 46),
+                total > 0 ? `${total} ms end to end` : "no pauses",
+            ];
+        }
+
+        case "flow.debug": {
+            const bits: string[] = [];
+            if (d.includePayload) bits.push("the event");
+            if (d.includeData) bits.push("saved values");
+            return [
+                d.label ? clip(String(d.label), 46) : "unnamed checkpoint",
+                bits.length ? `prints ${bits.join(" and ")}` : "prints when it is reached",
+                d.toast ? "in the log and on screen" : "in the log",
+            ];
         }
 
         case "flow.note":

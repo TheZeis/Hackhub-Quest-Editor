@@ -22,7 +22,7 @@ import { RUNTIME_SOURCE } from "./runtimeSource";
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-01.r23";
+export const EDITOR_BUILD = "2026-09-03.r59";
 
 export interface CompiledFile {
     path: string;
@@ -30,13 +30,6 @@ export interface CompiledFile {
     /** Content is base64 (binary asset) rather than plain text. */
     base64?: boolean;
 }
-
-/**
- * A neutral 64×64 placeholder avatar. The game parses account avatar strings
- * (an empty one crashed Twotter search with "undefined … toLowerCase"), so
- * every account ships a real image file — never "" and never a data URL.
- */
-const DEFAULT_AVATAR_PNG = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAXUlEQVR42u3YQQkAIBBFwU3jxQBGMIEp7H/fEoJ8GHgF5vpqzBVdAQAAAAAAAAAAAAAAAAB8AOxznwQAAAAAAAAAAAAAAAAAAAAAkAVw5gAAAAAAAAAAAAAAAACCa0YWnkjGyO5TAAAAAElFTkSuQmCC";
 
 /** Turn an embedded data-URL image into a zip-ready binary file entry. */
 function imageAsset(dataUrl: string | undefined, name: string): { file: CompiledFile; path: string } | null {
@@ -55,8 +48,24 @@ export interface CompileResult {
 
 const nodeType = (n: NodeDoc) => n.type;
 
+/**
+ * Tokens the author typed into text somewhere in the project. `{{player.ip}}`
+ * is a `Network.getPlayerIp()` call at runtime, and the loader refuses an API
+ * whose permission is not declared — so a token has to earn its permission the
+ * same way a node does.
+ */
+function tokenPermissions(project: ProjectDocument): string[] {
+    const text = JSON.stringify(project);
+    const perms: string[] = [];
+    if (text.includes("player.ip") || text.includes("random.ip")) perms.push("network");
+    if (text.includes("player.email")) perms.push("mail");
+    if (text.includes("player.username")) perms.push("shell");
+    return perms;
+}
+
 export function computePermissions(project: ProjectDocument): string[] {
     const perms = new Set<string>();
+    for (const p of tokenPermissions(project)) perms.add(p);
     const nodes = project.quests.flatMap((q) => q.graph.nodes);
     for (const n of nodes) {
         switch (nodeType(n)) {
@@ -109,21 +118,151 @@ export function computeWarnings(project: ProjectDocument): string[] {
     const warnings: string[] = [];
     for (const q of project.quests) {
         if (!q.autoStart) {
+            /* Without auto-start, the only way in is the Hackhub feed post that
+               advertises the quest. With neither, the quest is in the mod and
+               unreachable — worth saying outright rather than as a nicety. */
             warnings.push(
-                `${q.title || q.name}: starts only when the player accepts it (e.g. from the quest board) — nothing in it runs before then. Turn on “Start automatically” in the quest's Behaviour settings if it should begin on its own.`,
+                q.hackhubPost
+                    ? `${q.title || q.name}: the player claims this one from its Hackhub feed post — nothing in it runs until they do. Turn on “Start automatically” in the quest's Behaviour settings if it should begin the moment the mod loads.`
+                    : `${q.title || q.name}: nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed, so the player has no way to claim it. Turn on “Start automatically” in the quest's Behaviour settings, or give it a feed post.`,
             );
         }
         for (const n of q.graph.nodes) {
             switch (n.type) {
-                case "world.port":
                 case "world.files":
-                case "world.firewall":
-                case "world.domain":
-                case "world.database":
-                    warnings.push(
-                        `${q.name}: “${n.type}” nodes export as notes only — fold them into a network's device tree for full effect.`,
-                    );
+                    if ((n.data as { target?: string }).target !== "player") {
+                        warnings.push(
+                            `${q.name}: files for a remote device are placed in that device's own tree, under the user who owns them — a “Seed files” node pointed at a device exports as a note. Files on the player's own PC work as written.`,
+                        );
+                    }
                     break;
+                case "world.firewall":
+                case "world.port":
+                    /* Both act on a machine that must already exist: the engine
+                       has no rule to add and no port to open otherwise. */
+                    if (!(n.data as { ip?: string }).ip) {
+                        warnings.push(
+                            `${q.name}: a “${n.type === "world.port" ? "Change port" : "Add firewall rule"}” node has no device IP, so it has nothing to act on. Point it at a machine one of your network nodes created.`,
+                        );
+                    }
+                    break;
+                case "world.network": {
+                    /* The engine's device definition only lets a Router or a
+                       Splitter hold other machines, and only a Firewall hold
+                       rules. The editor only offers those fields on those
+                       types, but a device retyped after it was filled in can
+                       still be carrying them, and they would vanish at export
+                       without a word. */
+                    const orphans: string[] = [];
+                    const strays: string[] = [];
+                    const walk = (d: {
+                        ip?: string; name?: string; type?: string;
+                        children?: unknown[]; rules?: unknown[];
+                    }) => {
+                        const kind = String(d.type ?? "").toUpperCase();
+                        const holds = kind === "ROUTER" || kind === "SPLITTER";
+                        const label = d.name || d.ip || "a device";
+                        if (!holds && d.children?.length) orphans.push(`${label} (${kind || "no type"})`);
+                        if (kind !== "FIREWALL" && d.rules?.length) strays.push(`${label} (${kind || "no type"})`);
+                        (d.children ?? []).forEach((c) => walk(c as Parameters<typeof walk>[0]));
+                    };
+                    walk((n.data as { device?: Parameters<typeof walk>[0] }).device ?? {});
+                    if (orphans.length) {
+                        warnings.push(
+                            `${q.name}: ${orphans.join(", ")} has machines behind it, but only a router or a splitter can hold other machines — those machines will not be built. Change the type to Router or Splitter, or move them.`,
+                        );
+                    }
+                    if (strays.length) {
+                        warnings.push(
+                            `${q.name}: ${strays.join(", ")} carries firewall rules, but only a firewall device enforces them — they will be ignored. Put the rules on a Firewall device in front of the machine you want to protect.`,
+                        );
+                    }
+                    /* metasploit needs a three-part version. QA hit this with
+                       "OpenSSH 7.2": the exploit's own Version option refuses
+                       it ("Invalid version for option: Version") and the
+                       player simply cannot finish the quest. Every port in the
+                       working reference mod uses x.y.z, and metasploit's
+                       default is 1.0.0. Letters are a separate, already-known
+                       trap (7.2p2 stops it matching at all). */
+                    /* A machine with a login service open but no users on it
+                       cannot be broken into: metasploit runs, finds nobody to
+                       authenticate as, and reports "Attack failed. Port 22
+                       could not be accessed." QA lost a session to this on a
+                       router whose users array was empty. Every SSH-reachable
+                       device in the working reference mod carries a user. */
+                    const LOGIN_SERVICES = ["ssh", "ftp", "telnet", "mysql", "rdp", "smb", "vnc"];
+                    const loginless: string[] = [];
+                    const findLoginless = (dv: {
+                        ip?: string; name?: string; type?: string;
+                        users?: unknown[]; ports?: { external?: number; active?: boolean; service?: string }[];
+                        children?: unknown[];
+                    }) => {
+                        const kind = String(dv.type ?? "").toUpperCase();
+                        /* Splitters and firewalls are plumbing: nobody logs into them. */
+                        if (kind !== "SPLITTER" && kind !== "FIREWALL") {
+                            const open = (dv.ports ?? []).filter(
+                                (pt) => pt.active !== false && LOGIN_SERVICES.includes(String(pt.service ?? "").toLowerCase()),
+                            );
+                            if (open.length && !(dv.users ?? []).length) {
+                                loginless.push(
+                                    `${dv.name || dv.ip || "a device"} (port ${open.map((pt) => pt.external).join(", ")})`,
+                                );
+                            }
+                        }
+                        (dv.children ?? []).forEach((c) => findLoginless(c as Parameters<typeof findLoginless>[0]));
+                    };
+                    findLoginless((n.data as { device?: Parameters<typeof findLoginless>[0] }).device ?? {});
+                    if (loginless.length) {
+                        warnings.push(
+                            `${q.name}: ${loginless.join(", ")} has a login service open but no user accounts, so the player cannot break in — metasploit reports “Attack failed. Port 22 could not be accessed.” Add a user to the device, or close the port.`,
+                        );
+                    }
+
+                    const badVersions: string[] = [];
+                    const checkPorts = (dv: { ip?: string; name?: string; ports?: { external?: number; version?: string }[]; children?: unknown[] }) => {
+                        for (const port of dv.ports ?? []) {
+                            const v = String(port.version ?? "").trim();
+                            if (!v) continue;
+                            const num = v.replace(/^[^0-9]*/, "");
+                            if (!num) continue;
+                            const parts = num.split(".");
+                            const where = `${dv.name || dv.ip || "a device"} port ${port.external ?? "?"}`;
+                            if (/[A-Za-z]/.test(num)) {
+                                badVersions.push(`${where} ("${v}") has a letter in the version number`);
+                            } else if (parts.length < 3) {
+                                badVersions.push(`${where} ("${v}") has only ${parts.length === 1 ? "one number" : "two numbers"}`);
+                            }
+                        }
+                        (dv.children ?? []).forEach((c) => checkPorts(c as Parameters<typeof checkPorts>[0]));
+                    };
+                    checkPorts((n.data as { device?: Parameters<typeof checkPorts>[0] }).device ?? {});
+                    if (badVersions.length) {
+                        warnings.push(
+                            `${q.name}: ${badVersions.join("; ")}. metasploit needs three numbers (for example "OpenSSH 7.2.0") — it rejects anything else with “Invalid version for option: Version”, and the player cannot run the exploit at all.`,
+                        );
+                    }
+                    break;
+                }
+                case "world.toolResponse": {
+                    /* A social handle in lynx output is a lead the player will
+                       follow. The built-in Twotter search crashes on a handle
+                       no profile backs - it reads a field off the missing
+                       profile - and takes the save file with it. This build's
+                       SDK cannot create a Twotter profile, so any handle an
+                       author writes here is one that does not exist. */
+                    const d = n.data as { command?: string; dataText?: string };
+                    if (d.command === "lynx" && d.dataText) {
+                        const handles = d.dataText.match(/(^|\s)@[A-Za-z0-9_]{2,}/g);
+                        if (handles) {
+                            warnings.push(
+                                `${q.name}: the lynx result advertises ${handles.map((h) => h.trim()).join(", ")}. ` +
+                                `Searching a social handle that has no profile behind it crashes the game and corrupts the player's save, ` +
+                                `and this build of the SDK cannot create one. Remove the handle, or point the player at something that exists — a website, an e-mail address, an IP.`,
+                            );
+                        }
+                    }
+                    break;
+                }
                 case "fx.handbook":
                     warnings.push(`${q.name}: handbook nodes are not compiled yet.`);
                     break;
@@ -139,6 +278,19 @@ export function computeWarnings(project: ProjectDocument): string[] {
                             `${q.name}: phone lines with typed answers also register a terminal command (qe-…) the player uses to answer.`,
                         );
                     }
+                    const live = (n.data as { postLive?: boolean }).postLive === true;
+                    const wired = q.graph.edges.some((e) => e.kind === "flow" && e.target === n.id);
+                    if (live && (d.kind === "kisscord" || d.kind === "weechat")) {
+                        if (!wired) {
+                            warnings.push(
+                                `${q.name}: a conversation is set to “play when the story reaches this node” but nothing is wired into it — it stays a normal quest conversation.`,
+                            );
+                        } else {
+                            warnings.push(
+                                `${q.name}: a conversation set to “play when the story reaches this node” is sent live at that moment. Player replies, uploads and “unlocks after” steps are skipped, and the game does not remove live messages with the quest.`,
+                            );
+                        }
+                    }
                     if (d.kind === "kisscord" && d.kisscord?.messages?.some((m) => m.playerAction === "upload")) {
                         warnings.push(`${q.name}: Kisscord uploads compile to a “[uploaded file …]” message.`);
                     }
@@ -153,7 +305,7 @@ export function computeWarnings(project: ProjectDocument): string[] {
         const hidden = w.pages.filter((p) => !p.seo);
         if (hidden.length) {
             warnings.push(
-                `${w.host}: ${hidden.length} unlisted page${hidden.length > 1 ? "s" : ""} (${hidden.map((p) => p.path).join(", ")}) — reachable by address but hidden from the in-game search.`,
+                `${w.host}: ${hidden.length} unlisted page${hidden.length > 1 ? "s" : ""} (${hidden.map((p) => p.path).join(", ")}). Nothing links to ${hidden.length > 1 ? "them" : "it"} and the in-game search will not show ${hidden.length > 1 ? "them" : "it"}, so the player reaches ${hidden.length > 1 ? "them" : "it"} only by typing the address or by running dirhunter on the host — which is exactly what makes a good hiding place for a clue. If you meant ${hidden.length > 1 ? "these" : "this"} to be findable normally, turn on “Listed in search” for the page.`,
             );
         }
     }
@@ -164,38 +316,11 @@ export function compileProject(project: ProjectDocument): CompileResult {
     const permissions = computePermissions(project);
     const warnings = computeWarnings(project);
 
-    /* Twotter assets: avatars and tweet pictures become real files in the
-       zip, referenced by path — the game's asset resolver expects file names,
-       and an empty avatar string crashes Twotter search. */
-    const twotterAssets: CompiledFile[] = [];
-    const compiledQuests = project.quests.map((q) => {
-        const accounts = (q.twotterAccounts ?? []).map((a, i) => {
-            const name = `account-${a.id || i}`;
-            const embedded = imageAsset(a.avatar, `twotter/${name}`);
-            if (embedded) {
-                twotterAssets.push(embedded.file);
-                return { ...a, avatar: embedded.path };
-            }
-            twotterAssets.push({ path: `assets/twotter/${name}.png`, content: DEFAULT_AVATAR_PNG, base64: true });
-            return { ...a, avatar: `assets/twotter/${name}.png` };
-        });
-        const graph = {
-            ...q.graph,
-            nodes: q.graph.nodes.map((n) => {
-                if (n.type !== "comms.tweet") return n;
-                const d = n.data as { image?: string };
-                const img = imageAsset(d.image, `twotter/tweet-${n.id}`);
-                if (!img) return n;
-                twotterAssets.push(img.file);
-                return { ...n, data: { ...d, image: img.path } };
-            }),
-        };
-        return { q, accounts, graph };
-    });
+    const compiledQuests = project.quests.map((q) => ({ q, graph: q.graph }));
 
     const PROJECT = {
         mod: project.mod,
-        quests: compiledQuests.map(({ q, accounts, graph }) => ({
+        quests: compiledQuests.map(({ q, graph }) => ({
             name: q.name,
             title: q.title,
             description: q.description,
@@ -211,7 +336,6 @@ export function compileProject(project: ProjectDocument): CompileResult {
             maxClaim: q.maxClaim ?? null,
             maxClaimPerDay: q.maxClaimPerDay ?? null,
             hackhubPost: q.hackhubPost ?? null,
-            twotterAccounts: accounts,
             dialog: q.dialog,
             graph,
         })),
@@ -223,8 +347,44 @@ export function compileProject(project: ProjectDocument): CompileResult {
             `/* Generated by the HackHub Quest Mod Editor (build ${EDITOR_BUILD}). Edit the project, not this file. */`,
         'var sdk = require("@hotbunny/hackhub-content-sdk");',
         `var PROJECT = ${JSON.stringify(PROJECT)};`,
+        `var __QE_BUILD = ${JSON.stringify(EDITOR_BUILD)};`,
         RUNTIME_SOURCE,
-        "__qeRegisterProject(sdk, PROJECT);",
+        /* The loader looks for the Bootstrap class on the module's default
+           export, the way every hand-written mod produces it (esbuild emits
+           `module.exports = __toCommonJS({ default: MyMod })` from
+           `export default class ... extends Bootstrap`). Calling
+           RegisterModPackage alone is not enough: a mod that never exports
+           its package class is skipped in silence - no banner, no error, and
+           none of its quests ever run. QA hit exactly that.
+
+           The SHAPE and the ORDER both matter, and this is what cost rounds
+           35-41. esbuild installs `module.exports` as a LAZY GETTER at the very
+           top of the bundle, before a single class is registered:
+
+               module.exports = __toCommonJS({ default: () => MyMod });
+               ... 3500 lines ...
+               MyMod = __decorateClass([RegisterModPackage], MyMod);
+
+           The loader reads `module.exports.default` to learn which mod it is
+           loading, and it does that BEFORE the registration calls take effect.
+           We were assigning a plain object at the END, after every
+           RegisterQuest/RegisterWebsite/RegisterCommand call had already run -
+           so at registration time the loader had no mod bound, every call was
+           attributed to `Mod "null"`, and the permission check that follows had
+           no manifest to check against. The log said as much on every run:
+
+               Mod "null" tried to use Network.createSubnetNetwork without
+               "network" permission.
+
+           ...even though manifest.json declared it. Matching esbuild exactly -
+           getter first, registration after - is what makes the mod identify
+           itself. */
+        "var __QE_MOD;",
+        "module.exports = Object.defineProperty({ __esModule: true }, \"default\", {",
+        "    get: function () { return __QE_MOD; },",
+        "    enumerable: true,",
+        "});",
+        "__QE_MOD = __qeRegisterProject(sdk, PROJECT);",
         "",
     ].join("\n");
 
@@ -241,11 +401,16 @@ export function compileProject(project: ProjectDocument): CompileResult {
         author: project.mod.author || "Quest Mod Editor",
         description: project.mod.description || `${project.mod.name} — built with the HackHub Quest Mod Editor`,
         apiVersion: project.mod.apiVersion,
+        /* Declared even when empty: the working reference mod ships it, and
+           ModManifest lists it. */
+        dependencies: project.mod.dependencies ?? [],
         permissions,
         ...(project.mod.tags.length ? { tags: project.mod.tags } : {}),
         ...(iconAsset ? { icon: iconAsset.path } : project.mod.icon ? { icon: project.mod.icon } : {}),
         ...(coverAsset ? { cover: coverAsset.path } : project.mod.cover ? { cover: project.mod.cover } : {}),
     };
+
+    const manifestJson = JSON.stringify(manifest, null, 4) + "\n";
 
     const readme = [
         `# ${project.mod.name}`,
@@ -314,7 +479,18 @@ export function compileProject(project: ProjectDocument): CompileResult {
         permissions,
         warnings,
         files: [
-            { path: "manifest.json", content: JSON.stringify(manifest, null, 4) + "\n" },
+            { path: "manifest.json", content: manifestJson },
+            /* The loader reads the manifest that sits NEXT TO the bundle it
+               loads, not the one at the project root. The SDK's own build
+               script does this for you - prepareDist() in
+               @hotbunny/hackhub-content-sdk/build.mjs copies manifest.json
+               into dist/ before bundling - and a hand-built mod that works
+               in-game (Nemesis) ships manifest.json and mod.js side by side.
+               We wrote the manifest only at the root, so the game loaded the
+               bundle with no manifest attached: the mod had no name ("Mod
+               \"null\"" in the log) and therefore no permissions, and every
+               call to Network/Shell/Mail was refused. Ship both copies. */
+            { path: "dist/manifest.json", content: manifestJson },
             { path: "dist/mod.js", content: modJs },
             { path: "src/index.ts", content: modJs },
             { path: "README.md", content: readme },
@@ -323,7 +499,6 @@ export function compileProject(project: ProjectDocument): CompileResult {
             { path: "tsconfig.json", content: JSON.stringify(tsconfig, null, 2) + "\n" },
             ...(iconAsset ? [iconAsset.file] : []),
             ...(coverAsset ? [coverAsset.file] : []),
-            ...twotterAssets,
         ],
     };
 }

@@ -4,12 +4,10 @@
  * setting lives.
  */
 import { useEffect, useState } from "react";
-import { nanoid } from "nanoid";
 import * as Tabs from "@radix-ui/react-tabs";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { categoryOf, nodeTypeDef } from "@/schema/registry";
-import type { QuestDoc } from "@/schema/project";
 import { selectActiveQuest, selectSelectedNode, useEditor } from "@/store/editor";
 import { Field } from "./Field";
 import { ImagePickerField, TagInput } from "./ModFields";
@@ -251,63 +249,6 @@ function QuestInspector() {
                     mono
                 />
             </FieldShell>
-
-            <Section>Twotter accounts</Section>
-            <p className="field-hint -mt-1 px-3 pb-1">
-                The in-game social accounts your “Post tweet” nodes speak through.
-            </p>
-            {quest.twotterAccounts.map((acct, i) => {
-                const patch = (p: Partial<QuestDoc["twotterAccounts"][number]>) =>
-                    write({ twotterAccounts: quest.twotterAccounts.map((a, j) => (j === i ? { ...a, ...p } : a)) });
-                return (
-                    <div key={acct.id} className="grid gap-2 rounded-lg border border-line bg-surface-2/50 p-2.5">
-                        <div className="flex items-center justify-between">
-                            <p className="font-mono text-[11px] text-ink-2">@{acct.username || "unnamed"}</p>
-                            <button
-                                type="button"
-                                className="btn-icon size-5 text-ink-4 hover:text-danger"
-                                title="Remove account"
-                                aria-label="Remove account"
-                                onClick={() => write({ twotterAccounts: quest.twotterAccounts.filter((a) => a.id !== acct.id) })}
-                            >
-                                <Icon name="trash" size={12} />
-                            </button>
-                        </div>
-                        <FieldShell label="Username" hint="The @handle players see.">
-                            <TextInput ariaLabel="Username" value={acct.username} onChange={(username) => patch({ username })} mono />
-                        </FieldShell>
-                        <FieldShell label="Display name" hint="Shown in bold above the handle. Left blank, the username is used.">
-                            <TextInput ariaLabel="Display name" value={acct.displayName} onChange={(displayName) => patch({ displayName })} />
-                        </FieldShell>
-                        <ImagePickerField
-                            label="Avatar"
-                            hint="The profile picture. A square image works best."
-                            ariaLabel="Avatar file"
-                            value={acct.avatar}
-                            onChange={(avatar) => patch({ avatar })}
-                        />
-                        <FieldShell label="Bio">
-                            <TextArea ariaLabel="Bio" value={acct.bio ?? ""} onChange={(bio) => patch({ bio })} rows={2} />
-                        </FieldShell>
-                        <Toggle label="Verified" hint="The blue checkmark next to the name." checked={acct.verified} onChange={(verified) => patch({ verified })} />
-                    </div>
-                );
-            })}
-            <button
-                type="button"
-                className="btn-default w-full"
-                onClick={() =>
-                    write({
-                        twotterAccounts: [
-                            ...quest.twotterAccounts,
-                            { id: nanoid(8), username: "", displayName: "", verified: false },
-                        ],
-                    })
-                }
-            >
-                <Icon name="plus" size={12} />
-                Add account
-            </button>
 
             <Section>Health</Section>
             <div className="px-3 py-2 text-[11.5px] leading-relaxed text-ink-3">

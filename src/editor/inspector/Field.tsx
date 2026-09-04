@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import type { FieldDef } from "@/schema/registry";
-import { getPath, selectActiveQuest, useEditor } from "@/store/editor";
+import { getPath, useEditor } from "@/store/editor";
 import { ImagePickerField } from "./ModFields";
 import { ConditionsEditor } from "./ConditionsEditor";
 import { DeviceEditor, DeviceListEditor } from "./DeviceTree";
@@ -25,6 +25,18 @@ import {
 } from "./primitives";
 import type { NetworkDevice } from "@/schema/common";
 import type { ConditionClause } from "@/schema/nodes";
+
+/** Ready-made frame colours. Anything else is one click away in the picker. */
+const GROUP_COLORS = [
+    { value: "#64748b", label: "Slate" },
+    { value: "#60a5fa", label: "Blue" },
+    { value: "#34d399", label: "Green" },
+    { value: "#fbbf24", label: "Amber" },
+    { value: "#f472b6", label: "Pink" },
+    { value: "#a78bfa", label: "Violet" },
+    { value: "#fb923c", label: "Orange" },
+    { value: "#22d3ee", label: "Cyan" },
+] as const;
 
 export function Field({
     def,
@@ -48,9 +60,12 @@ export function Field({
         const siblingPath = basePath ? `${basePath}.${def.showWhen.key}` : def.showWhen.key;
         const current = getPath(node.data, siblingPath);
         const wanted = def.showWhen.equals;
+        // Booleans are compared by their spelling, so a toggle can gate a field
+        // with equals: "true".
+        const seen = typeof current === "boolean" ? String(current) : current;
         const matches = Array.isArray(wanted)
-            ? wanted.includes(current as string)
-            : current === wanted;
+            ? wanted.includes(seen as string)
+            : seen === wanted;
         if (!matches) return null;
     }
 
@@ -183,6 +198,43 @@ export function Field({
             );
         }
 
+        case "color": {
+            const current = asString(raw) || GROUP_COLORS[0].value;
+            return (
+                <FieldShell label={def.label} hint={def.hint}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {GROUP_COLORS.map((swatch) => (
+                            <button
+                                key={swatch.value}
+                                type="button"
+                                title={swatch.label}
+                                aria-label={swatch.label}
+                                aria-pressed={current.toLowerCase() === swatch.value.toLowerCase()}
+                                onClick={() => write(swatch.value)}
+                                className={cn(
+                                    "size-6 rounded-md border transition",
+                                    current.toLowerCase() === swatch.value.toLowerCase()
+                                        ? "border-ink ring-2 ring-accent/60"
+                                        : "border-line hover:border-line-strong",
+                                )}
+                                style={{ background: swatch.value }}
+                            />
+                        ))}
+                        <label className="ml-1 inline-flex items-center gap-1.5 text-[11px] text-ink-3">
+                            <input
+                                type="color"
+                                aria-label={`${def.label} — pick any colour`}
+                                value={/^#[0-9a-f]{6}$/i.test(current) ? current : "#64748b"}
+                                onChange={(e) => write(e.target.value)}
+                                className="size-6 cursor-pointer rounded-md border border-line bg-surface-2 p-0"
+                            />
+                            Custom
+                        </label>
+                    </div>
+                </FieldShell>
+            );
+        }
+
         case "image":
             return (
                 <ImagePickerField
@@ -193,30 +245,6 @@ export function Field({
                     onChange={(next) => write(next ?? "")}
                 />
             );
-
-        case "questAccount": {
-            const accounts = useEditor(selectActiveQuest)?.twotterAccounts ?? [];
-            return (
-                <FieldShell label={def.label} hint={def.hint}>
-                    {accounts.length === 0 ? (
-                        <p className="text-[11px] leading-relaxed text-ink-3">
-                            No Twotter accounts yet — add one in the <strong className="text-ink-2">Quest tab</strong> under
-                            “Twotter accounts”, then pick which account makes this post.
-                        </p>
-                    ) : (
-                        <SelectInput
-                            ariaLabel={def.label}
-                            value={asString(raw)}
-                            onChange={write}
-                            options={accounts.map((a) => ({
-                                value: a.id,
-                                label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
-                            }))}
-                        />
-                    )}
-                </FieldShell>
-            );
-        }
 
         case "toggle":
             return (

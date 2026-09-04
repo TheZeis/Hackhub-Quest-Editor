@@ -7,10 +7,11 @@
  * tests stay stable.
  */
 import { createProject, createQuest, type ProjectDocument } from "@/schema/project";
-import { NODE_TYPES_REGISTRY, nodeTypeDef } from "@/schema/registry";
+import { NODE_TYPES_REGISTRY, nodeTypeDef, sourcesOf } from "@/schema/registry";
 import type { NodeDoc, NodeType } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { layeredLayout } from "@/analysis/graph";
+import { SITE_TEMPLATES } from "@/templates/pages";
 
 let counter = 0;
 function resetIds() {
@@ -43,7 +44,9 @@ function makeEdge(
     target: NodeDoc,
     targetHandle: string,
 ): EdgeDoc {
-    const sourceKind = nodeTypeDef(source.type).sources.find((h) => h.id === sourceHandle)?.kind;
+    /* Sockets are resolved the way the canvas resolves them, so a Sequence
+       node's per-step outputs (step-<id>) are wireable from a template too. */
+    const sourceKind = sourcesOf(source).find((h) => h.id === sourceHandle)?.kind;
     const targetKind = nodeTypeDef(target.type).targets.find((h) => h.id === targetHandle)?.kind;
     if (!sourceKind || sourceKind !== targetKind) {
         throw new Error(
@@ -78,12 +81,15 @@ function applyLayout(quest: ReturnType<typeof createQuest>): void {
 function triggerFor(
     objective: NodeDoc,
     event: string,
-    conditions: { field: string; op: string; value: string }[],
+    conditions: { field: string; op: string; value: string; join?: "and" | "or" }[],
     position: { x: number; y: number },
 ): { trigger: NodeDoc; edge: EdgeDoc } {
     const trigger = makeNode("trigger.event", position, {
+        /* join defaults to "and"; a clause can ask for "or" when either of two
+           values should count — e.g. scanning the router or the machine
+           behind it. */
+        conditions: conditions.map((c, i) => ({ id: `c${i + 1}`, join: c.join ?? "and", ...c })),
         event,
-        conditions: conditions.map((c, i) => ({ id: `c${i + 1}`, join: "and", ...c })),
     });
     return { trigger, edge: makeEdge(trigger, "when", objective, "trigger") };
 }
@@ -108,7 +114,7 @@ export interface Template {
  */
 function buildBlank(): ProjectDocument {
     resetIds();
-    const quest = createQuest({ id: "q-blank", name: "NewQuest", title: "New Quest" });
+    const quest = createQuest({ id: "q-blank", name: "NewQuest", title: "New Quest", autoStart: true });
     const claim = makeNode("entry.start", { x: 0, y: 0 });
     const load = makeNode("entry.load", { x: 0, y: 150 });
     const complete = makeNode("entry.complete", { x: 0, y: 300 });
@@ -128,6 +134,9 @@ function buildHelloHack(): ProjectDocument {
         id: "q-hello-hack",
         name: "HelloHack",
         title: "Hello Hack",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "Scan a target and collect the bounty.",
         rewards: { money: 500, xp: 25 },
     });
@@ -187,6 +196,9 @@ function buildWifiHack(): ProjectDocument {
         id: "q-wifi-hack",
         name: "NeighbourWifi",
         title: "The Neighbour's Wi-Fi",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         description: "Crack the access point next door and see what is on the network.",
         group: "side",
         rewards: { money: 2500, xp: 120 },
@@ -202,7 +214,7 @@ function buildWifiHack(): ProjectDocument {
             from: "handler@anon.mail",
             subject: "Small job — the apartment next door",
             content:
-                "<p>There is an access point called <b>NEIGHBOUR_5Ghz</b> two walls away. Get on it, then get onto the machine behind it. Payment on delivery.</p>",
+                "There is an access point called NEIGHBOUR_5Ghz two walls away. Get on it, then get onto the machine behind it. Payment on delivery.",
             replyable: false,
         },
     });
@@ -315,6 +327,9 @@ function buildInvestigation(): ProjectDocument {
         description:
             "A whistleblower wants a set of books out of Meridian Capital's internal network. Two ways in, and only one of them is quiet.",
         group: "side",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
         rewards: { money: 18000, xp: 640 },
         dataKeys: [
             { key: "targetIp", type: "string" },
@@ -342,7 +357,7 @@ function buildInvestigation(): ProjectDocument {
             { id: "u1", username: "admin", password: "changeme", firstName: "Site", lastName: "Admin", emailAddress: "admin@meridian-capital.net" },
         ],
         ports: [
-            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9" },
+            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9.0" },
             { id: "p2", external: 80, internal: 80, active: true, service: "http", version: "Apache 2.4.41" },
         ],
         rules: [],
@@ -392,7 +407,8 @@ function buildInvestigation(): ProjectDocument {
             from: "r.okafor@protonmail.com",
             subject: "You were recommended to me",
             content:
-                "<p>I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.</p><p>The intranet is at <b>intranet.meridian-capital.net</b>. Find your own way in — I cannot be seen helping.</p>",
+                "I work in compliance at Meridian Capital. There is a set of books on the intranet that my employers would prefer stayed private.\n\n" +
+                "The intranet is at intranet.meridian-capital.net. Find your own way in — I cannot be seen helping.",
             replyable: true,
             attachment: { name: "shift-roster", extension: "txt", content: "Night shift: 02:00-06:00. Badge logs disabled during maintenance windows." },
         },
@@ -535,9 +551,12 @@ function buildInvestigation(): ProjectDocument {
         { x: 660, y: 150 },
     );
     const tDirhunter = triggerFor(findPage, "Terminal.Dirhunter", [], { x: 660, y: 320 });
+    /* Terminal.SSH.FileDownload, not "Files.Downloaded" - the latter is not an
+       event this engine has, so this objective could never complete. Found by
+       validating every template trigger against the SDK's ModEventMap. */
     const tDownload = triggerFor(
         exfil,
-        "Files.Downloaded",
+        "Terminal.SSH.FileDownload",
         [{ field: "name", op: "contains", value: "ledger" }],
         { x: 1300, y: 560 },
     );
@@ -647,6 +666,655 @@ function buildInvestigation(): ProjectDocument {
     });
 }
 
+/* ── The standard contract hack ──────────────────────────────────────────── */
+
+/**
+ * The shape of job the game hands out constantly: a name in an e-mail, and a
+ * file that has to stop existing.
+ *
+ *   mail (a name)  →  lynx <name>  →  their website  →  whois <domain>  →  IP
+ *   →  nmap -sV  →  port 22 is open  →  metasploit  →  delete the file
+ *   →  reply to the client — which only pays out if the file is really gone.
+ *
+ * Every step is a real game event (checked against `reference/hackhub-events.json`),
+ * every clue is placed by a node the author can edit, and the last step shows
+ * the pattern most quests eventually need: a branch that tells the difference
+ * between "the player did the work" and "the player says they did the work".
+ */
+function buildContractHack(): ProjectDocument {
+    resetIds();
+    const TARGET = "Anselm Ritter";
+    const DOMAIN = "meridian-capital.net";
+    const IP = "45.33.32.156";
+    const HOST_IP = "10.0.0.12";
+    const FILE = "ledger_q3";
+
+    const quest = createQuest({
+        id: "q-contract-hack",
+        name: "TheLedgerContract",
+        title: "Contract: The Q3 Ledger",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
+        description: "A client wants one file gone from one man's machine. Find him, find his server, get in, delete it.",
+        group: "side",
+        rewards: { money: 4000, xp: 180 },
+        employer: { firstName: "Ines", lastName: "Faber", email: "i.faber@ghostmail.io" },
+        dataKeys: [{ key: "ledger", type: "string" }],
+    });
+
+    const claim = makeNode("entry.start", { x: 0, y: 0 });
+    const load = makeNode("entry.load", { x: 0, y: 200 });
+    const complete = makeNode("entry.complete", { x: 0, y: 400 });
+
+    /* ── the world the player will explore ──────────────────────────────── */
+
+    const network = makeNode("world.network", { x: 300, y: 0 }, {
+        ipMode: "fixed",
+        destroyOnComplete: true,
+        device: {
+            id: "dev-router",
+            ip: IP,
+            name: "meridian-edge",
+            type: "ROUTER",
+            model: "MikroTik hEX S",
+            domainName: DOMAIN,
+            accessable: true,
+            vulnerabilities: [],
+            /* The router is the way IN, not the target. It carries the site's
+               admin account and nothing worth stealing — the ledger is on the
+               machine behind it. Matches how every network in the working
+               reference mod is shaped, and how the game actually plays: you
+               come in through the edge and log in to somebody's PC. */
+            users: [
+                {
+                    id: "u-edge",
+                    username: "admin",
+                    password: "M3ridian!edge",
+                },
+            ],
+            ports: [
+                /* Web only, and locked. Every router in the reference mod
+                   serves exactly this: port 80, locked, no version banner.
+                   The exploitable SSH service belongs on the machine behind
+                   the router, so the player has to get past the edge first. */
+                { id: "p-http", external: 80, internal: 80, active: true, locked: true, service: "http" },
+            ],
+            rules: [],
+            files: [],
+            children: [
+                {
+                    id: "dev-host",
+                    ip: HOST_IP,
+                    name: "ritter-ws",
+                    type: "DEVICE",
+                    vulnerabilities: [],
+                    /* The real target. SSH open and explicitly UNLOCKED: the
+                       reference mod locks a router's web port and leaves the
+                       SSH port it wants exploited unlocked, without exception. */
+                    ports: [
+                        { id: "p-ssh-host", external: 22, internal: 22, active: true, locked: false, service: "ssh", version: "OpenSSH 7.2.0" },
+                    ],
+                    users: [
+                        {
+                            id: "u-ritter",
+                            username: "aritter",
+                            password: "Sommer2019!",
+                            firstName: "Anselm",
+                            lastName: "Ritter",
+                            acceptReverseTCP: true,
+                            /* Files on a user mount in that user's home
+                               directory, which is how a file gets onto a remote
+                               machine before anyone connects to it. */
+                            files: [
+                                {
+                                    id: "f-ledger",
+                                    name: FILE,
+                                    extension: "xlsx",
+                                    isFolder: false,
+                                    data: "Q3 consolidated ledger - internal only. Rows 412-478 flagged by compliance.",
+                                },
+                                {
+                                    id: "f-notes",
+                                    name: "reminders",
+                                    extension: "txt",
+                                    isFolder: false,
+                                    data: "Renew the cert. Call Ines back. Stop keeping the ledger on this machine.",
+                                },
+                            ],
+                        },
+                    ],
+                    rules: [],
+                    files: [],
+                    children: [],
+                },
+            ],
+        },
+    });
+
+    /* The one thing the world cannot answer by itself: who this person is.
+       `lynx` is an OSINT lookup keyed by the name the player types. */
+    const osint = makeNode("world.toolResponse", { x: 620, y: 0 }, {
+        command: "lynx",
+        input: TARGET,
+        dataText: [
+            `Name:      ${TARGET}`,
+            "Role:      Head of Compliance, Meridian Capital AG",
+            "Location:  Munich, DE",
+            `Web:       https://${DOMAIN}`,
+            "Email:     a.ritter@meridian-capital.net",
+            /* No social handle. lynx output is a lead the player will follow,
+               and a handle that no Twotter profile backs sends them to a
+               search that crashes the game (QA, r45: the built-in Twotter
+               search calls .toLowerCase() on a field the missing profile does
+               not have, and the save is corrupted). Only advertise accounts
+               that exist - and the SDK has no way to create a Twotter profile
+               in this build, so for now: none. */
+        ].join("\n"),
+        removeOnComplete: true,
+    });
+
+    /* whois answers for the domain the router registers. Scripted here so the
+       trail is explicit and editable — change the name, change this line. */
+    const whois = makeNode("world.toolResponse", { x: 940, y: 0 }, {
+        command: "whois",
+        input: DOMAIN,
+        dataText: [
+            `Domain:     ${DOMAIN}`,
+            `IP:         ${IP}`,
+            "Registrant: Meridian Capital AG",
+            "Email:      hostmaster@meridian-capital.net",
+            "Status:     active",
+        ].join("\n"),
+        removeOnComplete: true,
+    });
+
+    /* ── the brief ──────────────────────────────────────────────────────── */
+
+    const brief = makeNode("comms.dialogue", { x: 300, y: 200 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "One file, one man, no trace",
+            content: [
+                `His name is ${TARGET}. That is all you get, and all you need.`,
+                `On his machine there is a spreadsheet called ${FILE}.xlsx. I want it gone. Not copied, not read to me — gone.`,
+                `When it is done, tell me through the drop page: ${DOMAIN}/terminal/secure-reply. Do not reply to this address.`,
+            ].join("\n\n"),
+            replyable: true,
+        },
+    });
+
+    /* ── objectives, in the order a player actually works ───────────────── */
+
+    const oRead = makeNode("objective", { x: 620, y: 200 }, {
+        name: "read-brief",
+        description: "Read the contract",
+        hint: "It is in your mailbox.",
+    });
+    const oFind = makeNode("objective", { x: 940, y: 200 }, {
+        name: "identify-target",
+        description: `Find out who ${TARGET} is`,
+        hint: "lynx looks people up. Give it the full name, in quotes.",
+        terminalCommand: `lynx "${TARGET}"`,
+    });
+    const oServer = makeNode("objective", { x: 1260, y: 200 }, {
+        name: "find-server",
+        description: "Find the server behind his company's website",
+        hint: "whois turns a domain into an address.",
+        terminalCommand: `whois ${DOMAIN}`,
+    });
+    const oScan = makeNode("objective", { x: 1580, y: 200 }, {
+        name: "scan-server",
+        description: "See what is behind the company's edge router",
+        hint: `nmap with -sV reports versions as well as open ports. Start at ${IP}; the machines behind it are on 10.0.0.x.`,
+        terminalCommand: `nmap ${IP} -sV`,
+    });
+    const oAccess = makeNode("objective", { x: 1900, y: 200 }, {
+        name: "get-a-shell",
+        description: "Get onto Ritter's workstation",
+        hint: `The edge router only serves the website. ${HOST_IP} behind it is answering on port 22 with an old SSH — metasploit has a module for that.`,
+        terminalCommand: "msfconsole",
+    });
+    const oDelete = makeNode("objective", { x: 2220, y: 200 }, {
+        name: "delete-ledger",
+        description: `Delete ${FILE}.xlsx from his home directory`,
+        hint: "It is in /home/aritter.",
+        terminalCommand: `rm ${FILE}.xlsx`,
+    });
+    const oReply = makeNode("objective", { x: 2540, y: 200 }, {
+        name: "report-back",
+        description: "Tell the client the job is done",
+        hint: "She left a reply terminal on the drop site. Mash the keys — the words are already written.",
+    });
+
+    const t1 = triggerFor(oRead, "Mail.Read", [{ field: "subject", op: "contains", value: "One file" }], { x: 620, y: 360 });
+    const t2 = triggerFor(oFind, "Terminal.Lynx.Search", [{ field: "query", op: "contains", value: "Ritter" }], { x: 940, y: 360 });
+    const t3 = triggerFor(oServer, "Terminal.Whois", [{ field: "domain", op: "equals", value: DOMAIN }], { x: 1260, y: 360 });
+    /* Either address counts. The player has to scan the edge to find the
+       machines behind it, and scanning the workstation itself is just as much
+       "seeing what is running" — failing the objective for taking the second
+       step first would be pedantry. */
+    const t4 = triggerFor(
+        oScan,
+        "Terminal.NmapScan",
+        [
+            { field: "ip", op: "equals", value: IP },
+            { join: "or", field: "ip", op: "equals", value: HOST_IP },
+        ],
+        { x: 1580, y: 360 },
+    );
+    /* No condition on purpose: whether the session reports the router's public
+       address or the workstation's differs by route in, and a template should
+       not fail for taking the other one. */
+    const t5 = triggerFor(oAccess, "Metasploit.Meterpreter.Connected", [], { x: 1900, y: 360 });
+    const t6 = triggerFor(oDelete, "Files.Deleted", [{ field: "name", op: "contains", value: FILE }], { x: 2220, y: 360 });
+    const t7 = triggerFor(oReply, "QE.reply.sent", [], { x: 2540, y: 360 });
+
+    /* ── the honesty check ──────────────────────────────────────────────── */
+
+    /* The deletion is what the client actually pays for, so it is written down
+       the moment it happens. "On complete" on an objective follows this wire
+       when the player finishes it by playing. */
+    const remember = makeNode("fx.setData", { x: 2220, y: 520 }, { key: "ledger", value: "deleted" });
+
+    const reply = makeNode("reply.hackertyper", { x: 2540, y: 520 }, {
+        surface: "website",
+        targetRef: DOMAIN,
+        heading: "Secure reply",
+        text: "> job closed\n> ledger_q3.xlsx no longer exists on the host\n> logs cleared\n> send the rest of the money",
+        charsPerKeypress: 4,
+        eventName: "QE.reply.sent",
+    });
+
+    const honest = makeNode("flow.branch", { x: 2860, y: 520 }, {
+        source: "data",
+        conditions: [{ id: "h1", join: "and", field: "ledger", op: "equals", value: "deleted" }],
+    });
+
+    const paid = makeNode("comms.dialogue", { x: 3180, y: 400 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "Received",
+            content: "Checked. It is gone. The rest of the money is with you.\n\nI will have more work.",
+            replyable: false,
+        },
+    });
+    const pay = makeNode("fx.pay", { x: 3500, y: 400 }, {
+        amount: 4000,
+        description: "Contract settled",
+        fromName: "I. Faber",
+    });
+    const joking = makeNode("comms.dialogue", { x: 3180, y: 640 }, {
+        kind: "mail",
+        mail: {
+            from: "i.faber@ghostmail.io",
+            subject: "Re: job closed",
+            content: "You must be joking. The file is still sitting in his home directory — I am looking at it.\n\nDo the job, then write to me.",
+            replyable: false,
+        },
+    });
+
+    const wrapUp = makeNode("fx.notify", { x: 300, y: 400 }, {
+        message: "Contract closed. Faber will be in touch.",
+        variant: "toast",
+        tone: "success",
+    });
+
+    const note = makeNode("flow.note", { x: 300, y: 640 }, {
+        text: [
+            "The trail: a name in the mail → lynx finds the company → whois finds the server → nmap finds port 22 → metasploit gets a shell → the file is deleted.",
+            "",
+            "Each objective is completed by a real game event (the grey node under it). Change an IP or a name and change it in the matching trigger too.",
+            "",
+            "The last part is the useful pattern: deleting the file writes ledger=deleted, and the reply branches on it — so claiming the job is done without doing it gets the player told off instead of paid.",
+            "",
+            "Two things the game handles by itself: connecting to a machine is logged there, and the player cleans that log (or pays for it in suspicion) — no node needed. And keep port version numbers plain: a letter in the version has been seen to stop metasploit matching an exploit.",
+        ].join("\n"),
+        width: 340,
+    });
+
+    quest.graph = {
+        nodes: [
+            claim, load, complete,
+            network, osint, whois, brief, wrapUp,
+            oRead, oFind, oServer, oScan, oAccess, oDelete, oReply,
+            t1.trigger, t2.trigger, t3.trigger, t4.trigger, t5.trigger, t6.trigger, t7.trigger,
+            remember, reply, honest, paid, pay, joking, note,
+        ],
+        edges: [
+            // world setup, in order, on claim
+            makeEdge(claim, "out", network, "in"),
+            makeEdge(network, "out", osint, "in"),
+            makeEdge(osint, "out", whois, "in"),
+            makeEdge(whois, "out", brief, "in"),
+            // the objective chain: each one unlocks the next
+            makeEdge(oRead, "unlock", oFind, "unlocked-by"),
+            makeEdge(oFind, "unlock", oServer, "unlocked-by"),
+            makeEdge(oServer, "unlock", oScan, "unlocked-by"),
+            makeEdge(oScan, "unlock", oAccess, "unlocked-by"),
+            makeEdge(oAccess, "unlock", oDelete, "unlocked-by"),
+            makeEdge(oDelete, "unlock", oReply, "unlocked-by"),
+            // their triggers
+            t1.edge, t2.edge, t3.edge, t4.edge, t5.edge, t6.edge, t7.edge,
+            // remember the deletion, then judge the reply
+            makeEdge(oDelete, "done", remember, "in"),
+            makeEdge(load, "out", reply, "in"),
+            makeEdge(oReply, "done", honest, "in"),
+            makeEdge(honest, "true", paid, "in"),
+            makeEdge(paid, "out", pay, "in"),
+            makeEdge(honest, "false", joking, "in"),
+            makeEdge(complete, "out", wrapUp, "in"),
+        ],
+    };
+
+    applyLayout(quest);
+
+    return createProject({
+        mod: {
+            id: "the-ledger-contract",
+            name: "The Ledger Contract",
+            version: "1.0.0",
+            author: "",
+            description:
+                "The standard contract hack: a name, an OSINT lookup, a whois, a scan, an exploit, a deleted file — and a client who checks before she pays.",
+            tags: ["quest", "hacking", "recon", "metasploit", "beginner-friendly"],
+            dependencies: [],
+            minSdkVersion: "0.21.0",
+            apiVersion: 1,
+        },
+        quests: [quest],
+        websites: [
+            {
+                id: "site-meridian",
+                host: DOMAIN,
+                name: "Meridian Capital",
+                pages: SITE_TEMPLATES.find((t) => t.id === "corp")!
+                    .make()
+                    .pages.map((page, i) => ({ id: `page-meridian-${i + 1}`, ...page })),
+            },
+        ],
+        editor: { activeQuestId: quest.id, viewports: {} },
+    });
+}
+
+/* ── The dirhunter loop ──────────────────────────────────────────────────── */
+
+/**
+ * The other job the game is built around: a website that says no, and a page
+ * the website forgot to list.
+ *
+ *   brief  →  the public site  →  the portal refuses you  →  dirhunter finds
+ *   /it/helpdesk  →  the temp-password rule  →  the directory gives the ID
+ *   →  ssh in as that employee  →  download the report  →  paid.
+ *
+ * The clue chain lives in the website itself (the NAZA site template), not in
+ * quest text: the unlisted help-desk page explains the password format, the
+ * public directory lists the employee it applies to, and the two together make
+ * one credential. That is the whole reason unlisted pages exist, and no
+ * template showed it before.
+ */
+function buildDirhunter(): ProjectDocument {
+    resetIds();
+    const HOST = "naza.gov";
+    const EDGE_IP = "198.51.100.24";
+    const BOX_IP = "10.10.4.7";
+    const USER = "t.reyes";
+    const PASSWORD = "treyes3419";
+    const FILE = "abort-report";
+
+    const quest = createQuest({
+        id: "q-dirhunter",
+        name: "TheHelpDeskLeak",
+        title: "The Help Desk Leak",
+        /* A template has to be playable the moment it is exported: without
+           this (or a Hackhub feed post) nothing can ever claim the quest. */
+        autoStart: true,
+        description: "An agency portal that will not let you in, and an internal page it forgot to hide.",
+        group: "side",
+        rewards: { money: 3200, xp: 150 },
+        employer: { firstName: "Marguerite", lastName: "Oyelaran", email: "m.oyelaran@bcc-desk.net" },
+    });
+
+    const claim = makeNode("entry.start", { x: 0, y: 0 });
+    /* No "quest complete" node: this quest has nothing to do after the
+       payment, and an empty lifecycle node is one more thing to reason about. */
+    const load = makeNode("entry.load", { x: 0, y: 200 });
+
+    const network = makeNode("world.network", { x: 300, y: 0 }, {
+        ipMode: "fixed",
+        destroyOnComplete: true,
+        device: {
+            id: "dev-edge",
+            ip: EDGE_IP,
+            name: "naza-edge",
+            type: "ROUTER",
+            model: "Cisco ISR 1100",
+            domainName: HOST,
+            accessable: false,
+            vulnerabilities: [],
+            users: [],
+            ports: [
+                { id: "p-http", external: 80, internal: 80, active: true, service: "http" },
+                { id: "p-https", external: 443, internal: 443, active: true, service: "https" },
+            ],
+            rules: [],
+            files: [],
+            children: [
+                {
+                    id: "dev-box",
+                    ip: BOX_IP,
+                    name: "nz-helpdesk-01",
+                    type: "DEVICE",
+                    vulnerabilities: [],
+                    ports: [
+                        /* Plain numbers in the version: a letter in it has been
+                           seen to stop the in-game metasploit matching. */
+                        { id: "p-ssh", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.4.0" },
+                    ],
+                    users: [
+                        {
+                            id: "u-reyes",
+                            username: USER,
+                            /* first initial + last name + last 4 of the employee
+                               ID — the rule printed on the unlisted page, applied
+                               to the one name the directory says never changed
+                               it. The player assembles this themselves. */
+                            password: PASSWORD,
+                            firstName: "Tomás",
+                            lastName: "Reyes",
+                            emailAddress: "t.reyes@naza.gov",
+                            files: [
+                                {
+                                    id: "f-report",
+                                    name: FILE,
+                                    extension: "pdf",
+                                    isFolder: false,
+                                    data: "ABORT REVIEW — LV-9 pad hold at T-40s. Root cause withheld pending counsel review.",
+                                },
+                                {
+                                    id: "f-tickets",
+                                    name: "tickets-this-week",
+                                    extension: "txt",
+                                    isFolder: false,
+                                    data: "Voss: mail rules. Idowu: VPN. Callahan: new laptop. Me: change this password (again).",
+                                },
+                            ],
+                        },
+                    ],
+                    rules: [],
+                    files: [],
+                    children: [],
+                },
+            ],
+        },
+    });
+
+    const brief = makeNode("comms.dialogue", { x: 620, y: 0 }, {
+        kind: "mail",
+        mail: {
+            from: "m.oyelaran@bcc-desk.net",
+            subject: "The pad hold nobody will talk about",
+            content: [
+                "NAZA held the LV-9 launch at forty seconds and has said nothing since. There is an abort review sitting on one of their internal boxes.",
+                `Their site is ${HOST}. The staff portal will not take a login you do not already have — but agencies are careless with the pages they do not link to.`,
+                "Bring me the report. No heroics.",
+            ].join("\n\n"),
+            replyable: false,
+        },
+    });
+
+    const oSite = makeNode("objective", { x: 940, y: 0 }, {
+        name: "open-site",
+        description: `Look at ${HOST}`,
+        hint: "The in-game browser. Start at the front page and see what they publish.",
+    });
+    const oPortal = makeNode("objective", { x: 1260, y: 0 }, {
+        name: "try-portal",
+        description: "Try the employee portal",
+        hint: "It will refuse you. Worth seeing what it asks for.",
+    });
+    const oHunt = makeNode("objective", { x: 1580, y: 0 }, {
+        name: "find-unlisted",
+        description: "Find a page the site does not link to",
+        hint: "dirhunter walks a host looking for paths that exist but are not listed.",
+        terminalCommand: `dirhunter ${HOST}`,
+    });
+    const oRead = makeNode("objective", { x: 1900, y: 0 }, {
+        name: "read-helpdesk",
+        description: "Read the internal help-desk page",
+        hint: "It explains how temporary passwords are built, and says who has not changed theirs.",
+    });
+    const oShell = makeNode("objective", { x: 2220, y: 0 }, {
+        name: "log-in",
+        description: "Log in to the help-desk machine",
+        hint: "The rule plus the directory's employee ID make one password. The public directory lists both.",
+        terminalCommand: `ssh ${USER}@${BOX_IP}`,
+    });
+    const oGrab = makeNode("objective", { x: 2540, y: 0 }, {
+        name: "take-report",
+        description: `Download ${FILE}.pdf`,
+        hint: "It is in the home directory of the account you logged in as.",
+        terminalCommand: `download ${FILE}.pdf`,
+    });
+
+    const t1 = triggerFor(oSite, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: HOST }], { x: 940, y: 200 });
+    const t2 = triggerFor(oPortal, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: "/portal" }], { x: 1260, y: 200 });
+    const t3 = triggerFor(oHunt, "Terminal.Dirhunter", [{ field: "results", op: "contains", value: "/it/helpdesk" }], { x: 1580, y: 200 });
+    const t4 = triggerFor(oRead, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: "/it/helpdesk" }], { x: 1900, y: 200 });
+    const t5 = triggerFor(oShell, "RemoteConnection.Established", [{ field: "ip", op: "equals", value: BOX_IP }], { x: 2220, y: 200 });
+    const t6 = triggerFor(oGrab, "Files.Transfer", [
+        { field: "type", op: "equals", value: "DOWNLOAD" },
+        { field: "file.name", op: "contains", value: FILE },
+    ], { x: 2540, y: 200 });
+
+    /* ── the pay-off, played as a small scene ───────────────────────────── */
+
+    const scene = makeNode("flow.sequence", { x: 2860, y: 0 }, {
+        steps: [
+            { id: "s1", label: "Confirm receipt", delayMs: 0 },
+            { id: "s2", label: "She reads it", delayMs: 3500 },
+            { id: "s3", label: "Payment", delayMs: 2000 },
+        ],
+    });
+    const gotIt = makeNode("fx.notify", { x: 3180, y: -160 }, {
+        message: "Upload complete.",
+        variant: "toast",
+        tone: "success",
+    });
+    const chat = makeNode("comms.dialogue", { x: 3180, y: 0 }, {
+        kind: "kisscord",
+        /* Timed into the story: the messages arrive when the flow reaches this
+           node, on the Sequence's second beat, rather than sitting in the chat
+           from the moment the quest starts. */
+        postLive: true,
+        kisscord: {
+            contactId: "m_oyelaran",
+            messages: [
+                { id: "k1", content: "Got it.", isMine: false, delayMs: 0, playerAction: "none", playerText: "", unlocksAfter: [] },
+                { id: "k2", content: "Page 4. They knew about the valve in March.", isMine: false, delayMs: 3000, playerAction: "none", playerText: "", unlocksAfter: [] },
+                { id: "k3", content: "Do not go back to that host. They will rotate the passwords by Monday and I would rather they never knew why.", isMine: false, delayMs: 4000, playerAction: "none", playerText: "", unlocksAfter: [] },
+            ],
+        },
+    });
+    const pay = makeNode("fx.pay", { x: 3180, y: 200 }, {
+        amount: 3200,
+        description: "Abort review",
+        fromName: "M. Oyelaran",
+    });
+
+    const note = makeNode("flow.note", { x: 300, y: 620 }, {
+        text: [
+            "The clue is in the website, not in the quest text.",
+            "",
+            "Open Websites → NAZA: the employee portal refuses everyone, /it/helpdesk is unlisted (its “Listed in search” switch is off) and prints the temp-password rule, and the public directory page lists the employee it still applies to. Together they make one login.",
+            "",
+            "That is what unlisted pages are for: dirhunter finds them, search does not. Change the rule on the page and change the account's password to match.",
+        ].join("\n"),
+        width: 340,
+    });
+
+    quest.graph = {
+        nodes: [
+            claim, load,
+            network, brief,
+            oSite, oPortal, oHunt, oRead, oShell, oGrab,
+            t1.trigger, t2.trigger, t3.trigger, t4.trigger, t5.trigger, t6.trigger,
+            scene, gotIt, chat, pay, note,
+        ],
+        edges: [
+            makeEdge(claim, "out", network, "in"),
+            makeEdge(network, "out", brief, "in"),
+            makeEdge(oSite, "unlock", oPortal, "unlocked-by"),
+            makeEdge(oPortal, "unlock", oHunt, "unlocked-by"),
+            makeEdge(oHunt, "unlock", oRead, "unlocked-by"),
+            makeEdge(oRead, "unlock", oShell, "unlocked-by"),
+            makeEdge(oShell, "unlock", oGrab, "unlocked-by"),
+            t1.edge, t2.edge, t3.edge, t4.edge, t5.edge, t6.edge,
+            // taking the file plays the closing scene
+            makeEdge(oGrab, "done", scene, "in"),
+            makeEdge(scene, "step-s1", gotIt, "in"),
+            makeEdge(scene, "step-s2", chat, "in"),
+            makeEdge(scene, "step-s3", pay, "in"),
+            // the chat is registered on load as well, so it survives a reload
+            makeEdge(load, "out", chat, "in"),
+        ],
+    };
+
+    applyLayout(quest);
+
+    return createProject({
+        mod: {
+            id: "the-help-desk-leak",
+            name: "The Help Desk Leak",
+            version: "1.0.0",
+            author: "",
+            description:
+                "A public site, a portal that refuses you, and an unlisted page dirhunter can find. The credential is assembled from two pages the agency published itself.",
+            tags: ["quest", "web", "dirhunter", "osint", "ssh"],
+            dependencies: [],
+            minSdkVersion: "0.21.0",
+            apiVersion: 1,
+        },
+        quests: [quest],
+        websites: [
+            {
+                id: "site-naza",
+                ...(() => {
+                    const site = SITE_TEMPLATES.find((t) => t.id === "agency")!.make();
+                    return {
+                        host: site.host,
+                        name: site.name,
+                        pages: site.pages.map((page, i) => ({ id: `page-naza-${i + 1}`, ...page })),
+                    };
+                })(),
+            },
+        ],
+        editor: { activeQuestId: quest.id, viewports: {} },
+    });
+}
+
 /* ── The reference quest ─────────────────────────────────────────────────── */
 
 /**
@@ -663,7 +1331,7 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
         hidden: false,
     },
     "trigger.event": {
-        event: "Files.Downloaded",
+        event: "Terminal.SSH.FileDownload",
         conditions: [{ id: "c1", join: "and", field: "name", op: "contains", value: "manifest" }],
     },
     "world.network": {
@@ -679,7 +1347,7 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             { id: "u1", username: "admin", password: "changeme", firstName: "Site", lastName: "Admin", emailAddress: "admin@meridian-capital.net" },
         ],
         ports: [
-            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9" },
+            { id: "p1", external: 22, internal: 22, active: true, service: "ssh", version: "OpenSSH 8.9.0" },
             { id: "p2", external: 80, internal: 80, active: true, service: "http", version: "Apache 2.4.41" },
         ],
         rules: [],
@@ -763,15 +1431,6 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             ],
         },
     },
-    "comms.tweet": {
-        accountId: "dockwatch",
-        content: "Something moved on the night of the 14th that isn't in any manifest.",
-        likes: 42,
-        comments: 7,
-        shares: 11,
-        views: 3180,
-        postedAgo: "3h",
-    },
     "reply.hackertyper": {
         surface: "website",
         targetRef: "docknet.internal",
@@ -813,6 +1472,19 @@ const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             { id: "o2", label: "MSKU-4472" },
         ],
         storeAs: "containerId",
+    },
+    "flow.sequence": {
+        steps: [
+            { id: "s1", label: "Lights out", delayMs: 0 },
+            { id: "s2", label: "Radio crackles", delayMs: 1500 },
+            { id: "s3", label: "Door unlocks", delayMs: 2500 },
+        ],
+    },
+    "flow.debug": {
+        label: "after the exploit",
+        includeData: true,
+        includePayload: true,
+        toast: false,
     },
     "flow.note": {
         text: "This quest is a reference sheet, not a story.\n\nEvery node type is here once, filled with example input. Select any node and hover the ⓘ next to a field label to read what it does.",
@@ -947,12 +1619,30 @@ export const TEMPLATES: Template[] = [
         build: buildInvestigation,
     },
     {
+        id: "contract-hack",
+        name: "Standard Contract Hack",
+        description:
+            "The job the game hands out constantly: a name in an e-mail, an OSINT lookup, whois, a scan, an exploit, and one file that has to stop existing — with a client who checks before she pays.",
+        difficulty: "Intermediate",
+        nodeCount: 29,
+        build: buildContractHack,
+    },
+    {
+        id: "dirhunter-leak",
+        name: "The Help Desk Leak",
+        description:
+            "A public agency site, a portal that refuses you, and an unlisted page dirhunter can find. The password is assembled from two pages the agency published itself — the classic web-recon loop, with a real website in the box.",
+        difficulty: "Intermediate",
+        nodeCount: 21,
+        build: buildDirhunter,
+    },
+    {
         id: "reference",
         name: "Node Reference",
         description:
             "Every node type on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 40,
+        nodeCount: 41,
         build: buildReference,
     },
 ];

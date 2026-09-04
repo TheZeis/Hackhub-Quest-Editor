@@ -101,17 +101,6 @@ export const HackhubPostSchema = z.object({
         .default([]),
 });
 
-export const TwotterAccountSchema = z.object({
-    id: z.string(),
-    username: z.string().default(""),
-    displayName: z.string().default(""),
-    avatar: z.string().optional(),
-    bio: z.string().optional(),
-    followers: z.number().optional(),
-    following: z.number().optional(),
-    verified: z.boolean().default(false),
-});
-
 export const GraphSchema = z.object({
     nodes: z.array(NodeSchema).default([]),
     edges: z.array(EdgeSchema).default([]),
@@ -138,7 +127,6 @@ export const QuestSchema = z.object({
     abandonable: z.boolean().default(true),
     hasCompleteButton: z.boolean().default(false),
     hackhubPost: HackhubPostSchema.optional(),
-    twotterAccounts: z.array(TwotterAccountSchema).default([]),
     /** Phone-call dialog trees, referenced by name from `comms.call` nodes. */
     dialog: z.array(DialogBranchSchema).default([]),
     /** Keys written by `fx.setData` / `flow.random`, so the inspector can offer them. */

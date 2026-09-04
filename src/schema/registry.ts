@@ -14,6 +14,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import type { EdgeKind, HandleSpec } from "./edges";
 import {
+    DebugNodeDataSchema,
     DialogueNodeDataSchema,
     BranchNodeDataSchema,
 ClaimQuestNodeDataSchema,
@@ -33,10 +34,10 @@ ClaimQuestNodeDataSchema,
     PortNodeDataSchema,
     RandomPickNodeDataSchema,
     SetDataNodeDataSchema,
+    SequenceNodeDataSchema,
     ShellExecNodeDataSchema,
     ToolResponseNodeDataSchema,
     TriggerEventDataSchema,
-    TweetNodeDataSchema,
 WifiNodeDataSchema,
     NoteNodeDataSchema,
     RerouteNodeDataSchema,
@@ -90,8 +91,8 @@ export type FieldDef =
           showWhen?: FieldShowWhen;
       }
     | { kind: "date"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
+    | { kind: "color"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "image"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
-    | { kind: "questAccount"; key: string; label: string; hint?: string }
     | { kind: "event"; key: string; label: string; hint?: string }
     | { kind: "conditions"; key: string; label: string; hint?: string }
     | {
@@ -107,7 +108,7 @@ export type FieldDef =
       }
     | { kind: "deviceTree"; key: string; label: string; hint?: string }
     | { kind: "section"; label: string; hint?: string; fields: FieldDef[] }
-    | { kind: "note"; text: string; tone?: "info" | "warn" };
+    | { kind: "note"; text: string; tone?: "info" | "warn"; showWhen?: FieldShowWhen };
 
 /* ── Categories ──────────────────────────────────────────────────────────── */
 
@@ -165,7 +166,7 @@ const portFields: FieldDef[] = [
     { kind: "number", key: "external", hint: "The port number as seen from outside. This is what nmap reports and what the player connects to.", label: "External port", min: 0, max: 65535 },
     { kind: "number", key: "internal", hint: "The port the service actually listens on inside the machine. Leave equal to the external port unless you are deliberately redirecting.", label: "Internal port", min: 0, max: 65535 },
     { kind: "text", key: "service", hint: "What nmap prints next to the port, e.g. http, ssh, ftp, mysql. Free text — it is a label, not a real service.", label: "Service", placeholder: "ssh", mono: true },
-    { kind: "text", key: "version", hint: "The banner nmap -sV prints, e.g. \"Apache 2.4.41\". Leave blank to omit the version line.", label: "Version", placeholder: "OpenSSH 8.9", mono: true },
+    { kind: "text", key: "version", hint: "The banner nmap -sV prints. Use three numbers and no letters — metasploit refuses \"7.2\" and \"7.2p2\", leaving the player unable to run the exploit. Blank omits the version line.", label: "Version", placeholder: "OpenSSH 8.9.0", mono: true },
     { kind: "toggle", key: "active", label: "Open", hint: "Closed ports show as filtered to nmap." },
 ];
 
@@ -253,6 +254,12 @@ export interface NodeTypeDef {
     icon: string;
     targets: HandleSpec[];
     sources: HandleSpec[];
+    /**
+     * Sockets that depend on the node's own data (the Sequence node grows one
+     * output per step). When present it replaces `sources` for that node — the
+     * static list stays as the empty-state fallback.
+     */
+    dynamicSources?: (data: Record<string, unknown>) => HandleSpec[];
     /** Which lifecycle hook the compiler emits this node's statements into. */
     hook: "onStart" | "onObjectivesStart" | "onComplete" | "onAbandon" | "declarative";
     fields: FieldDef[];
@@ -602,10 +609,22 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "weechat", label: "weechat" },
                 ],
             },
-            { kind: "text", key: "input", label: "Keyed by", mono: true, tokens: true, hint: "The IP or domain the player passes. hydra/ssh/ftp use user + target instead." },
+            { kind: "text", key: "input", label: "Keyed by", mono: true, tokens: true, hint: "What the player types after the command — the IP, domain or name it answers for. The tool only responds to this exact input. hydra/ssh/ftp use the user + target fields below instead." },
             { kind: "text", key: "inputUser", hint: "Only match when the player ran the command against this user.", label: "User", mono: true },
             { kind: "text", key: "inputTarget", hint: "Only match when the player ran the command against this host.", label: "Target", mono: true, tokens: true },
-            { kind: "textarea", key: "dataText", label: "Response", mono: true, rows: 8, hint: "The exact text the tool prints. Paste real-looking output — the player sees it word for word." },
+            {
+                kind: "textarea",
+                key: "dataText",
+                label: "Response",
+                mono: true,
+                rows: 8,
+                hint: "One “Label: value” per line. The editor turns them into the shape that tool returns in-game.",
+            },
+            {
+                kind: "note",
+                tone: "info",
+                text: "Labels the tools understand: whois → domain, ip, registrant, email · lynx → web, email, phone, social, address (anything else is shown as extra detail) · geoip → country, city, latitude, longitude · hydra → username, password · nslookup / mxlookup → ip. nmap is different: write one port per line, like “22 open ssh OpenSSH 8.9”. Paste JSON instead if you want to set the result exactly.",
+            },
             { kind: "toggle", key: "removeOnComplete", hint: "Stop intercepting the command when the quest ends.", label: "Remove when the quest ends" },
         ],
         create: () => seed(ToolResponseNodeDataSchema),
@@ -624,58 +643,6 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(DialogueNodeDataSchema),
     },
 
-    "comms.tweet": {
-        type: "comms.tweet",
-        category: "comms",
-        label: "Post tweet",
-        blurb: "A Twotter post from an NPC",
-        icon: "bird",
-        ...io,
-        hook: "onStart",
-        fields: [
-            { kind: "questAccount", key: "accountId", hint: "Which of the quest's Twotter accounts posts this. Add accounts in the Quest tab.", label: "Account" },
-            { kind: "textarea", key: "content", hint: "The post body, with the same formatting Twotter supports.", label: "Tweet", rows: 4 },
-            { kind: "image", key: "image", label: "Attached picture", hint: "Optional. PNG or JPG — use it for clues the player must read, or files they download later." },
-            { kind: "number", key: "likes", hint: "Starting like count. Cosmetic, but it sells the fiction.", label: "Likes", min: 0 },
-            { kind: "number", key: "comments", hint: "How many replies the post already shows. Cosmetic, but it sells the fiction.", label: "Comments", min: 0 },
-            { kind: "number", key: "shares", hint: "How many reposts the post already shows. Cosmetic, but it sells the fiction.", label: "Shares", min: 0 },
-            { kind: "number", key: "views", hint: "How many views the post already shows. Cosmetic, but it sells the fiction.", label: "Views", min: 0 },
-            {
-                kind: "select",
-                key: "timeMode",
-                label: "Post time",
-                hint: "How the timestamp reads in-game. \"Now\" lets the game show it relative to real time.",
-                options: [
-                    { value: "now", label: "Now (real time)", hint: "No fixed date — the game shows it as just-posted, relative to when the player sees it." },
-                    { value: "relative", label: "A while ago", hint: "An age like \"2 days\" or \"1 month\" that stays fixed." },
-                    { value: "absolute", label: "A specific date", hint: "Pick a calendar date; the game shows how long ago that was." },
-                ],
-            },
-            {
-                kind: "text",
-                key: "postedAgo",
-                label: "How long ago",
-                hint: "Whole words the game understands, e.g. \"2 days\", \"3 hours\", \"1 month\". Avoid short forms like \"2d\".",
-                placeholder: "2 days",
-                showWhen: { key: "timeMode", equals: "relative" },
-            },
-            {
-                kind: "date",
-                key: "postedAt",
-                label: "Posted on",
-                hint: "The date the post should look like it went up. The game shows it as an age from today.",
-                showWhen: { key: "timeMode", equals: "absolute" },
-            },
-            {
-                kind: "toggle",
-                key: "showInTimeline",
-                label: "Show in main timeline",
-                hint: "On: the post also appears in the main Twotter feed. Off: it shows only on the account's profile.",
-            },
-        ],
-        create: () => seed(TweetNodeDataSchema),
-    },
-
     "reply.hackertyper": {
         type: "reply.hackertyper",
         category: "reply",
@@ -685,6 +652,11 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onObjectivesStart",
         fields: [
+            {
+                kind: "note",
+                tone: "info",
+                text: "This builds a page on the website you name below, at /terminal/ plus the heading in dashes — heading “Secure reply” becomes /terminal/secure-reply. Nothing links to it, so tell the player where it is: put the address in the mail or chat that sends them there.",
+            },
             { kind: "note", tone: "info", text: "HackHub has no engine primitive for this, so the editor emits a small HTML surface that runs the effect and emits a custom event when the string is revealed." },
             {
                 kind: "select",
@@ -947,7 +919,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "declarative",
         fields: [
             { kind: "note", tone: "info", text: "Draw a box around part of your quest to keep it tidy. Drag the frame and everything inside moves with it. It has no effect on how the mod runs." },
-            { kind: "text", key: "label", label: "Name", hint: "Shown in the frame's corner — name the cluster after what it does, e.g. “Act 1: recon”." },
+            { kind: "text", key: "label", label: "Name", hint: "Shown in the frame's title bar — name the cluster after what it does, e.g. “Act 1: recon”." },
+            { kind: "color", key: "color", label: "Title bar colour", hint: "Colour-code your frames however you like — e.g. one colour per act, or per character. It only changes how the frame looks in the editor." },
             { kind: "textarea", key: "comment", label: "Comment", rows: 3, hint: "A note to future-you about what this cluster does." },
         ],
         create: () => seed(LayoutGroupNodeDataSchema),
@@ -976,6 +949,73 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(RandomPickNodeDataSchema),
     },
 
+    "flow.sequence": {
+        type: "flow.sequence",
+        category: "flow",
+        label: "Sequence",
+        blurb: "Fire several outputs one after another",
+        icon: "list",
+        targets: [inFlow],
+        sources: [],
+        dynamicSources: (data) => sequenceSockets(data),
+        hook: "onStart",
+        fields: [
+            {
+                kind: "note",
+                tone: "info",
+                text: "One input, as many outputs as you like. When the story reaches this node the outputs fire from top to bottom, waiting the pause you set before each one. Add or remove outputs below — each row is a socket on the node.",
+            },
+            {
+                kind: "list",
+                key: "steps",
+                label: "Outputs, in order",
+                hint: "They fire top to bottom. Drag the rows' ✕ to remove an output — any wire attached to it is removed too.",
+                addLabel: "Add output",
+                itemTitle: (s, i) => String(s.label || `Step ${i + 1}`),
+                fields: [
+                    {
+                        kind: "text",
+                        key: "label",
+                        label: "Name",
+                        hint: "Free text — whatever helps you recognise this output on the canvas, e.g. “lights out” or “call Mara”.",
+                    },
+                    {
+                        kind: "number",
+                        key: "delayMs",
+                        label: "Wait before firing (milliseconds)",
+                        hint: "How long to pause before this output fires, counted from the previous one. 0 fires it immediately; 1000 is one second.",
+                        min: 0,
+                        step: 100,
+                    },
+                ],
+                newItem: () => ({ id: nanoid(8), label: "Step", delayMs: 500 }),
+            },
+        ],
+        create: () =>
+            seed(SequenceNodeDataSchema, {
+                steps: [
+                    { id: nanoid(8), label: "First", delayMs: 0 },
+                    { id: nanoid(8), label: "Then", delayMs: 1000 },
+                ],
+            }),
+    },
+
+    "flow.debug": {
+        type: "flow.debug",
+        category: "flow",
+        label: "Debug probe",
+        blurb: "Print what is happening here",
+        icon: "bug",
+        ...io,
+        hook: "onStart",
+        fields: [
+            { kind: "text", key: "label", hint: "Names itself after whatever you wire it to — socket, node and detail. Type your own to override it.", label: "Label", placeholder: "named when you connect it" },
+            { kind: "toggle", key: "includeData", hint: "Print everything the quest has saved with a “Remember a value” node.", label: "Include saved values" },
+            { kind: "toggle", key: "includePayload", hint: "Print the event that got here — the field names it really carries, which are not always the ones the docs promise.", label: "Include the event" },
+            { kind: "toggle", key: "toast", hint: "Also show it on screen, so you can test without reading the log file.", label: "Show on screen too" },
+        ],
+        create: () => seed(DebugNodeDataSchema, { label: "" }),
+    },
     "flow.note": {
         type: "flow.note",
         category: "flow",
@@ -1005,6 +1045,36 @@ export function paletteGroups(): { category: (typeof CATEGORIES)[number]; types:
 
 export function nodeTypeDef(type: NodeType): NodeTypeDef {
     return NODE_TYPES_REGISTRY[type];
+}
+
+/**
+ * The output sockets a Sequence node shows: one per step, in author order.
+ * Lives here (not in the node component) because the canvas, the store, the
+ * analysis and the compiler all have to agree on the socket ids.
+ */
+export function sequenceSockets(data: unknown): HandleSpec[] {
+    const steps = (data as { steps?: { id: string; label?: string }[] })?.steps ?? [];
+    return steps.map((step, i) => ({
+        id: `step-${step.id}`,
+        kind: "flow" as const,
+        label: step.label?.trim() || `Step ${i + 1}`,
+    }));
+}
+
+/**
+ * Every output socket of a concrete node — dynamic when the type derives its
+ * sockets from data, otherwise the registry's static list.
+ */
+export function sourcesOf(node: { type: NodeType; data: unknown }): HandleSpec[] {
+    const def = NODE_TYPES_REGISTRY[node.type];
+    return def.dynamicSources
+        ? def.dynamicSources((node.data ?? {}) as Record<string, unknown>)
+        : def.sources;
+}
+
+/** Input sockets of a concrete node. Symmetrical with `sourcesOf`. */
+export function targetsOf(node: { type: NodeType; data: unknown }): HandleSpec[] {
+    return NODE_TYPES_REGISTRY[node.type].targets;
 }
 
 export function categoryOf(type: NodeType) {

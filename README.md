@@ -10,11 +10,70 @@ moments, and export a complete, game-ready mod as a `.zip` — no coding at any 
 
 ---
 
-## Status
+## Roadmap
 
-**All four steps complete — the editor builds playable mods.**
+Live list of what is being worked on. Newest problems at the top of each
+section; anything ticked off moves to **Done recently** and is eventually
+dropped once it has stayed fixed for a few rounds.
 
-| Step | Deliverable | Status |
+### In progress
+
+| # | Item | Notes |
+|---|---|---|
+| 1 | **End of the Ledger chain (delete → reply)** | The exploit now succeeds and opens a shell. It logged in as `guest` and got a plain command shell rather than meterpreter — r57 removes the guest account from routers so the exploit reaches the named reverse-TCP user instead. The last two objectives have not been reached in a real run yet. |
+| 2 | **Date deprecation warning (`moment` RFC2822)** | Only appears with a quest-editor mod installed. **Not** the `Mail.send` call: r48's session sent mail and completed four objectives with no warning at all, and `to`/`attachments` are set identically there. It is a *renderer* warning (the game formatting a date for display) that fires 30-90s later, when a browser/Twotter screen is opened. Next step: find which of our content carries a date-shaped string the game tries to parse. |
+| 3 | Old quest mail is never cleaned up | Mail sent by an uninstalled mod stays in the inbox. `Mail` has no delete/remove in the SDK, so there may be nothing we can do — but confirm before dismissing. (Same *family* as the r52 network bug: things we create outliving the quest.) |
+| 4 | Website pages: `description` + `search[]` | The SDK's `WebsitePageDefinition` supports both and the reference mod uses both; we emit only `path`/`title`/`html`/`seo`. Affects in-game search. |
+
+### Next up
+
+| # | Item | Notes |
+|---|---|---|
+| 5 | Wire/noodle physics | Pulling a wire makes it hang and bounce; past a distance it pulls straight; releasing snaps it back before it disappears. Sag derived from slack, ~200ms non-interactive ghost on delete, physics only on the held wire, must honour the wire-motion toggle. **Must write inside the canvas, never the document root** (see r42). |
+| 6 | "Contact-driven story" template | Phone brief → Kisscord drip gated on objectives → WeeChat timed to a beat. |
+| 7 | "Branching consequence" template | A choice that changes which ending the player gets. |
+
+### Known limitations (not bugs)
+
+| Item | Why |
+|---|---|
+| No Wi-Fi networks | SDK 0.21.0 has no wireless API. "Create Wi-Fi" exports as a router network reachable by IP. |
+| No Twotter | Removed in r31: the SDK declares it but this build does not honour it. Revisit if a newer build ships it. |
+| Handbook nodes are not compiled | Declared in the editor, no export path yet. |
+| No log-cleaning node | Entirely engine-side: the game logs connections on the machine, and the player wipes them from its own UI. |
+
+### Done recently
+
+| Round | Item |
+|---|---|
+| r59 | The briefing arrived blank (`subject=""`), so `Mail.Read` could never match. Cause: r56's "wait for the destroy" path cost the quest its permissions mid-build, `Mail.send` was refused, and the fallback delivered the engine's empty copy. The destroy is no longer awaited, and the fallback refuses to send a mail the engine has no usable copy of. |
+| r58 | The Ledger network now has the shape every reference-mod network has: the router serves the website only (port 80, locked), and the exploitable SSH sits on the workstation behind it. `locked` was in the schema and inspector but never reached the engine — now it does. |
+| r57 | The exploit succeeded but logged in as `guest` and opened a plain shell, not meterpreter. r53 had put a guest account on *every* machine; the reference mod puts one on its 26 Devices and none of its 7 Routers. Routers now keep only the accounts the author wrote. |
+| r56 | r55 broke the network entirely (“Host is down… No ports found”): `destroyNetwork` returns a promise, so firing it and building immediately meant the destroy landed *after* the create and deleted the new network. Now the address is checked first — a clean one builds synchronously, a stale one waits for the destroy. |
+| r55 | A network already in the save wins over a new one at the same ip, and r52's teardown only ran on complete/abandon — which a player replacing a mod never triggers. Networks are now destroyed *before* being created, so every run starts from the network the mod describes. |
+| r54 | Debug probes name themselves from the node and socket they are wired to (`OnComplete-Objective-DeleteLedger`), still editable. Ledger's port 80 is now closed — visible but not an unscripted second way in. |
+| r53 | “No guest account or online user found”: the SSH exploit wants a guest account or an online user, not just any named user. Devices now go through `createDefaultUserSchema(users, { guest: true })` — which the working reference mod uses on all 25 of its machines and we had never called — and the author's own users default to online. |
+| r52 | Networks were never destroyed: `destroyOnComplete` existed in the schema and the inspector from day one and the compiler never read it. A stale network in the save shadowed every re-export — the cause of the port version that would not change and the exploit that kept failing. |
+| r51 | The exploit failed with “Port 22 could not be accessed”: the router opened SSH but had no user accounts, so there was nobody to log in as. Template fixed, and export now warns for any machine with a login service and no users. |
+| r50 | New **Debug probe** node: drop it into any chain to print, in the player's log, that the flow reached that point, what the event really carried, and what the quest has saved. |
+| r49 | `OpenSSH 7.2` made the quest unfinishable: metasploit rejects a two-part version with “Invalid version for option: Version”. All template ports now use three numbers, and export warns about any that do not. |
+| r48 | Swept all 92 events: the 19 declared as single-field objects (lynx's risk class) plus the 3 declared primitives are now proven to match in *both* the declared shape and as a bare value, so no other tool can fail the way lynx did. |
+| r47 | `Terminal.Lynx.Search` is declared `{ query: string }` but the game emits a bare string, so the condition read `undefined` and the objective never ticked. Field lookup now copes with a payload that is not the declared shape. |
+| r46 | Text conditions now ignore quotes, case and stray whitespace, so `lynx "Anselm Ritter"` and `lynx Anselm Ritter` both count. Non-matching events are logged with their real payload. The contract template no longer advertises a Twotter handle — searching one with no profile behind it crashes the game and corrupts the save; export now warns about it. |
+| r45 | `Mod "null"`: the quest graph ran in a microtask after `OnStart` had returned, so the engine had no mod bound and refused every SDK call. The graph now runs synchronously and only defers where the author asked for a wait. |
+| r44 | An idle editor still spent 29% of its time in style recalculation: the shared dash-offset property had to be inherited, so every descendant of the canvas restyled 60×/second. Each wire now animates its own `stroke-dashoffset` and nothing is inherited. |
+| r43 | Mod identified itself as `Mod "null"` and was refused every permission — the bundle must install `module.exports` *before* it registers anything, the way esbuild does. Wire dots frozen since r42: a custom property must be registered with `@property` before the browser will interpolate it. |
+| r42 | An idle editor repainted the whole page 60×/second (40.8% of frame time) because the wire animation wrote a custom property to the document root. Now scoped to the canvas and handed to the browser's animation engine. |
+| r41 | `manifest.json` is now shipped beside the bundle as well as at the project root, matching the SDK's own build script. |
+| r40 | Full audit against a known-working mod: device union arms, a trigger on an event that does not exist (`Files.Downloaded`), missing `Website.Icon`, template mail written in HTML. |
+| r39 | Mail bodies are sent as the plain text GoMail actually displays; objectives are completed imperatively rather than relying on the declarative `trigger`. |
+| r38 | The Bootstrap class is exported so the loader can find it, and the mod announces itself on load. |
+
+### Build status
+
+All four original steps are complete — the editor builds playable mods.
+
+| Step | Deliverable | |
 |---|---|---|
 | **1** | Schema analysis, tech stack, architecture | ✅ [docs/01-analysis-and-architecture.md](docs/01-analysis-and-architecture.md) |
 | **2** | Scaffolding + node editor canvas | ✅ [docs/02-editor-shell.md](docs/02-editor-shell.md) |
@@ -49,7 +108,7 @@ Only relevant to coders, if you just want to use the tool you can ignore this.
 
 ```bash
 npm run typecheck    # tsc --noEmit
-npm test             # 300 tests (vitest)
+npm test             # 387 tests (vitest)
 npm run build        # typecheck + vite build → dist/
 ```
 
@@ -63,9 +122,21 @@ npm run build        # typecheck + vite build → dist/
    (objectives, triggers, networks with devices/ports/files, mails, chats,
    rewards…) and wire their sockets. Click any node to edit it on the right;
    every field explains itself on hover.
+
+   Wiring is meant to feel physical: drop a wire on a node's **body** and it
+   takes that node's one matching socket; pull a wire out of an input and it
+   comes with you, keeping the end it came from — drop it on another node to
+   move it there, on empty canvas (or press Escape) to remove it. Dots drift
+   along each wire to show which way the story runs; the **Wires moving** button
+   holds them still. **Group frames** are dragged by their title bar, so
+   anything sitting inside one stays grabbable, and a **Sequence** node fires
+   its outputs one after another with the pauses you set.
 3. **Write conversations** — the **Dialogues** button opens the dialogue editor:
    one node, four flavours (phone call, Kisscord, e-mail, WeeChat), with player
    moments: typed answers with failure routes, hackertyper sends, file uploads.
+   Kisscord and WeeChat conversations can also be **timed to the story** — a
+   per-node switch plays them message by message when the flow reaches the node,
+   so a chat can land on a **Sequence** beat instead of existing from the start.
    Hit **Save** when a conversation feels done.
 4. **Build websites** — the **Websites** button opens the WYSIWYG website
    builder: real-looking templates (news, agency, blog, forum, recipes…), a
@@ -177,7 +248,15 @@ and their consequences are in
 
 1. **Delivery** — **browser app, ZIP export.** Vite SPA, no server, no desktop shell.
 2. **SMS** — **dropped.** No native primitive exists, so no SMS editor ships. The
-   conversation editors are Phone calls, E-Mail, Kisscord and WeeChat (+ Twotter).
+   conversation editors are Phone calls, E-Mail, Kisscord and WeeChat.
+   **Twotter is dropped too** (round 31): a quest-declared account reaches the
+   save with an undefined `bio`, and the game's own Twotter search calls
+   `.toLowerCase()` on it — so searching for any word that does not match
+   something else crashes the game, before *and* after the mod is uninstalled,
+   with no API a mod can use to repair the record. Seven in-game QA rounds; the
+   full account is in
+   [docs/02 “Round 31”](docs/02-editor-shell.md). It comes back when the SDK
+   does.
 3. **Granularity** — **many quests per mod**, with single-quest as the default
    new-project template.
 4. **Generated code** — **the editor owns it.** Re-exporting overwrites `src/`;

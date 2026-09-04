@@ -190,6 +190,8 @@ export const LayoutGroupNodeDataSchema = z.object({
     comment: z.string().default(""),
     w: z.number().default(360),
     h: z.number().default(240),
+    /** Title-bar colour. Any CSS hex; older drafts fall back to slate. */
+    color: z.string().default("#64748b"),
 });
 export const EntryLoadData = empty;
 export const EntryCompleteData = empty;
@@ -281,9 +283,13 @@ export const FilesNodeDataSchema = z.object({
 });
 
 /**
- * `Shell.addCommandData` — scripts what a built-in reconnaissance tool reports.
- * `dataText` is edited through a shape-aware editor in the inspector, never as
- * raw JSON in the common case.
+ * `Shell.addCommandData(command, input, data)` — scripts what a built-in
+ * reconnaissance tool reports for one exact input.
+ *
+ * `dataText` is authored as readable "Label: value" lines (or port lines, for
+ * nmap) and the compiler turns them into the shape that tool actually returns;
+ * JSON is passed through untouched. The engine takes a structure here, never a
+ * block of text, and getting that wrong throws inside the game.
  */
 export const ToolResponseNodeDataSchema = z.object({
     command: z
@@ -340,32 +346,6 @@ export const WeeChatNodeDataSchema = z.object({
     messages: z.array(WeeChatMessageSchema).default([]),
 });
 
-export const TweetNodeDataSchema = z.object({
-    accountId: z.string().default(""),
-    content: z.string().default(""),
-    /** Optional attached picture, embedded as a data URL. */
-    image: z.string().optional(),
-    likes: z.number().optional(),
-    comments: z.number().optional(),
-    shares: z.number().optional(),
-    views: z.number().optional(),
-    /**
-     * How the post's timestamp is decided:
-     *  - "now": no stored date; the game shows it relative to real time (its
-     *    natural, always-valid fallback).
-     *  - "relative": an age string like "2 days" (SDK `postedAgo`).
-     *  - "absolute": a specific calendar date the author picks (`postedAt`),
-     *    which the compiler turns into the age string the SDK understands.
-     */
-    timeMode: z.enum(["now", "relative", "absolute"]).default("now"),
-    /** Relative age, SDK format, e.g. "2 days" / "1 month". Used when timeMode = "relative". */
-    postedAgo: z.string().optional(),
-    /** A specific date (yyyy-mm-dd). Used when timeMode = "absolute". */
-    postedAt: z.string().optional(),
-    /** Also surface this post in the main Twotter timeline, not just the profile. */
-    showInTimeline: z.boolean().default(false),
-});
-
 /**
  * The general dialogue node: one node, four flavours. The payload for every
  * flavour lives on the node; `kind` selects which one the editor shows and the
@@ -381,6 +361,12 @@ export const DialogueNodeDataSchema = z.object({
     kisscord: KisscordNodeDataSchema.default({ contactId: "", messages: [] }),
     mail: MailNodeDataSchema.default({ from: "", subject: "", content: "", replyable: false }),
     weechat: WeeChatNodeDataSchema.default({ host: "", password: "", registerServer: true, messages: [] }),
+    /**
+     * Kisscord/WeeChat only: play the conversation when the story flow arrives
+     * instead of registering it with the quest up front. Opt-in, because the
+     * declarative script is the path the engine scopes and cleans up.
+     */
+    postLive: z.boolean().default(false),
 });
 
 /**
@@ -471,6 +457,40 @@ export const RandomPickNodeDataSchema = z.object({
     storeAs: z.string().optional(),
 });
 
+/**
+ * Fire several outputs one after another, with an author-set pause before each.
+ *
+ * Every step owns one output socket (`step-<id>`), so the sockets a Sequence
+ * node shows are derived from its own data rather than fixed in the registry.
+ */
+export const SequenceStepSchema = z.object({
+    id: z.string(),
+    label: z.string().default("Step"),
+    /** Pause before this output fires, in milliseconds. */
+    delayMs: z.number().min(0).default(0),
+});
+export type SequenceStep = z.infer<typeof SequenceStepSchema>;
+
+export const SequenceNodeDataSchema = z.object({
+    steps: z.array(SequenceStepSchema).default([]),
+});
+
+/**
+ * A checkpoint the author drops into a chain to see what is actually happening
+ * in-game. Exists because most of this project's hard bugs were invisible:
+ * the mod ran, nothing errored, and nothing happened.
+ */
+export const DebugNodeDataSchema = z.object({
+    /** Shown in the log line, so several probes can be told apart. */
+    label: z.string().default(""),
+    /** Also show it on screen, for testing without reading a log file. */
+    toast: z.boolean().default(false),
+    /** Print the quest's saved Data alongside the label. */
+    includeData: z.boolean().default(true),
+    /** Print the event payload that reached this point, if any. */
+    includePayload: z.boolean().default(true),
+});
+
 export const NoteNodeDataSchema = z.object({
     text: z.string().default(""),
     width: z.number().default(240),
@@ -507,7 +527,6 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("world.files", FilesNodeDataSchema),
     node("world.toolResponse", ToolResponseNodeDataSchema),
     node("comms.dialogue", DialogueNodeDataSchema),
-    node("comms.tweet", TweetNodeDataSchema),
     node("reply.hackertyper", HackertyperNodeDataSchema),
     node("reply.input", ManualInputNodeDataSchema),
     node("fx.pay", PayNodeDataSchema),
@@ -520,6 +539,8 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("flow.branch", BranchNodeDataSchema),
     node("flow.delay", DelayNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),
+    node("flow.sequence", SequenceNodeDataSchema),
+    node("flow.debug", DebugNodeDataSchema),
     node("flow.note", NoteNodeDataSchema),
     node("flow.reroute", RerouteNodeDataSchema),
     node("layout.group", LayoutGroupNodeDataSchema),
