@@ -2467,6 +2467,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 if (f.isFolder) o.isFolder = true;
                 if (f.locked) o.readonly = true;
                 if (f.hidden) o.hidden = true;
+                if (f.deleteable) o.deleteable = true;
                 if (f.children && f.children.length) o.children = mapFiles(f.children);
                 return o;
             });

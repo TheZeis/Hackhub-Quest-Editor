@@ -1298,6 +1298,7 @@ describe("seeding files", () => {
             parentPath: "~/work",
             files: [
                 { id: "a", name: "brief", extension: "txt", isFolder: false, data: "read me", locked: true },
+                { id: "d", name: "cleanup", extension: "txt", isFolder: false, data: "rm me", deleteable: true },
                 {
                     id: "b", name: "evidence", isFolder: true,
                     children: [{ id: "c", name: "photo", extension: "png", isFolder: false, hidden: true }],
@@ -1324,8 +1325,13 @@ describe("seeding files", () => {
         // `locked` is the engine's `readonly`, and the editor's ids do not travel.
         expect(trees[0][1]).toEqual([
             { name: "brief", extension: "txt", data: "read me", readonly: true },
+            { name: "cleanup", extension: "txt", data: "rm me", deleteable: true },
             { name: "evidence", isFolder: true, children: [{ name: "photo", extension: "png", hidden: true }] },
         ]);
+        // The flag is emitted only when set — the other entries must not gain it.
+        expect((trees[0][1] as Record<string, unknown>[]).every((f) =>
+            f.name === "cleanup" ? f.deleteable === true : !("deleteable" in f)
+        )).toBe(true);
     });
 
     it("puts a remote device's files on the device instead of warning about it", () => {

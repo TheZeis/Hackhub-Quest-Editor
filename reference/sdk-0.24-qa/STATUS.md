@@ -1,5 +1,20 @@
 # QE24 QA status (2026-09-21)
 
+## Open: the deleteable file (D-01) — r235, editor build r235
+
+The 0.24 SDK added `deleteable` to placed files (the BUG 8 fix): a file the
+quest marks deleteable is the one a player may `rm`, while every other
+placed file stays protected. The editor now has a per-file toggle ("Player
+can delete", off by default) and emits the flag. The QA scaffold's Wi-Fi
+client (10.24.0.2) now carries two files that check exactly this:
+
+- **D-01a** — `rm ~/delete-me` on the client: **expected to succeed.** The
+  file was placed with the toggle on. Report whether it is gone afterwards
+  (a follow-up `ls` should not show it).
+- **D-01b** — `rm ~/logs/qa` on the same client: **expected to fail.** Placed
+  files are protected by default; the game should refuse. Report the
+  refusal text.
+
 ## RESOLVED: Hackhub quest feed posts (r215 → r225) — one optional flourish left
 
 **Editor-authored feed posts work.** The five-week question closed with a

@@ -1,9 +1,9 @@
 # r234 — SDK 0.24 sweep: what is still un-integrated
 
-**Status: research done, awaiting Zeis's item pick.** In progress #1
-continuation: "see if the new (0.24) SDK has any other items or features we
-haven't integrated yet. Or bug fixes … that we weren't able to use up until
-that update."
+**Status: decisions taken (r235); the deleteable row is shipped, the rest
+are queued in the README Next up.** In progress #1 continuation: "see if the
+new (0.24) SDK has any other items or features we haven't integrated yet. Or
+bug fixes … that we weren't able to use up until that update."
 
 Method: the pinned `@hotbunny/hackhub-content-sdk@0.24.0` `index.d.ts`
 (declarations, authoritative) diffed against (a) the r167 0.21→0.24 diff
@@ -11,6 +11,19 @@ Method: the pinned `@hotbunny/hackhub-content-sdk@0.24.0` `index.d.ts`
 shipping runtime (`src/compiler/runtimeSource.ts`), (c) the compiled quest
 emission, and (d) the developer's fix record ([`docs/07`](../07-dev-response-mod-sdk-bug-report-response.md))
 plus the QA ledger ([`reference/sdk-0.24-qa/STATUS.md`](../sdk-0.24-qa/STATUS.md)).
+
+## 0. Decisions taken (Zeis, r235)
+
+| Finding | Decision |
+|---------|----------|
+| **`deleteable` (BUG 8 fix)** | **"Extremely important" — built immediately (r235).** Per-file toggle, off by default, emits the flag; QA row D-01 in the scaffold. |
+| **Guided tour (`Quest.Steps`)** | A **node**, and Zeis asked for agreement: yes — the same declarative-lift pattern as `comms.dialogue` (the node carries the tour data on the canvas, the compiler lifts it into `Quest.Steps`; the canvas gets placement, selection and warnings, and the data doubles as the editor's own guided tour). Next up #2. |
+| **Desktop app checks** | **In scope, not parked.** Zeis, verbatim: "not until a template asks is completely irrelevant. We're not making a template editor, we're making a quest mod editor for authors to do with whatever they want. Having the ability to check if a command like lynx is installed, or another mods' custom tool is important to create hints and prevent dead ends." Open QA question: do terminal tools / other mods' `RegisterCommand` tools appear in `getInstalledApps()` — it decides condition-vs-node. Next up #3. |
+| **Dynamic webpages** | **Investigate** (the `DynamicWebsitePageDefinition` handler pages vs the static builder). The **Http** namespace itself stays frozen — Zeis confirmed the freeze; this row is Website pages only. Next up #4. |
+| **ModSettings** | **Build a probe mod; Zeis checks in game** and reports how the settings look and function, then the editor-surface decision. Next up #5. |
+| **Localization** | **Full UI/UX plan** before building — a bigger integration (the r203 machinery exists; the authoring workflow does not). Next up #6. |
+| **App / PhoneApp** | **Next up** — bigger integrations, investigate the shape first. Next up #7. |
+| **`Variables` (mod-level)** | Questioned ("how is it different from what we ship? Is there a legitimate reason not to integrate it?"). Answer: we ship **per-quest** (quest Data, `fx.setData`/`{{data.*}}`) and **cross-mod global** (SharedStorage, via the toolpack storage emitter); `Variables` is the missing middle scope — **private to one mod, across that mod's quests** (campaign memory). Legitimate deferral reason: SharedStorage can fake it, and single-quest mods (most) never need it. If wanted, the cheap integration is a scope choice (quest / mod / shared) on the existing data surface — no new namespace. Zeis's call, answered in the r235 reply. |
 
 ## 1. Already consumed (the 0.21 → 0.24 surface)
 

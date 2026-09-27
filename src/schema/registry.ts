@@ -369,6 +369,7 @@ const fileFields: FieldDef[] = [
     { kind: "text", key: "extension", hint: "The extension, e.g. txt, log, conf. Leave blank for folders.", label: "Extension", placeholder: "txt", mono: true },
     { kind: "toggle", key: "isFolder", hint: "Mark this entry as a directory rather than a file.", label: "Folder" },
     { kind: "toggle", key: "hidden", hint: "Prefix the name with a dot so a plain ls does not show it.", label: "Hidden" },
+    { kind: "toggle", key: "deleteable", hint: "The player can delete this file — rm works on it. Off by default, when placed files are protected. Use for evidence a quest tells the player to clean up.", label: "Player can delete" },
     { kind: "textarea", key: "data", hint: "The file's contents. This is where clues live — a config file, a log excerpt, a leaked password.", label: "Contents", mono: true, rows: 4 },
 ];
 

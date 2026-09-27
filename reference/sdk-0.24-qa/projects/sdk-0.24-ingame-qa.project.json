@@ -127,6 +127,14 @@
                   ],
                   "rootFiles": [
                     {
+                      "id": "f-del",
+                      "name": "delete-me",
+                      "extension": "txt",
+                      "isFolder": false,
+                      "deleteable": true,
+                      "data": "This file is deleteable (SDK 0.24, r235). rm ~/delete-me should work. See STATUS.md row D-01."
+                    },
+                    {
                       "id": "f-logs",
                       "name": "logs",
                       "isFolder": true,
@@ -170,7 +178,7 @@
                 "from": "qa@qe24.test",
                 "to": "player@gomail.com",
                 "subject": "QE24 editor QA scaffold",
-                "content": "Editor QA scaffold is active. Tick means the active quest/objective tracker line becomes checked/completed; the webpage loading by itself is not enough. Open http://qe24-website.test/ and /echo, then record which of http-request and http-response checked off. Connect to Wi-Fi QE24-LAB-5G with passphrase correct-horse-battery, then disconnect.",
+                "content": "Editor QA scaffold is active. Tick means the active quest/objective tracker line becomes checked/completed; the webpage loading by itself is not enough. Open http://qe24-website.test/ and /echo, then record which of http-request and http-response checked off. Connect to Wi-Fi QE24-LAB-5G with passphrase correct-horse-battery, then disconnect. New in r235 (D-01): on the Wi-Fi client 10.24.0.2 try rm ~/delete-me (should work) and rm ~/logs/qa (should not). See STATUS.md.",
                 "replyable": false
               },
               "weechat": {

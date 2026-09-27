@@ -1,13 +1,13 @@
 {
   "generatedBy": "scripts/extract-manual-inventory.mjs",
-  "editorBuild": "2026-09-26.r233",
+  "editorBuild": "2026-09-26.r235",
   "sdkVersion": "0.24.0",
   "counts": {
     "nodeTypes": 40,
     "obtainableNodeTypes": 40,
     "categories": 10,
-    "editableFields": 160,
-    "editableFieldsExcludingLists": 152,
+    "editableFields": 161,
+    "editableFieldsExcludingLists": 153,
     "sockets": 76,
     "events": 99,
     "eventGroups": 10
@@ -1369,6 +1369,14 @@
             },
             {
               "depth": 1,
+              "path": "files.deleteable",
+              "kind": "toggle",
+              "key": "deleteable",
+              "label": "Player can delete",
+              "hint": "The player can delete this file — rm works on it. Off by default, when placed files are protected. Use for evidence a quest tells the player to clean up."
+            },
+            {
+              "depth": 1,
               "path": "files.data",
               "kind": "textarea",
               "key": "data",
@@ -1380,7 +1388,7 @@
           ]
         }
       ],
-      "editableFieldCount": 9,
+      "editableFieldCount": 10,
       "defaults": {
         "target": "player",
         "parentPath": "~/",

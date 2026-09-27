@@ -88,6 +88,8 @@ export const FileEntrySchema: z.ZodType<FileEntry> = z.lazy(() =>
         extension: z.string().optional(),
         hidden: z.boolean().optional(),
         locked: z.boolean().optional(),
+        /** The player may delete this file (rm works on it). Off = protected. SDK 0.24. */
+        deleteable: z.boolean().optional(),
         children: z.array(FileEntrySchema).optional(),
     }),
 );
@@ -99,6 +101,7 @@ export type FileEntry = {
     extension?: string;
     hidden?: boolean;
     locked?: boolean;
+    deleteable?: boolean;
     children?: FileEntry[];
 };
 
