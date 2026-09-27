@@ -122,19 +122,13 @@ archived once it has stayed fixed for a few rounds.
 |---|---|---|
 | 1 | **SDK 0.24 follow-up choices** | Wi-Fi, phone end-flow / quest-ending APIs, the `Ask player` prompt node, and the Scheduler/Time (as the r172/r173 **Timer** node with delay, relative units and fixed-date modes) are exposed and verified. **S-04 is answered** (clock zone: local), and the QA folder is closed with no pending checks — [`reference/sdk-0.24-qa/STATUS.md`](reference/sdk-0.24-qa/STATUS.md) is the ledger. (The phone-proxy/eavesdrop investigation was **dropped** on Zeis's call, 2026-09-21 — it had lingered in this queue long after its round ended; do not re-add it.) The **Twotter re-implementation** is done and closed (see **Done recently**, r196). HTTP/curl/DNS collaborator nodes stay fenced until SteelWaffe answers the upstream gaps. See [`docs/plans/r167-wifi-exposure-and-sdk024-roadmap.md`](docs/plans/r167-wifi-exposure-and-sdk024-roadmap.md). |
 
-### Closed from In progress
-
-| Item | Why it closed |
-|---|---|
-| **Mail authoring round** — closed 2026-09-21 (r214) | Implemented in r211; the playtest exposed and fixed two runtime bugs (r212 pre-tick, r213 pre-complete/done-wire) and a probe fixture bug; then **W-01…W-04 green in game** (results: [`reference/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md`](reference/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md)). Direct replyable mail, the `to` = From reply recipe and withdraw-on-quest-end are verified authoring features. Remaining mail items are developer questions (docs/03 §16/§17) and the proposal-only `qe24 mail sweep now`. |
-| **Date deprecation warning (`moment` RFC2822)** — closed 2026-09-20 (M-09) | It was never mail and never ours. On a **clean save with every mod removed** the warning still fires, with the same game-tweet stamp T-09b identified in r185 — it is the game's own content on 1.3.1 ([STATUS, M-09](reference/sdk-0.24-qa/STATUS.md)). The dev's BUG 10 answer ([docs/07](docs/07-dev-response-mod-sdk-bug-report-response.md)) blamed Twotter/Kisscord `Date.toString()` in mod content; either that fix is not in 1.3.1 or it does not cover the game's own tweets. Nothing a mod can change; not actionable here. |
-
 ### Next up
 
 | # | Item | Notes |
 |---|---|---|
-| 1 | **Mail authoring round** | Whatever the M-rows prove, turned into authoring: cleanup surface (remove on complete/unload), the replyable path, and a docs/03 question if replies cannot be matched. Waits on **In progress #1**. |
+| 1 | **Dead Air in-game playtest** | r232/r233 are code-verified (the shipping runtime read, the template invariants), but the template's novel parts have not been seen in game: the **converging wire** (the call's two outcomes into one drip), the **Timer day** on the game's clock, the phone's typed-answer terminal command, and the Kisscord player-typed send. Run it under the QA harness and file the results in [`reference/sdk-0.24-qa/`](reference/sdk-0.24-qa/). |
 | 2 | "Branching consequence" template | A choice that changes which ending the player gets. "Two Ways Out" is approved (may be morally grey) but not yet built. The official Cryptographer Hunt (a phone social-engineering scene with a fail route on the wrong choice) is the strongest argument for it — see [`docs/plans/r127-official-quest-comparison.md`](docs/plans/r127-official-quest-comparison.md). The shape now ships inside The Long Game (r136, act III: a typed verdict with two endings); whether a standalone template still adds anything is Zeis's call. (Dead Air's r233 rework moved its failed call from a second ending to a wait-and-retry route — see r233.) |
+| 3 | **Handbook round — the dedicated agent** | Zeis runs this with a different, dedicated agent (r232 call). Starting list from the r232-round audit: the shortcut appendix lacks the Ctrl+G row; the group page never says how a frame is created or that frames nest; no prose on ungrouping, the r229 frame-colour setting, or r231's arrange carry; and a stale inspector note ("Draw a box around part of your quest"). |
 
 ### Done recently
 
@@ -168,6 +162,7 @@ rounds than any bug — see r41, r43, r55, r60, r61 and r66.
 | No tweet pictures | SDK 0.24's `TwotterTweet` has no picture field, so an authored image cannot reach a post (the authoring picture control was hidden in r187). The runtime still sends the key if the SDK ever grows one. Question filed: [`docs/03`](docs/03-questions-for-the-developers.md) §10. |
 | No suspicion or SMS nodes | SDK 0.24 still has no Suspicion/log-forensics API and no SMS/text-message namespace or events. |
 | No log-cleaning node | Entirely engine-side: the game logs connections on the machine, and the player wipes them from its own UI. |
+| Date deprecation warning (`moment` RFC2822) | Never a mod bug: on a **clean save with every mod removed** the warning still fires, with the same game-tweet stamp T-09b identified in r185 — it is the game's own content on 1.3.1 ([STATUS, M-09](reference/sdk-0.24-qa/STATUS.md)). The dev's answer ([docs/07](docs/07-dev-response-mod-sdk-bug-report-response.md)) blamed Twotter/Kisscord `Date.toString()` in mod content; either that fix is not in 1.3.1 or it does not cover the game's own tweets. Nothing a mod can change. |
 
 
 Rounds 100–115 are archived at
