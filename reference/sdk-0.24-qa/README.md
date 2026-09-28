@@ -7,16 +7,19 @@ parsed the six settings and `ModSettings.getAll()` returned them with exact
 defaults, at load *and* at claim — but the in-game Settings app has no Mods
 section, so the values were never changed and MS-02…MS-07 are unrun.
 
-Two candidates (both cheap to check, in this order):
+**ANSWERED (2026-09-28): the UI is in the MAIN MENU** — *Main menu → Settings
+→ Mods → the tiny grey "Settings" word on the mod's row.* Not the in-game
+Settings program (the desktop OS simulator), not the phone's Settings app.
+`apiVersion` was **not** the gate. The whole loop verifies: change → restart →
+the mod reads back the *changed* values. Two caveats: the number field draws
+far too many underscores, and **no reset control is exposed** (the editor must
+ship its own). The screen is main-menu only, so it cannot host anything a
+player tunes mid-quest.
 
-1. **Wrong place** — settings may render in the **Mods list** Zeis already
-   uses to enable/disable mods (T-15c), not the phone's Settings app. Its
-   location was never written down; look for a per-mod gear there.
-2. **Wrong API version** — the game reports *current: v2* and runs v1 mods in
-   compatibility mode; settings are a newer surface, so the UI may be v2-only.
-   `modsettings-v2/` (+ delivery zip) is the **identical** probe with
-   `apiVersion: 2` — install it **instead of** the v1 probe and check both
-   places again.
+**API version — settled by the developer, same day.** SteelWaffe: *"game is
+currently running on v2 … its not bug and your mod be ok — just basically add
+`"apiVersion": 2` to your manifest.json."* Every mod the editor compiles now
+declares `apiVersion: 2`, and so does every probe in this folder (r241).
 
 Evidence and reasoning: [`docs/plans/r239-modsettings-probe.md` §4b](../../docs/plans/r239-modsettings-probe.md);
 filed with the developers as [`docs/03` §23](../../docs/03-questions-for-the-developers.md).

@@ -52,10 +52,14 @@ describe("modsettings probe manifests (r239/r240)", () => {
         readFileSync(resolve(__dirname, "../../../reference/sdk-0.24-qa/modsettings-v2/manifest.json"), "utf8"),
     );
 
-    it("the v1 probe declares apiVersion 1, the v2 variant declares 2", () => {
-        // The experiment is: same code, only the manifest's apiVersion
-        // differs - so a difference in game is the apiVersion's doing.
-        expect(v1.apiVersion).toBe(1);
+    it("every probe declares apiVersion 2 - the game runs v2", () => {
+        // SteelWaffe, 2026-09-28: "game is currently running on v2 ... just
+        // basically add \"apiVersion\": 2 to your manifest.json" (docs/03
+        // §19, closed). The r240 v2 variant answered its question - the
+        // settings UI is reachable either way, it is in the main menu - so
+        // the whole QA folder now declares 2 and no probe loads in
+        // compatibility mode.
+        expect(v1.apiVersion).toBe(2);
         expect(v2.apiVersion).toBe(2);
         expect(v1.id).not.toBe(v2.id);
     });

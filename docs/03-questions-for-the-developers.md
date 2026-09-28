@@ -705,7 +705,27 @@ button on the feed post itself**, not in the journal — the post is the
 quest's home while it is an offer. Worth keeping in mind if the lifecycle is
 ever redesigned.
 
-## 19. The game says "current API v2" — the SDK ships v1. What is v2?
+## 19. ~~The game says "current API v2" — the SDK ships v1. What is v2?~~ — **ANSWERED 2026-09-28**
+
+**SteelWaffe's answer, asked directly:**
+
+> game is currently running on v2 but some older mods running with v1
+>
+> its not bug and your mod be ok
+>
+> just basically add `"apiVersion": 2` to your manifest.json
+
+So: v2 is simply the current API, v1 keeps working in compatibility mode, and
+the warning is noise rather than a symptom. **The editor now emits
+`apiVersion: 2` on every export** (r241 — the compiler emits it, the project
+schema defaults to it, and a project still carrying `1` is upgraded on
+export), and every hand-made QA mod in `reference/sdk-0.24-qa/` declares 2.
+
+One small suggestion if it is easy: the SDK's own manifest example and
+`build.mjs` scaffold still write `"apiVersion": 1`, which is what led every
+SDK-built mod into compatibility mode in the first place.
+
+*The original question, kept for the record:*
 
 **Found while re-testing the feed-post round** (2026-09-22, game 1.3.1 /
 Content SDK 0.24.0).
@@ -887,7 +907,36 @@ declarations don't describe:
 combinations render what, and whether the employer fallback is expected to
 carry the employer's name AND avatar to the post.
 
-## 23. Declarative mod settings: the pipeline works, but where is the UI?
+## 23. Declarative mod settings — mostly answered; two small things remain
+
+**Answered 2026-09-28 (same-day follow-up).** The UI is in the **main menu**:
+*Main menu → Settings → Mods → the tiny grey "Settings" word on the mod's
+row.* It was never in the in-game Settings program (the desktop OS simulator)
+nor the phone's Settings app — which is where the SDK's phrase "rendered in
+the Mods UI" sent us looking. `apiVersion` was **not** a factor: the v2 probe
+showed it, and v1 would have too.
+
+Verified end to end: all six settings of all five types render and are
+editable, the slider respects its step, values survive a restart, and
+`ModSettings.getAll()` returns the *changed* values on the next load
+(`select:"violet"`, `number:1`, `slider:80`, …) — the full loop works.
+
+Two things remain, both minor:
+
+1. **The `number` field draws far too many underscores** — the widget seems to
+   reserve space for a far wider range than the setting needs. Cosmetic, but
+   it makes a number setting look broken. Is there a way to hint a sensible
+   width (or should we just keep numbers small)?
+2. **No reset-to-defaults control** is exposed in that UI. The SDK gives mod
+   code `reset`/`resetAll`; the menu offers nothing. We will ship our own
+   reset affordance in whatever the editor generates — unless the game would
+   rather own it.
+
+Also worth confirming: the settings screen is **main-menu only** (not
+reachable mid-game). That is fine for difficulty-style choices; anything a
+player must tune *during* a quest would need another surface.
+
+*The original question, kept for the record:*
 
 **Found running the r239 ModSettings probe in game** (2026-09-28, game
 1.3.1, Content SDK 0.24.0).
@@ -927,3 +976,48 @@ notes.
 
 Until this is answered, the editor should not promise a settings feature: the
 data path is proven, the player-facing half is not.
+
+## 24. Do `Http.Response` events fire for a mod-registered site's pages — and why is each page rendered twice?
+
+**Found running the r238 dynamic-page probe in game** (2026-09-28, game
+1.3.13). Two observations we cannot explain from the SDK alone, and both bear
+directly on whether "when the player visits page X" can ever be a no-code
+node.
+
+**1. Every page view appears to render twice.** A single open of
+`/article/1` logs the page's own handler twice, about a second apart:
+
+```
+[16:47:04] [qe-sdk-024-dynprobe] article hit: id=1
+[16:47:05] [qe-sdk-024-dynprobe] article hit: id=1
+```
+
+and a session counter inside `/state` read **2** on its first-ever open, then
+**4** after one revisit. So a dynamic page's handler is invoked twice per
+view. Is the second call a preview/title fetch, a redundant render, or
+something we should be deduplicating? It matters: any page that counts or
+mutates state per render will double-count.
+
+**2. `Http.Response` did not appear to fire for these pages.** The quest was
+claimed at 16:42 and its listeners were therefore armed; the `/state` visits
+at 16:53 and 16:54 each logged twice from the page handler, but the quest's
+`Events.on("Http.Response", …)` listener — which flips a phase on the first
+`/state` hit — never fired, and the `/news` page never gained the article that
+flip would have added. The mod declares the `events` permission and the
+listener works on other surfaces.
+
+**What we would like:**
+
+- does `Http.Response` fire for pages served by a **mod-registered** website
+  (static or dynamic), or only for the game's own generated sites? The
+  harness's static site (`qe24-website.test`) is the control we can re-run if
+  that helps;
+- if it does fire, is the payload's `request.host`/`path` populated for these
+  pages (that is what our per-page objectives match on)?
+- and what is the second render — can a mod tell it apart from the first?
+
+**Why it matters:** the "website-update nodes that fire only when the player
+does X or reaches Y objective" idea depends on being able to observe page
+views. Without the event, the only remaining route is for the page's own code
+to call back into the quest — which is exactly the per-request-author-code
+boundary the no-code editor cannot cross.

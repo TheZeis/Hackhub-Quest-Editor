@@ -1,5 +1,85 @@
 # QE24 QA status (2026-09-21)
 
+## ANSWERED: mod settings (MS-01…MS-07) — r239/r240, run 2026-09-28
+
+**The settings UI lives in the MAIN MENU**, not in the game: *Main menu →
+Settings → Mods → the tiny grey "Settings" word on the mod's row.* Zeis had
+been looking in the in-game Settings program (the desktop OS simulator) and
+the phone's Settings app — neither is it. The v2 probe (r240) was what he had
+installed, and it showed the UI; the API version was **not** the gate.
+
+| Row | Result |
+|---|---|
+| MS-01 | **Green** — Main menu → Settings → Mods → per-mod "Settings" (screenshots in `QE24-TestResults-DynProbe+ModSettings.md` on the `QA-filedump` branch) |
+| MS-02 | **Mostly green** — both toggles fine, text fine, **slider steps in 5s** (green). One wart: the **number field draws far too many underscores** (a UI bug worth reporting to the dev, not a data problem) |
+| MS-03 | **Green** — all labels read "Probe: …"; the select shows the word ("Blue"/"Violet"), no colour swatch |
+| MS-04 | **Green** — every control editable |
+| MS-05 | **Green** — values survived a restart |
+| MS-06 | **Green** — after the restart `MS-load 1` read back the *changed* values: `toggle_on:false, toggle_off:true, select:"violet", text:"typing something here", number:1, slider:80`. Persistence **and** readback both confirmed |
+| MS-07 | **Red, and it is a real answer** — there is **no exposed way to reset to defaults**. The editor will have to ship its own reset affordance |
+
+**For the editor:** the whole loop is proven (declare → render → change →
+persist → read back). The two caveats to design around are the number field's
+underscores (keep numbers to a sane range) and the missing reset (build our
+own). Note the settings screen is **main-menu only** — a player cannot reach
+it mid-game, so anything a player must tune *during* a quest cannot live here.
+
+## ANSWERED: API v1 vs v2 — SteelWaffe, 2026-09-28
+
+Asked directly, the developer answered: *"game is currently running on v2 but
+some older mods running with v1 / its not bug and your mod be ok / just
+basically add `"apiVersion": 2` to your manifest.json"*.
+
+So the compatibility-mode warning is noise, **not** a symptom — and r241 makes
+the editor always emit `apiVersion: 2` (schema default, compiler emit, the QA
+scaffold export, and every hand-made probe in this folder). Closes
+[`docs/03` §19](../../docs/03-questions-for-the-developers.md).
+
+## Open: the dynamic-page probe (DP-01…DP-12) — the content half is green, the event half is unrun
+
+Zeis ran the r238 probe top to bottom (game **1.3.13**, no harness installed).
+Full write-up: `QE24-TestResults-DynProbe+ModSettings.md` on the `QA-filedump`
+branch.
+
+**Green — every content question the probe asked:**
+
+- **DP-01** static control page renders; the site-level export call from a
+  *static* page works (`Greetings, tester - site-level export`).
+- **DP-02** per-request content works — `/echo?msg=zeis` printed it back, and
+  the raw context came back as `url`, `params: {}`, `query: {msg: "zeis"}`,
+  plus a `searchStr` key with no value.
+- **DP-03** path params **do** arrive: `/article/1` got `{"id":"1"}`.
+- **DP-04** the 404 question is answered: returning "no page" gives the
+  browser's own error — *"404 / This site cannot be reached / Firebear can't
+  find the server at https://qe24-dyn.test/article/99"*, black page, white
+  text. Usable as a clue, but it is the **browser's** error, not ours.
+- **DP-05/08** the news list renders in order.
+- **DP-09** **the iframe bridge exists**: "HackhubSDK global in this iframe:
+  **yes**", and clicking the button changed the result to `sent (no error
+  thrown)` — a page script can use the SDK.
+- **DP-10/11** per-page and site-level exports both work (`article-2`;
+  `Greetings, zeis - site-level export`).
+
+**Not answered — the objectives never ticked, and the reason is known:** the
+log shows `QEDynProbeQuest started` at **16:42**, *after* every page visit
+(16:16–16:41). The quest was not claimed while the pages were being opened, so
+its listeners were not armed. Rows DP-01…DP-12 must be **re-run with the quest
+claimed first**.
+
+**Two things the re-run must watch** (both visible in the log):
+
+1. **Every page view renders TWICE.** `article hit: id=1` logs twice a second
+   apart, and `/state`'s own visit counter went 2 → 4 on a single revisit
+   (the earlier rows read "2 visits" on a first-ever open). Stateful pages
+   must not assume one render = one visit.
+2. **The HTTP event may not fire at all.** Even *after* the quest was claimed
+   (16:42), the `/state` visits at 16:53/16:54 logged `phase=claimed` four
+   times — the beat, which fires on the first `Http.Response` for `/state`,
+   never fired, and `/news` never gained its UPDATE article. Zeis's steer for
+   "website-update nodes that fire when the player does X" depends on this
+   event, so it is the single most important thing the re-run has to settle.
+   Filed as [`docs/03` §24](../../docs/03-questions-for-the-developers.md).
+
 ## Open: mod settings (MS-01) — r239's first run, 2026-09-28
 
 Zeis installed the r239 ModSettings probe (beside the r238 dynamic-page

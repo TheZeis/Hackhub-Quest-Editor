@@ -185,8 +185,20 @@ describe("compile", () => {
         expect(paths).toContain("src/index.ts");
         expect(result.permissions).toEqual(expect.arrayContaining(["network", "mail", "shell"]));
         const manifest = JSON.parse(result.files.find((f) => f.path === "manifest.json")!.content);
-        expect(manifest.apiVersion).toBe(1);
+        expect(manifest.apiVersion).toBe(2);
         expect(manifest.permissions).toContain("network");
+    });
+
+    it("emits apiVersion 2 even for a project saved with the old v1 default", () => {
+        // SteelWaffe, 2026-09-28: the game runs Content API v2 and v1 only
+        // buys a compatibility-mode warning, so the manifest the editor
+        // emits is v2 no matter what an old project carries (docs/03 §19).
+        const stale = scenarioProject();
+        stale.mod.apiVersion = 1;
+        const manifest = JSON.parse(
+            compileProject(stale).files.find((f) => f.path === "manifest.json")!.content,
+        );
+        expect(manifest.apiVersion).toBe(2);
     });
 
     it("grants UI permission for on-screen UI", () => {

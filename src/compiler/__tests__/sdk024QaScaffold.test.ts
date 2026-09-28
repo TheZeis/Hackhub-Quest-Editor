@@ -1345,7 +1345,7 @@ describe("r220 raw harness — the feed canary (editor-export manifest)", () => 
             readFileSync(join(process.cwd(), "reference/sdk-0.24-qa/feedcanary/manifest.json"), "utf8"),
         ) as { id: string; apiVersion: number; permissions: string[]; author: string; version: string };
         expect(manifest.id).toBe("qe24-feedcanary");
-        expect(manifest.apiVersion).toBe(1);
+        expect(manifest.apiVersion).toBe(2);
         expect(manifest.permissions).toEqual(["mail", "events"]);
         /* The one delta vs the rendering 1.0.1: the author string. Every
            editor export that never rendered is authored "Zeis"; every mod

@@ -310,7 +310,7 @@ export function buildColdStorage(): ProjectDocument {
             tags: ["quest", "wireless", "metasploit", "database", "expert"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         websites: [],

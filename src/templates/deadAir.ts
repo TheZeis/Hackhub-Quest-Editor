@@ -628,7 +628,7 @@ export function buildDeadAir(): ProjectDocument {
             tags: ["quest", "phone", "phreaking", "social-engineering", "kisscord", "advanced"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         editor: { activeQuestId: quest.id, viewports: {} },

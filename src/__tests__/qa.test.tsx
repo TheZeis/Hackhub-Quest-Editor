@@ -123,7 +123,7 @@ describe("templates", () => {
 
             const result = compileProject(p);
             const manifest = JSON.parse(result.files.find((f) => f.path === "manifest.json")!.content);
-            expect(manifest.apiVersion, tpl.id).toBe(1);
+            expect(manifest.apiVersion, tpl.id).toBe(2);
 
             const { registered, sdk } = stubSdk();
             evalMod(result.files.find((f) => f.path === "dist/mod.js")!.content, sdk);

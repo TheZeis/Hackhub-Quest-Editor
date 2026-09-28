@@ -135,7 +135,7 @@ export function buildByline(): ProjectDocument {
             tags: ["quest", "osint", "reading", "beginner"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         websites: [

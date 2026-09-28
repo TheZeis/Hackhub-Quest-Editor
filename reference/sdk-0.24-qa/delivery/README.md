@@ -2,7 +2,7 @@
 
 | File | What it is |
 |---|---|
-| `qe-sdk-024-modsettings-v2-1.0.0.zip` | **ModSettings Probe — API v2 variant (r240)** — the identical probe with `apiVersion: 2`, to test whether the Mods-menu settings UI is v2-only (the game runs v1 mods in compatibility mode). Install **instead of** the v1 probe; objectives are prefixed `ms2-`. |
+| `qe-sdk-024-modsettings-v2-1.0.0.zip` | **ModSettings Probe — API v2 variant (r240)** — the identical probe with `apiVersion: 2`; the copy Zeis actually tested. The version turned out not to be the gate (the settings UI was in the main menu all along), but v2 is now the right value anyway, so the v1 probe has been bumped to 2 as well and this variant is kept only as the tested artifact. |
 | `qe-sdk-024-modsettings-1.0.0.zip` | **ModSettings Probe (r239)** — the first in-game look at declarative mod settings: six settings (one of every declared type) in the Mods menu, seven quest objectives = the QA checklist in `docs/plans/r239-modsettings-probe.md`. Installs alongside the r238 probe so one session covers both. |
 | `qe-sdk-024-dynprobe-1.0.0.zip` | **Dynamic Page Probe (r238)** — the r237 open-questions test site on `qe24-dyn.test`: one static control page + seven dynamic pages, twelve quest objectives = the QA checklist in `docs/plans/r238-dynamic-pages-probe.md`. Accept the "QA probe (r238)" feed post and work the tracker top to bottom. |
 | `qe-sdk-0.24-qa-1.0.29.zip` | QA harness 1.0.29 — the decisive pair: HF-11 (the editor's anonymous-`cls` structural twin) vs HF-12 (renamed class), plus HF-1…HF-10 controls. Every probe is abandonable now. |

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": "HackHub Quest Editor",
   "description": "QA probe for SDK 0.24 dynamic website pages (r238): one static control page and seven dynamic pages on qe24-dyn.test, each answering one or more of the open questions from docs/plans/r237 - per-request content, path params, 404 behaviour, caching, the iframe HackhubSDK bridge, per-page and site-level exports, and the bcc.com-style front-page list that reorders as the quest progresses. Claim the QEDynProbeQuest and follow its twelve objectives - they are the QA checklist. Nothing auto-starts.",
-  "apiVersion": 1,
+  "apiVersion": 2,
   "permissions": [
     "events",
     "mail"

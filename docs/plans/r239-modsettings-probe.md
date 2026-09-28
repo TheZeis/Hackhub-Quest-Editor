@@ -99,7 +99,32 @@ by the run below.
 5. File the answers in the table below (or a new `QE24-Playtest-ModSettings.md`
    in the same folder); screenshots are welcome for MS-01 (the layout).
 
-## 4b. What the first run showed (2026-09-28) — MS-01 is the only open row
+## 4b. What the run showed (2026-09-28) — answered: the UI is in the MAIN MENU
+
+**Where the settings live:** *Main menu → Settings → Mods → the tiny grey
+"Settings" word on the mod's row.* Not the in-game Settings program (the
+desktop OS simulator), not the phone's Settings app — the main menu, before a
+save is loaded. Screenshots in Zeis's write-up. **`apiVersion` was not the
+gate** — both v1 and v2 probes reach the same UI, and the game's v1 warning is
+noise, not a symptom (SteelWaffe, 2026-09-28; see `docs/03` §19, now closed).
+
+| Row | Result |
+|---|---|
+| MS-01 | **Green** — main menu → Settings → Mods → per-mod "Settings" |
+| MS-02 | **Mostly green** — toggles, text and slider (steps of 5) all fine; the **number field draws far too many underscores** (cosmetic; worth a bug report) |
+| MS-03 | **Green** — labels read "Probe: …"; the select shows the word, no colour swatch |
+| MS-04 | **Green** — every control editable |
+| MS-05 | **Green** — values survived a restart |
+| MS-06 | **Green** — after the restart, `MS-load 1` read back the *changed* values: `toggle_on:false, toggle_off:true, select:"violet", text:"typing something here", number:1, slider:80` |
+| MS-07 | **Red, and a real answer** — no reset control is exposed; the editor ships its own |
+
+**For the editor:** the full loop is proven — declare, render, change, persist,
+read back. The design caveats are (a) the number field looks broken unless we
+keep numbers to a sane range, (b) we must provide our own reset, and (c) the
+screen is **main-menu only**, so settings cannot be used for anything a player
+must tune mid-quest.
+
+*The superseded first reading (kept for the record):*
 
 Zeis installed the probe beside the r238 dynamic-page probe. **The settings
 pipeline verifies green; the UI to change them was not found.**

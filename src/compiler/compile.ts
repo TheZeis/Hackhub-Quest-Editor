@@ -120,7 +120,7 @@ function planningComments(quests: ProjectDocument["quests"]): string {
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-26.r235";
+export const EDITOR_BUILD = "2026-09-28.r241";
 
 /** Warning severity (r153): info = good to know, warn = could cause issues,
     error = will break or strand the player. */
@@ -829,6 +829,13 @@ function buildModJs(project: ProjectDocument, planningBlock: string): string {
     ].join("\n");
 }
 
+/**
+ * Content API version the editor targets. The game's own runtime reports
+ * "current: v2"; declaring 1 only buys a compatibility-mode warning. Bump
+ * here (and in `ModSchema`/`createProject`) when the SDK moves again.
+ */
+export const MOD_API_VERSION = 2;
+
 function buildManifest(project: ProjectDocument, permissions: string[], iconPath?: string, coverPath?: string) {
     return {
         id: project.mod.id,
@@ -836,7 +843,13 @@ function buildManifest(project: ProjectDocument, permissions: string[], iconPath
         version: project.mod.version,
         author: project.mod.author || "Quest Mod Editor",
         description: project.mod.description || `${project.mod.name} — built with the HackHub Quest Mod Editor`,
-        apiVersion: project.mod.apiVersion,
+        // The game runs on Content API v2 and loads v1 mods in compatibility
+        // mode ("Mod \"…\" uses API v1 (current: v2)"). SteelWaffe confirmed
+        // on 2026-09-28 that this is not a bug and the fix is simply to
+        // declare v2, so every mod the editor emits declares 2 - a project
+        // saved with the older default is upgraded on export rather than
+        // shipping a compatibility-mode mod. (docs/03 §19, closed.)
+        apiVersion: MOD_API_VERSION,
         dependencies: project.mod.dependencies ?? [],
         permissions,
         ...(project.mod.tags.length ? { tags: project.mod.tags } : {}),

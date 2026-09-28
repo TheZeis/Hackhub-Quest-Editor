@@ -1,6 +1,30 @@
 # r238 — Dynamic pages probe: plan, build, QA checklist
 
-**Status: probe built and unit-verified; awaiting Zeis's in-game run.**
+**Status: RUN (2026-09-28, game 1.3.13). The content half is green; the
+HTTP-event half is still unrun and needs one more pass with the quest claimed
+*first*. Details in `reference/sdk-0.24-qa/STATUS.md` and
+`docs/03` §24.**
+
+Headline results from Zeis's write-up (`QE24-TestResults-DynProbe+ModSettings.md`,
+`QA-filedump` branch):
+
+| Question | Answer |
+|---|---|
+| Per-request content | **Green** — `/echo?msg=zeis` printed the value back |
+| Path params | **Green** — `/article/1` received `{"id":"1"}` |
+| The null/404 look | **Answered** — the browser's own error: *"404 / This site cannot be reached / Firebear can't find the server at https://…/article/99"* (black page, white text) |
+| Caching | **Green** — no caching: the visit counter climbs on every open |
+| The iframe `HackhubSDK` bridge | **Green** — "HackhubSDK global in this iframe: yes", and the page's button sent a mail (`sent (no error thrown)`) |
+| Exports (per-page + site-level, static + dynamic) | **Green** — all four combinations worked |
+| HTTP events per page | **Unrun** — the quest was claimed at 16:42, *after* every page visit, so no objective could tick. Needs a re-run |
+
+Two things the re-run must watch: **each page view renders twice** (the
+handler logs twice a second apart; the counter went 2 → 4 on one revisit), and
+even with the quest claimed the `/state` visits did **not** fire the quest's
+`Http.Response` listener, so the beat never flipped the phase. That last one
+is the load-bearing question for the whole feature — filed as `docs/03` §24.
+
+---
 Zeis green-lit the r237 recommendation (2026-09-27): a test page to answer
 the five open questions, built the way the mail-function investigation was
 done — a QA mod plus a checklist.

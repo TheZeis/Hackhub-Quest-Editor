@@ -262,7 +262,7 @@ export function buildHelpDeskLeak(): ProjectDocument {
             tags: ["quest", "web", "dirhunter", "osint", "ssh"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         websites: [
