@@ -60,11 +60,30 @@ branch.
 - **DP-10/11** per-page and site-level exports both work (`article-2`;
   `Greetings, zeis - site-level export`).
 
-**Not answered — the objectives never ticked, and the reason is known:** the
-log shows `QEDynProbeQuest started` at **16:42**, *after* every page visit
-(16:16–16:41). The quest was not claimed while the pages were being opened, so
-its listeners were not armed. Rows DP-01…DP-12 must be **re-run with the quest
-claimed first**.
+**CORRECTION (2026-09-28, same day).** My first reading of the timeline was
+wrong and Zeis put it right: **he accepted the quest first and then visited
+the pages.** The log confirms him — `QEDynProbeQuest started` (16:42:36) comes
+*before* every page-visit line (16:47:04 onwards). The 16:16–16:41 window he
+thought I had meant was the **mod-settings** run, not this one. So the
+listeners **were** armed; the event rows did run. The finding below stands on
+its own merits, and is stronger, not weaker.
+
+**Why nothing ticked, then: `Http.Response` did not reach the quest.** The
+probe logs an `http-response …` line the moment an event clears its host
+filter — and Zeis's log contains **no `http-response` line at all**, only the
+pages' own handler lines. Two readings, and this probe cannot tell them apart
+(a design flaw of the probe, see below): either the event never fired for
+these pages, or it fired with a `request.host` that did not match
+`qe24-dyn.test` and the filter dropped it silently.
+
+**It is also not new, and I should have caught it:** this folder's own
+"Blocked, or deliberately not supported" table already records, from r166,
+that *"Static pages load, but their Browser traffic did not tick
+`Http.Request`/`Http.Response`; HTTP authoring stays fenced."* The r238 probe
+has now confirmed the same fence for **dynamic** pages. My r237 plan assumed
+HTTP events would "ride along for free" on the new page type — that
+assumption was simply wrong, and the evidence to contradict it was already
+filed here.
 
 **Two things the re-run must watch** (both visible in the log):
 
@@ -72,13 +91,29 @@ claimed first**.
    apart, and `/state`'s own visit counter went 2 → 4 on a single revisit
    (the earlier rows read "2 visits" on a first-ever open). Stateful pages
    must not assume one render = one visit.
-2. **The HTTP event may not fire at all.** Even *after* the quest was claimed
-   (16:42), the `/state` visits at 16:53/16:54 logged `phase=claimed` four
-   times — the beat, which fires on the first `Http.Response` for `/state`,
-   never fired, and `/news` never gained its UPDATE article. Zeis's steer for
-   "website-update nodes that fire when the player does X" depends on this
-   event, so it is the single most important thing the re-run has to settle.
-   Filed as [`docs/03` §24](../../docs/03-questions-for-the-developers.md).
+2. **The beat never fired, so DP-06/07/08 ran only their "before" half.** The
+   beat was wired to the first `Http.Response` for `/state` — which, per the
+   fence above, never comes. Phase stayed `claimed` through all four `/state`
+   renders and `/news` never gained its UPDATE article. **The bcc.com A/B
+   (Zeis's headline question) is therefore still unverified in game.** The
+   fix is a probe change, not a game one: fire the beat from something that
+   demonstrably works (a terminal command, or an objective the player ticks)
+   and re-run those three rows. Filed as
+   [`docs/03` §24](../../docs/03-questions-for-the-developers.md).
+
+**Two probe design flaws worth fixing before any re-run** (my fault, both):
+
+- the `Http.Response` listener filters on `request.host` **before** it logs,
+  so "no event" and "event with an unexpected host" look identical;
+- the beat was wired to an event this very folder had already fenced, so the
+  three rows that mattered most could never complete.
+
+Also unexplained: **DP-10 never ticked.** The `/form` button reported
+`sent (no error thrown)`, but the quest's `Mail.Sent` listener never matched
+the marker subject. Either `Mail.Sent` is only raised for *player*-sent mail
+(the editor's mail rows are green for those), or the iframe send did not
+actually deliver. Checking the in-game inbox during the re-run separates
+them.
 
 ## Open: mod settings (MS-01) — r239's first run, 2026-09-28
 

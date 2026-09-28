@@ -977,7 +977,16 @@ notes.
 Until this is answered, the editor should not promise a settings feature: the
 data path is proven, the player-facing half is not.
 
-## 24. Do `Http.Response` events fire for a mod-registered site's pages — and why is each page rendered twice?
+## 24. `Http.Response` never reaches a mod for its own site's pages — is that intended, and can a mod observe a page view at all?
+
+*Revised 2026-09-28. My first reading blamed the test order; Zeis corrected me
+— the quest **was** claimed first (16:42:36) and the pages were visited
+afterwards (16:47+), so the listeners were armed and the finding is real. It
+also turns out to be old news I had forgotten: this repository's own QA notes
+record from r166 that mod-hosted **static** sites do not tick
+`Http.Request`/`Http.Response` either. This run extends that fence to dynamic
+pages, so the question is whether the fence is deliberate and whether any
+observation route exists.*
 
 **Found running the r238 dynamic-page probe in game** (2026-09-28, game
 1.3.13). Two observations we cannot explain from the SDK alone, and both bear
@@ -998,13 +1007,22 @@ view. Is the second call a preview/title fetch, a redundant render, or
 something we should be deduplicating? It matters: any page that counts or
 mutates state per render will double-count.
 
-**2. `Http.Response` did not appear to fire for these pages.** The quest was
-claimed at 16:42 and its listeners were therefore armed; the `/state` visits
-at 16:53 and 16:54 each logged twice from the page handler, but the quest's
+**2. `Http.Response` did not reach the quest for these pages.** The quest was
+claimed at 16:42:36, so its listeners were armed; the `/state` visits at 16:53
+and 16:54 each logged twice from the page handler, but the quest's
 `Events.on("Http.Response", …)` listener — which flips a phase on the first
-`/state` hit — never fired, and the `/news` page never gained the article that
-flip would have added. The mod declares the `events` permission and the
-listener works on other surfaces.
+`/state` hit — never fired, and `/news` never gained the article that flip
+would have added. The mod declares the `events` permission. The probe logs an
+`http-response …` line as soon as an event clears its host filter, and **no
+such line appears anywhere in the log** — so either the event was never raised
+for these pages, or it arrived with a `request.host` that did not match and
+the filter dropped it before the log line. (A re-run probe that logs first and
+filters second would separate the two; that is on us, not on the game.)
+
+Note this is **consistent with what we already measured in r166**: mod-hosted
+*static* sites load fine but do not tick `Http.Request`/`Http.Response`
+either. So the most likely reading is that a mod's own sites are simply not
+part of whatever emits those events.
 
 **What we would like:**
 

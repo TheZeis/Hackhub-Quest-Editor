@@ -16,13 +16,19 @@ Headline results from Zeis's write-up (`QE24-TestResults-DynProbe+ModSettings.md
 | Caching | **Green** — no caching: the visit counter climbs on every open |
 | The iframe `HackhubSDK` bridge | **Green** — "HackhubSDK global in this iframe: yes", and the page's button sent a mail (`sent (no error thrown)`) |
 | Exports (per-page + site-level, static + dynamic) | **Green** — all four combinations worked |
-| HTTP events per page | **Unrun** — the quest was claimed at 16:42, *after* every page visit, so no objective could tick. Needs a re-run |
+| HTTP events per page | **Red — and already known.** The quest *was* claimed first (16:42:36, before every page visit — I misread this at first and Zeis corrected me). No `http-response` line ever appeared. This folder's own blocked-rows table already records from r166 that mod-hosted **static** sites don't tick `Http.Request`/`Http.Response`; this run confirms the same fence for dynamic ones |
 
 Two things the re-run must watch: **each page view renders twice** (the
 handler logs twice a second apart; the counter went 2 → 4 on one revisit), and
-even with the quest claimed the `/state` visits did **not** fire the quest's
-`Http.Response` listener, so the beat never flipped the phase. That last one
-is the load-bearing question for the whole feature — filed as `docs/03` §24.
+the **beat never fired**, because it was wired to an `Http.Response` that never
+comes — so **DP-06/07/08 only ran their "before" half and the bcc.com A/B is
+still unverified in game**. Filed as `docs/03` §24.
+
+Both are **probe** faults, not game faults, and both are fixable without the
+developers: log every `Http.Response` *before* filtering (so "no event" and
+"unexpected host" stop looking identical), and fire the beat from something
+that demonstrably works — a terminal command or an objective the player ticks
+— instead of an event this folder had already fenced.
 
 ---
 Zeis green-lit the r237 recommendation (2026-09-27): a test page to answer
