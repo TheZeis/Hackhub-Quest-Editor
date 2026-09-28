@@ -1,4 +1,21 @@
-QE24 Dynamic Page Probe 1.1.0 (r246 rebuild)
+QE24 Dynamic Page Probe 1.2.0 (r248)
+
+WHAT IS NEW IN 1.2.0
+  - `qedyn mail` - the decisive mail test. See the section below.
+  - Every command now PRINTS to the terminal as well as writing the log.
+    In 1.1.x `qedyn status` looked like it did nothing because it only
+    wrote to the game log.
+  - `qedyn tick` takes a row NUMBER as well as a name: `qedyn tick 3`.
+    In 1.1.x `qedyn tick 1` silently did nothing.
+
+NEW IN 1.2.0 - the mail test
+  Run 2 proved the page's mail is ACCEPTED (Mail.send returns a real mail
+  id) and then lost in delivery - it is not a permission refusal. The only
+  mail that has ever arrived is the startup mail, which is also the only
+  one WITHOUT a to: field. So:
+    qedyn mail
+  sends two mails from the terminal - one WITH to: and one WITHOUT - and
+  prints both ids. Check which one lands in the inbox.
 
 What changed since 1.0.0 (which you may have already run)
   - The beat is now fired by a TERMINAL COMMAND instead of an HTTP event.
@@ -13,8 +30,9 @@ What changed since 1.0.0 (which you may have already run)
     prints every event the mod was offered.
 
 IF THE QUEST DOES NOT APPEAR ON THE HACKHUB FEED
-  That is expected right now, and it is not this mod: mod quest posts have
-  stopped surfacing (docs/03 §21), and the game's own log says
+  In run 2 it DID appear - on a FRESH SAVE - so try a fresh save first.
+  If it still does not show: mod quest posts have been unreliable
+  (docs/03 §21), and the game's own log says
   "Queue.HandleQuestHackhubPosts: no handler registered". Two ways in:
     qedyn claim                 <- type this in the in-game terminal
   or claim QEDynProbeQuest by hand from the sandbox group in the journal.
