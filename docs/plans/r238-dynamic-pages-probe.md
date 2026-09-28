@@ -127,6 +127,7 @@ themselves, because `Http.Response` never reaches the mod).
 | **DP-12** site exports | Open `/site-exports` | A greeting for "zeis" | Site exports from a *dynamic* page (DP-01 was the static one) |
 | **DP-13** event roll-call | Type **`qedyn status`** | How many `Http.Response` events the mod was offered, and every one of them | **Zero is the expected result** — it confirms the r166 fence now covers dynamic pages too |
 | **DP-14** housekeeping | `qedyn tick <row>` for any row that could not tick itself | — | Keeps the run in order |
+| **DP-15** claiming it | Did the quest appear on your Hackhub feed? | Yes/no — and if not, whether `qedyn claim` got it | Mod quest posts have stopped surfacing game-side (docs/03 §21); this row records whether that is still true |
 
 **Reading reds** (what each failure changes in the r237 plan):
 

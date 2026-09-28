@@ -6,7 +6,7 @@ Everything both runs established, with the evidence and the three corrections
 made along the way, is in
 [`QE24-TestResults-DynProbe-ModSettings.md`](QE24-TestResults-DynProbe-ModSettings.md).
 Zeis's own minute-by-minute log with the screenshots is on the `QA-filedump`
-branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.1.0.zip`**
+branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.1.1.zip`** — and if the quest does not appear on the Hackhub feed, that is the known feed problem, not the mod: type `qedyn claim` in the terminal (or claim it from the sandbox group in the journal).
 — see the dynamic-page section below for what changed.
 
 ## ANSWERED: the ModSettings Probe (r239/r240) — the whole loop works

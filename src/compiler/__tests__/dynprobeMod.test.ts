@@ -193,6 +193,7 @@ describe("dynprobe mod (r238)", () => {
             "dp-12-site-exports",
             "dp-13-http-events",
             "dp-14-tick-rows",
+            "dp-15-how-to-claim",
         ]);
         expect(quest.HackhubPost.content).toContain("qe24-dyn.test");
     });
@@ -252,6 +253,30 @@ describe("dynprobe mod (r238)", () => {
         // The listener recorded what the send returned (an id here, null in
         // game if the call is refused) - the value DP-09/DP-10 ask for.
         expect(mod3.state.mailBridged).toBe("mail-id-1");
+    });
+
+    it("a missing sdk.Command must not stop the mod from loading (r247)", () => {
+        // r247: `class QEDynCommand extends sdk.Command` sat at module level,
+        // so on an SDK without Command the whole file aborted - no site, no
+        // quest, no feed post. That is how a missing feed post looked like a
+        // game bug for a day.
+        const broken = stubSdk();
+        delete (broken as Record<string, unknown>).Command;
+        delete (broken as Record<string, unknown>).RegisterCommand;
+        expect(() => runMod(readFileSync(MOD_JS_PATH, "utf8"), broken as unknown)).not.toThrow();
+        expect(broken.__registered.websites).toHaveLength(1);
+        expect(broken.__registered.quests).toHaveLength(1);
+        expect(broken.__registered.commands).toHaveLength(0);
+    });
+
+    it("`qedyn claim` claims the quest without the feed (docs/03 §21)", () => {
+        const sdk5 = stubSdk();
+        const claimed: any[] = [];
+        (sdk5.Quest as unknown as { claim: (q: unknown) => void }).claim = (q) => { claimed.push(q); };
+        runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk5 as unknown);
+        const cmd = new (sdk5.__registered.commands[0])();
+        cmd.Run(toolsWith("claim"));
+        expect(claimed).toEqual([sdk5.__registered.quests[0]]);
     });
 
     it("every Http.Response is logged BEFORE the host filter (r242's flaw)", () => {

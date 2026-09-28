@@ -1,9 +1,9 @@
 {
   "id": "qe-sdk-024-dynprobe",
   "name": "QE24 Dynamic Page Probe",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "HackHub Quest Editor",
-  "description": "QA probe for SDK 0.24 dynamic website pages, r246 rebuild: one static control page and seven dynamic pages on qe24-dyn.test. Compared with 1.0.0 the beat is now fired by the 'qedyn beat' terminal command instead of an Http.Response that never arrives (r241/r242), Http.Response is logged BEFORE any host filter so 'no event' and 'unexpected host' can be told apart, and /form now prints what Mail.send returned and offers a second button that goes through the documented Events.emit bridge (r245: the quest's own mail arrives, a page's does not). Type 'qedyn status' for everything the probe recorded. Claim QEDynProbeQuest and follow its objectives - they are the QA checklist. Nothing auto-starts.",
+  "description": "QA probe for SDK 0.24 dynamic website pages, r246 rebuild: one static control page and seven dynamic pages on qe24-dyn.test. Compared with 1.0.0 the beat is now fired by the 'qedyn beat' terminal command instead of an Http.Response that never arrives (r241/r242), Http.Response is logged BEFORE any host filter so 'no event' and 'unexpected host' can be told apart, and /form now prints what Mail.send returned and offers a second button that goes through the documented Events.emit bridge (r245: the quest's own mail arrives, a page's does not). Type 'qedyn status' for everything the probe recorded. Claim QEDynProbeQuest and follow its objectives - they are the QA checklist. Nothing auto-starts. 1.1.1 (r247): the qedyn command is now built inside a guarded block so it can never stop the mod from loading, and gains 'qedyn claim' - mod quest posts have stopped surfacing on the feed (docs/03 §21), so the quest can be claimed straight from the terminal instead.",
   "apiVersion": 2,
   "permissions": [
     "events",

@@ -369,7 +369,8 @@ class QEDynProbeQuest extends sdk.Quest {
             { name: "dp-11-page-exports", description: "Open /exports?article=2. The span should read article-2 (a per-page export built from this request)." },
             { name: "dp-12-site-exports", description: "Open /site-exports. The line should show a greeting - site exports from a DYNAMIC page (dp-01 checked the static one)." },
             { name: "dp-13-http-events", description: "Type 'qedyn status' in the terminal. It prints how many Http.Response events the mod was offered, and every one of them. Zero is the expected result and the finding - write the line down anyway." },
-            { name: "dp-14-tick-rows", description: "Housekeeping: if a row's objective does not tick by itself (they mostly cannot - Http.Response never reaches the mod), type 'qedyn tick <row-name>' to check it off and keep your place." }
+            { name: "dp-14-tick-rows", description: "Housekeeping: if a row's objective does not tick by itself (they mostly cannot - Http.Response never reaches the mod), type 'qedyn tick <row-name>' to check it off and keep your place." },
+            { name: "dp-15-how-to-claim", description: "Did this quest appear on your Hackhub feed? If NOT: type 'qedyn claim' in the terminal, or claim it by hand from the sandbox group in the journal, and tell us - mod quest posts may simply have stopped surfacing (docs/03 §21)." }
         ];
     }
     CreateData() { return {}; }
@@ -447,19 +448,36 @@ sdk.RegisterQuest(QEDynProbeQuest);
    "after" half. `qedyn beat` fixes that with no harness and no guesswork.
    `qedyn status` prints everything the probe recorded, including every
    Http.Response it was offered, which is the evidence row DP-13 wants. */
-class QEDynCommand extends sdk.Command {
+safe("register qedyn command", function () {
+    /* r247: the class definition used to sit at module level, so a missing
+       sdk.Command would abort the WHOLE file - no site, no quest, no feed
+       post. A command is a convenience; it may never be load-bearing. */
+    if (!sdk.Command || typeof sdk.RegisterCommand !== "function") {
+        log("command: this SDK exposes no Command/RegisterCommand - the probe still works, just run the rows without the terminal helper");
+        return;
+    }
+    class QEDynCommand extends sdk.Command {
     constructor() {
         super();
         this.CommandName = "qedyn";
-        this.Description = "QE24 dynamic page probe: fire the beat, tick a row, print what the probe saw";
+        this.Description = "QE24 dynamic page probe: claim, fire the beat, tick a row, print what the probe saw";
         this.Autocomplete = [
             { label: "qedyn", type: "STRING" },
-            { label: "beat|status|tick", type: "STRING" }
+            { label: "claim|beat|status|tick", type: "STRING" }
         ];
     }
     Run(tools) {
         var args = (tools && tools.getArgs) ? tools.getArgs() : [];
         var sub = args[0] || "status";
+        if (sub === "claim") {
+            /* Feed-independent: mod quest posts have stopped surfacing
+               (docs/03 §21) and the game logs that the
+               Queue.HandleQuestHackhubPosts job has no handler, so this
+               claims the quest directly. */
+            safe("Quest.claim", function () { sdk.Quest.claim(QEDynProbeQuest); });
+            log("command: claim requested");
+            return;
+        }
         if (sub === "beat") {
             var fired = fireBeat("qedyn beat");
             log("command: beat " + (fired ? "fired" : "already fired earlier"));
@@ -481,10 +499,10 @@ class QEDynCommand extends sdk.Command {
             log("status: http[" + i + "] " + DYN.httpEvents[i]);
         }
     }
-}
-if (typeof sdk.RegisterCommand === "function") {
+    }
     sdk.RegisterCommand({ default: true, scope: "local" })(QEDynCommand);
-}
+    log("command: qedyn registered (claim | beat | status | tick <row>)");
+});
 
 /* Test hooks for the editor's vitest smoke test (src/compiler/__tests__/
    dynprobeMod.test.ts). The game ignores a mod's module exports. */
