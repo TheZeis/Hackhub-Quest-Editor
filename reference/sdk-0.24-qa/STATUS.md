@@ -108,12 +108,26 @@ filed here.
 - the beat was wired to an event this very folder had already fenced, so the
   three rows that mattered most could never complete.
 
-Also unexplained: **DP-10 never ticked.** The `/form` button reported
-`sent (no error thrown)`, but the quest's `Mail.Sent` listener never matched
-the marker subject. Either `Mail.Sent` is only raised for *player*-sent mail
-(the editor's mail rows are green for those), or the iframe send did not
-actually deliver. Checking the in-game inbox during the re-run separates
-them.
+**DP-09/DP-10 explained (2026-09-28, Zeis's follow-up):** he had his in-game
+inbox **open in another browser tab** the whole time, and **no mail ever
+arrived**. So `HackhubSDK.Mail.send(...)` from the page's button did not
+deliver — the button's "sent (no error thrown)" only means nothing threw
+synchronously. The likely cause is the same engine behaviour we filed as
+[`docs/03` §14](../../docs/03-questions-for-the-developers.md): a permissioned
+call made from page context loses its mod identity and is refused. Since
+`Mail.send` returns a promise, a refusal that *rejects* it is invisible to a
+synchronous try/catch — which is exactly why it looked clean. The re-run
+should `await` the call and log any rejection.
+
+A second modder's research notes on dynamic pages (kept off this repo at
+Zeis's request, on the `QA-filedump` branch) were checked claim by claim
+against the SDK and against this folder's own evidence — verdicts in
+[`docs/plans/r243-dynamic-webpages-claims-check.md`](../../docs/plans/r243-dynamic-webpages-claims-check.md).
+Headline: his type shapes and the two serving paths check out verbatim, his
+`Exports`/`HackhubSDK` claims match what we measured, and his central "mod
+identity is lost outside `Command.Run()` and real event callbacks" claim is
+corroborated by **our own** §14 — same error text, found two months earlier
+from a different entry point.
 
 ## Open: mod settings (MS-01) — r239's first run, 2026-09-28
 

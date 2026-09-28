@@ -120,8 +120,8 @@ objective. "Green" = the thing works as the declarations promise.
 | **DP-06** state first | Open `http://qe24-dyn.test/state` | phase + visits line (expect `claimed` / `1`). The debug log shows "beat fired" | The beat mechanism works in game |
 | **DP-07** state second | Open `/state` **again** | visits must now be **2**; phase must be **beat-fired** | Q3: **visits still 1 = the game cached the page** — everything stateful needs the re-request workaround |
 | **DP-08** news after | Open `/news` **again** | The "UPDATE" article is #1; the old three dropped one slot. If you have a questline save: compare with **bcc.com's** front page | The bcc pattern is reproducible by a mod |
-| **DP-09** talk-back | Open `http://qe24-dyn.test/form`; note the "HackhubSDK global" line; **click the button** | The Result line: `sent (no error thrown)` / `NO HackhubSDK…` / `NO Mail.send` / `ERR: …` | Q4: the iframe bridge exists (or not — the line says which) |
-| **DP-10** mail from page | Automatic — ticks when the DP-09 mail arrives | Nothing to do; just note whether it ticked at all | The quest hears page-sent mail → the "forms that the quest already hears" building block works |
+| **DP-09** talk-back | Open `http://qe24-dyn.test/form`; note the "HackhubSDK global" line; **click the button** | The Result line — **and check the inbox**: the run read `sent (no error thrown)` but **no mail ever arrived** (Zeis had his inbox open in another tab) | The global exists, but a permissioned call from page context does not deliver (docs/03 §14). The re-run must `await` the call and log any rejection — a refused promise is invisible to a sync try/catch |
+| **DP-10** mail from page | Automatic — ticks when the DP-09 mail arrives | Nothing to do; just note whether it ticked at all (**it did not**) | The quest hears page-sent mail → the "forms that the quest already hears" building block works |
 | **DP-11** page exports | Open `http://qe24-dyn.test/exports?article=2` | The span must read `article-2` | Per-page exports reach page scripts (the request-capturing interactivity block) |
 | **DP-12** site exports | Open `http://qe24-dyn.test/site-exports` | The line shows the greeting for "zeis" | Site exports from a dynamic page (complements DP-01's static check) |
 
@@ -135,7 +135,7 @@ objective. "Green" = the thing works as the declarations promise.
 - DP-07 **cached** → stateful pages (beat-driven news, /state) need the
   cache-buster pattern (the future emitter appends a changing token to the
   links it prints) — a build detail, not a blocker.
-- DP-09/10 the bridge is **absent** → the talk-back building block falls
+- DP-09/10 the bridge is **present but not permitted** → the talk-back building block needs the `Events.emit()` → top-level `Events.on()` bridge (r243), not a direct call
   out of scope; forms would need the export-only route (DP-11/12).
 - DP-11/12 exports **absent** → phase 3 shrinks to server-side
   rendering only (no client-side interactivity).

@@ -1039,3 +1039,40 @@ does X or reaches Y objective" idea depends on being able to observe page
 views. Without the event, the only remaining route is for the page's own code
 to call back into the quest — which is exactly the per-request-author-code
 boundary the no-code editor cannot cross.
+
+## 25. A permissioned call made from a page's own script is refused — and the refusal is invisible to the caller
+
+**Found running the r238 dynamic-page probe, confirmed by the player watching
+his inbox** (2026-09-28, game 1.3.13). Related to §14, and worth filing
+separately because the failure mode here is *silence*, not an exception.
+
+A page's script called `HackhubSDK.Mail.send(...)` — the `HackhubSDK` global
+really is injected into the page, so the call exists and ran. It reported no
+error. **No mail ever arrived**: the player had his in-game inbox open in
+another browser tab the whole time, and the quest's own `Mail.Sent` listener
+never matched either.
+
+We believe this is §14 again — a permissioned call made from page context
+loses its mod identity and is refused — but note what makes it nasty:
+
+- `Mail.send` returns a promise. **If the refusal rejects it, a synchronous
+  `try/catch` never sees it**, so a mod author's own error handling reports
+  success. That is almost certainly why our page logged "sent (no error
+  thrown)".
+- Nothing surfaces to the player either: no mail, no toast, no log line.
+
+**What we would like:**
+
+- confirmation that page-context calls to permissioned APIs are refused (and
+  that `Mail.send` in particular needs the `Events.emit()` → top-level
+  `Events.on()` bridge);
+- if a call is refused, **reject the promise and log it** — a silent no-op
+  that the caller's own error handling reports as success is the worst
+  possible failure mode for an author;
+- if page scripts are meant to have a sanctioned way to act (the way
+  `Exports` functions do), a documented one would save every modder this
+  detour.
+
+Our workaround, which we will generate automatically if we ever build a
+no-code page editor: the page's action does a synchronous `Events.emit()`, and
+a top-level `Events.on()` handler performs the real permissioned work.
