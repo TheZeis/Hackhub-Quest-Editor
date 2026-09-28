@@ -2,6 +2,7 @@
 
 | File | What it is |
 |---|---|
+| `qe-sdk-024-modsettings-1.0.0.zip` | **ModSettings Probe (r239)** — the first in-game look at declarative mod settings: six settings (one of every declared type) in the Mods menu, seven quest objectives = the QA checklist in `docs/plans/r239-modsettings-probe.md`. Installs alongside the r238 probe so one session covers both. |
 | `qe-sdk-024-dynprobe-1.0.0.zip` | **Dynamic Page Probe (r238)** — the r237 open-questions test site on `qe24-dyn.test`: one static control page + seven dynamic pages, twelve quest objectives = the QA checklist in `docs/plans/r238-dynamic-pages-probe.md`. Accept the "QA probe (r238)" feed post and work the tracker top to bottom. |
 | `qe-sdk-0.24-qa-1.0.29.zip` | QA harness 1.0.29 — the decisive pair: HF-11 (the editor's anonymous-`cls` structural twin) vs HF-12 (renamed class), plus HF-1…HF-10 controls. Every probe is abandonable now. |
 | `qe24-feedcanary-1.0.2.zip` | Feed canary 1.0.2 — the AUTHOR test: identical to the canary that rendered (HC1, 1.0.1), except the manifest author is now "Zeis". Post **HC2**. |

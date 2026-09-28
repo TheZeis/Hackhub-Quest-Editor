@@ -3,6 +3,10 @@ node_modules/
 
 # build output
 dist/
+# ...but the SDK 0.24 reference/QA mods ship their dist as source of truth:
+# the editor's test suite loads those mod.js files directly, and losing them
+# to a clean checkout silently breaks the QA tests (r239).
+!reference/sdk-0.24-qa/*/dist/
 *.tsbuildinfo
 
 # vite

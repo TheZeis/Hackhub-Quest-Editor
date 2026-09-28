@@ -1,5 +1,19 @@
 # SDK 0.24 QA harness — kept as tooling, now carrying the P-01 backdate row
 
+## OPEN: the ModSettings Probe (r239) — awaiting an in-game run
+
+`modsettings/` (+ `delivery/qe-sdk-024-modsettings-1.0.0.zip`) is the first
+in-game look at **declarative mod settings** (`Bootstrap.Settings` —
+"rendered in the Mods UI" per the 0.24 declarations): one Bootstrap with six
+settings, one of every declared type (two toggles, select, text, number,
+slider 0–100/5), plus a load counter that logs
+`MS-load <n>: {…all values…}` so the run produces machine-readable proof of
+persistence **and** readback. Install it **next to the r238 dynamic-page
+probe — one game session covers both**: do the seven MS rows first
+(MS-05 is a restart, MS-06 reads the log after it), weaving the DP rows in
+around the restart. **The checklist, the run order and the red-reading are in
+[`docs/plans/r239-modsettings-probe.md`](../../docs/plans/r239-modsettings-probe.md)**.
+
 ## OPEN: the Dynamic Page Probe (r238) — awaiting an in-game run
 
 `dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.0.0.zip`) answers the five
