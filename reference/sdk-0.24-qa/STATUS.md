@@ -112,12 +112,22 @@ filed here.
 inbox **open in another browser tab** the whole time, and **no mail ever
 arrived**. So `HackhubSDK.Mail.send(...)` from the page's button did not
 deliver — the button's "sent (no error thrown)" only means nothing threw
-synchronously. The likely cause is the same engine behaviour we filed as
-[`docs/03` §14](../../docs/03-questions-for-the-developers.md): a permissioned
-call made from page context loses its mod identity and is refused. Since
-`Mail.send` returns a promise, a refusal that *rejects* it is invisible to a
-synchronous try/catch — which is exactly why it looked clean. The re-run
-should `await` the call and log any rejection.
+synchronously. **Correction (2026-09-28, after Zeis asked whether we even declared the
+permission):** we did — `mail` is in the manifest, and it is the correct name
+(`ModPermission` is `filesystem | network | events | mail | bank | shell |
+ui`). So a missing permission is *not* the explanation. I also had a detail
+wrong: `Mail.send` is **synchronous** — `send(mail: MailDefinition): string |
+null` — so there is no promise rejection hiding the failure. The page's code
+simply called it, saw no exception, and printed "sent".
+
+What we can and cannot conclude: the call did **not** throw (our try/catch
+would have printed `ERR: …`), and no mail arrived. So either it returned
+`null` — a silent refusal, which fits the §14 `Mod "null"` pattern — or the
+injected page-side wrapper swallowed the throw. The re-run should **print the
+return value** (`var id = HackhubSDK.Mail.send(...)` — `null` means refused,
+a string means it was accepted) and check whether the mail the quest sends on
+accept arrived, since that one runs in trusted mod context with the same
+permission.
 
 A second modder's research notes on dynamic pages (kept off this repo at
 Zeis's request, on the `QA-filedump` branch) were checked claim by claim

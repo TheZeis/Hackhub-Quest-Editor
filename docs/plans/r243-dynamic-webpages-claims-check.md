@@ -78,11 +78,23 @@ called `HackhubSDK.Mail.send(...)`, nothing threw, and **no mail ever
 arrived**. The likeliest reading is #4 — the permissioned call was refused in
 page context.
 
-One detail is worth testing rather than assuming: `Mail.send` almost certainly
-returns a Promise, and **a permission refusal that rejects a promise is
-invisible to a synchronous `try/catch`** — which is exactly why our page
-reported "no error thrown". The next probe should `await` the call and log any
-rejection; that will print the engine's refusal if there is one, and settle it.
+Two corrections, made after Zeis asked whether the permission was even
+declared:
+
+1. **We did declare it.** The dynprobe's manifest lists
+   `permissions: ["events", "mail"]`, and `mail` is the correct name. So a
+   missing permission is not the explanation for the dead mail. (§14 makes
+   the same point from the other side: that mod *had* `"ui"` declared and was
+   still refused, with the mod named as `null`.)
+2. **My "invisible promise rejection" theory was wrong.** `Mail.send` is
+   documented as `send(mail: MailDefinition): string | null` — synchronous,
+   returning the new mail's id or `null`. There is no promise. Our page just
+   called it inside a `try/catch`, saw no exception, and printed "sent".
+
+So the open possibilities are narrower than I first wrote: the call was
+either **silently refused** (returned `null`, which fits §14) or the injected
+page-side wrapper swallowed a throw. Printing the return value settles it:
+`null` = refused, a string = accepted and the problem is downstream.
 
 ## Proposed next probe (awaits Zeis's go-ahead)
 
@@ -91,5 +103,7 @@ rejection; that will print the engine's refusal if there is one, and settle it.
    verified.
 2. **Log every event before filtering** — so "no event" and "unexpected host"
    stop looking identical.
-3. **Await the mail call** and print any rejection — to confirm or kill the
-   explanation above.
+3. **Print `Mail.send`'s return value** (it is synchronous: `string | null`)
+   — `null` means refused, a string means accepted — and check whether the
+   mail the quest sends on accept arrived, since that one runs in trusted mod
+   context with the same `mail` permission.

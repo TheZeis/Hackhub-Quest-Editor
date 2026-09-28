@@ -1055,10 +1055,15 @@ never matched either.
 We believe this is §14 again — a permissioned call made from page context
 loses its mod identity and is refused — but note what makes it nasty:
 
-- `Mail.send` returns a promise. **If the refusal rejects it, a synchronous
-  `try/catch` never sees it**, so a mod author's own error handling reports
-  success. That is almost certainly why our page logged "sent (no error
-  thrown)".
+- `Mail.send` is synchronous (`send(mail: MailDefinition): string | null`),
+  and it did **not** throw — our page's `try/catch` would have printed the
+  error, and §14 shows these refusals *do* throw for `UI.*`. So this one
+  failed **silently**, most likely by returning `null` while the caller had
+  no way to tell. The mod author's own error handling reported success.
+
+The permission itself is not in question: the mod declares `mail` (one of
+`filesystem | network | events | mail | bank | shell | ui`), and §14 records a
+mod that declared `ui` and was refused anyway, with the mod named `null`.
 - Nothing surfaces to the player either: no mail, no toast, no log line.
 
 **What we would like:**
@@ -1071,7 +1076,11 @@ loses its mod identity and is refused — but note what makes it nasty:
   possible failure mode for an author;
 - if page scripts are meant to have a sanctioned way to act (the way
   `Exports` functions do), a documented one would save every modder this
-  detour.
+  detour; in particular, **is an additional permission needed for a call made
+  from a page's own script**, or is `mail` alone supposed to be enough?
+- and if a call is refused, please **return `null` and log it** (or throw
+  consistently, the way `UI.*` does) rather than failing in a way the caller
+  cannot detect.
 
 Our workaround, which we will generate automatically if we ever build a
 no-code page editor: the page's action does a synchronous `Events.emit()`, and
