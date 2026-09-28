@@ -120,14 +120,26 @@ wrong: `Mail.send` is **synchronous** — `send(mail: MailDefinition): string |
 null` — so there is no promise rejection hiding the failure. The page's code
 simply called it, saw no exception, and printed "sent".
 
-What we can and cannot conclude: the call did **not** throw (our try/catch
-would have printed `ERR: …`), and no mail arrived. So either it returned
-`null` — a silent refusal, which fits the §14 `Mod "null"` pattern — or the
-injected page-side wrapper swallowed the throw. The re-run should **print the
-return value** (`var id = HackhubSDK.Mail.send(...)` — `null` means refused,
-a string means it was accepted) and check whether the mail the quest sends on
-accept arrived, since that one runs in trusted mod context with the same
-permission.
+**The A/B is now settled (Zeis, 2026-09-28): the mail the quest sends on
+accept DID arrive.** That is the same mod, the same `mail` permission and the
+same session — the only difference is *where the call came from*:
+
+| Sent from | Arrived? |
+|---|---|
+| the quest's `OnStart()` (trusted mod context) | **yes** |
+| the page's own button, via `HackhubSDK.Mail.send` (page context) | **no**, and no error |
+
+So the permission is granted and delivery works; **the context is the whole
+difference** — exactly the §14 pattern, and exactly what the other modder's
+notes warn about. It also rules the address out: the `OnStart` mail carries no
+`to` field at all and still landed.
+
+One thing remains unknown, because our page never looked: **what the call
+returned.** `Mail.send` gives back the new mail's id, or `null`. The page set
+its own "sent (no error thrown)" message as soon as the call failed to throw,
+and never captured the value — so Zeis's paste shows *our* text, not the
+engine's answer. The re-run prints it: `null` = refused, an id = accepted and
+lost afterwards.
 
 A second modder's research notes on dynamic pages (kept off this repo at
 Zeis's request, on the `QA-filedump` branch) were checked claim by claim

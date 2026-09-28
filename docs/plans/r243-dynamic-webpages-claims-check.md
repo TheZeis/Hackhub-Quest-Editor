@@ -91,10 +91,17 @@ declared:
    returning the new mail's id or `null`. There is no promise. Our page just
    called it inside a `try/catch`, saw no exception, and printed "sent".
 
-So the open possibilities are narrower than I first wrote: the call was
-either **silently refused** (returned `null`, which fits §14) or the injected
-page-side wrapper swallowed a throw. Printing the return value settles it:
-`null` = refused, a string = accepted and the problem is downstream.
+**Our own run then confirmed his warning with a clean A/B** (Zeis,
+2026-09-28): in the same mod, with the same `mail` permission, in the same
+session — a mail sent from the quest's `OnStart()` **arrived**, and the one
+sent from the page's own button **never did**. Same API, same permission,
+different dispatch path: that is his claim, demonstrated. (It also rules the
+address out, since the `OnStart` mail carries no `to` field.)
+
+What we still do not know is only *how* it failed — `Mail.send` returns the
+new mail's id or `null`, and our page never captured it, printing its own
+"sent (no error thrown)" text instead. Next probe prints the return value:
+`null` = refused, an id = accepted and lost later.
 
 ## Proposed next probe (awaits Zeis's go-ahead)
 
@@ -104,6 +111,5 @@ page-side wrapper swallowed a throw. Printing the return value settles it:
 2. **Log every event before filtering** — so "no event" and "unexpected host"
    stop looking identical.
 3. **Print `Mail.send`'s return value** (it is synchronous: `string | null`)
-   — `null` means refused, a string means accepted — and check whether the
-   mail the quest sends on accept arrived, since that one runs in trusted mod
-   context with the same `mail` permission.
+   — `null` means refused, an id means accepted. The "did the mod-context mail
+   arrive" half is already answered: it did.

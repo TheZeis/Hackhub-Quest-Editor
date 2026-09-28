@@ -1061,9 +1061,18 @@ loses its mod identity and is refused — but note what makes it nasty:
   failed **silently**, most likely by returning `null` while the caller had
   no way to tell. The mod author's own error handling reported success.
 
-The permission itself is not in question: the mod declares `mail` (one of
-`filesystem | network | events | mail | bank | shell | ui`), and §14 records a
-mod that declared `ui` and was refused anyway, with the mod named `null`.
+**The permission is not in question, and we can now show it with a clean
+A/B** — same mod, same `mail` permission, same session, only the calling
+context differs:
+
+| Sent from | Arrived? |
+|---|---|
+| the quest's `OnStart()` — trusted mod context | **yes** |
+| the page's own button via `HackhubSDK.Mail.send` — page context | **no**, silently |
+
+(That also rules the recipient out: the `OnStart` mail carries no `to` field
+and still landed.) And §14 records a mod that declared `"ui"` and was refused
+anyway, with the mod named `null`. So this is not a manifest problem.
 - Nothing surfaces to the player either: no mail, no toast, no log line.
 
 **What we would like:**
