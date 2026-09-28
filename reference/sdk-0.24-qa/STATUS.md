@@ -1,5 +1,45 @@
 # QE24 QA status (2026-09-21)
 
+## Open: mod settings (MS-01) — r239's first run, 2026-09-28
+
+Zeis installed the r239 ModSettings probe (beside the r238 dynamic-page
+probe) on a throwaway save. **The settings pipeline verifies green up to the
+readback — what is missing is a UI to change the values.**
+
+What the log proved (game 1.3.1, both probe mods loaded at 15:49:43):
+
+```
+[ContentSDK] Mod "QE24 ModSettings Probe" uses API v1 (current: v2). Running in compatibility mode.
+[qe-sdk-0.24-modsettings] MS-load 1: {"probe.toggle_on":true,"probe.toggle_off":false,"probe.select":"blue","probe.text":"hello probe","probe.number":7,"probe.slider":50}
+[qe-sdk-0.24-modsettings] QEModSettingsProbeQuest started - MS-readback at claim: {…same six values…}
+```
+
+- `Bootstrap.Settings` **is parsed**: all six keys, of all five declared
+  types, come back with their exact defaults (the select's `blue`, the
+  slider's `50`, both toggles as declared). A malformed or ignored
+  declaration would not show up in `getAll()`.
+- `ModSettings.getAll()` **works in game**, both at package load and later
+  at quest claim — so whatever the player sets would reach mod code.
+- The compat-mode warning is the known one filed as
+  [`docs/03` §19](../../docs/03-questions-for-the-developers.md) — every mod
+  the editor exports logs it, and nothing measured has broken under it.
+
+What is still open: **MS-01 — no "Mods" section was found in the in-game
+Settings app**, so the values were never changed and MS-02…MS-07 are unrun.
+Two candidates, in the order worth checking:
+
+1. **The settings live in the game's Mods list**, not the phone's Settings
+   app — the same list used to enable/disable mods in T-15c (`STATUS` §T-15c,
+   2026-09-19: *"Disable the export in the game's Mods list, accept 'Restart
+   the game to apply updates'"*). That list exists and Zeis has used it, but
+   its location was never written down. Look for a per-mod gear/options
+   control there.
+2. **They render only for `apiVersion: 2` mods.** The game reports *current:
+   v2* and runs v1 mods in compatibility mode (§19). Settings are a newer
+   surface, so it is plausible the UI is v2-only. `modsettings-v2/` (r240)
+   is the same probe with `apiVersion: 2` — installing it answers this in one
+   restart.
+
 ## Open: the deleteable file (D-01) — r235, editor build r235
 
 The 0.24 SDK added `deleteable` to placed files (the BUG 8 fix): a file the

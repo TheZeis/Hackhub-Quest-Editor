@@ -44,6 +44,42 @@ function runMod(modJs: string, sdk: unknown) {
     return mod.exports;
 }
 
+describe("modsettings probe manifests (r239/r240)", () => {
+    const v1 = JSON.parse(
+        readFileSync(resolve(__dirname, "../../../reference/sdk-0.24-qa/modsettings/manifest.json"), "utf8"),
+    );
+    const v2 = JSON.parse(
+        readFileSync(resolve(__dirname, "../../../reference/sdk-0.24-qa/modsettings-v2/manifest.json"), "utf8"),
+    );
+
+    it("the v1 probe declares apiVersion 1, the v2 variant declares 2", () => {
+        // The experiment is: same code, only the manifest's apiVersion
+        // differs - so a difference in game is the apiVersion's doing.
+        expect(v1.apiVersion).toBe(1);
+        expect(v2.apiVersion).toBe(2);
+        expect(v1.id).not.toBe(v2.id);
+    });
+
+    it("both variants are otherwise identical: same six settings, no permissions", () => {
+        const s1 = new (loadPkg("modsettings"))().Settings;
+        const s2 = new (loadPkg("modsettings-v2"))().Settings;
+        expect(s2.map((x: { key: string }) => x.key)).toEqual(s1.map((x: { key: string }) => x.key));
+        expect(s2.map((x: { type: string }) => x.type)).toEqual(s1.map((x: { type: string }) => x.type));
+        expect(v1.permissions ?? []).toEqual([]);
+        expect(v2.permissions ?? []).toEqual([]);
+    });
+});
+
+/** Load a probe folder's mod.js against a stub SDK and return its Bootstrap class. */
+function loadPkg(folder: string) {
+    const sdk = stubSdk();
+    runMod(
+        readFileSync(resolve(__dirname, `../../../reference/sdk-0.24-qa/${folder}/dist/mod.js`), "utf8"),
+        sdk as unknown,
+    );
+    return sdk.__registered.packages[0] as any;
+}
+
 describe("modsettings probe mod (r239)", () => {
     let sdk: ReturnType<typeof stubSdk>;
     let pkg: any;

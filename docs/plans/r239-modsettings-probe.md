@@ -99,6 +99,39 @@ by the run below.
 5. File the answers in the table below (or a new `QE24-Playtest-ModSettings.md`
    in the same folder); screenshots are welcome for MS-01 (the layout).
 
+## 4b. What the first run showed (2026-09-28) — MS-01 is the only open row
+
+Zeis installed the probe beside the r238 dynamic-page probe. **The settings
+pipeline verifies green; the UI to change them was not found.**
+
+```
+[ContentSDK] Mod "QE24 ModSettings Probe" uses API v1 (current: v2). Running in compatibility mode.
+[qe-sdk-024-modsettings] MS-load 1: {"probe.toggle_on":true,"probe.toggle_off":false,"probe.select":"blue","probe.text":"hello probe","probe.number":7,"probe.slider":50}
+[qe-sdk-024-modsettings] QEModSettingsProbeQuest started - MS-readback at claim: {…the same six values…}
+```
+
+- **The declaration is parsed.** All six keys of all five types come back
+  with their exact defaults — a declaration the game ignored or mangled
+  would not appear in `getAll()` at all.
+- **The readback works in game**, at package load and again at quest claim.
+  Whatever the player sets would reach mod code.
+- The compat-mode warning is the known one, filed as `docs/03` §19.
+
+So **MS-02…MS-07 are unrun, not failed** — the values were never changed
+because no UI was found to change them in. Two candidates (r240):
+
+1. **Wrong place.** Settings may render in the game's **Mods list** — the
+   one Zeis already uses to enable/disable mods (T-15c: *"Disable the export
+   in the game's Mods list, accept 'Restart the game to apply updates'"*),
+   not in the phone's Settings app. Worth one look before anything else.
+2. **Wrong API version.** The game reports *current: v2* and runs v1 mods in
+   compatibility mode; settings are a newer surface, so the UI may be
+   v2-only. `reference/sdk-0.24-qa/modsettings-v2/` is the identical probe
+   with `apiVersion: 2` — install it **instead of** the v1 probe and check
+   the same two places.
+
+Filed with the developers as `docs/03` §23.
+
 ## 5. QA checklist
 
 | Row | Do | Write down | Green means |

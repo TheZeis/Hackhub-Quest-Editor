@@ -1,6 +1,27 @@
 # SDK 0.24 QA harness — kept as tooling, now carrying the P-01 backdate row
 
-## OPEN: the ModSettings Probe (r239) — awaiting an in-game run
+## OPEN: the ModSettings Probe (r239) — first run done, MS-01 still open
+
+**The pipeline verifies green; the UI was not found.** The log shows the game
+parsed the six settings and `ModSettings.getAll()` returned them with exact
+defaults, at load *and* at claim — but the in-game Settings app has no Mods
+section, so the values were never changed and MS-02…MS-07 are unrun.
+
+Two candidates (both cheap to check, in this order):
+
+1. **Wrong place** — settings may render in the **Mods list** Zeis already
+   uses to enable/disable mods (T-15c), not the phone's Settings app. Its
+   location was never written down; look for a per-mod gear there.
+2. **Wrong API version** — the game reports *current: v2* and runs v1 mods in
+   compatibility mode; settings are a newer surface, so the UI may be v2-only.
+   `modsettings-v2/` (+ delivery zip) is the **identical** probe with
+   `apiVersion: 2` — install it **instead of** the v1 probe and check both
+   places again.
+
+Evidence and reasoning: [`docs/plans/r239-modsettings-probe.md` §4b](../../docs/plans/r239-modsettings-probe.md);
+filed with the developers as [`docs/03` §23](../../docs/03-questions-for-the-developers.md).
+
+## OPEN: the ModSettings Probe (r239) — what the probe is
 
 `modsettings/` (+ `delivery/qe-sdk-024-modsettings-1.0.0.zip`) is the first
 in-game look at **declarative mod settings** (`Bootstrap.Settings` —

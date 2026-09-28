@@ -1,0 +1,16 @@
+{
+  "id": "qe-sdk-024-modsettings-v2",
+  "name": "QE24 ModSettings Probe (API v2)",
+  "version": "1.0.0",
+  "author": "HackHub Quest Editor",
+  "description": "The r239 ModSettings probe with apiVersion 2 instead of 1. The game reports 'current API v2' and runs v1 mods in compatibility mode (docs/03 §19); this variant asks whether the Mods-menu settings UI - which Zeis could not find for the v1 probe - appears for a v2 mod. Identical mod code and identical six settings; only the manifest's apiVersion and the mod id differ, so any difference in behaviour is the apiVersion's doing. Install INSTEAD of the v1 probe (remove the v1 folder) so the two do not compete for the same setting keys.",
+  "apiVersion": 2,
+  "permissions": [],
+  "tags": [
+    "qa",
+    "sdk-0.24",
+    "developer",
+    "settings",
+    "api-v2"
+  ]
+}

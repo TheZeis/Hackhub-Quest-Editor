@@ -725,6 +725,15 @@ compat mode is not known to break anything — but "current: v2" implies a
 pipeline we cannot see, and the one feature that has never verified (quest
 feed posts) is exactly the kind of thing a v2 could have re-plumbed.
 
+**2026-09-28 addition (r239/r240).** A declarative-settings probe ran under
+compatibility mode and its settings came back **intact**: the game parsed
+`Bootstrap.Settings` (six settings, all five types, exact defaults) and
+`ModSettings.getAll()` returned them at package load and again at quest
+claim. So compatibility mode is **not** known to touch the settings
+*pipeline*. What is unverified is the other half — the player-facing UI (see
+question 23) — and whether that UI is v2-only. A v2-manifest copy of the
+same probe is in the hands of the tester.
+
 **What we would like:** any of these —
 
 - what API v2 changes for mods, and whether it is reachable from the public
@@ -877,3 +886,44 @@ declarations don't describe:
 **What we would like:** the intended author/avatar matrix — which
 combinations render what, and whether the employer fallback is expected to
 carry the employer's name AND avatar to the post.
+
+## 23. Declarative mod settings: the pipeline works, but where is the UI?
+
+**Found running the r239 ModSettings probe in game** (2026-09-28, game
+1.3.1, Content SDK 0.24.0).
+
+The SDK documents `Bootstrap.Settings` as *"declarative settings definitions
+rendered in the Mods UI"*, and `ModSettings.get/getAll/set/reset/resetAll`
+for mod code. A probe declaring six settings — one of every type
+(`toggle` ×2, `select`, `text`, `number`, `slider` with min/max/step) —
+verified the **code** half completely:
+
+- the game parsed the declaration: `ModSettings.getAll()` returned all six
+  keys with their exact defaults (select `blue`, slider `50`, toggles as
+  declared), at package load *and* later at quest claim;
+- so the values are, or would be, handed to mod code correctly, including
+  under API v1 compatibility mode (question 19).
+
+What we could not find is the **UI** half. The tester looked in the in-game
+**Settings app** and it has no Mods section at all. He has used a mods
+*list* before — the one where a mod is enabled/disabled and the game answers
+*"Mod changes detected. Restart the game to apply updates."* — so a
+player-facing mods surface does exist somewhere in the game; it simply is not
+where the docs led us to look, and its location was never written down in our
+notes.
+
+**What we would like:**
+
+- where in the game a player changes a mod's declarative settings (which
+  screen/menu, and is it reachable in-game or only from the main menu?);
+- whether that UI is gated on `apiVersion: 2` — the game reports *current:
+  v2* and runs our v1 mods in compatibility mode, and settings are a newer
+  surface, so v2-only is a plausible reading (a v2-manifest copy of the probe
+  is being tested to settle it);
+- whether changed values persist across restarts and are then returned by
+  `ModSettings.getAll()` on the next load, and whether the UI offers any
+  reset-to-defaults control (the SDK gives mod code `reset`/`resetAll`, but
+  says nothing about the menu exposing one).
+
+Until this is answered, the editor should not promise a settings feature: the
+data path is proven, the player-facing half is not.

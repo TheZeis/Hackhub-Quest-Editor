@@ -28,7 +28,7 @@
  */
 var sdk = require("@hotbunny/hackhub-content-sdk");
 
-var MOD_ID = "qe-sdk-024-modsettings";
+var MOD_ID = "qe-sdk-024-modsettings-v2";
 
 function log(message) {
     try { console.log("[" + MOD_ID + "] " + message); } catch (_e) {}
@@ -92,8 +92,8 @@ sdk.RegisterModPackage(QEModSettingsProbe);
 class QEModSettingsProbeQuest extends sdk.Quest {
     constructor() {
         super();
-        this.Name = "QEModSettingsProbeQuest";
-        this.Title = "QE24 mod settings probe";
+        this.Name = "QEModSettingsProbeQuestV2";
+        this.Title = "QE24 mod settings probe (API v2)";
         this.Description = "Developer QA probe for declarative mod settings (r239). The seven objectives are the checklist: work top to bottom in the Mods menu, then restart the game and re-claim for the last row. Rows that say WRITE DOWN need the exact answer for the report.";
         this.Group = "sandbox";
         this.AutoStart = false;
@@ -101,25 +101,25 @@ class QEModSettingsProbeQuest extends sdk.Quest {
         this.HasCompleteButton = false;
         this.Abandonable = true;
         this.HackhubPost = {
-            content: "QA probe (r239): the mod-settings quest. Accept to run the seven rows - open the Mods menu, find this mod's settings, look, change, write down.",
+            content: "QA probe (r240, API v2): the mod-settings quest — same rows as the v1 probe, objectives prefixed ms2-. Accept to run the seven rows - open the Mods menu, find this mod's settings, look, change, write down.",
             comments: []
         };
         this.Objectives = [
-            { name: "ms-01-find", description: "Open the Mods menu in the game and find the QE24 ModSettings Probe. WHERE exactly do its settings appear (which panel/section, how is the mod listed)? WRITE DOWN the layout." },
-            { name: "ms-02-types", description: "Check all six settings render: two toggles (one on, one off by default), a select with four options, a text field, a number field, a slider (0-100 in steps of 5). WRITE DOWN which render, which do not, and any that look broken." },
-            { name: "ms-03-labels", description: "Do the labels show the exact text written (all start with 'Probe:')? Is the select's current value (Blue by default) visible? Is the slider's position visible?" },
-            { name: "ms-04-change", description: "Change every setting: flip BOTH toggles, pick Violet in the select, type a new word in the text, set the number to 42, drag the slider. WRITE DOWN how each control behaves (does the slider snap to steps of 5? does the number accept only whole numbers?)." },
-            { name: "ms-05-persist", description: "Restart the game. Reopen the Mods menu: are your values still there (toggles flipped, Violet, your word, 42, your slider position)?" },
-            { name: "ms-06-readback", description: "After the restart, re-claim this quest. The game's debug log should now show an 'MS-load 2:' line with YOUR values (Violet/42/etc) and a claim line with the same - that is the proof the MOD reads back what you set. WRITE DOWN the two log lines." },
-            { name: "ms-07-reset", description: "Does the Mods UI offer a way to reset settings to their defaults? (The SDK declares reset/resetAll for mod code, but whether the UI exposes one is unknown.) WRITE DOWN what you find - 'no control visible' is a valid answer." }
+            { name: "ms2-01-find", description: "Open the Mods menu in the game and find the QE24 ModSettings Probe. WHERE exactly do its settings appear (which panel/section, how is the mod listed)? WRITE DOWN the layout." },
+            { name: "ms2-02-types", description: "Check all six settings render: two toggles (one on, one off by default), a select with four options, a text field, a number field, a slider (0-100 in steps of 5). WRITE DOWN which render, which do not, and any that look broken." },
+            { name: "ms2-03-labels", description: "Do the labels show the exact text written (all start with 'Probe:')? Is the select's current value (Blue by default) visible? Is the slider's position visible?" },
+            { name: "ms2-04-change", description: "Change every setting: flip BOTH toggles, pick Violet in the select, type a new word in the text, set the number to 42, drag the slider. WRITE DOWN how each control behaves (does the slider snap to steps of 5? does the number accept only whole numbers?)." },
+            { name: "ms2-05-persist", description: "Restart the game. Reopen the Mods menu: are your values still there (toggles flipped, Violet, your word, 42, your slider position)?" },
+            { name: "ms2-06-readback", description: "After the restart, re-claim this quest. The game's debug log should now show an 'MS-load 2:' line with YOUR values (Violet/42/etc) and a claim line with the same - that is the proof the MOD reads back what you set. WRITE DOWN the two log lines." },
+            { name: "ms2-07-reset", description: "Does the Mods UI offer a way to reset settings to their defaults? (The SDK declares reset/resetAll for mod code, but whether the UI exposes one is unknown.) WRITE DOWN what you find - 'no control visible' is a valid answer." }
         ];
     }
     CreateData() { return {}; }
     OnStart() {
-        log("QEModSettingsProbeQuest started - MS-readback at claim: " + allSettingsJson());
+        log("QEModSettingsProbeQuestV2 started - MS-readback at claim: " + allSettingsJson());
     }
-    OnComplete() { log("QEModSettingsProbeQuest OnComplete fired"); }
-    OnAbandon() { log("QEModSettingsProbeQuest abandoned"); }
+    OnComplete() { log("QEModSettingsProbeQuestV2 OnComplete fired"); }
+    OnAbandon() { log("QEModSettingsProbeQuestV2 abandoned"); }
 }
 sdk.RegisterQuest(QEModSettingsProbeQuest);
 
