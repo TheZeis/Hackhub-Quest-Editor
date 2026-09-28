@@ -105,25 +105,28 @@ the iframe bridge) is answered by the run below.
    `QE24-Playtest-DynProbe.md` in this folder), then we read the results
    together and pick the phase-1 shape.
 
-## 5. QA checklist
+## 5. QA checklist (1.1.0 — the rows the quest carries)
 
 For each row: **do** the thing, **record** what is asked, and tick the
-objective. "Green" = the thing works as the declarations promise.
+objective (or tick it by hand with `qedyn tick <row>` — most rows cannot tick
+themselves, because `Http.Response` never reaches the mod).
 
 | Row | Do | Record | Green means |
 |-----|----|--------|-------------|
-| **DP-01** control | Open `http://qe24-dyn.test/` | The site-export line: a greeting, or an error text? | The site loads at all; objective ticks (HTTP event fires for a static page); bonus: site exports reach static pages |
-| **DP-02** echo | Open `http://qe24-dyn.test/echo?msg=zeis` | The page must say "You asked for: zeis". **Copy the whole raw-context box** (url, params, query, searchStr, allKeys) | Per-request content works; the box is the Q1 evidence for the param syntax |
-| **DP-03** article hit | Open `http://qe24-dyn.test/article/1` | The article title renders. Copy the "params as passed" line | Q1: params arrive (or the fallback worked — the page says which) |
-| **DP-04** article miss | Open `http://qe24-dyn.test/article/99` | **Exactly** what the browser shows — error page? blank frame? the site's own 404? | Q5 settled: what "no page" looks like to a player |
-| **DP-05** news before | Open `http://qe24-dyn.test/news` **before** touching `/state` | The three article titles and their order | The list renders; baseline for the A/B |
-| **DP-06** state first | Open `http://qe24-dyn.test/state` | phase + visits line (expect `claimed` / `1`). The debug log shows "beat fired" | The beat mechanism works in game |
-| **DP-07** state second | Open `/state` **again** | visits must now be **2**; phase must be **beat-fired** | Q3: **visits still 1 = the game cached the page** — everything stateful needs the re-request workaround |
-| **DP-08** news after | Open `/news` **again** | The "UPDATE" article is #1; the old three dropped one slot. If you have a questline save: compare with **bcc.com's** front page | The bcc pattern is reproducible by a mod |
-| **DP-09** talk-back | Open `http://qe24-dyn.test/form`; note the "HackhubSDK global" line; **click the button** | The Result line — **and check the inbox**: the run read `sent (no error thrown)` but **no mail ever arrived** (Zeis had his inbox open in another tab) | The global exists, but a permissioned call from page context does not deliver (docs/03 §14). The re-run must `await` the call and log any rejection — a refused promise is invisible to a sync try/catch |
-| **DP-10** mail from page | Automatic — ticks when the DP-09 mail arrives | Nothing to do; just note whether it ticked at all (**it did not**) | The quest hears page-sent mail → the "forms that the quest already hears" building block works |
-| **DP-11** page exports | Open `http://qe24-dyn.test/exports?article=2` | The span must read `article-2` | Per-page exports reach page scripts (the request-capturing interactivity block) |
-| **DP-12** site exports | Open `http://qe24-dyn.test/site-exports` | The line shows the greeting for "zeis" | Site exports from a dynamic page (complements DP-01's static check) |
+| **DP-01** control | Open `http://qe24-dyn.test/` | The site-export line: a greeting, or an error? | Site exports reach a *static* page (DP-12 checks a dynamic one) |
+| **DP-02** echo | Open `/echo?msg=zeis` | **Copy the whole raw-context box** (url, params, query, searchStr) | The path-param syntax evidence |
+| **DP-03** article hit | Open `/article/1` | The title renders; copy the "params as passed" line | Path params arrive (or the URL fallback worked — the page says which) |
+| **DP-04** article miss | Open `/article/99` | **Exactly** what the browser shows | Settles what "no page" looks like to a player |
+| **DP-05** news before | Open `/news` **before** the beat | The three titles and their order | Baseline for the A/B |
+| **DP-06** fire the beat | Type **`qedyn beat`** in the terminal | The log line `beat fired (source=qedyn beat)` | The beat works at all — 1.0.0 could never fire it |
+| **DP-07** news after | Open `/news` **again** | The UPDATE article is #1, the old three dropped a slot; compare with **bcc.com** if you have a questline save | **The headline question**: the bcc pattern is reproducible by a mod |
+| **DP-08** state twice | Open `/state` twice | The counter must climb — expect **+2 per open** (the double render); phase reads `beat-fired` | Confirms the double render, and that nothing is cached |
+| **DP-09** direct mail | On `/form`, click **button A** | **What `Mail.send` returned**: `null` = refused, an id = accepted. Then check the inbox | `null` + no mail = the page-context refusal confirmed (docs/03 §14/§25) |
+| **DP-10** bridge mail | Click **button B** | Did *this* mail arrive? | If yes, the `Events.emit` bridge works and the editor can generate it |
+| **DP-11** page exports | Open `/exports?article=2` | The span must read `article-2` | Per-page exports reach page scripts |
+| **DP-12** site exports | Open `/site-exports` | A greeting for "zeis" | Site exports from a *dynamic* page (DP-01 was the static one) |
+| **DP-13** event roll-call | Type **`qedyn status`** | How many `Http.Response` events the mod was offered, and every one of them | **Zero is the expected result** — it confirms the r166 fence now covers dynamic pages too |
+| **DP-14** housekeeping | `qedyn tick <row>` for any row that could not tick itself | — | Keeps the run in order |
 
 **Reading reds** (what each failure changes in the r237 plan):
 
@@ -132,9 +135,14 @@ objective. "Green" = the thing works as the declarations promise.
   path params wait.
 - DP-04 "no page" renders as something confusing (blank frame) → the
   manual must state it; the 404-as-clue mechanic gets a warning.
-- DP-07 **cached** → stateful pages (beat-driven news, /state) need the
-  cache-buster pattern (the future emitter appends a changing token to the
-  links it prints) — a build detail, not a blocker.
+- DP-08 **counter does not climb** → the page is cached after all; stateful
+  pages need a re-request trick (a changing token in the links the emitter
+  prints) — a build detail, not a blocker.
+- DP-09 **an id returned but no mail** → the call was accepted and lost in
+  delivery; a different bug from the refusal, and one to file.
+- DP-10 **the bridge mail also fails** → the documented workaround does not
+  work for mail, and a no-code editor cannot offer page-driven actions at
+  all without a new game-side surface.
 - DP-09/10 the bridge is **present but not permitted** → the talk-back building block needs the `Events.emit()` → top-level `Events.on()` bridge (r243), not a direct call
   out of scope; forms would need the export-only route (DP-11/12).
 - DP-11/12 exports **absent** → phase 3 shrinks to server-side

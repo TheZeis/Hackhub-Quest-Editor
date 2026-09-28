@@ -70,6 +70,13 @@ function sendMailSafe(subject, body) {
 var DYN = {
     phase: "claimed",
     beatFired: false,
+    beatSource: "(none yet)",
+    /* r246: every Http.Response the mod is offered, logged BEFORE any
+       filtering - r242's listener filtered on host first and logged second,
+       so "no event" and "event with a different host" looked identical. */
+    httpEvents: [],
+    mailDirect: "(not tried yet)",
+    mailBridged: "(not tried yet)",
     visits: { state: 0, news: 0 },
     /* The /news front page. The beat PREPENDS an article, so the previous
        top story drops one slot - the bcc.com pattern, for the A/B. */
@@ -82,14 +89,43 @@ var DYN = {
 };
 
 /* Fire the quest's beat: flip the phase and prepend the update article.
-   Called by the quest on the FIRST /state visit (so the tester needs no
-   terminal), and exported below for the editor's vitest smoke test. */
-function fireBeat() {
-    if (DYN.beatFired) return;
+   r246: fired by the `qedyn beat` TERMINAL COMMAND, not by an HTTP event -
+   r241/r242 showed Http.Response never reaches a mod for its own site, so
+   the r238 beat (which hung off that event) could never fire and the
+   bcc.com A/B never ran its "after" half. Command.Run() is a trusted context
+   (docs/03 §14) and needs no harness. Exported below for the smoke test. */
+function fireBeat(source) {
+    if (DYN.beatFired) return false;
     DYN.beatFired = true;
+    DYN.beatSource = source || "unknown";
     DYN.phase = "beat-fired";
     DYN.news.unshift(DYN.beatArticle);
-    log("beat fired: phase=" + DYN.phase + ", news now " + DYN.news.length + " articles");
+    log("beat fired (source=" + DYN.beatSource + "): phase=" + DYN.phase +
+        ", news now " + DYN.news.length + " articles");
+    return true;
+}
+
+/* ── The mail bridge (r246) ───────────────────────────────────────────────
+   r245 proved the A/B: a mail sent from the quest's OnStart arrives, the same
+   call from a page's own script does not, and the difference is the calling
+   context. The documented workaround is to let the page only EMIT, and do the
+   real permissioned send in a listener. Button B on /form exercises exactly
+   that, so we learn whether the workaround actually delivers. */
+var BRIDGE_EVENT = "qe24-dyn:send-mail";
+/* The live quest instance, set in OnStart so `qedyn tick <row>` can check a
+   row off. Null until the quest is claimed. */
+var QUEST_REF = null;
+if (sdk.Events && typeof sdk.Events.register === "function") {
+    safe("register bridge event", function () { sdk.Events.register(BRIDGE_EVENT); });
+}
+if (sdk.Events && typeof sdk.Events.on === "function") {
+    sdk.Events.on(BRIDGE_EVENT, function (data) {
+        log("bridge: handler reached - sending for real from a trusted context");
+        var id = null;
+        safe("bridge Mail.send", function () { id = sdk.Mail.send(data || {}); });
+        DYN.mailBridged = (id === null || id === undefined) ? "null" : String(id);
+        log("bridge: Mail.send returned " + DYN.mailBridged);
+    });
 }
 
 /* The /article library - static records, so a hit renders the record and a
@@ -126,6 +162,24 @@ class QEDynProbeSite extends sdk.Website {
         this.Exports = {
             dynGreeting: function (name) {
                 return "Greetings, " + (name || "stranger") + " - site-level export";
+            },
+            /* r246: an Exports function may not do anything permissioned
+               itself (docs/03 §14 - it loses its mod identity), but it CAN
+               emit. The real Mail.send lives in the top-level listener
+               above. This is the other modder's documented fix pattern, put
+               to the test rather than taken on trust. */
+            bridgeSendMail: function () {
+                log("bridge: page asked for a mail - emitting only");
+                if (sdk.Events && sdk.Events.emit) {
+                    sdk.Events.emit(BRIDGE_EVENT, {
+                        from: "qe24-dyn@qe24.test",
+                        to: "player@gomail.com",
+                        subject: MAIL_MARKER,
+                        content: "Bridged send from the /form page (button B, r246)."
+                    });
+                    return "emitted";
+                }
+                return "NO sdk.Events.emit";
             }
         };
         var self = this;
@@ -205,18 +259,47 @@ class QEDynProbeSite extends sdk.Website {
                     };
                 }
             },
-            /* P6 - /form: the iframe HackhubSDK bridge (question 4). A
-               button calls HackhubSDK.Mail.send from page script; the quest
-               listens for Mail.Sent with the marker subject (DP-10). The
-               span reports what the iframe actually sees. */
+            /* P6 - /form: the page-context permission probe (r246). Two
+               buttons: A calls HackhubSDK.Mail.send DIRECTLY and PRINTS what
+               it returned (r245: the r238 page never captured the return
+               value, so "sent" was our own text, not the engine's answer);
+               B goes through the emit bridge above, which is the documented
+               workaround. The A/B in r245 says A will not deliver. */
             {
                 path: "/form",
                 seo: true,
                 metadata: function () {
-                    return {
-                        title: "QE24 talk-back form",
-                        html: "<h1>Talk-back form</h1><p>HackhubSDK global in this iframe: <span id=\"sdkdef\">?</span></p><button onclick=\"qe24DynSend()\">Send the mail from this page</button><p>Result: <span id=\"res\">not sent yet</span></p><p>The quest has an objective for the mail this sends - if the button works, that objective ticks.</p><script>document.getElementById(\"sdkdef\").textContent = (typeof HackhubSDK !== \"undefined\") ? \"yes\" : \"no\"; function qe24DynSend() { var out = document.getElementById(\"res\"); try { if (typeof HackhubSDK === \"undefined\") { out.textContent = \"NO HackhubSDK global in the iframe\"; return; } if (!HackhubSDK.Mail || !HackhubSDK.Mail.send) { out.textContent = \"HackhubSDK exists but no Mail.send\"; return; } HackhubSDK.Mail.send({ from: \"qe24-dyn@qe24.test\", to: \"player@gomail.com\", subject: \"" + MAIL_MARKER + "\", content: \"Sent from the /form page by the r238 probe.\" }); out.textContent = \"sent (no error thrown)\"; } catch (e) { out.textContent = \"ERR: \" + e.message; } } </script>"
-                    };
+                    var lines = [
+                        "<h1>Talk-back form</h1>",
+                        "<p>HackhubSDK global in this iframe: <span id=\"sdkdef\">?</span></p>",
+                        "<h2>Button A - direct call from page script</h2>",
+                        "<button onclick=\"qe24DynSend()\">Send directly from this page</button>",
+                        "<p>Returned: <span id=\"res\">not tried yet</span></p>",
+                        "<h2>Button B - the Events.emit bridge (the workaround)</h2>",
+                        "<button onclick=\"qe24DynBridge()\">Send through the bridge</button>",
+                        "<p>Result: <span id=\"res2\">not tried yet</span></p>",
+                        "<p>Then check the inbox (and the log) for BOTH mails, and type <code>qedyn status</code> in the terminal.</p>",
+                        "<script>",
+                        "document.getElementById(\"sdkdef\").textContent = (typeof HackhubSDK !== \"undefined\") ? \"yes\" : \"no\";",
+                        "function qe24DynSend() {",
+                        "  var out = document.getElementById(\"res\");",
+                        "  try {",
+                        "    if (typeof HackhubSDK === \"undefined\") { out.textContent = \"NO HackhubSDK global\"; return; }",
+                        "    if (!HackhubSDK.Mail || !HackhubSDK.Mail.send) { out.textContent = \"HackhubSDK exists but no Mail.send\"; return; }",
+                        "    var id = HackhubSDK.Mail.send({ from: \"qe24-dyn@qe24.test\", to: \"player@gomail.com\", subject: \"" + MAIL_MARKER + "\", content: \"Direct send from the /form page (button A, r246).\" });",
+                        "    out.textContent = String(id) + \"  (null = refused, an id = accepted)\";",
+                        "  } catch (e) { out.textContent = \"ERR: \" + (e && e.message ? e.message : e); }",
+                        "}",
+                        "function qe24DynBridge() {",
+                        "  var out = document.getElementById(\"res2\");",
+                        "  try {",
+                        "    if (typeof bridgeSendMail !== \"function\") { out.textContent = \"NO bridgeSendMail export\"; return; }",
+                        "    out.textContent = String(bridgeSendMail()) + \" - the listener logs what Mail.send returned\";",
+                        "  } catch (e) { out.textContent = \"ERR: \" + (e && e.message ? e.message : e); }",
+                        "}",
+                        "</script>"
+                    ];
+                    return { title: "QE24 talk-back form", html: lines.join("\n") };
                 }
             },
             /* P7 - /exports: per-page Exports. The handler returns
@@ -273,22 +356,25 @@ class QEDynProbeQuest extends sdk.Quest {
             comments: []
         };
         this.Objectives = [
-            { name: "dp-01-control", description: "Open http://" + HOST + "/ in the Browser. Note: does the site-export line show a greeting (site Exports from a STATIC page) or an error?" },
-            { name: "dp-02-echo", description: "Open http://" + HOST + "/echo?msg=zeis . The page should say 'You asked for: zeis'. WRITE DOWN the raw PageContext box (url, params, query, searchStr, allKeys) - it is the evidence for the path-param syntax." },
-            { name: "dp-03-article-hit", description: "Open http://" + HOST + "/article/1 . An article titled 'Article one: the lighthouse ledger' should render. Write down the 'params as passed' box." },
-            { name: "dp-04-article-miss", description: "Open http://" + HOST + "/article/99 . It should NOT exist. WRITE DOWN EXACTLY what the browser shows (error page? blank? the site's 404?) - this settles the null behaviour." },
-            { name: "dp-05-news-before", description: "Open http://" + HOST + "/news BEFORE visiting /state. Three articles, no 'UPDATE'. Write down their order." },
-            { name: "dp-06-state-first", description: "Open http://" + HOST + "/state . It should show phase: claimed and visits: 1. THIS visit fires the quest's beat (watch the debug log: 'beat fired')." },
-            { name: "dp-07-state-second", description: "Open http://" + HOST + "/state AGAIN. visits must now be 2 (if it is still 1, the game cached the page) and phase must be beat-fired." },
-            { name: "dp-08-news-after", description: "Open http://" + HOST + "/news AGAIN. The 'UPDATE' article must now be #1 and the three old articles have dropped one slot - the bcc.com pattern. Compare with bcc.com itself if you have a questline save." },
-            { name: "dp-09-talkback", description: "Open http://" + HOST + "/form . Note the 'HackhubSDK global' line, then click the button. Write down the Result line (sent / NO HackhubSDK / NO Mail.send / ERR)." },
-            { name: "dp-10-mail-from-page", description: "Automatic: ticks when the /form button's mail arrives (Mail.Sent with subject '" + MAIL_MARKER + "'). If the button worked but this never ticks, the page's send is not a Mail.Sent the quest can hear." },
-            { name: "dp-11-page-exports", description: "Open http://" + HOST + "/exports?article=2 . The span should read article-2 (a per-page export built from this request). If it reads 'NO currentArticle global', per-page exports do not reach page scripts." },
-            { name: "dp-12-site-exports-dyn", description: "Open http://" + HOST + "/site-exports . The line should show a greeting for 'zeis' (site Exports from a DYNAMIC page; dp-01 checked the static page)." }
+            { name: "dp-01-control", description: "Open http://" + HOST + "/ - the one static page. Note the site-export line (a greeting = site exports reach a STATIC page)." },
+            { name: "dp-02-echo", description: "Open /echo?msg=zeis. WRITE DOWN the raw PageContext box (url, params, query, searchStr) - the path-param evidence." },
+            { name: "dp-03-article-hit", description: "Open /article/1. An article should render; write down the 'params as passed' box." },
+            { name: "dp-04-article-miss", description: "Open /article/99. WRITE DOWN EXACTLY what the browser shows - this settles the 'page does not exist' look." },
+            { name: "dp-05-news-before", description: "Open /news BEFORE firing the beat. Three articles, no UPDATE. Write down their order." },
+            { name: "dp-06-beat-command", description: "Type 'qedyn beat' in the terminal (r246: the beat used to hang off Http.Response, which never fires for a mod's own site). The log should print 'beat fired'. WRITE DOWN that line." },
+            { name: "dp-07-news-after", description: "Open /news AGAIN. The UPDATE article must now be #1 and the old three drop one slot - the bcc.com pattern. Compare with bcc.com if you have a questline save." },
+            { name: "dp-08-state-twice", description: "Open /state twice. The visit counter must climb (expect it to jump by TWO per open - the double render). Phase should read beat-fired." },
+            { name: "dp-09-direct-mail", description: "Open /form and click BUTTON A. WRITE DOWN what Mail.send RETURNED: 'null' means refused, an id means accepted. Then check the inbox - r245 says no mail will arrive." },
+            { name: "dp-10-bridge-mail", description: "Click BUTTON B (the Events.emit bridge). Check the inbox: did THIS mail arrive? If yes, the documented workaround works and the editor can generate it." },
+            { name: "dp-11-page-exports", description: "Open /exports?article=2. The span should read article-2 (a per-page export built from this request)." },
+            { name: "dp-12-site-exports", description: "Open /site-exports. The line should show a greeting - site exports from a DYNAMIC page (dp-01 checked the static one)." },
+            { name: "dp-13-http-events", description: "Type 'qedyn status' in the terminal. It prints how many Http.Response events the mod was offered, and every one of them. Zero is the expected result and the finding - write the line down anyway." },
+            { name: "dp-14-tick-rows", description: "Housekeeping: if a row's objective does not tick by itself (they mostly cannot - Http.Response never reaches the mod), type 'qedyn tick <row-name>' to check it off and keep your place." }
         ];
     }
     CreateData() { return {}; }
     OnStart() {
+        QUEST_REF = this;
         log("QEDynProbeQuest started");
         sendMailSafe("QE24 dynamic page probe",
             "The dynamic-page probe is live on http://" + HOST + ".\n\nThe quest objectives are the checklist - run them top to bottom in the tracker. Rows that say WRITE DOWN need a note for STATUS.md (the plan doc: docs/plans/r238-dynamic-pages-probe.md).\n\nRow 6 (first /state visit) fires the beat automatically - no terminal needed.");
@@ -299,9 +385,15 @@ class QEDynProbeQuest extends sdk.Quest {
         var newsSeenBeforeBeat = false;
         var newsSeenAfterBeat = false;
         function onHttp(tx) {
+            /* r246: LOG FIRST, FILTER SECOND. r242's listener filtered on
+               host before logging, so "the event never fired" and "the event
+               arrived with a host we did not expect" were indistinguishable
+               - which is exactly the question still open. */
+            var seen = JSON.stringify(tx && tx.request ? tx.request : tx);
+            DYN.httpEvents.push(seen);
+            log("http-response-seen: " + seen);
             if (!tx || !tx.request || tx.request.host !== HOST) return;
             var path = tx.request.path || "";
-            log("http-response " + (tx.request.method || "?") + " " + path);
             if (path === "/" || path === "") {
                 completeObjectiveSafe(self, "dp-01-control");
             } else if (path === "/echo") {
@@ -315,12 +407,7 @@ class QEDynProbeQuest extends sdk.Quest {
                 }
             } else if (path === "/state") {
                 stateSeen += 1;
-                if (stateSeen === 1) {
-                    fireBeat();
-                    completeObjectiveSafe(self, "dp-06-state-first");
-                } else {
-                    completeObjectiveSafe(self, "dp-07-state-second");
-                }
+                completeObjectiveSafe(self, "dp-08-state-twice");
             } else if (path === "/news") {
                 if (!DYN.beatFired) {
                     newsSeenBeforeBeat = true;
@@ -353,6 +440,58 @@ class QEDynProbeQuest extends sdk.Quest {
 }
 sdk.RegisterQuest(QEDynProbeQuest);
 
+/* ── The qedyn terminal command (r246) ────────────────────────────────────
+   The beat has to be fired from a trusted context: Http.Response never
+   reaches a mod for its own site (r241/r242), so the r238 beat - which hung
+   off that event - could never fire and rows DP-06/07/08 never ran their
+   "after" half. `qedyn beat` fixes that with no harness and no guesswork.
+   `qedyn status` prints everything the probe recorded, including every
+   Http.Response it was offered, which is the evidence row DP-13 wants. */
+class QEDynCommand extends sdk.Command {
+    constructor() {
+        super();
+        this.CommandName = "qedyn";
+        this.Description = "QE24 dynamic page probe: fire the beat, tick a row, print what the probe saw";
+        this.Autocomplete = [
+            { label: "qedyn", type: "STRING" },
+            { label: "beat|status|tick", type: "STRING" }
+        ];
+    }
+    Run(tools) {
+        var args = (tools && tools.getArgs) ? tools.getArgs() : [];
+        var sub = args[0] || "status";
+        if (sub === "beat") {
+            var fired = fireBeat("qedyn beat");
+            log("command: beat " + (fired ? "fired" : "already fired earlier"));
+            return;
+        }
+        if (sub === "tick") {
+            var name = args[1];
+            if (!name) { log("command: tick needs a row name, e.g. qedyn tick dp-05-news-before"); return; }
+            completeObjectiveSafe(QUEST_REF, name);
+            log("command: ticked " + name);
+            return;
+        }
+        log("status: phase=" + DYN.phase + " beatFired=" + DYN.beatFired +
+            " beatSource=" + DYN.beatSource +
+            " stateVisits=" + DYN.visits.state + " newsVisits=" + DYN.visits.news +
+            " mailDirect=" + DYN.mailDirect + " mailBridged=" + DYN.mailBridged);
+        log("status: Http.Response events offered to this mod: " + DYN.httpEvents.length);
+        for (var i = 0; i < DYN.httpEvents.length; i++) {
+            log("status: http[" + i + "] " + DYN.httpEvents[i]);
+        }
+    }
+}
+if (typeof sdk.RegisterCommand === "function") {
+    sdk.RegisterCommand({ default: true, scope: "local" })(QEDynCommand);
+}
+
 /* Test hooks for the editor's vitest smoke test (src/compiler/__tests__/
    dynprobeMod.test.ts). The game ignores a mod's module exports. */
-module.exports = { beat: fireBeat, state: DYN, HOST: HOST, MAIL_MARKER: MAIL_MARKER };
+module.exports = {
+    beat: fireBeat,
+    state: DYN,
+    HOST: HOST,
+    MAIL_MARKER: MAIL_MARKER,
+    BRIDGE_EVENT: BRIDGE_EVENT
+};

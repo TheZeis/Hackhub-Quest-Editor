@@ -1,11 +1,15 @@
 # SDK 0.24 QA harness — kept as tooling, now carrying the P-01 backdate row
 
-## OPEN: the ModSettings Probe (r239) — first run done, MS-01 still open
+## Results first — both probes have been run (2026-09-28, game 1.3.13)
 
-**The pipeline verifies green; the UI was not found.** The log shows the game
-parsed the six settings and `ModSettings.getAll()` returned them with exact
-defaults, at load *and* at claim — but the in-game Settings app has no Mods
-section, so the values were never changed and MS-02…MS-07 are unrun.
+Everything both runs established, with the evidence and the three corrections
+made along the way, is in
+[`QE24-TestResults-DynProbe-ModSettings.md`](QE24-TestResults-DynProbe-ModSettings.md).
+Zeis's own minute-by-minute log with the screenshots is on the `QA-filedump`
+branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.1.0.zip`**
+— see the dynamic-page section below for what changed.
+
+## ANSWERED: the ModSettings Probe (r239/r240) — the whole loop works
 
 **ANSWERED (2026-09-28): the UI is in the MAIN MENU** — *Main menu → Settings
 → Mods → the tiny grey "Settings" word on the mod's row.* Not the in-game
@@ -24,7 +28,7 @@ declares `apiVersion: 2`, and so does every probe in this folder (r241).
 Evidence and reasoning: [`docs/plans/r239-modsettings-probe.md` §4b](../../docs/plans/r239-modsettings-probe.md);
 filed with the developers as [`docs/03` §23](../../docs/03-questions-for-the-developers.md).
 
-## OPEN: the ModSettings Probe (r239) — what the probe is
+## The ModSettings Probe (r239) — what the probe is
 
 `modsettings/` (+ `delivery/qe-sdk-024-modsettings-1.0.0.zip`) is the first
 in-game look at **declarative mod settings** (`Bootstrap.Settings` —
@@ -38,20 +42,27 @@ probe — one game session covers both**: do the seven MS rows first
 around the restart. **The checklist, the run order and the red-reading are in
 [`docs/plans/r239-modsettings-probe.md`](../../docs/plans/r239-modsettings-probe.md)**.
 
-## OPEN: the Dynamic Page Probe (r238) — awaiting an in-game run
+## RUN ONCE, REBUILT: the Dynamic Page Probe (r238 → 1.1.0, r246)
 
-`dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.0.0.zip`) answers the five
-open questions from the r237 dynamic-webpages investigation: the
-path-param syntax, HTTP events on dynamic pages, caching (the /state visit
-counter), the iframe `HackhubSDK` bridge, and what a `null` page shows. It
-also reproduces the **bcc.com front-page pattern** (a /news list that gains
-a top article when the quest's beat fires) for a side-by-side with the
-game's own news site. Install the zip, accept the "QA probe (r238)" feed
-post, and work the twelve quest objectives top to bottom — **the
-checklist, the run order, and the red-reading are in
-[`docs/plans/r238-dynamic-pages-probe.md`](../../docs/plans/r238-dynamic-pages-probe.md)**.
-File the written-down values there (or in a new `QE24-Playtest-DynProbe.md`
-in this folder).
+`dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.1.0.zip`) answers the open
+questions from the r237 dynamic-webpages investigation. The 1.0.0 run
+answered the content questions — path params arrive, no caching, the 404 look,
+site and per-page exports — and proved two things the hard way: `Http.Response`
+never reaches a mod for its own site (so the beat wired to it never fired and
+the bcc.com A/B never ran its "after" half), and **a page's own permissioned
+call does not work** (the quest's mail arrives, the page's does not).
+
+**1.1.0 fixes exactly those three things:** the beat now fires from the
+`qedyn beat` terminal command; `Http.Response` is logged *before* any filter
+and `qedyn status` prints every event the mod was offered; and `/form` now
+prints what `Mail.send` **returned** (`null` = refused, an id = accepted) and
+adds a second button that goes through the documented `Events.emit` bridge, so
+we learn whether the workaround actually delivers.
+
+Install the zip, accept the "QA probe (r238)" feed post, and work the fourteen
+quest objectives top to bottom — the checklist, the run order and the
+red-reading are in
+[`docs/plans/r238-dynamic-pages-probe.md`](../../docs/plans/r238-dynamic-pages-probe.md).
 
 ## Settled: the harness rows below
 

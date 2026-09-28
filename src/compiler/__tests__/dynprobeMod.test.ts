@@ -18,18 +18,38 @@ import { describe, expect, it, beforeAll } from "vitest";
 const MOD_JS_PATH = resolve(__dirname, "../../../reference/sdk-0.24-qa/dynprobe/dist/mod.js");
 
 function stubSdk() {
-    const registered: { websites: any[]; quests: any[] } = { websites: [], quests: [] };
+    const registered: { websites: any[]; quests: any[]; commands: any[] } = { websites: [], quests: [], commands: [] };
+    const emitted: { name: string; data: any }[] = [];
+    const listeners: { name: string; cb: (d: any) => void }[] = [];
+    const sent: any[] = [];
     return {
         Website: class {},
         RegisterWebsite: (c: any) => { registered.websites.push(c); },
         Quest: class {
-            Events = { on: () => {} };
+            Events = { on: (name: string, cb: (d: any) => void) => { listeners.push({ name, cb }); } };
             completeObjective = () => {};
         },
         RegisterQuest: (c: any) => { registered.quests.push(c); },
+        Command: class {},
+        RegisterCommand: (_opts: unknown) => (c: any) => { registered.commands.push(c); },
+        Events: {
+            register: (_name: string) => {},
+            on: (name: string, cb: (d: any) => void) => { listeners.push({ name, cb }); },
+            emit: (name: string, data?: any) => {
+                emitted.push({ name, data });
+                listeners.filter((l) => l.name === name).forEach((l) => l.cb(data));
+            },
+        },
+        Mail: { send: (mail: any) => { sent.push(mail); return "mail-id-" + sent.length; } },
         __registered: registered,
+        __emitted: emitted,
+        __listeners: listeners,
+        __sent: sent,
     };
 }
+
+/** Stub tool-belt for a command's Run(tools): positional args only. */
+const toolsWith = (...args: string[]) => ({ getArgs: () => args });
 
 function runMod(modJs: string, sdk: unknown) {
     const mod: { exports: any } = { exports: {} };
@@ -155,7 +175,7 @@ describe("dynprobe mod (r238)", () => {
         expect(dynPage.metadata(ctx({})).html).toContain("dynGreeting(\"zeis\")");
     });
 
-    it("the quest carries the twelve DP rows as objectives, in run order", () => {
+    it("the quest carries the DP rows as objectives, in run order", () => {
         const quest = new (sdk.__registered.quests[0])();
         const names = quest.Objectives.map((o: { name: string }) => o.name);
         expect(names).toEqual([
@@ -164,14 +184,89 @@ describe("dynprobe mod (r238)", () => {
             "dp-03-article-hit",
             "dp-04-article-miss",
             "dp-05-news-before",
-            "dp-06-state-first",
-            "dp-07-state-second",
-            "dp-08-news-after",
-            "dp-09-talkback",
-            "dp-10-mail-from-page",
+            "dp-06-beat-command",
+            "dp-07-news-after",
+            "dp-08-state-twice",
+            "dp-09-direct-mail",
+            "dp-10-bridge-mail",
             "dp-11-page-exports",
-            "dp-12-site-exports-dyn",
+            "dp-12-site-exports",
+            "dp-13-http-events",
+            "dp-14-tick-rows",
         ]);
         expect(quest.HackhubPost.content).toContain("qe24-dyn.test");
+    });
+
+    /* ── r246 additions ─────────────────────────────────────────────────── */
+
+    it("the beat is fired by the qedyn command, not by an HTTP event", () => {
+        // r241/r242: Http.Response never reaches a mod for its own site, so
+        // the r238 beat - wired to that event - could never fire and the
+        // bcc.com A/B never ran its "after" half.
+        const sdk2 = stubSdk();
+        const mod2 = runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk2 as unknown) as {
+            beat: (src?: string) => boolean;
+            state: { beatFired: boolean; beatSource: string; news: string[] };
+        };
+        expect(sdk2.__registered.commands).toHaveLength(1);
+        const cmd = new (sdk2.__registered.commands[0])();
+        expect(cmd.CommandName).toBe("qedyn");
+        expect(mod2.state.beatFired).toBe(false);
+        cmd.Run(toolsWith("beat"));
+        expect(mod2.state.beatFired).toBe(true);
+        expect(mod2.state.beatSource).toBe("qedyn beat");
+        // The front page gained the UPDATE article on top.
+        expect(mod2.state.news[0]).toContain("UPDATE:");
+    });
+
+    it("P6 /form prints what Mail.send RETURNED, and offers the emit bridge", () => {
+        const page = pages.find((p: { path: string }) => p.path === "/form");
+        const html = page.metadata(ctx({})).html;
+        // r245: the old page printed its own "sent" text and threw the
+        // engine's answer away. Now the return value is the whole point.
+        expect(html).toContain("var id = HackhubSDK.Mail.send(");
+        expect(html).toContain("(null = refused, an id = accepted)");
+        expect(html).toContain("qe24DynBridge()");
+        expect(html).toContain("bridgeSendMail");
+    });
+
+    it("the bridge export emits instead of sending, and the listener sends", () => {
+        // The documented workaround: an Exports function may not do anything
+        // permissioned (it loses its mod identity - docs/03 §14); it may only
+        // emit. The real send happens in a top-level listener.
+        const sdk3 = stubSdk();
+        const mod3 = runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk3 as unknown) as {
+            state: { mailBridged: string };
+            BRIDGE_EVENT: string;
+        };
+        const site3 = new (sdk3.__registered.websites[0])();
+        expect(typeof site3.Exports.bridgeSendMail).toBe("function");
+        expect(sdk3.__sent).toHaveLength(0);
+        const result = site3.Exports.bridgeSendMail();
+        expect(result).toBe("emitted");
+        // One emit, and the listener's Mail.send is what actually ran.
+        expect(sdk3.__emitted).toHaveLength(1);
+        expect(sdk3.__emitted[0].name).toBe(mod3.BRIDGE_EVENT);
+        expect(sdk3.__sent).toHaveLength(1);
+        expect(sdk3.__sent[0].subject).toContain("QE24 dynprobe: talk-back");
+        // The listener recorded what the send returned (an id here, null in
+        // game if the call is refused) - the value DP-09/DP-10 ask for.
+        expect(mod3.state.mailBridged).toBe("mail-id-1");
+    });
+
+    it("every Http.Response is logged BEFORE the host filter (r242's flaw)", () => {
+        const sdk4 = stubSdk();
+        const mod4 = runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk4 as unknown) as {
+            state: { httpEvents: string[] };
+        };
+        const quest = new (sdk4.__registered.quests[0])();
+        quest.OnObjectivesStart();
+        const http = sdk4.__listeners.find((l: { name: string }) => l.name === "Http.Response");
+        if (!http) throw new Error("the quest registered no Http.Response listener");
+        // An event for a DIFFERENT host must still be recorded - that is what
+        // separates "no event fired" from "an event with an unexpected host".
+        http.cb({ request: { host: "somewhere.else", method: "GET", path: "/" } });
+        expect(mod4.state.httpEvents).toHaveLength(1);
+        expect(mod4.state.httpEvents[0]).toContain("somewhere.else");
     });
 });
