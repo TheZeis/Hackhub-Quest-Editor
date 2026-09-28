@@ -77,6 +77,8 @@ var DYN = {
     httpEvents: [],
     mailDirect: "(not tried yet)",
     mailBridged: "(not tried yet)",
+    mailWithTo: "(not sent yet)",
+    mailNoTo: "(not sent yet)",
     visits: { state: 0, news: 0 },
     /* The /news front page. The beat PREPENDS an article, so the previous
        top story drops one slot - the bcc.com pattern, for the A/B. */
@@ -470,39 +472,86 @@ safe("register qedyn command", function () {
         var args = (tools && tools.getArgs) ? tools.getArgs() : [];
         var sub = args[0] || "status";
         if (sub === "claim") {
-            /* Feed-independent: mod quest posts have stopped surfacing
-               (docs/03 §21) and the game logs that the
-               Queue.HandleQuestHackhubPosts job has no handler, so this
-               claims the quest directly. */
             safe("Quest.claim", function () { sdk.Quest.claim(QEDynProbeQuest); });
-            log("command: claim requested");
+            out(tools, "claim requested - check the journal");
             return;
         }
         if (sub === "beat") {
             var fired = fireBeat("qedyn beat");
-            log("command: beat " + (fired ? "fired" : "already fired earlier"));
+            out(tools, "beat " + (fired ? "fired - /news should now show the UPDATE article on top" : "was already fired earlier"));
+            return;
+        }
+        if (sub === "mail") {
+            /* r248: the page's mail was assumed REFUSED. It was not - button A
+               returned a mail id (yD1oMYYHUX), so the call was accepted and
+               the mail was lost in DELIVERY. The one mail that ever arrived -
+               the startup mail - carries no "to" field, so the obvious
+               suspect is the recipient. Send both shapes from this trusted
+               context and compare. */
+            var withTo = null;
+            var noTo = null;
+            safe("Mail.send with to:", function () {
+                withTo = sdk.Mail.send({
+                    from: "qe24-dyn@qe24.test", to: "player@gomail.com",
+                    subject: MAIL_MARKER + " [A with-to]",
+                    content: "Test A: sent WITH a to: field."
+                });
+            });
+            safe("Mail.send without to:", function () {
+                noTo = sdk.Mail.send({
+                    from: "qe24-dyn@qe24.test",
+                    subject: MAIL_MARKER + " [B no-to]",
+                    content: "Test B: sent WITHOUT a to: field - the shape the startup mail uses."
+                });
+            });
+            DYN.mailWithTo = String(withTo);
+            DYN.mailNoTo = String(noTo);
+            out(tools, "sent two mails: A (with to:) returned " + DYN.mailWithTo +
+                ", B (no to:) returned " + DYN.mailNoTo);
+            out(tools, "check the inbox - if only B arrives, the to: field is what loses them");
             return;
         }
         if (sub === "tick") {
-            var name = args[1];
-            if (!name) { log("command: tick needs a row name, e.g. qedyn tick dp-05-news-before"); return; }
+            /* r248: `qedyn tick 1` did nothing at all - this wanted a full row
+               name and said nothing when it got something else. */
+            var which = args[1];
+            if (!which) { out(tools, "tick needs a row: qedyn tick 3   or   qedyn tick dp-05-news-before"); return; }
+            if (!QUEST_REF) { out(tools, "the quest is not claimed yet - type 'qedyn claim' first"); return; }
+            var name = which;
+            if (/^\d+$/.test(which)) {
+                var idx = parseInt(which, 10) - 1;
+                var row = QUEST_REF.Objectives ? QUEST_REF.Objectives[idx] : null;
+                if (!row) { out(tools, "there is no row " + which); return; }
+                name = row.name;
+            }
             completeObjectiveSafe(QUEST_REF, name);
-            log("command: ticked " + name);
+            out(tools, "ticked " + name);
             return;
         }
-        log("status: phase=" + DYN.phase + " beatFired=" + DYN.beatFired +
+        out(tools, "phase=" + DYN.phase + " beatFired=" + DYN.beatFired +
             " beatSource=" + DYN.beatSource +
-            " stateVisits=" + DYN.visits.state + " newsVisits=" + DYN.visits.news +
-            " mailDirect=" + DYN.mailDirect + " mailBridged=" + DYN.mailBridged);
-        log("status: Http.Response events offered to this mod: " + DYN.httpEvents.length);
+            " stateVisits=" + DYN.visits.state + " newsVisits=" + DYN.visits.news);
+        out(tools, "mail: direct=" + DYN.mailDirect + " bridged=" + DYN.mailBridged +
+            " withTo=" + DYN.mailWithTo + " noTo=" + DYN.mailNoTo);
+        out(tools, "Http.Response events offered to this mod: " + DYN.httpEvents.length);
         for (var i = 0; i < DYN.httpEvents.length; i++) {
-            log("status: http[" + i + "] " + DYN.httpEvents[i]);
+            out(tools, "http[" + i + "] " + DYN.httpEvents[i]);
         }
     }
     }
     sdk.RegisterCommand({ default: true, scope: "local" })(QEDynCommand);
-    log("command: qedyn registered (claim | beat | status | tick <row>)");
+    log("command: qedyn registered (claim | beat | mail | status | tick <row>)");
 });
+
+/* A command's audience is the player at the terminal. r248: every subcommand
+   logged to the game log and printed nothing, so `qedyn status` looked like a
+   no-op. Speak in both places from now on. */
+function out(tools, text) {
+    log(text);
+    if (tools && typeof tools.println === "function") {
+        safe("println", function () { tools.println(String(text)); });
+    }
+}
 
 /* Test hooks for the editor's vitest smoke test (src/compiler/__tests__/
    dynprobeMod.test.ts). The game ignores a mod's module exports. */

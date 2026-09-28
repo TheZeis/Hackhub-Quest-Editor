@@ -1040,7 +1040,7 @@ views. Without the event, the only remaining route is for the page's own code
 to call back into the quest — which is exactly the per-request-author-code
 boundary the no-code editor cannot cross.
 
-## 25. A permissioned call made from a page's own script is refused — and the refusal is invisible to the caller
+## 25. A mail sent from a page (or with a `to:` address) is accepted and then never delivered
 
 **Found running the r238 dynamic-page probe, confirmed by the player watching
 his inbox** (2026-09-28, game 1.3.13). Related to §14, and worth filing
@@ -1052,8 +1052,20 @@ error. **No mail ever arrived**: the player had his in-game inbox open in
 another browser tab the whole time, and the quest's own `Mail.Sent` listener
 never matched either.
 
-We believe this is §14 again — a permissioned call made from page context
-loses its mod identity and is refused — but note what makes it nasty:
+**Update 2026-09-28 (second run): this is a DELIVERY problem, not a permission
+refusal.** The rebuilt probe captured `Mail.send`'s return value instead of
+discarding it, and the call was **accepted** — it returned a real mail id
+(`yD1oMYYHUX`) from page context, and the `Events.emit` bridge version returned
+another (`ra1DgwPOsB`). Neither mail arrived. So §14 is not what happens here:
+the call is permitted and the mail is lost afterwards.
+
+The one mail that has ever arrived from this mod is the startup mail from
+`OnStart()` — and it is the only one carrying **no `to` field**. Both mails
+that vanished specify `to: "player@gomail.com"`. Is a mail whose `to` does not
+resolve (or is not the player's address) silently dropped?
+
+*The original report, kept for the record — its §14 reading is now known to be
+wrong. What still stands is the silence:*
 
 - `Mail.send` is synchronous (`send(mail: MailDefinition): string | null`),
   and it did **not** throw — our page's `try/catch` would have printed the
@@ -1083,6 +1095,10 @@ anyway, with the mod named `null`. So this is not a manifest problem.
 - if a call is refused, **reject the promise and log it** — a silent no-op
   that the caller's own error handling reports as success is the worst
   possible failure mode for an author;
+- **is a mail whose `to` address does not resolve silently dropped?** That is
+  our leading theory for two mails that were accepted (real ids returned) and
+  then never arrived, and it fits the one mail that did arrive carrying no
+  `to` at all;
 - if page scripts are meant to have a sanctioned way to act (the way
   `Exports` functions do), a documented one would save every modder this
   detour; in particular, **is an additional permission needed for a call made

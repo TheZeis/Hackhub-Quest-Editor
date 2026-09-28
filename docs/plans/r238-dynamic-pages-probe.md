@@ -121,8 +121,9 @@ themselves, because `Http.Response` never reaches the mod).
 | **DP-06** fire the beat | Type **`qedyn beat`** in the terminal | The log line `beat fired (source=qedyn beat)` | The beat works at all — 1.0.0 could never fire it |
 | **DP-07** news after | Open `/news` **again** | The UPDATE article is #1, the old three dropped a slot; compare with **bcc.com** if you have a questline save | **The headline question**: the bcc pattern is reproducible by a mod |
 | **DP-08** state twice | Open `/state` twice | The counter must climb — expect **+2 per open** (the double render); phase reads `beat-fired` | Confirms the double render, and that nothing is cached |
-| **DP-09** direct mail | On `/form`, click **button A** | **What `Mail.send` returned**: `null` = refused, an id = accepted. Then check the inbox | `null` + no mail = the page-context refusal confirmed (docs/03 §14/§25) |
-| **DP-10** bridge mail | Click **button B** | Did *this* mail arrive? | If yes, the `Events.emit` bridge works and the editor can generate it |
+| **DP-09** direct mail | On `/form`, click **button A** | **What `Mail.send` returned**: `null` = refused, an id = accepted. Then check the inbox | **RUN 2: returned the id `yD1oMYYHUX` — accepted — and no mail arrived.** Not the §14 refusal; a delivery bug. Now docs/03 §25 |
+| **DP-10** bridge mail | Click **button B** | Did *this* mail arrive? | **RUN 2: returned the id `ra1DgwPOsB` — also accepted — and also never arrived.** The bridge does not rescue delivery either |
+| **DP-16** the `to:` test (1.2.0) | Type **`qedyn mail`** in the terminal | It sends two mails from a trusted context: one **with** `to: "player@gomail.com"` and one **without**, and prints both ids. Report which one lands in the inbox | **The decisive row.** The only mail that has ever arrived is the startup mail — the only one with no `to`. If only the no-`to` mail arrives, the recipient field is what loses them |
 | **DP-11** page exports | Open `/exports?article=2` | The span must read `article-2` | Per-page exports reach page scripts |
 | **DP-12** site exports | Open `/site-exports` | A greeting for "zeis" | Site exports from a *dynamic* page (DP-01 was the static one) |
 | **DP-13** event roll-call | Type **`qedyn status`** | How many `Http.Response` events the mod was offered, and every one of them | **Zero is the expected result** — it confirms the r166 fence now covers dynamic pages too |
@@ -141,6 +142,7 @@ themselves, because `Http.Response` never reaches the mod).
   prints) — a build detail, not a blocker.
 - DP-09 **an id returned but no mail** → the call was accepted and lost in
   delivery; a different bug from the refusal, and one to file.
+  *(Run 2: this is what happened — see §7.)*
 - DP-10 **the bridge mail also fails** → the documented workaround does not
   work for mail, and a no-code editor cannot offer page-driven actions at
   all without a new game-side surface.
@@ -149,8 +151,21 @@ themselves, because `Http.Response` never reaches the mod).
 - DP-11/12 exports **absent** → phase 3 shrinks to server-side
   rendering only (no client-side interactivity).
 
-## 6. Files
+## 6. What the second run changed (2026-09-28, probe 1.2.0)
+
+- **`to:` became the prime suspect.** DP-09 and DP-10 both returned real mail
+  ids, so the page's mail is *permitted* — it is lost afterwards. The one mail
+  that has ever arrived from this mod (the `OnStart()` startup mail) is the
+  only one carrying no `to` field. Hence **DP-16 / `qedyn mail`**: one mail of
+  each shape, sent from a context that already works, so the inbox decides.
+- **Two bugs in my own command, both silent.** `qedyn status` wrote only to the
+  game log and never to the terminal, so it looked broken; and `qedyn tick 1`
+  demanded a full row name and said nothing when it got anything else. Both
+  fixed — `out()` now prints *and* logs, and `tick` takes a number or a name
+  and says when the quest is not claimed. A tester must never be left guessing.
+
+## 7. Files
 
 - `reference/sdk-0.24-qa/dynprobe/` — the probe mod (manifest + dist/mod.js)
-- `reference/sdk-0.24-qa/delivery/qe-sdk-024-dynprobe-1.0.0.zip` — installable
+- `reference/sdk-0.24-qa/delivery/qe-sdk-024-dynprobe-1.2.0.zip` — installable
 - `src/compiler/__tests__/dynprobeMod.test.ts` — the unit verification above

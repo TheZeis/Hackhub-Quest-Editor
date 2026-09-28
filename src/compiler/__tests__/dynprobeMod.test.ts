@@ -269,6 +269,54 @@ describe("dynprobe mod (r238)", () => {
         expect(broken.__registered.commands).toHaveLength(0);
     });
 
+    it("qedyn prints to the terminal, not only to the log (r248)", () => {
+        // r248: `qedyn status` printed nothing at the terminal - every
+        // subcommand wrote to the game log only, so it looked like a no-op.
+        const sdk6 = stubSdk();
+        runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk6 as unknown);
+        const printed: string[] = [];
+        const tools = { getArgs: () => ["status"], println: (t: string) => { printed.push(String(t)); } };
+        new (sdk6.__registered.commands[0])().Run(tools);
+        expect(printed.length).toBeGreaterThan(0);
+        expect(printed.join("\n")).toContain("Http.Response events offered to this mod: 0");
+    });
+
+    it("qedyn tick accepts a row NUMBER and says when the quest is not claimed", () => {
+        // r248: `qedyn tick 1` did nothing and said nothing - it wanted a
+        // full row name and silently ignored anything else.
+        const sdk7 = stubSdk();
+        runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk7 as unknown);
+        const printed: string[] = [];
+        let args: string[] = [];
+        const tools = { getArgs: () => args, println: (t: string) => { printed.push(String(t)); } };
+        const cmd = new (sdk7.__registered.commands[0])();
+        // Not claimed yet: it must say so rather than fail silently.
+        args = ["tick", "1"];
+        cmd.Run(tools);
+        expect(printed.join("\n")).toContain("not claimed");
+        // Claimed, with a number: it must resolve to that row's name.
+        const quest = new (sdk7.__registered.quests[0])();
+        quest.OnStart();
+        printed.length = 0;
+        cmd.Run(tools);
+        expect(printed.join("\n")).toContain("dp-01-control");
+    });
+
+    it("`qedyn mail` sends both shapes to test the to: field (r248)", () => {
+        // r248: the page's mail was ACCEPTED (it returned an id), so it is a
+        // delivery problem, not a permission refusal. The one mail that ever
+        // arrived carried no `to` field - so send both and compare.
+        const sdk8 = stubSdk();
+        runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk8 as unknown);
+        const cmd = new (sdk8.__registered.commands[0])();
+        cmd.Run({ getArgs: () => ["mail"] });
+        expect(sdk8.__sent).toHaveLength(2);
+        expect(sdk8.__sent[0].to).toBe("player@gomail.com");
+        expect(sdk8.__sent[1].to).toBeUndefined();
+        expect(sdk8.__sent[0].subject).toContain("[A with-to]");
+        expect(sdk8.__sent[1].subject).toContain("[B no-to]");
+    });
+
     it("`qedyn claim` claims the quest without the feed (docs/03 §21)", () => {
         const sdk5 = stubSdk();
         const claimed: any[] = [];

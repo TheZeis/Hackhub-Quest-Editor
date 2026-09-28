@@ -37,11 +37,22 @@ How to run it
      events the mod was offered and every one of them. Zero is the expected
      result - write the line down anyway.
 
+NEW IN 1.2.0 - the mail test
+  Run 2 proved the page's mail is ACCEPTED (it returns a mail id) and then
+  lost in delivery - it is not a permission refusal. The only mail that has
+  ever arrived is the startup mail, which is also the only one WITHOUT a
+  to: field. So:
+    qedyn mail
+  sends two mails from the terminal - one WITH to: and one WITHOUT - and
+  prints both ids. Check which one lands in the inbox.
+
 The terminal command
   qedyn claim             claim the quest without the feed
   qedyn beat              fire the quest's beat (DP-06)
+  qedyn mail              send the two test mails (see above) (DP-16)
   qedyn status            print everything the probe recorded (DP-13)
-  qedyn tick <row-name>   check a row off by hand, e.g.
+  qedyn tick <row>        check a row off by hand - a NUMBER or a name:
+                          qedyn tick 3
                           qedyn tick dp-05-news-before
                           (most rows cannot tick themselves - Http.Response
                           never reaches the mod, by design or by bug)

@@ -101,9 +101,49 @@ printed its own "sent (no error thrown)" text as soon as the call failed to
 throw, and discarded the engine's answer. Zeis's paste showed our text, not the
 game's.
 
-## 5. The follow-up probe (1.1.0)
+## 5. The second run (1.1.1, 2026-09-28) — what it settled
 
-Three changes, each aimed at one thing this run could not settle:
+Zeis re-ran the whole list. His log is on `QA-filedump` as
+`QE24-TestResults-DynProbe-v2.md`.
+
+| Row | Result |
+|---|---|
+| DP-06 `qedyn beat` | **Green** — `command: beat fired` |
+| DP-07 the bcc.com A/B | **Green** — the UPDATE article appeared on top and the old three dropped one slot. **A mod can reproduce the game's own news-site behaviour.** This was the headline question and it is answered |
+| DP-08 /state twice | **Green** — phase read `beat-fired`; visits 2 → 4, so the double render is confirmed again |
+| DP-09 button A | **The call was ACCEPTED** — `Mail.send` returned a real id (`yD1oMYYHUX`). No mail arrived |
+| DP-10 button B (bridge) | Also accepted — the listener recorded an id (`ra1DgwPOsB`). No mail arrived |
+| DP-13 `qedyn status` | **0** `Http.Response` events offered to the mod. The r166 fence is confirmed for dynamic pages |
+| DP-15 the feed | **The quest DID appear on the Hackhub feed** on a fresh save |
+
+### The mail result overturns the earlier theory
+
+We had concluded the page's mail was **refused** (`Mod "null"`, as in §14).
+It was not: `Mail.send` returned an id from page context *and* through the
+bridge, so the call is accepted in both. The mail is lost in **delivery**, not
+at the permission gate.
+
+The one mail that has ever arrived — the startup mail from the quest's
+`OnStart()` — is the only one that carries **no `to` field**. Both mails that
+vanished specify `to: "player@gomail.com"`. That is now the prime suspect, and
+1.2.0 tests it directly: `qedyn mail` sends one mail of each shape from a
+trusted context, so the inbox decides.
+
+### Two things the run exposed about the probe itself
+
+- **`qedyn status` printed nothing at the terminal.** Every subcommand wrote
+  to the game log only. Commands have a `println`; the probe now uses it.
+- **`qedyn tick 1` did nothing** — it wanted a full row name and stayed silent
+  otherwise. It now takes a number or a name, and says when the quest is not
+  claimed yet.
+- **The feed post appearing on a fresh save** suggests the earlier missing
+  post was the load-time bug in 1.1.0 (§6 below) rather than the game-side
+  feed problem — though a fresh save could also explain it.
+
+## 6. The follow-up probes
+
+**1.1.0** (r246) made three changes, each aimed at one thing the first run
+could not settle:
 
 1. **The beat is fired by a terminal command** — `qedyn beat` — because
    `Http.Response` will never arrive. That finally lets DP-06/07/08 run their
@@ -120,6 +160,16 @@ Three changes, each aimed at one thing this run could not settle:
 
 `qedyn tick <row>` also lets the tester check a row off by hand, since the
 objective rows mostly cannot tick themselves.
+
+**1.1.1** (r247) fixed a load-time bug in that rebuild — the command class was
+defined at module level, so a missing `sdk.Command` would have aborted the
+whole file (no site, no quest, no feed post, which is what Zeis saw) — and
+added `qedyn claim` for claiming without the feed.
+
+**1.2.0** (r248) acts on the second run: `qedyn mail` sends one mail with a
+`to:` field and one without, to test whether the recipient is what loses them;
+every subcommand now prints to the terminal as well as the log; and `qedyn
+tick` takes a row number as well as a name.
 
 Filed for the developers: `docs/03` §24 (HTTP events for a mod's own sites,
 and the double render) and §25 (page-context calls fail silently — please make
