@@ -1,5 +1,22 @@
 # SDK 0.24 QA harness — kept as tooling, now carrying the P-01 backdate row
 
+## OPEN: the Dynamic Page Probe (r238) — awaiting an in-game run
+
+`dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.0.0.zip`) answers the five
+open questions from the r237 dynamic-webpages investigation: the
+path-param syntax, HTTP events on dynamic pages, caching (the /state visit
+counter), the iframe `HackhubSDK` bridge, and what a `null` page shows. It
+also reproduces the **bcc.com front-page pattern** (a /news list that gains
+a top article when the quest's beat fires) for a side-by-side with the
+game's own news site. Install the zip, accept the "QA probe (r238)" feed
+post, and work the twelve quest objectives top to bottom — **the
+checklist, the run order, and the red-reading are in
+[`docs/plans/r238-dynamic-pages-probe.md`](../../docs/plans/r238-dynamic-pages-probe.md)**.
+File the written-down values there (or in a new `QE24-Playtest-DynProbe.md`
+in this folder).
+
+## Settled: the harness rows below
+
 **Everything this folder was built to verify is verified, or shelved by the
 author's decision — with one new row on top.** The Timer rows (S-01…S-15) are
 closed: S-11's answer is in [`STATUS.md`](STATUS.md) — `NEXT EVENT` does show a
