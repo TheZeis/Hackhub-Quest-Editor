@@ -7,7 +7,7 @@ a finished probe must not keep registering UI on a tester's machine.
 
 ## Half 1 — the results
 
-Transcript: [`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md)
+Transcript: [`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](../archive/sdk-0.24-qa/QE24-TestResults-Mail.md)
 (committed verbatim from the test dump). The findings that changed code or
 questions:
 

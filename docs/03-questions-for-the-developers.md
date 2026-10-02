@@ -411,7 +411,7 @@ version to be treated as new.
 export loaded and prints it (`Editor export: loaded (v…)` / `NOT LOADED in this
 session`, with the fix in the message), and the export leaves that marker when it
 loads. The tester-facing note is in
-[`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).
+[`docs/archive/sdk-0.24-qa/STATUS.md`](archive/sdk-0.24-qa/STATUS.md).
 
 ## 14. `UI.*` calls made from a menu or right-click handler are refused: the permission check reads the mod as `null`
 
@@ -594,7 +594,7 @@ note records this measurement.
 
 **Found in game** 2026-09-20, on 1.3.1 / Content SDK 0.24, while measuring the
 mail rows (harness 1.0.24, transcript in
-[`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md)).
+[`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](archive/sdk-0.24-qa/QE24-TestResults-Mail.md)).
 
 The SDK declares `MailDefinition.replyable` with: *"The player's reply raises
 `Mail.Sent` with a `repliedTo` field naming this mail, which is how a quest

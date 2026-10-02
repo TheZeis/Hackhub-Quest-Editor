@@ -51,17 +51,25 @@ if (!remote) {
   notes.push(`no remote branch ${remoteRef} — nothing to align to`);
 } else if (local === remote) {
   notes.push(`HEAD already at ${remote.slice(0, 7)}`);
-} else if (!gitOk("merge-base", "--is-ancestor", local, remote)) {
-  // Unpushed local commits would be unstaged by the reset. Leave them alone
-  // and let a human decide rather than silently rewriting history.
-  notes.push(
-    `HEAD ${local.slice(0, 7)} has commits not on ${remote.slice(0, 7)} — left alone`,
-  );
 } else {
+  // Fetch before testing ancestry. A fresh clone knows the remote's sha from
+  // `ls-remote` but does not have its objects, so `merge-base` would fail with
+  // "Not a valid commit name" — and that failure must not be mistaken for
+  // "this branch has unpushed commits".
   git("fetch", "-q", "origin", branch);
-  git("reset", "--soft", "FETCH_HEAD");
-  git("reset", "-q");
-  notes.push(`HEAD realigned ${local.slice(0, 7)} -> ${remote.slice(0, 7)}`);
+  if (!gitOk("rev-parse", "--verify", "--quiet", `${remote}^{commit}`)) {
+    notes.push(`fetched, but ${remote.slice(0, 7)} is still not resolvable — left alone`);
+  } else if (!gitOk("merge-base", "--is-ancestor", local, remote)) {
+    // Unpushed local commits would be unstaged by the reset. Leave them alone
+    // and let a human decide rather than silently rewriting history.
+    notes.push(
+      `HEAD ${local.slice(0, 7)} has commits not on ${remote.slice(0, 7)} — left alone`,
+    );
+  } else {
+    git("reset", "--soft", "FETCH_HEAD");
+    git("reset", "-q");
+    notes.push(`HEAD realigned ${local.slice(0, 7)} -> ${remote.slice(0, 7)}`);
+  }
 }
 
 // 2. Resurrection residue --------------------------------------------------

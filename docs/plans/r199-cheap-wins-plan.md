@@ -42,7 +42,7 @@
 > and `desktop` targets; localization translates, substitutes placeholders and
 > echoes missing keys, with **30 languages** to offer. Stage B is now a build with
 > no open questions. Full readings:
-> [`STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).
+> [`STATUS.md`](../archive/sdk-0.24-qa/STATUS.md).
 
 > **Stage A results, 2026-09-19 (r200, then r201).** Widgets, right-click items
 > and localization all work in game; the start-menu item did not appear and is
@@ -51,11 +51,11 @@
 > default, so the editor must expose the switch and default it to opaque), and the
 > **game offers 30 languages**, so the Languages table should offer exactly those
 > rather than an invented list. Details in
-> [`STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).
+> [`STATUS.md`](../archive/sdk-0.24-qa/STATUS.md).
 
 > **Built 2026-09-19 (r200): Stage A shipped as `qe24 extras on / off / lang` and
 > is waiting on a run — rows T-16..T-19 in
-> [`STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).** All four click actions
+> [`STATUS.md`](../archive/sdk-0.24-qa/STATUS.md).** All four click actions
 > were approved (notify, quest, mail, handbook), so §5 above is settled. Stage B
 > starts only after those readings are in: the probe exists precisely because
 > nothing in this repository has ever called `Menu`, `Desktop`, `ContextMenu` or
