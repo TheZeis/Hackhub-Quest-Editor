@@ -4,7 +4,7 @@
   "mod": {
     "id": "qe-sdk-024-editor-qa",
     "name": "QE SDK 0.24 Editor QA Scaffold",
-    "version": "1.0.52",
+    "version": "1.0.53",
     "author": "HackHub Quest Editor",
     "description": "Evidence-only project for SDK 0.24 in-game verification: native Wi-Fi, HTTP/curl events, the Timer node delay and calendar modes, the Twotter node (accounts, backdated series, cleanup), and the pack extras (start-menu entry, desktop widget, right-click entries, translated words). Nothing auto-starts - claim one quest at a time with the harness command qe24 run - so a tester sees one row's noise, not five.",
     "tags": [
@@ -132,7 +132,7 @@
                       "extension": "txt",
                       "isFolder": false,
                       "deleteable": true,
-                      "data": "This file is deleteable (SDK 0.24, r235). rm ~/delete-me should work. See STATUS.md row D-01."
+                      "data": "D-01a: this file was placed with deleteable ON, so 'rm ~/delete-me' should work and a follow-up 'ls' should no longer show it. Reached with 'ssh -h qa@10.24.0.2' from inside the QE24-LAB-5G network."
                     },
                     {
                       "id": "f-logs",
@@ -144,7 +144,7 @@
                           "name": "qa",
                           "extension": "txt",
                           "isFolder": false,
-                          "data": "wifi child reached"
+                          "data": "D-01b: this file was placed with deleteable OFF (the default), so 'rm ~/logs/qa' should be REFUSED. Report the exact refusal text - that is the row's finding."
                         }
                       ]
                     }
@@ -177,7 +177,7 @@
               "mail": {
                 "from": "qa@qe24.test",
                 "subject": "QE24 editor QA scaffold",
-                "content": "Editor QA scaffold is active. Tick means the active quest/objective tracker line becomes checked/completed; the webpage loading by itself is not enough. Open http://qe24-website.test/ and /echo, then record which of http-request and http-response checked off. Connect to Wi-Fi QE24-LAB-5G with passphrase correct-horse-battery, then disconnect. New in r235 (D-01): on the Wi-Fi client 10.24.0.2 try rm ~/delete-me (should work) and rm ~/logs/qa (should not). See STATUS.md.",
+                "content": "Editor QA scaffold is active. Tick means the active quest/objective tracker line becomes checked/completed; the webpage loading by itself is not enough. Open http://qe24-website.test/ and /echo, then record which of http-request and http-response checked off. Connect to Wi-Fi QE24-LAB-5G with passphrase correct-horse-battery, then disconnect. D-01 (r235 deleteable flag): while still joined to that network, get onto its client with 'ssh -h qa@10.24.0.2' (password wifi-child), then try rm ~/delete-me (should work) and rm ~/logs/qa (should be refused). 10.24.0.2 is a LAN address, so it is only reachable from inside the network. See STATUS.md.",
                 "replyable": false
               },
               "weechat": {

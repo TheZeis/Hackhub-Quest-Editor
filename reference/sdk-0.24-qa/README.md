@@ -17,7 +17,7 @@ game, and three of them need a mod from this folder.
 
 | Row | Needs | What it checks |
 |---|---|---|
-| **D-01a / D-01b** | `editor-export/` | The `deleteable` file flag the editor has emitted since r235 — a **shipped editor feature that has never been verified in game**. On the Wi-Fi client `10.24.0.2`: `rm ~/delete-me` should succeed, `rm ~/logs/qa` should be refused. |
+| **D-01a / D-01b** | `editor-export/` | The `deleteable` file flag the editor has emitted since r235 — a **shipped editor feature that has never been verified in game**. `qe24 run surface`, join Wi-Fi `QE24-LAB-5G` / `correct-horse-battery`, then **`ssh -h qa@10.24.0.2`** (password `wifi-child`) — `10.24.0.2` is a LAN address, so it is reachable only from inside that network. `rm ~/delete-me` should succeed (confirm with `ls`); `rm ~/logs/qa` should be refused — report the exact refusal text. |
 | **S-11** | `mod/` (harness) | Whether the in-game clock panel can show a *mod's* scheduled job at all. `qe24 schedule 120` arms one two in-game hours out; open the clock panel inside that window. |
 | **`curl` re-check** | `mod/` (harness) | One command, `curl http://qe24-http.test/`. It was absent in the build tested in r166 even though the 1.3.0 changelog listed it. |
 | **T-08 wrinkles** | both | The profile showed **86 following** where the record holds **96**, and never reported the banner. `qe24 twotter audit` prints the stored record to compare against. |

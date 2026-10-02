@@ -39,6 +39,24 @@ wrinkles. When they are run, the folder, `editor-export.notes.md`,
 `scripts/build-qa-export.mjs` and the rest of `sdk024QaScaffold.test.ts` go,
 and `STATUS.md` moves to `docs/archive/`.
 
+**D-01's card was unusable as written, and Zeis caught it.** It said to act "on
+the Wi-Fi client 10.24.0.2" and never said how to get there. The route is now in
+the mail and in both files: join `QE24-LAB-5G`, then `ssh -h qa@10.24.0.2`
+(password `wifi-child`) — `10.24.0.2` is a LAN address, reachable only from
+inside that network. The `ssh -h user@IP` form is the handbook's
+(`In-Game-Handbook.md:344`) and the form the editor's own templates teach
+(`sixTries.ts:194`). Export regenerated at 1.0.53.
+
+**Sandbox reset, mid-round — the documented recovery worked.** The reset wiped
+`node_modules`, rewound the local branch to r249, restored the four probe
+folders that r252 had deleted, and reverted `editor-export/` on disk to 1.0.51
+*with the fabricated address back in it*. All five commits were intact on the
+remote. Recovery: `npm install`, `git fetch` + `reset --soft FETCH_HEAD` +
+index refresh (working tree untouched), `git checkout --` the reverted export,
+`rm -rf` the resurrected folders, then regenerate. Worth remembering that a
+reset does not just rewind HEAD — it can put deleted files back and roll
+generated ones backwards, so re-verify the artifacts, not just the log.
+
 Gates: 1,865 tests / 91 files, typecheck, build — green. No compiler change, so
 the stamp stays `2026-09-28.r241` (AR13).
 
