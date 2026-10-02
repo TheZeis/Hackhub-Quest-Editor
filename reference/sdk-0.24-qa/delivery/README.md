@@ -1,23 +1,39 @@
 # Delivery zips — ready to install
 
+Each zip is a packaged copy of the folder beside it. **Only the current version
+of each probe is kept here**: superseded builds are deleted rather than
+accumulated, because a folder of near-identical zips tells a tester nothing
+about which one to install. The source folder is the artifact of record; a
+superseded zip can be rebuilt from it if a past run ever has to be reproduced.
+
 | File | What it is |
 |---|---|
-| `qe-sdk-024-modsettings-v2-1.0.0.zip` | **ModSettings Probe — API v2 variant (r240)** — the identical probe with `apiVersion: 2`; the copy Zeis actually tested. The version turned out not to be the gate (the settings UI was in the main menu all along), but v2 is now the right value anyway, so the v1 probe has been bumped to 2 as well and this variant is kept only as the tested artifact. |
-| `qe-sdk-024-modsettings-1.0.0.zip` | **ModSettings Probe (r239)** — the first in-game look at declarative mod settings: six settings (one of every declared type) in the Mods menu, seven quest objectives = the QA checklist in `docs/plans/r239-modsettings-probe.md`. Installs alongside the r238 probe so one session covers both. |
-| `qe-sdk-024-dynprobe-1.3.0.zip` | **Dynamic Page Probe 1.3.0 (r249)** — the one to run now. Run 3 confirmed that of the two test mails only the one **without** a `to:` field arrives, so 1.3.0 sends a third mail to your **real** address (`Mail.getPlayerEmail()`) to separate "the address was wrong" from "any `to:` loses the mail", and adds `qedyn inbox`, which lists what the game says is in the inbox — a mail that is listed but not drawn is a different bug from one that was dropped. |
-| `qe-sdk-024-dynprobe-1.2.0.zip` | **Dynamic Page Probe 1.2.0 (r248, superseded by 1.3.0)** — **Dynamic Page Probe 1.2.0 (r248)** — the one to run now. Adds `qedyn mail` (the decisive test: two mails, one with a `to:` field and one without, because run 2 proved the page's mail is *accepted* and lost in delivery — not refused), prints to the terminal as well as the log, and `qedyn tick` takes a row number as well as a name. |
-| `qe-sdk-024-dynprobe-1.1.1.zip` | **Dynamic Page Probe 1.1.1 (r247, superseded by 1.2.0)** — **Dynamic Page Probe 1.1.1 (r247)** — the one to run. Same as 1.1.0 plus `qedyn claim` (the feed post may never surface — docs/03 §21), and the command is built inside a guarded block so it can never take the mod down with it. |
-| `qe-sdk-024-dynprobe-1.1.0.zip` | **Dynamic Page Probe 1.1.0 (r246, superseded by 1.1.1)** — **Dynamic Page Probe 1.1.0 (r246 rebuild)** — the one to run now. The beat is fired by the `qedyn beat` terminal command (the old one hung off `Http.Response`, which never arrives), `/form` prints what `Mail.send` *returned* and adds a second button that goes through the documented `Events.emit` bridge, and `qedyn status` prints every event the mod was offered. Same site, same pages, 14 checklist rows. |
-| `qe-sdk-024-dynprobe-1.0.0.zip` | **Dynamic Page Probe 1.0.0 (r238, superseded by 1.1.0)** — **Dynamic Page Probe (r238)** — the r237 open-questions test site on `qe24-dyn.test`: one static control page + seven dynamic pages, twelve quest objectives = the QA checklist in `docs/plans/r238-dynamic-pages-probe.md`. Accept the "QA probe (r238)" feed post and work the tracker top to bottom. |
-| `qe-sdk-0.24-qa-1.0.29.zip` | QA harness 1.0.29 — the decisive pair: HF-11 (the editor's anonymous-`cls` structural twin) vs HF-12 (renamed class), plus HF-1…HF-10 controls. Every probe is abandonable now. |
-| `qe24-feedcanary-1.0.2.zip` | Feed canary 1.0.2 — the AUTHOR test: identical to the canary that rendered (HC1, 1.0.1), except the manifest author is now "Zeis". Post **HC2**. |
+| `qe-sdk-024-dynprobe-1.3.0.zip` | **Dynamic Page Probe 1.3.0 (r249)** — the one to run, and the only thing still owed an in-game row. `qedyn mail` sends three mails: one to a deliberately bogus address, one with **no `to:`** at all, and one to your **real** address from `Mail.getPlayerEmail()` (printed, so you can see what it returned). Only the third answers the one open question — see below. `qedyn inbox` lists what the game itself says is in the inbox. |
+| `qe-sdk-0.24-qa-1.0.29.zip` | QA harness 1.0.29 — the raw terminal harness (`qe24 …`) the playtest cards drive. |
+| `qe-sdk-024-modsettings-1.0.0.zip` | **ModSettings Probe (r239)** — six settings, one of every declared type. **Question answered** (the UI is in the main menu, not in game); kept only until the probe folder is retired with its tests. |
+| `qe-sdk-024-modsettings-v2-1.0.0.zip` | The same probe with `apiVersion: 2` — the copy Zeis actually tested. The API version turned out not to be the gate. Kept for the same reason as above. |
 
-**This session:** canary 1.0.2 (HC2) + a fresh post authored in the r221 editor (v4) — one look at the feed covers both.
+## The one open row
 
-**Install BOTH folders** (delete the old `qe-sdk-0.24-qa` folder first — the
-harness now ships `assets/qhp.png`), restart the game, open Hackhub, and note
-which of HF-1…HF-10 and HC1 are present. `qe24 feed` prints the cheat sheet;
-`qe24 run clear` cleans up. Reading the grid: `QE24-Playtest-HackhubPosting.md`,
-Part 4 (one missing HF-6…HF-9 row names the killer field; HC1 absent while the
-grid renders names the manifest; everything present points at the editor's
-compiled runtime).
+Run 3 established that a mail addressed to a mailbox which does not exist is
+accepted, given an id, and then silently dropped. It did **not** establish that
+a `to:` field is fatal — the r211 mail-authoring run delivered three mails whose
+`to:` the editor's own runtime filled from `Mail.getPlayerEmail()`. See
+[`../../../docs/plans/r250-r237-r249-audit.md`](../../../docs/plans/r250-r237-r249-audit.md).
+
+So mail C in `qedyn mail` is the whole remaining question: **if C arrives, the
+editor's runtime is fine as it stands.** If it does not, the runtime should stop
+filling the field and let the game's own default do the work.
+
+## Retired
+
+| Probe | Retired because |
+|---|---|
+| dynprobe 1.0.0 → 1.2.0 | Superseded in place by 1.3.0. |
+| feed canary 1.0.2 | The feed saga closed in r225 — the r221 class rename is the cure, and exports older than r221 need re-exporting. |
+
+Note that the retired probes' **folders** are still in this repository because
+test files read them (`sdk024QaScaffold.test.ts` reads `feedcanary/`,
+`modsettingsProbeMod.test.ts` reads both `modsettings*` folders). Deleting a
+probe means deleting its tests in the same commit — see the QA-artifact
+disposition table in `docs/plans/r251-qa-artifact-cleanup.md`.
