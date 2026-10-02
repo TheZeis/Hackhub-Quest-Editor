@@ -12,6 +12,7 @@
  */
 import { placementFor, type NetworkData, type SeedFilesData } from "@/compiler/seedRemoteFiles";
 import { TARGET_IP_TOKEN } from "@/schema/common";
+import { GAME_TERMINAL_COMMANDS } from "@/schema/registry";
 import type { NodeDoc } from "@/schema/nodes";
 import type { QuestDoc } from "@/schema/project";
 import { daysInMonth, isRealDate, monthName } from "@/schema/timer";
@@ -152,12 +153,23 @@ export function fieldWarnings(quest: QuestDoc | undefined, node: NodeDoc): Field
        Missing path would always run — silently, and the author would read it
        as the game disagreeing with them. */
     if (node.type === "flow.appcheck") {
-        if (!String(d.app ?? "").trim()) {
+        const typed = String(d.app ?? "").trim();
+        if (!typed) {
             out.push({
                 path: "app",
                 severity: "warn",
                 detail: "No app name, so this check can never match anything.",
                 nextStep: "Type the app's name as the desktop spells it, e.g. Kisscord.",
+            });
+        } else if ((GAME_TERMINAL_COMMANDS as readonly string[]).some((c) => c.toLowerCase() === typed.toLowerCase())) {
+            /* Verified in game (2026-10-02): Lynx was installed yet the check
+               read Missing, while the control (Kisscord) read Installed. The
+               game does not count terminal commands as apps. */
+            out.push({
+                path: "app",
+                severity: "warn",
+                detail: `The game does not count ${typed} as an app, so this check always reads Missing even when it is installed.`,
+                nextStep: "Terminal commands are installed with apt-get but are not apps the desktop reports. Check a desktop app instead, e.g. Kisscord.",
             });
         }
     }

@@ -67,11 +67,11 @@
 <h2>Fields</h2>
 
 <h3 id="node-flow-appcheck-field-app">App name</h3>
-<blockquote class="blurb">Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.</blockquote>
+<blockquote class="blurb">Pick an app the desktop knows, or type another exactly as the desktop spells it — a spelling it does not use never matches. Terminal commands cannot be checked here; the editor says so if you type one.</blockquote>
 <dl class="facts-list">
-  <dt>What to put here</dt><dd>Pick one from the list — those are the store's own names, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included, or the check reads it as not installed.</dd>
+  <dt>What to put here</dt><dd>Pick one from the list — those are the apps the desktop reports, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included. The editor warns you if you type a terminal command, because those can never be checked here.</dd>
   <dt class="dt-mute">Default</dt><dd>empty</dd>
-  <dt>Limits</dt><dd>One of the 13 listed below.</dd>
+  <dt>Limits</dt><dd>One of the 9 listed below.</dd>
   <dt class="dt-danger">If you leave it empty</dt><dd>With no name there is nothing to look for, so the &lt;b class="ui"&gt;Missing&lt;/b&gt; path always runs. The editor warns you while you are still looking at the field.</dd>
 </dl>
 <table>
@@ -86,10 +86,6 @@
     <tr><td class="name">Skypersky (installable)</td><td><code>Skypersky</code></td></tr>
     <tr><td class="name">Kisscord (installable)</td><td><code>Kisscord</code></td></tr>
     <tr><td class="name">Database Manager (installable)</td><td><code>Database Manager</code></td></tr>
-    <tr><td class="name">Hydra (terminal command)</td><td><code>Hydra</code></td></tr>
-    <tr><td class="name">Lynx (terminal command)</td><td><code>Lynx</code></td></tr>
-    <tr><td class="name">Metasploit (terminal command)</td><td><code>Metasploit</code></td></tr>
-    <tr><td class="name">OpenSSL (terminal command)</td><td><code>OpenSSL</code></td></tr>
   </tbody>
 </table>
 
@@ -164,6 +160,7 @@ the connection takes, mismatch them and it will not.</p>
   <li><b>One output is left unwired.</b> A player whose desktop takes that path reaches a node that goes nowhere and the quest stalls. The editor flags it as <b>Dead end</b>.</li>
   <li><b>The name does not match the desktop's.</b> The check is by name, so a spelling the desktop does not use always comes back <b class="ui">Missing</b>. Terminal commands are not desktop apps — <b class="ui">lynx</b> is something the player types, not something on their desktop.</li>
   <li><b>Assuming every player has the same apps.</b> Apps are unlocked as the player earns them, so two players on the same quest can legitimately take different paths. That is the point of the node.</li>
+  <li><b>Checking a terminal command such as lynx.</b> Terminal commands are installed with <b class="ui">apt-get install</b>, but the game does not count them as apps. Even with lynx installed, the check reads <b class="ui">Missing</b> — verified in game against a Kisscord control that read <b class="ui">Installed</b>. The node can only route on desktop apps.</li>
 </ul>
 
 <h2>Messages you might see</h2>

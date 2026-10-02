@@ -615,7 +615,7 @@
     "game": "Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.",
     "fields": {
       "app": {
-        "put": "Pick one from the list — those are the store's own names, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included, or the check reads it as not installed.",
+        "put": "Pick one from the list — those are the apps the desktop reports, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included. The editor warns you if you type a terminal command, because those can never be checked here.",
         "empty": "With no name there is nothing to look for, so the <b class=\"ui\">Missing</b> path always runs. The editor warns you while you are still looking at the field."
       },
       "saveList": {
@@ -670,6 +670,10 @@
       [
         "Assuming every player has the same apps.",
         "Apps are unlocked as the player earns them, so two players on the same quest can legitimately take different paths. That is the point of the node."
+      ],
+      [
+        "Checking a terminal command such as lynx.",
+        "Terminal commands are installed with <b class=\"ui\">apt-get install</b>, but the game does not count them as apps. Even with lynx installed, the check reads <b class=\"ui\">Missing</b> — verified in game against a Kisscord control that read <b class=\"ui\">Installed</b>. The node can only route on desktop apps."
       ]
     ],
     "steps": [

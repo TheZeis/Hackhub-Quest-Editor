@@ -1,3 +1,56 @@
+# Handoff — r262
+
+**The app dropdown now offers only desktop apps, because terminal commands can never pass the check.**
+
+Zeis ran the test I should have asked for instead of theorising. On one save,
+with **lynx installed**, he checked three names:
+
+| `app` value | Result |
+| --- | --- |
+| `Lynx` | fail (`Missing`) |
+| `apt-get install lynx` | fail (`Missing`) |
+| `Kisscord` (control) | success (`Installed`) |
+
+The control is what makes it a result rather than an opinion: the node worked,
+the name matching worked, and terminal commands still read `Missing`.
+`isAppInstalled` reports **desktop apps only**. There is no SDK surface for a
+terminal command, so a quest can never route on one.
+
+Three things follow, and all three are shipped:
+
+- **`GAME_APP_NAMES` is split.** `GAME_DESKTOP_APPS` (5 pre-installed + 4
+  installable = 9 names) feeds `APP_OPTIONS` and the dropdown.
+  `GAME_TERMINAL_COMMANDS` stays in the file as captured data — Hydra, Lynx,
+  Metasploit, OpenSSL — but is deliberately **not offered**. A dropdown that
+  offers a value which can never work is worse than no dropdown.
+- **Typing one warns at the field.** `analysis/fields.ts` matches the typed name
+  against `GAME_TERMINAL_COMMANDS` case-insensitively and says the check always
+  reads `Missing` even when the command is installed. The author finds out
+  before shipping the quest, not after a player reports a dead branch.
+- **The manual's mistake row is now the verified one**, and the old
+  "lynx is not a desktop app" phrasing is corrected to what the game actually
+  does.
+
+Two of my earlier claims are retracted here on the record:
+
+1. **r261 said the list was partial by design.** It is not. Zeis confirmed his
+   list is complete apart from `apt-get` options. The App Store sidebar counts
+   I read as extra apps double-count apps filed under several categories —
+   13 unique names is the whole set.
+2. **r260/r261 assumed lynx was simply not installed on his save.** It was.
+   That assumption drove two rounds of narrative in the wrong direction, and one
+   question to him ("was lynx installed on that save?") would have settled it in
+   a single exchange. When one question to the author decides a branch, ask it
+   before building on the answer you guessed.
+
+`EDITOR_BUILD` stays `2026-10-02.r260` — registry and analysis are editor UI,
+not compiled runtime.
+
+Gates: **1,830 tests / 89 files**, typecheck, build, `gen:manual` (41 node
+pages) — green.
+
+---
+
 # Handoff — r261
 
 **App name is a dropdown of the game's real apps, with a Custom box.**
@@ -369,7 +422,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-254.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-255.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -449,7 +502,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-254.md`.
+Archived README rows for r227–r247: `archive/rounds-227-255.md`.
 
 ---
 

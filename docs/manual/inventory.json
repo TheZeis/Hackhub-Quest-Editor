@@ -2887,7 +2887,7 @@
           "kind": "selectOrCustom",
           "key": "app",
           "label": "App name",
-          "hint": "Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.",
+          "hint": "Pick an app the desktop knows, or type another exactly as the desktop spells it — a spelling it does not use never matches. Terminal commands cannot be checked here; the editor says so if you type one.",
           "placeholder": "Kisscord",
           "mono": true,
           "options": [
@@ -2926,22 +2926,6 @@
             {
               "value": "Database Manager",
               "label": "Database Manager (installable)"
-            },
-            {
-              "value": "Hydra",
-              "label": "Hydra (terminal command)"
-            },
-            {
-              "value": "Lynx",
-              "label": "Lynx (terminal command)"
-            },
-            {
-              "value": "Metasploit",
-              "label": "Metasploit (terminal command)"
-            },
-            {
-              "value": "OpenSSL",
-              "label": "OpenSSL (terminal command)"
             }
           ]
         },

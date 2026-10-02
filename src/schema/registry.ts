@@ -298,7 +298,11 @@ const falseOut: HandleSpec = { id: "false", kind: "flow", label: "No" };
  * ones, not a closed list. Anything absent falls through to the custom box,
  * and it is reconciled against getInstalledApps() once a capture exists.
  */
-const GAME_APP_NAMES: { value: string; category: string }[] = [
+/* The desktop's app names, captured from the in-game App Store on 2026-10-02
+   (Zeis's screenshot and list), stored as data rather than invented — the same
+   discipline as GAME_LANGUAGES in schema/extras.ts. The SDK gives no name list
+   (index.d.ts:3893 says the name is "as the desktop knows it, e.g. Kisscord"). */
+const GAME_DESKTOP_APPS: { value: string; category: string }[] = [
     // Pre-installed on every desktop.
     { value: "Terminal", category: "pre-installed" },
     { value: "Firebear Browser", category: "pre-installed" },
@@ -310,13 +314,19 @@ const GAME_APP_NAMES: { value: string; category: string }[] = [
     { value: "Skypersky", category: "installable" },
     { value: "Kisscord", category: "installable" },
     { value: "Database Manager", category: "installable" },
-    // Terminal commands — installed via "apt-get install <name>".
-    { value: "Hydra", category: "terminal command" },
-    { value: "Lynx", category: "terminal command" },
-    { value: "Metasploit", category: "terminal command" },
-    { value: "OpenSSL", category: "terminal command" },
 ];
-const APP_OPTIONS = GAME_APP_NAMES.map((a) => ({
+
+/* Installed via "apt-get install <name>". Verified in game on 2026-10-02 with
+   a control: isAppInstalled("Kisscord") -> true, but Lynx was INSTALLED on the
+   same save and isAppInstalled("Lynx") and ("apt-get install lynx") both
+   returned false. So terminal commands are simply not in the installed-apps
+   set, and a quest cannot route on them through this node. They are kept as
+   captured data for a future "is this tool installed?" surface, but they are
+   deliberately NOT offered as pickable options, because picking one would
+   always read Missing. */
+export const GAME_TERMINAL_COMMANDS = ["Hydra", "Lynx", "Metasploit", "OpenSSL"] as const;
+
+const APP_OPTIONS = GAME_DESKTOP_APPS.map((a) => ({
     value: a.value,
     label: `${a.value} (${a.category})`,
 }));
@@ -1335,7 +1345,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 kind: "selectOrCustom",
                 key: "app",
                 label: "App name",
-                hint: "Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.",
+                hint: "Pick an app the desktop knows, or type another exactly as the desktop spells it — a spelling it does not use never matches. Terminal commands cannot be checked here; the editor says so if you type one.",
                 mono: true,
                 placeholder: "Kisscord",
                 options: APP_OPTIONS,

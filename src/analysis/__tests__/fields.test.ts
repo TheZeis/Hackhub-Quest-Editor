@@ -189,6 +189,21 @@ describe("fieldWarnings", () => {
         expect(warning?.severity).toBe("warn");
     });
 
+    it("warns when a terminal command is typed as the app (r262)", () => {
+        /* Verified in game: Lynx was installed yet the check read Missing.
+           The dropdown cannot offer these, so the only way to hit this is the
+           custom box — and the author should be told why it cannot work. */
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { app: "lynx" });
+        const w = fieldWarnings(questWith(check), check).find((i) => i.path === "app");
+        expect(w?.severity).toBe("warn");
+        expect(w?.detail).toMatch(/does not count lynx as an app/);
+    });
+
+    it("does not warn for a desktop app (r262)", () => {
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { app: "Kisscord" });
+        expect(fieldWarnings(questWith(check), check).some((i) => i.path === "app")).toBe(false);
+    });
+
     it("still wants an app name when the list is being saved too (r260)", () => {
         /* Saving the list no longer replaces the check, so the name is never
            optional — a node that only saved would not be this node. */
