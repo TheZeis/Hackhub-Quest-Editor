@@ -869,7 +869,7 @@ verified that a quest claimed **from the feed** never shows its post again — o
 any save. Does `Quest.claim(name)` suppress it identically? The answer decides
 whether a pack can ever re-offer a quest a player already started.
 
-## 22. Feed-post author rendering: name-without-avatar draws a broken icon — and when exactly does the employer fallback fire?
+## 22. Feed-post author rendering: a named author without an avatar draws a broken icon — and the employer fallback drops the avatar
 
 **Found in the r219 harness grid** (2026-09-22, game 1.3.1, SDK 0.24.0).
 
