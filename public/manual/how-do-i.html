@@ -45,8 +45,8 @@ the game's own quests are put together.</p>
   <thead><tr><th>Walkthrough</th><th>What it gets you</th></tr></thead>
   <tbody>
     <tr><td><a href="#howto-objective-that-ticks">Give the player an objective, and make it tick</a></td><td>The shape almost every quest is built on.</td></tr>
-    <tr><td>Send the player a message from an NPC</td><td>An employer briefs the player, in their own words.</td></tr>
-    <tr><td>Make a message arrive only after something else happens</td><td>The same conversation, held back until the player earns it.</td></tr>
+    <tr><td><a href="#howto-npc-message">Send the player a message from an NPC</a></td><td>An employer briefs the player, in their own words.</td></tr>
+    <tr><td><a href="#howto-gated-message">Make a message arrive only after something else happens</a></td><td>The same conversation, held back until the player earns it.</td></tr>
     <tr><td>Pay the player, and charge them</td><td>Money in both directions, and what a blank amount really does.</td></tr>
     <tr><td>Branch the story on something the player did</td><td>One quest, two routes, and no duplicated nodes.</td></tr>
     <tr><td>Ask the player for a passphrase, with a wrong-answer route</td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
@@ -118,6 +118,151 @@ never finish the quest.</p>
   <li><b>It ticks too early, or on the wrong file.</b> The condition is too loose, or missing. Narrow it, or add a second clause.</li>
   <li><b>It never ticks even though the player did the thing.</b> The event you picked is not the one the game fires for that action. A file pulled over ssh raises two events, and listening to only one is a common miss — see <a href="troubleshooting.html#objective-never-ticks">the objective never ticks</a>.</li>
   <li><b>You still can't see why.</b> Drop a <a href="nodes/flow-debug.html">Debug probe</a> after the objective and run a dry run. It prints what each node does when it fires — and whether it fires at all — so you can tell if the trigger is even going off.</li>
+</ul>
+</section>
+
+<section id="howto-npc-message">
+<h2>Send the player a message from an NPC</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Dialogue node, and one node already in your story to hang it off</dd>
+<dt>Takes</dt><dd>about five minutes for a single message</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>One <a href="nodes/comms-dialogue.html">Dialogue</a> node carries a whole conversation:
+every line spoken, and every reply the player can pick. You write it in the inspector, and
+the game shows it in the player's own phone, chat or inbox.</p>
+<p>Choose the form to match what the story needs. A call interrupts, so it reads as urgent.
+Mail leaves something the player can go back to. Kisscord reads like a chat and suits a
+back-and-forth. WeeChat is a public room, so other characters can be present.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the node down.</b> Dialogue is in the Comms group of the palette.</li>
+  <li><b>Wire it into the story.</b> Drag a Then wire from the node before it into
+  <b class="ui">In</b>. Nothing reaches a node until something points at it, and the node
+  will say <b>Unreachable</b> until you do.</li>
+  <li><b>Choose the form.</b> Open the node and set <b class="ui">Conversation type</b> to
+  Phone call, Kisscord chat, E-Mail or WeeChat. Each one opens its own editor, so pick
+  before you write much.</li>
+  <li><b>Write the script.</b> Every line has a speaker and the words they say. On a call
+  the speaker box reads <b class="ui">Caller</b>. Add a line for everything spoken,
+  including the player's side.</li>
+  <li><b>Decide when the story moves on.</b> On a call, <b class="ui">Out fires</b> chooses
+  between "When the call ends" and "Right after starting the call". Leave it on the first
+  unless something has to happen while the player is still listening.</li>
+</ol>
+<figure>
+  <img src="img/howto-02-npc-message.png"
+       alt="A Dialogue node set to Phone call with a Then wire running into it, and its two-line script open in the inspector." />
+  <figcaption>A two-line call. The node holds the conversation; the inspector is where
+  you write it.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let the player answer, and get it wrong.</b> Give a line a button for the player to
+  pick. The <b class="ui">Wrong</b> socket then carries the story somewhere else, and you
+  can write what the character says when the answer misses.</li>
+  <li><b>Make a chat arrive later.</b> Kisscord and WeeChat carry a
+  <b class="ui">Play when the story reaches this node</b> toggle. Left off, the conversation
+  is handed to the game when the quest starts — the safe, normal choice. Switched on, nothing
+  appears until the story arrives, so a chat can land on a timed beat.</li>
+  <li><b>Know what switching that on costs.</b> A live chat is delivered one message at a
+  time. Player replies, uploads and "unlocks after" steps only work in the ordinary script,
+  and the game does not clean live messages up when the quest ends.</li>
+  <li><b>Keep a paper trail.</b> Use E-Mail when the player should be able to find the
+  message again later.</li>
+  <li><b>Attach a file to a Kisscord chat.</b> It does not reach the player as a file. It
+  arrives as a line of text standing in for it, so write around that.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The node says Unreachable.</b> Nothing is wired into <b class="ui">In</b>. Connect
+  it to the chain that should run it — nodes do nothing until something points at them.</li>
+  <li><b>Everything after the call runs straight away.</b> <b class="ui">Out fires</b> is set
+  to "Right after starting the call". Switch it back to "When the call ends".</li>
+  <li><b>You changed the conversation type and the script looks empty.</b> Each form keeps
+  its own script, so nothing is lost. Switch back and yours is still there.</li>
+  <li><b>A timed chat never plays.</b> The toggle is on but nothing is wired into the node,
+  so the story never arrives. Wire it in, or turn the toggle off.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  after the node and run a dry run. It prints what each node does when it fires, so you can
+  tell whether the story reaches the conversation at all.</li>
+</ul>
+</section>
+
+<section id="howto-gated-message">
+<h2>Make a message arrive only after something else happens</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Dialogue node, a Branch, and a When event to gate it on</dd>
+<dt>Takes</dt><dd>about ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A conversation is worth more once the player has earned it. The message that lands after
+the break-in lands harder than the one waiting at the start.</p>
+<p>A conversation has no "wait until" field. You build the wait out of two pieces: something
+that notices the thing happened, and a Branch that only lets the story through when it did.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the conversation down.</b> A Dialogue node, written the way you want it. Wire
+  nothing into it yet.</li>
+  <li><b>Notice the thing.</b> Drop a <a href="nodes/trigger-event.html">When event</a> node
+  and pick the <b class="ui">Game event</b> the game fires for the action you care about.</li>
+  <li><b>Add the gate.</b> Drop a <a href="nodes/flow-branch.html">Branch</a>. Drag a wire
+  from the event node's <b class="ui">When</b> socket into the branch's
+  <b class="ui">Trigger</b> socket. That wire is cyan, because it carries a condition rather
+  than the story.</li>
+  <li><b>Say what has to be true.</b> On the branch, <b class="ui">Test against</b> reads
+  details from the event that fired, or quest data you stored earlier with a Set quest data
+  node. Add your clauses under <b class="ui">Take the "Yes" path when</b>. Every clause has
+  to hold for the Yes path to run.</li>
+  <li><b>Let the story in.</b> Drag a Then wire from the branch's <b class="ui">Yes</b> into
+  the conversation's <b class="ui">In</b>.</li>
+  <li><b>Give No somewhere to go.</b> Both paths need an end. Leave <b class="ui">No</b>
+  hanging and the node says <b>Dead end</b>, because the quest stalls if the player takes it.</li>
+</ol>
+<figure>
+  <img src="img/howto-03-gated-message.png"
+       alt="A When event node joined by a cyan condition wire to a Branch, whose Yes socket runs into a Dialogue node and whose No socket runs on." />
+  <figcaption>The gate. The cyan wire carries a condition; only the blue wires carry the
+  story.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Gate on an objective instead.</b> An Objective has an <b class="ui">On complete</b>
+  socket. Wire that straight into the conversation and the message lands the moment the
+  objective ticks — no branch needed.</li>
+  <li><b>More than two outcomes.</b> Chain branches. Wire the first one's
+  <b class="ui">No</b> into a second branch's <b class="ui">In</b>, and each one splits
+  again. The canvas stays readable.</li>
+  <li><b>Test something that happened earlier.</b> Store it with a
+  <a href="nodes/fx-setdata.html">Set quest data</a> node, then point
+  <b class="ui">Test against</b> at that value instead of at the event.</li>
+  <li><b>Gate the message, not the story.</b> Leave the conversation on the main path and
+  put the gate in front of something else. The player gets the briefing either way, and only
+  the reward waits.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The wire into Trigger will not connect.</b> You are dragging from a flow socket.
+  Wires only join sockets of the same kind, and a condition wire has to come from a
+  <b class="ui">When</b> socket.</li>
+  <li><b>The message never arrives.</b> The event you picked is not the one the game fires
+  for that action. See <a href="troubleshooting.html#objective-never-ticks">the objective
+  never ticks</a>, which covers the same mistake.</li>
+  <li><b>Both paths run.</b> Your clauses are empty or too loose, so the Yes path always
+  holds. Narrow them — every clause has to be true.</li>
+  <li><b>The node says Dead end.</b> One of <b class="ui">Yes</b> or <b class="ui">No</b> has
+  no wire. Both need somewhere to go, even if No leads straight to the end.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  on each side of the branch and run a dry run. It prints what fires, so you can see which
+  way the gate sent the story.</li>
 </ul>
 </section>
 
