@@ -1,3 +1,40 @@
+# Handoff — r254
+
+**A runbook for the sandbox re-provisioning, after it fired four times in one
+session — including twice between individual tool calls.**
+
+Zeis has no control over it and no settings to change; his only controls are
+the chat window and file upload, and uploads are wiped too. So the workflow now
+absorbs the resets instead of improvising around them.
+
+Documented in [`docs/SANDBOX-RESETS.md`](SANDBOX-RESETS.md): the VM is
+re-created from a fresh clone at the branch's fork point with the workspace
+snapshot overlaid, which is why `HEAD` rewinds to the *same* commit every time,
+`node_modules` disappears, and gitignored directories deleted by a later commit
+come back — the snapshot does not record their deletion and `git status` cannot
+see them. That last one produced a wrong report this session: the QA folder was
+declared gone with seven `dist/` files still in it, because the verification
+used `git status` rather than `test -e`.
+
+New: `npm run recover` (`scripts/sandbox-recover.mjs`, no dependencies, safe on
+a healthy tree). Realigns `HEAD` with `reset --soft` so nothing in the working
+tree is ever discarded, prunes resurrected residue *including the empty
+directory husks* that would otherwise keep `test -e` true, installs
+dependencies, and refuses to move `HEAD` when local commits are unpushed.
+Verified against three simulated states: healthy, rewound `HEAD`, and nested
+residue — the last checked that `reference/` kept its four legitimate entries.
+
+Workflow rules written down for future agents: push at every checkpoint rather
+than at end of round; any command needing dependencies installs them in the
+same call; verify artifact *content* after a reset, not just the log; and
+commit anything Zeis uploads in the same turn it arrives. Plus gate tiers, so a
+reset costs ~40s of typecheck+build instead of ~290s re-running 1,815 tests on
+content that did not change.
+
+No product code touched, so `EDITOR_BUILD` stays `2026-09-28.r241` (AR13).
+
+---
+
 # Handoff — r253
 
 **Zeis ran the final four rows. Every question `reference/sdk-0.24-qa/` was
@@ -139,7 +176,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-248.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-249.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -219,7 +256,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-248.md`.
+Archived README rows for r227–r247: `archive/rounds-227-249.md`.
 
 ---
 
