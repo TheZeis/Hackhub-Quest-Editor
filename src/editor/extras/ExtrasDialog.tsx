@@ -55,7 +55,15 @@ const TABS: { id: "menu" | "widgets" | "context" | "text"; label: string; list?:
     { id: "menu", label: "Start menu", list: "menuItems" },
     { id: "widgets", label: "Desktop widgets", list: "widgets" },
     { id: "context", label: "Right-click", list: "contextItems" },
-    { id: "text", label: "Text & languages" },
+    /* Localization is PARKED (r256, Zeis's call). The machinery is real and
+       still compiles — the schema, the store actions, `{{tr.key}}` resolution
+       in the runtime and the table below are all untouched — but the product
+       workflow around it (which of an author's fields are translatable, how
+       one is tagged, how coverage is checked) is a bigger build than this
+       round allows, and offering half of it invites an author into a dead
+       end. Uncomment this line to bring the tab back; nothing else was
+       removed, and `TextPanel` stays exported so its tests still run. */
+    // { id: "text", label: "Text & languages" },
 ];
 
 /** What each action kind is called in the picker, and what it does. */
@@ -274,8 +282,12 @@ function WidgetEditorDialog({
 }
 
 /** The translation table: one row per line of text, one column per language.
- *  The key is what an author types elsewhere as `{{tr.key}}`. */
-function TextPanel() {
+ *  The key is what an author types elsewhere as `{{tr.key}}`.
+ *
+ *  Exported, not because anything else renders it — the tab that reached it is
+ *  parked (r256) — but so its tests can mount it directly instead of clicking
+ *  through a button that is deliberately not offered. */
+export function TextPanel() {
     const translations = useEditor((s) => s.project.translations);
     const setTranslation = useEditor((s) => s.setTranslation);
     const addLanguage = useEditor((s) => s.addTranslationLanguage);

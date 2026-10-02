@@ -18,7 +18,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ExtrasDialog } from "@/editor/extras/ExtrasDialog";
+import { ExtrasDialog, TextPanel } from "@/editor/extras/ExtrasDialog";
 import { GAME_LANGUAGE_CODES } from "@/schema/extras";
 import { createProject } from "@/schema/project";
 import { useEditor } from "@/store/editor";
@@ -33,12 +33,24 @@ const renderDialog = () => {
     return userEvent.setup({ delay: null });
 };
 
+/* The tab that reached the translation table is parked (r256), so the table is
+   mounted on its own: the machinery still ships and still compiles, and it
+   stays covered even while the button is not offered. */
+const renderTextPanel = () => {
+    render(<TextPanel />);
+    return userEvent.setup({ delay: null });
+};
+
 describe("pack extras dialog (r203)", () => {
-    it("offers the four surfaces, and no `section` control anywhere", async () => {
+    it("offers the three live surfaces, and no `section` control anywhere", async () => {
         const user = renderDialog();
-        for (const tab of ["Start menu", "Desktop widgets", "Right-click", "Text & languages"]) {
+        for (const tab of ["Start menu", "Desktop widgets", "Right-click"]) {
             expect(screen.getByRole("button", { name: tab })).toBeTruthy();
         }
+        /* Localization is parked (r256): half a workflow is a dead end for an
+           author, so the tab is not offered. The machinery stays and the three
+           tests below still cover it by mounting the panel directly. */
+        expect(screen.queryByRole("button", { name: "Text & languages" })).toBeNull();
         /* The SDK declares `section` and the game ignores it — a control that
            does nothing must not be offered. Asserted with a menu entry
            SELECTED, so every field of the form is on screen: the point is that
@@ -133,8 +145,7 @@ describe("pack extras dialog (r203)", () => {
     });
 
     it("offers the game's own languages, and only those", async () => {
-        const user = renderDialog();
-        await user.click(screen.getByRole("button", { name: "Text & languages" }));
+        const user = renderTextPanel();
         const picker = screen.getByLabelText("Add a language") as HTMLSelectElement;
         const offered = Array.from(picker.options)
             .map((o) => o.value)
@@ -155,8 +166,7 @@ describe("pack extras dialog (r203)", () => {
     });
 
     it("turns a line added once into a column per language and the token to paste", async () => {
-        const user = renderDialog();
-        await user.click(screen.getByRole("button", { name: "Text & languages" }));
+        const user = renderTextPanel();
         const field = screen.getByLabelText("Add a line");
         await user.type(field, "menu.flashlight");
         await user.click(screen.getByRole("button", { name: /Add line/ }));
@@ -173,8 +183,7 @@ describe("pack extras dialog (r203)", () => {
     });
 
     it("refuses a line name with spaces in it, and says why", async () => {
-        const user = renderDialog();
-        await user.click(screen.getByRole("button", { name: "Text & languages" }));
+        const user = renderTextPanel();
         await user.type(screen.getByLabelText("Add a line"), "my line");
         await user.click(screen.getByRole("button", { name: /Add line/ }));
         expect(screen.getByRole("alert").textContent).toMatch(/No spaces/);

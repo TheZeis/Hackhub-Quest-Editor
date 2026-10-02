@@ -1,3 +1,36 @@
+# Handoff — r256
+
+**Desktop app checks picked up next; localization parked, and its tab hidden
+rather than deleted.**
+
+Zeis chose **Desktop app checks** (0.24's `isAppInstalled` / `getInstalledApps`)
+as the next build, and moved **Localization** to **Parked**: too big an
+implementation for now, but wanted in the future.
+
+Parking it meant hiding a surface, so the distinction that mattered is what
+ships versus what is offered. The machinery is untouched and still compiles —
+the `TranslationsSchema`, the game's own 30 language codes, the store actions,
+`{{tr.key}}` resolution in the runtime, and the table component. What changed is
+one commented-out line in `ExtrasDialog.tsx`: the *Text & languages* tab is no
+longer offered, because the product workflow around it is unbuilt (no node's
+text fields reference translation keys, and there is no way to tag one or check
+coverage) and half a workflow is a dead end for an author. The comment records
+the reason and the single line that restores it.
+
+`TextPanel` is now **exported** for one reason only: so its three tests mount it
+directly instead of clicking a button that is deliberately absent. A fourth test
+now asserts the tab is **not** offered, so the parked state is pinned — if
+someone re-adds the line without deciding to, a test says so.
+
+Gates: `src/editor/__tests__/extrasDialog.test.tsx` 12/12, then the full suite.
+No compiler-output change, so `EDITOR_BUILD` stays `2026-09-28.r241` (AR13) —
+the stamp marks what an export was built with, and an export is byte-identical.
+
+Also this round: `npm run recover` caught two more resets, one of them by its
+`Cannot find package 'vite'` signature mid-command.
+
+---
+
 # Handoff — r255
 
 **The In-progress table evaluated and cleared; the tutorial node parked.**
@@ -217,7 +250,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-250.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-251.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -297,7 +330,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-250.md`.
+Archived README rows for r227–r247: `archive/rounds-227-251.md`.
 
 ---
 
