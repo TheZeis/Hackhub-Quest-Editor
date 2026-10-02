@@ -192,7 +192,8 @@ describe("compile", () => {
     it("emits apiVersion 2 even for a project saved with the old v1 default", () => {
         // SteelWaffe, 2026-09-28: the game runs Content API v2 and v1 only
         // buys a compatibility-mode warning, so the manifest the editor
-        // emits is v2 no matter what an old project carries (docs/03 §19).
+        // emits is v2 no matter what an old project carries (answered
+        // 2026-09-28).
         const stale = scenarioProject();
         stale.mod.apiVersion = 1;
         const manifest = JSON.parse(

@@ -4,6 +4,12 @@
 checked against the two evidence classes we actually have: the pinned SDK
 declarations and the in-game QA record. Nothing here re-tests anything in game.
 
+> **Numbering (r264).** This plan cites the section numbers as they stood on
+> 2026-10-02. Zeis then had the two answered items removed — old **§19** (API v2)
+> and old **§25** (the withdrawn mail report, our own mistake) — and the rest
+> renumbered: §20→§19, §21→§20, §22→§21, §23→§22, §24→§23. §1–§18 are
+> unchanged. `docs/03` carries the same mapping in its header.
+
 **Sources used.**
 
 - `node_modules/@hotbunny/hackhub-content-sdk/index.d.ts` — pinned `0.24.0`

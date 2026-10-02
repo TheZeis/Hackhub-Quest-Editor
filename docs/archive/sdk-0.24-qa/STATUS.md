@@ -32,8 +32,9 @@ basically add `"apiVersion": 2` to your manifest.json"*.
 
 So the compatibility-mode warning is noise, **not** a symptom — and r241 makes
 the editor always emit `apiVersion: 2` (schema default, compiler emit, the QA
-scaffold export, and every hand-made probe in this folder). Closes
-[`docs/03` §19](../../docs/03-questions-for-the-developers.md).
+scaffold export, and every hand-made probe in this folder). Closes the API v2 question (removed from
+[`docs/03`](../../docs/03-questions-for-the-developers.md) in r264 once answered:
+add `"apiVersion": 2`; v1 is compatibility mode).
 
 ## Open: the dynamic-page probe (DP-01…DP-12) — the content half is green, the event half is unrun
 
@@ -99,7 +100,7 @@ filed here.
    fix is a probe change, not a game one: fire the beat from something that
    demonstrably works (a terminal command, or an objective the player ticks)
    and re-run those three rows. Filed as
-   [`docs/03` §24](../../docs/03-questions-for-the-developers.md).
+   [`docs/03` §23](../../docs/03-questions-for-the-developers.md).
 
 **Two probe design flaws worth fixing before any re-run** (my fault, both):
 
@@ -172,7 +173,8 @@ What the log proved (game 1.3.1, both probe mods loaded at 15:49:43):
 - `ModSettings.getAll()` **works in game**, both at package load and later
   at quest claim — so whatever the player sets would reach mod code.
 - The compat-mode warning is the known one filed as
-  [`docs/03` §19](../../docs/03-questions-for-the-developers.md) — every mod
+  the API v2 compatibility warning (answered 2026-09-28; the item left
+  [`docs/03`](../../docs/03-questions-for-the-developers.md) in r264) — every mod
   the editor exports logs it, and nothing measured has broken under it.
 
 What is still open: **MS-01 — no "Mods" section was found in the in-game
@@ -186,7 +188,7 @@ Two candidates, in the order worth checking:
    its location was never written down. Look for a per-mod gear/options
    control there.
 2. **They render only for `apiVersion: 2` mods.** The game reports *current:
-   v2* and runs v1 mods in compatibility mode (§19). Settings are a newer
+   v2* and runs v1 mods in compatibility mode (the API v2 answer, 2026-09-28). Settings are a newer
    surface, so it is plausible the UI is v2-only. `modsettings-v2/` (r240)
    is the same probe with `apiVersion: 2` — installing it answers this in one
    restart.
@@ -222,7 +224,7 @@ manifest permissions (the canary rendered), the author string ("Zeis" and
 "Zeissss" both rendered), and co-installation. Hidden-until-accept posters
 are standard Hackhub behaviour (Zeis). The one loose thread — an anonymous
 `cls` quest rendering from the hand harness — is recorded as a footnote for
-the developers in §21 (the compiled export's context is involved; the exact
+the developers in §20 (the compiled export's context is involved; the exact
 trip-wire is theirs to pinpoint).
 
 **Practical:** author in the current editor (r221+, stamp on every export)
@@ -238,7 +240,7 @@ field, and the author-facing copy is plain language with the toggle's
 explanation in a mouse-over ⓘ.
 
 The full matrix and every run: [`QE24-Playtest-HackhubPosting.md`](QE24-Playtest-HackhubPosting.md);
-the developer-facing summary: docs/03 §21.
+the developer-facing summary: docs/03 §20.
 
 ## Settled: the moment.js warning is the game's own content — M-09, closed
 

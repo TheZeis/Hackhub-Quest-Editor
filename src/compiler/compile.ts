@@ -848,7 +848,7 @@ function buildManifest(project: ProjectDocument, permissions: string[], iconPath
         // on 2026-09-28 that this is not a bug and the fix is simply to
         // declare v2, so every mod the editor emits declares 2 - a project
         // saved with the older default is upgraded on export rather than
-        // shipping a compatibility-mode mod. (docs/03 §19, closed.)
+        // shipping a compatibility-mode mod. (Answered 2026-09-28; item closed.)
         apiVersion: MOD_API_VERSION,
         dependencies: project.mod.dependencies ?? [],
         permissions,

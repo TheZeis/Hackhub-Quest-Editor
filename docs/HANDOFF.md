@@ -1,3 +1,48 @@
+# Handoff — r264
+
+**The answered and the withdrawn are out of the developer list, and it is renumbered.**
+
+Zeis's call on r263's audit: *"remove §19 and §25 completely, then fix the
+numbering. There's no need to make the file longer with something he already
+answered, or to tell him about a bug we had that is entirely unrelated to him."*
+
+Both are gone — the API v2 question (answered 2026-09-28: add `"apiVersion": 2`,
+which the editor has emitted since r241) and the withdrawn mail-delivery report
+(our own invented `player@gomail.com`, closed in r252). The list is now **23
+sections, numbered 1–23 with no gaps**: §20→§19, §21→§20, §22→§21,
+§23→§22, §24→§23.
+
+**Renumbering a document with 143 cross-references is the actual work here.** The
+mapping note went into `docs/03`'s header, because most of those references are
+in *historical* records — round rows, old plans, the QA transcripts — and this
+repository's rule is that archived evidence stays as written. So: the live
+surfaces were moved to the new numbers (`README.md`'s two pointers, four rows of
+the QA ledger `STATUS.md`, the r263 row rewritten to name sections instead of
+numbering them), the historical ones were left alone, and the header's mapping
+resolves any of them. `docs/plans/r263-developer-list-audit.md` carries the same
+note, since it cites the old numbers throughout.
+
+**Three code comments cited the deleted §19** (`schema/project.ts:43`,
+`compiler/compile.ts:851`, `compiler/__tests__/compile.test.ts:195`). They now
+carry the date instead of a pointer, and were trimmed so they do not repeat the
+sentence above them.
+
+**One deliberate omission, and the reason.** `compiler/runtimeSource.ts:2956`
+cites §20 in a comment, and that comment ships: `RUNTIME_SOURCE` is a
+`String.raw` literal and the built `dist/mod.js` in `reference/sdk-0.24-qa/`
+contains its comments verbatim (`/* The token scope for anything OUTSIDE a quest
+(r203)` is in there). Editing it changes compiler output, so AR13 wants an
+`EDITOR_BUILD` bump — every author's export would then read as outdated, for a
+comment. Left alone; the header mapping resolves it. Say the word and it is one
+line plus the bump.
+
+Docs and comments only: no behaviour changed, `EDITOR_BUILD` stays
+`2026-10-02.r260`. Gates: **1,830 tests / 89 files**, typecheck, build — green.
+Two sandbox resets fired mid-round; `npm run recover` realigned `HEAD` both times
+with nothing discarded.
+
+---
+
 # Handoff — r263
 
 **The developer list audited before it goes to SteelWaffe.**
@@ -481,7 +526,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-256.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-259.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -561,7 +606,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-256.md`.
+Archived README rows for r227–r247: `archive/rounds-227-259.md`.
 
 ---
 

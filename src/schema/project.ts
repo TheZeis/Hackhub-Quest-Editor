@@ -40,7 +40,7 @@ export const ModSchema = z.object({
     minSdkVersion: z.string().default("0.21.0"),
     /** Content API version the game should load this mod under. The game runs
      *  v2 (v1 loads in compatibility mode); the compiler emits v2 regardless,
-     *  so this stays in step. SteelWaffe, 2026-09-28 — see docs/03 §19. */
+     *  so this stays in step (SteelWaffe, 2026-09-28). */
     apiVersion: z.number().default(2),
 });
 export type ModDoc = z.infer<typeof ModSchema>;

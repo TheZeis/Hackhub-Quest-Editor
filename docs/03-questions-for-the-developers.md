@@ -7,8 +7,16 @@ Steam App ID `2980270` throughout. **The items span three game configurations**,
 | Game / build | Sections measured on it | When |
 |---|---|---|
 | `1.3.0` / `25341308` | §1–§4, §7 | 2026-09-16 |
-| `1.3.1` / `25388883` | §8–§18, §20–§22 | 2026-09-18 to 2026-09-22 |
-| `1.3.13` (as the game reported it) | §23, §24 | 2026-09-28 |
+| `1.3.1` / `25388883` | §8–§18, §19–§21 | 2026-09-18 to 2026-09-22 |
+| `1.3.13` (as the game reported it) | §22, §23 | 2026-09-28 |
+
+**Renumbered 2026-10-02.** Two items were removed rather than sent: the API v2
+question, which you had already answered (add `"apiVersion": 2` — the editor
+emits it on every export), and a withdrawn mail-delivery report that turned out
+to be our mistake rather than a bug. Both are in our git history. Sections after
+them moved up, so **older documents citing this file use the old numbers**:
+§1–§18 unchanged, old §20→§19, §21→§20, §22→§21, §23→§22, §24→§23;
+old §19 and §25 no longer exist.
 
 This is the fresh developer-facing list after the SDK 0.24 QA pass. The previous long-running questions document has been archived at:
 
@@ -24,10 +32,13 @@ Detailed in-game evidence lives in:
 **Audited 2026-10-02** against the pinned SDK 0.24.0 declarations and our in-game
 QA record. Where a section says *answered* or *ours*, it needs nothing from you.
 
-**Closed, kept only so the record is complete:** **§19** (API v2 — you
-answered), **§23** (mod settings — you answered; two cosmetic items remain),
-**§25** (withdrawn: our mistake, not a bug), **§4** (folded into §24), and
-**§21** (the cause was our own class emission; three engine notes remain).
+**Closed, kept only so the record is complete:** **§22** (mod settings — you
+answered; two cosmetic items remain), **§4** (folded into §23), and **§20**
+(the cause was our own class emission; three engine notes remain). Two answered
+items were removed from this list in r264 rather than kept as dead weight: the
+API v2 question (your answer: add `"apiVersion": 2` — we ship it on every
+export) and a withdrawn mail-delivery report that turned out to be our mistake,
+not a bug. Both are in our git history if you ever want them.
 
 **Still needing your input**, roughly by how much it blocks an author: **§14**
 permission calls refused from a click handler with the mod read as `null` ·
@@ -35,10 +46,10 @@ permission calls refused from a click handler with the mod read as `null` ·
 mod stays disabled forever · **§12** `Quest.claim` returns nothing · **§16** the
 promised `repliedTo` · **§17** `getInbox` entries with no `subject` · **§15**
 `Handbook.open` never reaches the article · **§18** no way to take a feed post
-down · **§22** author/avatar rendering · **§10** no picture on a tweet · **§2**
-Bettercap's `SSID: undefined` · **§24** mod sites never fire HTTP events, and
+down · **§21** author/avatar rendering · **§10** no picture on a tweet · **§2**
+Bettercap's `SSID: undefined` · **§23** mod sites never fire HTTP events, and
 every page view renders twice · **§3** DNS-only collaborator · **§1** `curl`
-absent · **§5**, **§6** suspicion and SMS: status and shape · **§20** a comment
+absent · **§5**, **§6** suspicion and SMS: status and shape · **§19** a comment
 with no author · **§9** the load-time repair did not repair our record · **§7**
 a first-load toast duplicating, one sighting · **§8** `Twotter.AccountCreated`
 silent for API-created accounts.
@@ -131,14 +142,14 @@ Collaborator hits: 3
 
 ## 4. Static editor websites load but do not fire `Http.Request` / `Http.Response` objectives
 
-**Merged into §24 — please answer it there.** This is the same fence, found
+**Merged into §23 — please answer it there.** This is the same fence, found
 earlier, and keeping two sections open meant one answer could be given twice or
 missed entirely. The measurement, for the record: the editor export's static
 `WebsiteDefinition` site loads in Browser (`http://qe24-website.test/` and
 `/echo`, 2026-09-16, game 1.3.0 / build 25341308) and neither the `http-request`
 nor the `http-response` objective completed — while in the same build the raw
 harness's `Http.registerHost()` server *did* fire Browser-origin
-response/intercept events. §24 extends this to dynamic pages on 1.3.13 and
+response/intercept events. §23 extends this to dynamic pages on 1.3.13 and
 carries the actual questions.
 
 **Editor stance.** Keep HTTP authoring fenced until the event semantics are clear by origin and host type.
@@ -779,40 +790,14 @@ The removal ask below stands on its own.
 We are **not** asking about the `author` fields any more — we measured them: a
 named author renders pre-accept, an uploaded avatar renders from a mod asset
 file, and no avatar is minted for a named-but-avatarless author (that last one is
-§22).
+§21).
 
 **Note for the road:** quests accepted from the feed show their **Complete
 button on the feed post itself**, not in the journal — the post is the
 quest's home while it is an offer. Worth keeping in mind if the lifecycle is
 ever redesigned.
 
-## 19. ~~The game says "current API v2" — the SDK ships v1. What is v2?~~ — **ANSWERED 2026-09-28**
-
-**SteelWaffe's answer, asked directly:**
-
-> game is currently running on v2 but some older mods running with v1
->
-> its not bug and your mod be ok
->
-> just basically add `"apiVersion": 2` to your manifest.json
-
-So: v2 is simply the current API, v1 keeps working in compatibility mode, and
-the warning is noise rather than a symptom. **The editor now emits
-`apiVersion: 2` on every export** (r241 — the compiler emits it, the project
-schema defaults to it, and a project still carrying `1` is upgraded on
-export), and the QA scaffold still in `reference/sdk-0.24-qa/` declares 2 (`editor-export/dist/manifest.json`; the other hand-made probes were deleted in our r252 QA cleanup).
-
-**One small suggestion, if it is easy.** We shipped `apiVersion: 1` for a
-reason: the pinned SDK's own README example (`README.md:426`) and its `build.mjs`
-scaffold (`build.mjs:106`, `REQUIRED_MANIFEST_FIELDS`) both still write `1`, and
-everything we had measured worked under compatibility mode — so nothing suggested
-the warning meant anything. Updating those two spots in the next SDK release
-would stop every SDK-built mod starting life in compatibility mode.
-
-*The original question is kept in our git history and in
-[`docs/archive/`](archive/); nothing in it needs an answer now.*
-
-## 20. The SDK requires comment authors to have names — does the game mint personas for blank ones?
+## 19. The SDK requires comment authors to have names — does the game mint personas for blank ones?
 
 **Found while diagnosing the never-surfacing feed posts** (2026-09-22, game 1.3.1 /
 build 25388883).
@@ -834,7 +819,7 @@ unverified.
 whose `author` is absent — persona, anonymous, or a failed post — so the
 editor knows whether "blank" is a feature or must be a required field.
 
-## 21. Feed posts stopped surfacing — the cause was ours; three engine notes remain
+## 20. Feed posts stopped surfacing — the cause was ours; three engine notes remain
 
 **Resolved on our side, and said plainly so you do not spend time on it.** Across
 2026-09-21/22 (game 1.3.1, SDK 0.24.0) five consecutive editor exports never
@@ -869,7 +854,7 @@ verified that a quest claimed **from the feed** never shows its post again — o
 any save. Does `Quest.claim(name)` suppress it identically? The answer decides
 whether a pack can ever re-offer a quest a player already started.
 
-## 22. Feed-post author rendering: a named author without an avatar draws a broken icon — and the employer fallback drops the avatar
+## 21. Feed-post author rendering: a named author without an avatar draws a broken icon — and the employer fallback drops the avatar
 
 **Found in the r219 harness grid** (2026-09-22, game 1.3.1, SDK 0.24.0).
 
@@ -904,7 +889,7 @@ declarations don't describe:
 combinations render what, and whether the employer fallback is expected to
 carry the employer's name AND avatar to the post.
 
-## 23. Declarative mod settings — mostly answered; two small things remain
+## 22. Declarative mod settings — mostly answered; two small things remain
 
 **Answered 2026-09-28 (same-day follow-up).** The UI is in the **main menu**:
 *Main menu → Settings → Mods → the tiny grey "Settings" word on the mod's
@@ -938,7 +923,7 @@ persist) is answered above and kept in our git history; nothing in it needs an
 answer now. The two items above — the `number` widget's width and the missing
 reset control — are the whole of what is left.
 
-## 24. `Http.Response` never reaches a mod for its own site's pages — is that intended, and can a mod observe a page view at all?
+## 23. `Http.Response` never reaches a mod for its own site's pages — is that intended, and can a mod observe a page view at all?
 
 *Revised 2026-09-28. My first reading blamed the test order; Zeis corrected me
 — the quest **was** claimed first (16:42:36) and the pages were visited
@@ -1000,44 +985,3 @@ does X or reaches Y objective" idea depends on being able to observe page
 views. Without the event, the only remaining route is for the page's own code
 to call back into the quest — which is exactly the per-request-author-code
 boundary the no-code editor cannot cross.
-
-## 25. ~~A mail sent from a page is accepted and never delivered~~ — **CLOSED 2026-10-02: our mistake, not a bug**
-
-**Withdrawn in full.** Nothing here needs an answer from you. The short version:
-we addressed test mails to `player@gomail.com`, an address that is not the
-player's, and then spent three rounds explaining why they did not arrive.
-
-The run that closed it (probe 1.3.0, 2026-10-02) sent three mails from one
-trusted terminal command in one session:
-
-| Mail | `to:` | Result |
-|---|---|---|
-| A | `player@gomail.com` — an address nobody in that save owns | did not appear in the player's inbox |
-| B | **none** | **arrived** |
-| C | the player's real address, from `Mail.getPlayerEmail()` | **arrived** |
-
-So `to:` is a genuine recipient field and it works. A mail addressed somewhere
-other than the player goes somewhere other than the player — which is what a
-recipient field is for. B confirms the documented default (no `to:` → the
-player's inbox), and C confirms `Mail.getPlayerEmail()` returns an address that
-actually receives.
-
-Everything below is superseded. It is kept because two earlier versions of this
-section were sent to you as written, and both were wrong:
-
-- the first blamed **page context**, on an A/B that had also changed the
-  recipient. The decisive counter-example was in our own data all along: the
-  `Events.emit` bridge we built as the workaround runs in trusted top-level
-  context, carried the same address, and failed identically.
-- the second, after we noticed the address, concluded that **any `to:` field
-  loses the mail**. Mail C disproves that.
-
-The only thing we would still ask for, and it is a documentation nit rather
-than a bug: `MailDefinition.to` has no doc comment, while `Mail.send` is
-summarised as *"Send an email to the player's inbox."* Read together, they
-suggest `to:` is cosmetic. One line on `to` — *"recipient; defaults to the
-player"* — would have saved us the whole detour.
-
-Related and **still open on its own evidence**: §14, `UI.*` calls made from a
-menu or right-click handler being refused with the mod read as `null`. That one
-is unaffected by this correction.
