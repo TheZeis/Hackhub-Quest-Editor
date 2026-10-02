@@ -23,6 +23,18 @@ import { existsSync } from "node:fs";
 const CLEAN = process.argv.includes("--clean");
 const SKIP_INSTALL = process.argv.includes("--skip-install");
 
+/**
+ * Root-level ignored paths this project produces on purpose, per `.gitignore`:
+ * installed dependencies and build output. Matching on the first path segment
+ * is what separates them from residue — the app's own `dist/index.html` is
+ * legitimate, while a retired QA folder's `reference/.../dist/mod.js` is not.
+ * Without this, `--clean` after a build would delete the build.
+ */
+const OWN_OUTPUT = ["node_modules", "dist", ".vite", "coverage"];
+
+const isOwnOutput = (path) =>
+  OWN_OUTPUT.includes(path.split("/")[0]) || path.endsWith(".tsbuildinfo");
+
 const git = (...args) =>
   execFileSync("git", args, { encoding: "utf8" }).trim();
 const gitOk = (...args) =>
@@ -53,10 +65,11 @@ if (!remote) {
 }
 
 // 2. Resurrection residue --------------------------------------------------
-// Gitignored paths on disk that HEAD does not track. Zero on a healthy tree.
+// Gitignored paths on disk that HEAD does not track and that this project
+// does not produce itself. Zero on a healthy tree, even after a build.
 const residue = git("ls-files", "--others", "--ignored", "--exclude-standard")
   .split("\n")
-  .filter((p) => p && !p.startsWith("node_modules/"));
+  .filter((p) => p && !isOwnOutput(p));
 
 if (residue.length === 0) {
   notes.push("no resurrection residue");

@@ -37,8 +37,10 @@ confident, wrong report that `reference/sdk-0.24-qa/` was gone while seven
 `dist/` files were still sitting in it.
 
 **Never conclude a path is deleted from `git status` alone.** Use
-`test -e <path>`, or `git ls-files --others --ignored --exclude-standard`,
-which returns nothing on a healthy tree outside `node_modules/`.
+`test -e <path>`, or `git ls-files --others --ignored --exclude-standard`.
+That command lists the project's own `dist/` build output as well, so it has
+to be read against what the build legitimately produces — the distinction
+`npm run recover` makes for you.
 
 ## The one command
 
