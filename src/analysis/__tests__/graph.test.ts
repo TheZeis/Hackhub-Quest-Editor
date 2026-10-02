@@ -118,6 +118,22 @@ describe("analyseGraph", () => {
         expect(deadEnd?.detail).toMatch(/“Wrong” outcome goes nowhere/);
     });
 
+    it("flags an app check with an unwired outcome (r259)", () => {
+        /* Both outcomes are real players: whoever lacks the app walks the
+           Missing path, so an unwired one is a stall, not an unused branch. */
+        const claim = node("entry.start");
+        const check = node("flow.appcheck", { app: "Kisscord", mode: "one" });
+        const yes = node("fx.notify");
+
+        const analysis = analyseGraph(
+            [claim, check, yes],
+            [edge(claim, "out", check, "in"), edge(check, "true", yes, "in")],
+        );
+
+        const deadEnd = analysis.issues.find((i) => i.label === "Dead end");
+        expect(deadEnd?.detail).toMatch(/“Missing” output goes nowhere/);
+    });
+
     it("flags a timer with no time set (r172, renamed r173)", () => {
         const claim = node("entry.start");
         const beat = node("flow.timer", { mode: "after", days: 0, hours: 0, minutes: 0 });

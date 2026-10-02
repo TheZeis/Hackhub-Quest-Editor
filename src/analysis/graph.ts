@@ -100,6 +100,7 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
         // A branch or reply with an unwired outcome is a dead end the player hits.
         if (
             node.type === "flow.branch" ||
+            node.type === "flow.appcheck" ||
             node.type === "reply.input" ||
             node.type === "fx.prompt" ||
             node.type === "flow.sequence"
@@ -118,7 +119,9 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                     nodeId: node.id,
                     label: "Dead end",
                     detail:
-                        node.type === "flow.sequence"
+                        node.type === "flow.appcheck"
+                            ? `The “${names}” output goes nowhere, so a player whose desktop takes that path stalls.`
+                            : node.type === "flow.sequence"
                             ? `The “${names}” output goes nowhere, so that step of the sequence does nothing. Wire it up or remove the output.`
                             : node.type === "reply.input"
                               ? `The “${names}” outcome goes nowhere, so a wrong answer just shows the failure message and the player tries again. That retry loop is the usual design — wire it only if a wrong answer should do something more.`
@@ -126,7 +129,9 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                                 ? `The “${names}” outcome goes nowhere. That is fine if the story should stop there; wire it if the player should see a follow-up.`
                                 : `The “${names}” outcome goes nowhere, so the quest stalls if the player takes it.`,
                     nextStep:
-                        node.type === "flow.sequence"
+                        node.type === "flow.appcheck"
+                            ? `Wire the “${names}” output to the node that should run for that player, or give them a hint and send both outputs the same way.`
+                            : node.type === "flow.sequence"
                             ? `Wire the “${names}” step to the node that should run at that point, or remove the step.`
                             : node.type === "reply.input"
                               ? `Leave it if retrying is the design, or wire the “${names}” answer to the node that should run on a wrong answer.`

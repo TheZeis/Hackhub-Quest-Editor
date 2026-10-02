@@ -1,3 +1,55 @@
+# Handoff — r259
+
+**App Install Check — the node that stops a quest sending players to an app
+they do not have.**
+
+Zeis approved the r257 plan and named the node: **App Install Check**, not
+"Install Check", because the SDK only answers for desktop apps and the shorter
+name would promise more than it can do.
+
+`Desktop.isAppInstalled` / `getInstalledApps` (`index.d.ts:3895,3897`) were
+unreferenced anywhere in `src/`. A condition could not do this job — a clause
+compares a *payload field path* (`nodes.ts:59-68`) from `source: "event" |
+"data"`, and nothing in that mechanism can call an SDK function — so it is a
+node in **Flow control**, with outputs labelled **Installed** / **Missing**
+rather than Yes/No, because "yes what?". Two modes: check one app and route, or
+store the whole installed list in quest data so a Branch or a message can read
+it. That second mode is also how an author answers the r235 lynx question on
+their own save.
+
+**Written to the plain-language rule from the start** — no `isAppInstalled`,
+`getInstalledApps` or "boolean" anywhere an author reads. The manual page, the
+palette blurb and every field hint were written to it too.
+
+**Two gaps the build surfaced that the tests alone would not have caught:**
+
+- `graph.ts` keeps an explicit list of node types whose multiple outcomes get
+  dead-end checking. A branching node missing from it is never flagged, so an
+  author could ship a quest that stalls for every player who lacks the app. It
+  is on the list now, with its own wording.
+- A blank **App name** silently always took the Missing path. It now warns
+  beside the field, and `checking.html` gained the matching `msg-field-app-no-name`
+  entry so the manual's link resolves.
+
+The five compiler tests **run the emitted mod against a stub desktop** rather
+than asserting on source text, which is what caught the first draft: the
+fixture had no `entry.start`, so nothing fired at all. Flow nodes are reached
+through wires from an entry node — the registry's `hook` is for the inspector
+and the analysis, not an auto-run.
+
+Counts moved together, as they always do: **41 node types** (`schema.test.ts`),
+**164 fields / 80 sockets** (manual inventory), the reference template 50 → 51,
+and the front page's headline chips. `EDITOR_BUILD` → `2026-10-02.r259` — unlike
+r251–r256 this changes compiler output, so AR13 requires it.
+
+Gates: **1,827 tests / 89 files**, `tsc --noEmit`, `vite build` — all green.
+
+**Still open:** whether terminal tools like **lynx** appear in
+`getInstalledApps()`. Answerable in game now by the node's own list mode —
+author it into a two-node quest with a **Notify** and read the popup.
+
+---
+
 # Handoff — r256
 
 **Desktop app checks picked up next; localization parked, and its tab hidden
@@ -250,7 +302,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-251.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-252.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -330,7 +382,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-251.md`.
+Archived README rows for r227–r247: `archive/rounds-227-252.md`.
 
 ---
 

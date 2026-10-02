@@ -1809,6 +1809,25 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var yes = __QE.matchAll(node.data.conditions, node.data.source === "data" ? (questRef ? questRef.Data : {}) : (ctx && ctx.payload) || {}, scopeOf(ctx));
                     edges = edges.filter(function (e) { return e.sourceHandle === (yes ? "true" : "false"); });
                 }
+                if (node.type === "flow.appcheck") {
+                    /* The SDK's own doc comment is why this node exists: most
+                       desktop apps are unlocked as the player earns them, so a
+                       pack that assumes one is present notifies about something
+                       the player cannot open, which reads as the pack being
+                       broken. Guarded like the widget path is - a build without
+                       the call must not throw inside the quest walk. */
+                    if (node.data.mode === "list") {
+                        var appNames = (sdk.Desktop && sdk.Desktop.getInstalledApps) ? sdk.Desktop.getInstalledApps() : [];
+                        var appKey = String(node.data.key || "").trim() || "apps";
+                        if (questRef && questRef.SetData) {
+                            __QE.safe(function () { questRef.SetData(appKey, appNames.join(", ")); });
+                        }
+                    } else {
+                        var haveApp = !!(node.data.app && sdk.Desktop && sdk.Desktop.isAppInstalled
+                            && sdk.Desktop.isAppInstalled(String(node.data.app)));
+                        edges = edges.filter(function (e) { return e.sourceHandle === (haveApp ? "true" : "false"); });
+                    }
+                }
                 /* Walk the wires SYNCHRONOUSLY for as long as we can.
                    The engine only treats this mod as "current" while it is
                    inside a call it made - OnStart, OnObjectivesStart, an event

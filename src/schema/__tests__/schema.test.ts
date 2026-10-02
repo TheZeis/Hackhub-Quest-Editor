@@ -41,8 +41,8 @@ describe("registry ↔ node union", () => {
         expect([...NODE_TYPES].sort()).toEqual([...ALL_TYPES].sort());
     });
 
-    it("has 40 node types", () => {
-        expect(NODE_TYPES).toHaveLength(40);
+    it("has 41 node types", () => {
+        expect(NODE_TYPES).toHaveLength(41);
     });
 
     /* The r173 rename guard the r173 plan asked for: authors see "Timer", and

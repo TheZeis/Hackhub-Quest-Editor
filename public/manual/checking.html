@@ -10,7 +10,7 @@
 <div class="wrap">
 <nav class="toc" aria-label="Handbook contents">
   <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
-  <p class="build">Handbook · build 2026-09-28.r241</p>
+  <p class="build">Handbook · build 2026-10-02.r259</p>
   <div class="search">
     <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
     <div class="results" role="listbox" aria-label="Search results"></div>
@@ -210,6 +210,20 @@ it.</p>
   moment to its output. On <a href="nodes/entry-start.html">Quest start</a> that
   is usually your briefing message first. If you do not need the node, delete it
   and the message goes with it.</dd>
+</dl>
+
+<h3 id="msg-field-app-no-name">No app name</h3>
+<blockquote class="blurb">No app name, so this check can never match anything.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
+  <dt class="dt-mute">Where</dt><dd>In the inspector, under <b class="ui">App name</b>.</dd>
+  <dt>What it means</dt><dd>An <a href="nodes/flow-appcheck.html">App Install Check</a>
+  set to check one app has no name to look for. The game can never answer yes,
+  so the <b class="ui">Missing</b> path runs every time and the story quietly
+  takes the wrong branch.</dd>
+  <dt>What to do</dt><dd>Type the app's name exactly as the player's desktop
+  spells it, or switch <b class="ui">What to do</b> to <b class="ui">Save the
+  list of installed apps</b>, which does not use the name at all.</dd>
 </dl>
 
 <h3 id="msg-field-no-machine">No machine set</h3>
@@ -517,7 +531,7 @@ may already be using it.</p>
 <div class="pagefoot"><a href="how-do-i.html">← How do I…</a><a class="next" href="export.html">Exporting and installing →</a></div>
 <a class="totop" href="#checking">↑ back to top</a>
 <footer class="colophon">
-  HackHub Quest Editor handbook · documents editor build 2026-09-28.r241 ·
+  HackHub Quest Editor handbook · documents editor build 2026-10-02.r259 ·
   every message on this page is quoted from the editor's own source.
 </footer>
 </main>

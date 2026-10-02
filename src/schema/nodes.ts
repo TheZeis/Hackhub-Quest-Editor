@@ -620,6 +620,27 @@ export const BranchNodeDataSchema = z.object({
     source: z.enum(["event", "data"]).default("event"),
 });
 
+/**
+ * App Install Check (r259): does this player have a given desktop app?
+ *
+ * The SDK's own doc comment is the reason this node exists — most of the
+ * desktop's apps are unlocked as the player earns them, so a pack that assumes
+ * one is present "produces a notification for something the player cannot open,
+ * which reads as the pack being broken" (`index.d.ts:3885`).
+ *
+ * `one` routes down the Installed or Missing wire. `list` stores every
+ * installed app's name under `key` instead, so a later Branch or a terminal
+ * message can read it — which is also how an author finds out what the game
+ * counts as an app on their own save.
+ */
+export const AppCheckNodeDataSchema = z.object({
+    /** The app's name as the desktop knows it, e.g. "Kisscord". */
+    app: z.string().default(""),
+    mode: z.enum(["one", "list"]).default("one"),
+    /** Where `list` mode stores the result, readable as `{{data.apps}}`. */
+    key: z.string().default("apps"),
+});
+
 export const DelayNodeDataSchema = z.object({
     /** Seconds — friendlier than ms; halves like 0.5 are fine. */
     seconds: z.number().default(1),
@@ -791,6 +812,7 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("fx.shell", ShellExecNodeDataSchema),
     node("fx.handbook", HandbookNodeDataSchema),
     node("flow.branch", BranchNodeDataSchema),
+    node("flow.appcheck", AppCheckNodeDataSchema),
     node("flow.delay", DelayNodeDataSchema),
     node("flow.timer", TimerNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),

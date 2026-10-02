@@ -148,6 +148,21 @@ export function fieldWarnings(quest: QuestDoc | undefined, node: NodeDoc): Field
         }
     }
 
+    /* An App Install Check with no name has nothing to look for, so the
+       Missing path would always run — silently, and the author would read it
+       as the game disagreeing with them. List mode uses no name at all, so it
+       stays quiet. */
+    if (node.type === "flow.appcheck" && String(d.mode ?? "one") === "one") {
+        if (!String(d.app ?? "").trim()) {
+            out.push({
+                path: "app",
+                severity: "warn",
+                detail: "No app name, so this check can never match anything.",
+                nextStep: "Type the app's name as the desktop spells it, or switch to “Save the list of installed apps”.",
+            });
+        }
+    }
+
     // A Timer pinned to a date the calendar never has — 31 June, 30 February —
     // can never arrive; the runtime fails open, so the warning belongs here,
     // while the author is looking at the field. An incomplete date stays quiet:

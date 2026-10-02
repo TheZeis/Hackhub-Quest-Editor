@@ -6224,3 +6224,84 @@ describe("r88: generated quests ship the shape that does not crash", () => {
         expect(visible[0].terminalCommand).toBeUndefined();
     });
 });
+
+/* ── App Install Check (r259) ──────────────────────────────────────────────
+   The point of the node is that the GAME answers, so these run the emitted
+   mod against a stub desktop rather than asserting on the source text. That
+   is what catches a path that compiles and then never routes. */
+describe("App Install Check (r259)", () => {
+    function appCheckQuest(data: Record<string, unknown>) {
+        const p = createProject();
+        const q = p.quests[0];
+        q.autoStart = true;
+        /* Flow nodes are reached through wires from an entry node — the
+           registry's `hook` is for the inspector and the analysis, not an
+           auto-run. Without entry.start nothing here would ever fire. */
+        const start = node("entry.start", {});
+        const check = node("flow.appcheck", data);
+        const yes = node("fx.notify", { message: "have it", variant: "toast", tone: "info" });
+        const no = node("fx.notify", { message: "no app", variant: "toast", tone: "info" });
+        q.graph.nodes = [start, check, yes, no];
+        q.graph.edges = [
+            edge(start.id, check.id, "flow"),
+            edge(check.id, yes.id, "flow", "true"),
+            edge(check.id, no.id, "flow", "false"),
+        ];
+        return compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+    }
+
+    /** @param installed null = a build with no Desktop calls at all. */
+    function run(modJs: string, installed: string[] | null) {
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        sdk.UI = { toast: (m: string) => calls.push(`toast:${m}`), notify: () => {} };
+        if (installed) {
+            sdk.Desktop = {
+                isAppInstalled: (a: string) => installed.includes(a),
+                getInstalledApps: () => installed,
+            };
+        }
+        runMod(modJs, sdk);
+        const quest = new (registered0(sdk).quests[0])();
+        quest.OnStart();
+        return { calls, quest };
+    }
+
+    it("takes the Installed path when the game says the app is there", () => {
+        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), ["Kisscord", "Terminal"]);
+        expect(calls).toContain("toast:have it");
+        expect(calls).not.toContain("toast:no app");
+    });
+
+    it("takes the Missing path when the player does not have it", () => {
+        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), ["Terminal"]);
+        expect(calls).toContain("toast:no app");
+        expect(calls).not.toContain("toast:have it");
+    });
+
+    it("fails to Missing rather than throwing on a build with no Desktop calls", () => {
+        /* The widget path guards the same way. A quest that throws mid-walk
+           strands the player with no message at all. */
+        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), null);
+        expect(calls).toContain("toast:no app");
+    });
+
+    it("stores the installed list where quest data can read it back", () => {
+        const { quest, calls } = run(appCheckQuest({ mode: "list", key: "apps" }), ["Kisscord", "Terminal"]);
+        expect(calls).toContain("setData:apps=Kisscord, Terminal");
+        expect(quest.Data.apps).toBe("Kisscord, Terminal");
+    });
+
+    it("does not consult the desktop when no node asks it to", () => {
+        const p = createProject();
+        p.quests[0].autoStart = true;
+        const modJs = compileProject(p).files.find((f) => f.path === "dist/mod.js")!.content;
+        const calls: string[] = [];
+        const sdk = stubSdk(calls, []) as any;
+        let asked = 0;
+        sdk.Desktop = { isAppInstalled: () => { asked++; return true; }, getInstalledApps: () => { asked++; return []; } };
+        runMod(modJs, sdk);
+        new (registered0(sdk).quests[0])().OnObjectivesStart();
+        expect(asked).toBe(0);
+    });
+});

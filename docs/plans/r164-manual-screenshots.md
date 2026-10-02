@@ -162,6 +162,7 @@ Load *Node Reference*, click the node, screenshot. Same three steps every time.
 | `node-fx-shell-inspector.png` | Run terminal command | `fx.shell` |
 | `node-fx-handbook-inspector.png` | Open handbook | `fx.handbook` |
 | `node-flow-branch-inspector.png` | Branch | `flow.branch` |
+| `node-flow-appcheck-inspector.png` | App Install Check | `flow.appcheck` |
 | `node-flow-delay-inspector.png` | Wait | `flow.delay` |
 | `node-flow-timer-inspector.png` | Timer | `flow.timer` |
 | `node-flow-reroute-inspector.png` | Reroute | `flow.reroute` |

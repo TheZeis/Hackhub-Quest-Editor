@@ -180,4 +180,19 @@ describe("fieldWarnings", () => {
         const coming = makeNode("flow.timer", { x: 0, y: 0 }, { mode: "daytime", offsetDays: 3 });
         expect(fieldWarnings(questWith(coming), coming).some((w) => w.path === "dateDay")).toBe(false);
     });
+
+    it("warns when an app check has no app name (r259)", () => {
+        /* Nothing to look for means the Missing path always runs — silently,
+           and the author reads it as the game disagreeing with them. */
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { mode: "one", app: "" });
+        const warning = fieldWarnings(questWith(check), check).find((w) => w.path === "app");
+        expect(warning?.severity).toBe("warn");
+    });
+
+    it("stays quiet about the app name when the node is saving the list (r259)", () => {
+        /* List mode never reads the name, so warning about it would be noise
+           on a field the author is not using. */
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { mode: "list", app: "" });
+        expect(fieldWarnings(questWith(check), check).some((w) => w.path === "app")).toBe(false);
+    });
 });

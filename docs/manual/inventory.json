@@ -1,14 +1,14 @@
 {
   "generatedBy": "scripts/extract-manual-inventory.mjs",
-  "editorBuild": "2026-09-28.r241",
+  "editorBuild": "2026-10-02.r259",
   "sdkVersion": "0.24.0",
   "counts": {
-    "nodeTypes": 40,
-    "obtainableNodeTypes": 40,
+    "nodeTypes": 41,
+    "obtainableNodeTypes": 41,
     "categories": 10,
-    "editableFields": 161,
-    "editableFieldsExcludingLists": 153,
-    "sockets": 76,
+    "editableFields": 164,
+    "editableFieldsExcludingLists": 156,
+    "sockets": 80,
     "events": 99,
     "eventGroups": 10
   },
@@ -2834,6 +2834,95 @@
       "defaults": {
         "conditions": [],
         "source": "event"
+      }
+    },
+    {
+      "type": "flow.appcheck",
+      "slug": "flow-appcheck",
+      "label": "App Install Check",
+      "blurb": "Route on whether the player has an app",
+      "icon": "branch",
+      "category": "flow",
+      "hook": "onObjectivesStart",
+      "obtainable": true,
+      "targets": [
+        {
+          "id": "in",
+          "kind": "flow",
+          "label": "In"
+        },
+        {
+          "id": "trigger",
+          "kind": "condition",
+          "label": "Trigger"
+        }
+      ],
+      "sources": [
+        {
+          "id": "true",
+          "kind": "flow",
+          "label": "Installed"
+        },
+        {
+          "id": "false",
+          "kind": "flow",
+          "label": "Missing"
+        }
+      ],
+      "hasDynamicSockets": true,
+      "fields": [
+        {
+          "depth": 0,
+          "path": "note",
+          "kind": "note",
+          "key": null,
+          "label": null,
+          "hint": null,
+          "tone": "info",
+          "text": "Most desktop apps are not installed on a fresh save — the player unlocks them as they go. Check before your quest sends a message to one, or the player gets a notification for an app they cannot open."
+        },
+        {
+          "depth": 0,
+          "path": "mode",
+          "kind": "select",
+          "key": "mode",
+          "label": "What to do",
+          "hint": "Check one app and send the quest down a wire, or save the player's whole app list so a later Branch or message can read it.",
+          "options": [
+            {
+              "value": "one",
+              "label": "Check one app"
+            },
+            {
+              "value": "list",
+              "label": "Save the list of installed apps"
+            }
+          ]
+        },
+        {
+          "depth": 0,
+          "path": "app",
+          "kind": "text",
+          "key": "app",
+          "label": "App name",
+          "hint": "The name exactly as it appears on the player's desktop, e.g. Kisscord. Used by “Check one app”.",
+          "placeholder": "Kisscord"
+        },
+        {
+          "depth": 0,
+          "path": "key",
+          "kind": "text",
+          "key": "key",
+          "label": "Save the list as",
+          "hint": "The name to store the list under. Later text can read it back with the tag picker. Used by “Save the list of installed apps”.",
+          "placeholder": "apps"
+        }
+      ],
+      "editableFieldCount": 3,
+      "defaults": {
+        "app": "",
+        "mode": "one",
+        "key": "apps"
       }
     },
     {

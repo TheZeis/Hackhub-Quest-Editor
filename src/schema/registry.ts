@@ -16,6 +16,7 @@ import type { EdgeKind, HandleSpec } from "./edges";
 import {
     DebugNodeDataSchema,
     DialogueNodeDataSchema,
+    AppCheckNodeDataSchema,
     BranchNodeDataSchema,
     ClaimQuestNodeDataSchema,
     CompleteQuestNodeDataSchema,
@@ -284,6 +285,22 @@ const submittedOut: HandleSpec = { id: "success", kind: "flow", label: "Submitte
 const cancelledOut: HandleSpec = { id: "cancel", kind: "flow", label: "Cancelled" };
 const trueOut: HandleSpec = { id: "true", kind: "flow", label: "Yes" };
 const falseOut: HandleSpec = { id: "false", kind: "flow", label: "No" };
+
+/* Dedicated output labels for the App Install Check (r259). On a node called
+   "App Install Check", Yes/No leaves "yes what?" hanging, so these say the
+   thing. The ids stay `true`/`false` so every wire, edge rule and the
+   connection validator behave exactly as they do for Branch. */
+const appInstalledOut: HandleSpec = { id: "true", kind: "flow", label: "Installed" };
+const appMissingOut: HandleSpec = { id: "false", kind: "flow", label: "Missing" };
+
+/**
+ * List mode does not branch — it stores a value and carries on — so it gets one
+ * plain output. Showing Installed/Missing there would be two pins that both
+ * mean the same thing, and an author would wire both "to be safe".
+ */
+function appCheckSockets(data: Record<string, unknown>): HandleSpec[] {
+    return data.mode === "list" ? [outFlow] : [appInstalledOut, appMissingOut];
+}
 
 const io = { targets: [inFlow], sources: [outFlow] };
 
@@ -1275,6 +1292,33 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             { kind: "conditions", key: "conditions", hint: "All clauses must hold for the “Yes” path. Otherwise the “No” path runs.", label: "Take the “Yes” path when" },
         ],
         create: () => seed(BranchNodeDataSchema),
+    },
+    "flow.appcheck": {
+        type: "flow.appcheck",
+        category: "flow",
+        label: "App Install Check",
+        blurb: "Route on whether the player has an app",
+        icon: "branch",
+        targets: [inFlow, triggerIn],
+        sources: [appInstalledOut, appMissingOut],
+        dynamicSources: (data) => appCheckSockets(data),
+        hook: "onObjectivesStart",
+        fields: [
+            { kind: "note", tone: "info", text: "Most desktop apps are not installed on a fresh save — the player unlocks them as they go. Check before your quest sends a message to one, or the player gets a notification for an app they cannot open." },
+            {
+                kind: "select",
+                key: "mode",
+                label: "What to do",
+                hint: "Check one app and send the quest down a wire, or save the player's whole app list so a later Branch or message can read it.",
+                options: [
+                    { value: "one", label: "Check one app" },
+                    { value: "list", label: "Save the list of installed apps" },
+                ],
+            },
+            { kind: "text", key: "app", label: "App name", hint: "The name exactly as it appears on the player's desktop, e.g. Kisscord. Used by “Check one app”.", placeholder: "Kisscord" },
+            { kind: "text", key: "key", label: "Save the list as", hint: "The name to store the list under. Later text can read it back with the tag picker. Used by “Save the list of installed apps”.", placeholder: "apps" },
+        ],
+        create: () => seed(AppCheckNodeDataSchema),
     },
 
     "flow.delay": {

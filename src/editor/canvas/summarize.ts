@@ -276,6 +276,15 @@ export function summarize(
             ];
         }
 
+        case "flow.appcheck": {
+            /* List mode does not ask a question, so the summary must not read
+               like one. */
+            if (d.mode === "list") {
+                return [`Saves the list of installed apps as ${d.key || "apps"}`];
+            }
+            return [d.app ? `Does the player have ${String(d.app)}?` : "No app name yet"];
+        }
+
         case "flow.delay":
             return [`${Number(d.seconds ?? 0)} s`];
 
