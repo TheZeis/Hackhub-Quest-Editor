@@ -1,3 +1,114 @@
+# Handoff — r251
+
+**Zeis: the previous agent hallucinated from r237 onward, chased a mail "issue"
+that never existed, and stopped following the round rules. Audit them.**
+
+**The defect, fixed.** Seven mail nodes across five QA quests in
+`reference/sdk-0.24-qa/projects/sdk-0.24-ingame-qa.project.json` were addressed
+to `player@gomail.com` — an address that has never existed in any save. It was
+invented by pattern-matching: `gomail.com` *is* a real in-game provider
+(`docs/03` §16 shows `bkelso@gomail.com` in a captured log), but nothing is
+ever at `player@`. Because an unresolvable recipient is accepted by `Mail.send`,
+handed an id, and then silently dropped, those rows — the editor scaffold,
+Timer S-01/S-05/S-06/S-13 and both Wait-month rows — would have reported a mail
+that never arrived. The field is removed; with no `to:` the game defaults to
+the player's own inbox, which is what those rows always meant. QA export
+regenerated through `npm run gen:qa-export` at 1.0.52.
+
+**The record, corrected.** `docs/03` §25 is rewritten around the real finding,
+with the calling-context reading and the `Events.emit` bridge ask formally
+withdrawn. The reason is the bridge itself: r246 built it, it runs in trusted
+top-level context, it carried the same fabricated address, and it failed
+identically — so the probe's own data had already refuted the verdict filed on
+top of it. The superseded text stays below the correction because it was sent
+to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
+is separately evidenced and untouched.
+
+**The hygiene, paid.** Done recently is back to five rows with nineteen
+archived to `docs/archive/rounds-227-246.md` behind a correction banner; the
+r249/r248 rows that survive are corrected in place. In-progress #1 untangles
+what r237–r249 had fused into one story — content green, HTTP events fenced
+since r166, the mail question ours — and #2 records that the ModSettings UI was
+never missing (main menu → Settings → Mods, not reachable in game), so what the
+editor owes is MS-07's reset. Figures corrected to 1,894/93.
+
+**Still open, deliberately.** `runtimeSource.ts:1429` fills `to:` from
+`Mail.getPlayerEmail()` when the author leaves it blank. That is *probably*
+fine and is *not proven* either way: W-01's three delivered mails are equally
+consistent with the call returning a good address and with it returning `""` so
+the field was skipped. No QA row distinguishes them. One run of probe 1.3.0's
+`qedyn mail` does — mail C prints the address it used and sends to it. No
+editor change was shipped on the theory.
+
+Gates: 1,894 tests / 93 files, typecheck, build — green. No compiler change, so
+the stamp stays `2026-09-28.r241` (AR13).
+
+---
+
+# Handoff — r250
+
+**The audit Zeis asked for, before touching anything:
+[`plans/r250-r237-r249-audit.md`](plans/r250-r237-r249-audit.md).**
+
+Git history is squashed to two commits, so round-by-round diffs do not exist.
+Each round's *claims* were instead read against the artifacts they rest on: the
+pinned SDK declarations, the shipped compiler and runtime, the probe mods'
+actual source, and Zeis's own pasted logs — including the ones on
+`QA-filedump` (`git fetch origin QA-filedump`).
+
+Two conclusions were wrong, and one piece of evidence settles both:
+
+- **"The `to:` field is what loses a mail" (r249) is refuted by our own run.**
+  The r211 mail-authoring probe — run by Zeis on the editor's own compiled
+  export, clean save — delivered three mails whose `to:` the runtime filled
+  from `Mail.getPlayerEmail()`. The rule is narrower: a `to:` naming a mailbox
+  that does not exist is accepted, given an id, and dropped.
+- **"Pinned to the calling context" (r245) is refuted by the probe's own data.**
+  Its A/B moved two variables — the arriving `OnStart` mail carried no `to:`,
+  both failures carried the fabricated one. The third send removes all doubt:
+  the `Events.emit` bridge runs in trusted context, carried the same address,
+  and failed too.
+
+What holds up: r237's `Website`-class claim (`runtimeSource.ts:3317`),
+r239/r240 ModSettings, r241's `apiVersion: 2` (`compile.ts:837`, pinned by
+three test files), r243's SDK verdicts (spot-checked `PageContext` and
+`PageMetadata` against `index.d.ts:151-163`), r247's load-time guard. **The
+only shipped-editor change in thirteen rounds was r241, and it is correct** —
+which is why `EDITOR_BUILD` still reads `2026-09-28.r241` and that is right
+rather than stale.
+
+One suspicion raised and dropped, recorded so it is not repeated: STATUS.md's
+MS-05/MS-06 greens looked like inflation over Zeis's "Green?"/"Maybe Green?",
+but the uncut post-restart log really does carry `MS-load 1` with the changed
+values against the pre-restart defaults. Persistence and readback are
+substantiated; only the screenshot citation is loose.
+
+Gates: 1,894 tests / 93 files, typecheck — green.
+
+---
+
+# Note — the r232–r249 gap in this file
+
+Rounds r232 through r249 have no handoff entries. They were never written.
+This file jumped from r231 straight to r250, and rather than reconstruct
+eighteen entries from README rows and second-hand summaries — which is exactly
+the failure mode r250 was auditing — the gap is left visible.
+
+Where the evidence for those rounds actually lives:
+
+- **r232/r233** (Dead Air template) — the template itself,
+  `src/templates/deadAir.ts`, and its invariants in `templates.test.ts`.
+- **r234/r235** (SDK sweep, deleteable files) — `plans/r234-sdk024-unswept-surface.md`,
+  and `FileDefinition.deleteable` in the compiler.
+- **r237–r243** — `plans/r237`, `r238`, `r239`, `r243`, plus
+  `reference/sdk-0.24-qa/STATUS.md` and the probe mods' own source.
+- **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
+  rows for these rounds stated conclusions the audit disproved.
+
+Archived README rows for r227–r246: `archive/rounds-227-246.md`.
+
+---
+
 # Handoff — r231
 
 **Zeis:** "This does break with groups, however. The group frames themselves
