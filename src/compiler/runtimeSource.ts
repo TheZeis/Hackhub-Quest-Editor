@@ -1816,17 +1816,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                        the player cannot open, which reads as the pack being
                        broken. Guarded like the widget path is - a build without
                        the call must not throw inside the quest walk. */
-                    if (node.data.mode === "list") {
+                    if (node.data.saveList) {
                         var appNames = (sdk.Desktop && sdk.Desktop.getInstalledApps) ? sdk.Desktop.getInstalledApps() : [];
-                        var appKey = String(node.data.key || "").trim() || "apps";
+                        var appKey = String(node.data.key || "").trim() || "installedApps";
                         if (questRef && questRef.SetData) {
                             __QE.safe(function () { questRef.SetData(appKey, appNames.join(", ")); });
                         }
-                    } else {
-                        var haveApp = !!(node.data.app && sdk.Desktop && sdk.Desktop.isAppInstalled
-                            && sdk.Desktop.isAppInstalled(String(node.data.app)));
-                        edges = edges.filter(function (e) { return e.sourceHandle === (haveApp ? "true" : "false"); });
                     }
+                    var haveApp = !!(node.data.app && sdk.Desktop && sdk.Desktop.isAppInstalled
+                        && sdk.Desktop.isAppInstalled(String(node.data.app)));
+                    edges = edges.filter(function (e) { return e.sourceHandle === (haveApp ? "true" : "false"); });
                 }
                 /* Walk the wires SYNCHRONOUSLY for as long as we can.
                    The engine only treats this mod as "current" while it is

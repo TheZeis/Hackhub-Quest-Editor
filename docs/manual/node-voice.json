@@ -606,25 +606,25 @@
   },
   "flow.appcheck": {
     "oneliner": "Asks the game whether the player has an app, and splits the story on the answer.",
-    "what": "Checks the player's desktop. One path runs when they have the app you named, the other when they do not. It can also save their whole list of installed apps so something later can read it.",
+    "what": "Checks the player's desktop and sends the story down <b class=\"ui\">Installed</b> or <b class=\"ui\">Missing</b>. It can also save their whole list of installed apps at the same time, so something later can read it.",
     "when": [
       "Use it before your quest sends the player to an app. Most apps are not installed on a fresh save — the player unlocks them as they play — so a message telling them to open one they do not have reads as your quest being broken.",
       "Use it to write a hint instead of a dead end: send players who have the app one way, and give everyone else a different route or a nudge.",
-      "Use <b class=\"ui\">Save the list of installed apps</b> when you want to mention what the player actually has, or when a later <a href=\"flow-branch.html\">Branch</a> should test the list. It is also the quickest way to see which apps the game counts on your own save."
+      "Turn on <b class=\"ui\">Also save the list of installed apps</b> when a later <a href=\"flow-branch.html\">Branch</a> should test the list, when a message should mention what the player actually owns, or when you want to see which apps the game counts on your own save — send the list to a <a href=\"fx-notify.html\">Notify</a> and read it in game."
     ],
     "game": "Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.",
     "fields": {
-      "mode": {
-        "put": "Pick what this node does. <b class=\"ui\">Check one app</b> sends the story down <b class=\"ui\">Installed</b> or <b class=\"ui\">Missing</b>. <b class=\"ui\">Save the list of installed apps</b> stores every app the player has and carries straight on.",
-        "watch": "The outputs on the node change with this setting. Saving the list has nothing to split on, so the node keeps a single output."
-      },
       "app": {
         "put": "Copy it from the desktop rather than typing it from memory — the check is by exact name, so a spelling the desktop does not use never matches.",
         "empty": "With no name there is nothing to look for, so the <b class=\"ui\">Missing</b> path always runs. The editor warns you while you are still looking at the field."
       },
+      "saveList": {
+        "put": "Stores every app the player has under the name below, then carries on with the check as normal. The node does both.",
+        "watch": "On by default, because the list costs nothing to keep and it is the only way to see what the game counts as an app. Turn it off if nothing in the quest reads it and you would rather not store it."
+      },
       "key": {
         "put": "Anything you like. It is only the label other parts of the quest use to find the list again, and it never appears on screen.",
-        "watch": "Only used when saving the list. A dot splits a tag into steps, so keep the name simple."
+        "watch": "Two checks using the same name refresh it, which is what you want after the player unlocks something. Use two different names if you want to keep a snapshot of each moment."
       }
     },
     "sockets": {
@@ -655,7 +655,7 @@
       [
         "No app name",
         "msg-field-app-no-name",
-        "<b class=\"ui\">App name</b> is empty while the node is set to check one app"
+        "<b class=\"ui\">App name</b> is empty, so the <b class=\"ui\">Missing</b> path runs every time"
       ]
     ],
     "mistakes": [
@@ -665,7 +665,7 @@
       ],
       [
         "The name does not match the desktop's.",
-        "The check is by name, so a spelling the desktop does not use always comes back <b class=\"ui\">Missing</b>."
+        "The check is by name, so a spelling the desktop does not use always comes back <b class=\"ui\">Missing</b>. Terminal commands are not desktop apps — <b class=\"ui\">lynx</b> is something the player types, not something on their desktop."
       ],
       [
         "Assuming every player has the same apps.",

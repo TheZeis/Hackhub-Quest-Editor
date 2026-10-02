@@ -11,7 +11,7 @@
 
 <nav class="toc" aria-label="Handbook contents">
   <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
-  <p class="build">Handbook · build 2026-10-02.r259</p>
+  <p class="build">Handbook · build 2026-10-02.r260</p>
   <div class="search">
     <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
     <div class="results" role="listbox" aria-label="Search results"></div>
@@ -54,48 +54,41 @@
 <section id="node-flow-appcheck-page">
 
 <h2>What it does</h2>
-<p>Checks the player's desktop. One path runs when they have the app you named, the other when they do not. It can also save their whole list of installed apps so something later can read it.</p>
+<p>Checks the player's desktop and sends the story down <b class="ui">Installed</b> or <b class="ui">Missing</b>. It can also save their whole list of installed apps at the same time, so something later can read it.</p>
 
 <h2>When you'd use it</h2>
 <p>Use it before your quest sends the player to an app. Most apps are not installed on a fresh save — the player unlocks them as they play — so a message telling them to open one they do not have reads as your quest being broken.</p>
 <p>Use it to write a hint instead of a dead end: send players who have the app one way, and give everyone else a different route or a nudge.</p>
-<p>Use <b class="ui">Save the list of installed apps</b> when you want to mention what the player actually has, or when a later <a href="flow-branch.html">Branch</a> should test the list. It is also the quickest way to see which apps the game counts on your own save.</p>
+<p>Turn on <b class="ui">Also save the list of installed apps</b> when a later <a href="flow-branch.html">Branch</a> should test the list, when a message should mention what the player actually owns, or when you want to see which apps the game counts on your own save — send the list to a <a href="fx-notify.html">Notify</a> and read it in game.</p>
 
 <h2>In the game, this looks like</h2>
 <p>Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.</p>
 
 <h2>Fields</h2>
 
-<h3 id="node-flow-appcheck-field-mode">What to do</h3>
-<blockquote class="blurb">Check one app and send the quest down a wire, or save the player's whole app list so a later Branch or message can read it.</blockquote>
-<dl class="facts-list">
-  <dt>What to put here</dt><dd>Pick what this node does. &lt;b class="ui"&gt;Check one app&lt;/b&gt; sends the story down &lt;b class="ui"&gt;Installed&lt;/b&gt; or &lt;b class="ui"&gt;Missing&lt;/b&gt;. &lt;b class="ui"&gt;Save the list of installed apps&lt;/b&gt; stores every app the player has and carries straight on.</dd>
-  <dt class="dt-mute">Default</dt><dd><code>"one"</code></dd>
-  <dt>Limits</dt><dd>One of the 2 listed below.</dd>
-  <dt class="dt-warn">Watch out</dt><dd>The outputs on the node change with this setting. Saving the list has nothing to split on, so the node keeps a single output.</dd>
-</dl>
-<table>
-  <thead><tr><th>Choice</th><th>What it is stored as</th></tr></thead>
-  <tbody>
-    <tr><td class="name">Check one app</td><td><code>one</code></td></tr>
-    <tr><td class="name">Save the list of installed apps</td><td><code>list</code></td></tr>
-  </tbody>
-</table>
-
 <h3 id="node-flow-appcheck-field-app">App name</h3>
-<blockquote class="blurb">The name exactly as it appears on the player's desktop, e.g. Kisscord. Used by “Check one app”.</blockquote>
+<blockquote class="blurb">The name exactly as it appears on the player's desktop, e.g. Kisscord.</blockquote>
 <dl class="facts-list">
   <dt>What to put here</dt><dd>Copy it from the desktop rather than typing it from memory — the check is by exact name, so a spelling the desktop does not use never matches.</dd>
   <dt class="dt-mute">Default</dt><dd>empty</dd>
   <dt class="dt-danger">If you leave it empty</dt><dd>With no name there is nothing to look for, so the &lt;b class="ui"&gt;Missing&lt;/b&gt; path always runs. The editor warns you while you are still looking at the field.</dd>
 </dl>
 
+<h3 id="node-flow-appcheck-field-saveList">Also save the list of installed apps</h3>
+<blockquote class="blurb">Stores every app the player has, so a later Branch can test the list or a message can mention what they actually own. Also the quickest way to see which apps the game counts on your own save — send the list to a Notify and read it in game.</blockquote>
+<dl class="facts-list">
+  <dt>What to put here</dt><dd>Stores every app the player has under the name below, then carries on with the check as normal. The node does both.</dd>
+  <dt class="dt-mute">Default</dt><dd>on</dd>
+  <dt>Limits</dt><dd>On or off.</dd>
+  <dt class="dt-warn">Watch out</dt><dd>On by default, because the list costs nothing to keep and it is the only way to see what the game counts as an app. Turn it off if nothing in the quest reads it and you would rather not store it.</dd>
+</dl>
+
 <h3 id="node-flow-appcheck-field-key">Save the list as</h3>
-<blockquote class="blurb">The name to store the list under. Later text can read it back with the tag picker. Used by “Save the list of installed apps”.</blockquote>
+<blockquote class="blurb">The name the list is stored under. Two checks using the same name refresh it, which is what you want after the player unlocks something.</blockquote>
 <dl class="facts-list">
   <dt>What to put here</dt><dd>Anything you like. It is only the label other parts of the quest use to find the list again, and it never appears on screen.</dd>
-  <dt class="dt-mute">Default</dt><dd><code>"apps"</code></dd>
-  <dt class="dt-warn">Watch out</dt><dd>Only used when saving the list. A dot splits a tag into steps, so keep the name simple.</dd>
+  <dt class="dt-mute">Default</dt><dd><code>"installedApps"</code></dd>
+  <dt class="dt-warn">Watch out</dt><dd>Two checks using the same name refresh it, which is what you want after the player unlocks something. Use two different names if you want to keep a snapshot of each moment.</dd>
 </dl>
 
 
@@ -150,7 +143,7 @@ the connection takes, mismatch them and it will not.</p>
 <h2>Common mistakes</h2>
 <ul class="plain">
   <li><b>One output is left unwired.</b> A player whose desktop takes that path reaches a node that goes nowhere and the quest stalls. The editor flags it as <b>Dead end</b>.</li>
-  <li><b>The name does not match the desktop's.</b> The check is by name, so a spelling the desktop does not use always comes back <b class="ui">Missing</b>.</li>
+  <li><b>The name does not match the desktop's.</b> The check is by name, so a spelling the desktop does not use always comes back <b class="ui">Missing</b>. Terminal commands are not desktop apps — <b class="ui">lynx</b> is something the player types, not something on their desktop.</li>
   <li><b>Assuming every player has the same apps.</b> Apps are unlocked as the player earns them, so two players on the same quest can legitimately take different paths. That is the point of the node.</li>
 </ul>
 
@@ -158,7 +151,7 @@ the connection takes, mismatch them and it will not.</p>
 <ul class="plain">
   <li><a href="../checking.html#msg-dead-end">Dead end</a> — an <b class="ui">Installed</b> or <b class="ui">Missing</b> output has nothing wired to it</li>
   <li><a href="../checking.html#msg-unreachable">Unreachable</a> — nothing leads to this node, so the check never happens</li>
-  <li><a href="../checking.html#msg-field-app-no-name">No app name</a> — <b class="ui">App name</b> is empty while the node is set to check one app</li>
+  <li><a href="../checking.html#msg-field-app-no-name">No app name</a> — <b class="ui">App name</b> is empty, so the <b class="ui">Missing</b> path runs every time</li>
 </ul>
 
 <h2>Related nodes</h2>
@@ -182,7 +175,7 @@ the connection takes, mismatch them and it will not.</p>
 <a class="totop" href="#node-flow-appcheck-page">↑ back to top</a>
 
 <footer class="colophon">
-  HackHub Quest Editor handbook · documents editor build 2026-10-02.r259 ·
+  HackHub Quest Editor handbook · documents editor build 2026-10-02.r260 ·
   field labels, hints, defaults and limits on this page are taken from the
   editor's own node definitions.
 </footer>

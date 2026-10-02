@@ -184,15 +184,15 @@ describe("fieldWarnings", () => {
     it("warns when an app check has no app name (r259)", () => {
         /* Nothing to look for means the Missing path always runs — silently,
            and the author reads it as the game disagreeing with them. */
-        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { mode: "one", app: "" });
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { app: "" });
         const warning = fieldWarnings(questWith(check), check).find((w) => w.path === "app");
         expect(warning?.severity).toBe("warn");
     });
 
-    it("stays quiet about the app name when the node is saving the list (r259)", () => {
-        /* List mode never reads the name, so warning about it would be noise
-           on a field the author is not using. */
-        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { mode: "list", app: "" });
-        expect(fieldWarnings(questWith(check), check).some((w) => w.path === "app")).toBe(false);
+    it("still wants an app name when the list is being saved too (r260)", () => {
+        /* Saving the list no longer replaces the check, so the name is never
+           optional — a node that only saved would not be this node. */
+        const check = makeNode("flow.appcheck", { x: 0, y: 0 }, { app: "", saveList: true });
+        expect(fieldWarnings(questWith(check), check).some((w) => w.path === "app")).toBe(true);
     });
 });

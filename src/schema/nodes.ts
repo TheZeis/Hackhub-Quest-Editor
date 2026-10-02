@@ -628,17 +628,29 @@ export const BranchNodeDataSchema = z.object({
  * one is present "produces a notification for something the player cannot open,
  * which reads as the pack being broken" (`index.d.ts:3885`).
  *
- * `one` routes down the Installed or Missing wire. `list` stores every
- * installed app's name under `key` instead, so a later Branch or a terminal
- * message can read it — which is also how an author finds out what the game
- * counts as an app on their own save.
+ * The node always checks and routes. `saveList` additionally stores every
+ * installed app's name under `key`, so a later Branch or a message can read
+ * it — which is also how an author finds out what the game counts as an app
+ * on their own save.
+ *
+ * A toggle rather than a second mode (Zeis, r260): the check is the node's
+ * job, and saving the list is a side effect an author may want alongside it.
+ * Making it a mode meant the node's outputs changed shape, and it forced a
+ * choice between two things that are not alternatives.
+ *
+ * Deliberately not restricted to one node per quest. The list changes while a
+ * quest runs — the player unlocks apps as they go — so a second check later
+ * in the story legitimately wants a fresh snapshot. Two nodes writing the
+ * same key simply refresh it, which is the useful behaviour; different keys
+ * keep snapshots of two moments.
  */
 export const AppCheckNodeDataSchema = z.object({
     /** The app's name as the desktop knows it, e.g. "Kisscord". */
     app: z.string().default(""),
-    mode: z.enum(["one", "list"]).default("one"),
-    /** Where `list` mode stores the result, readable as `{{data.apps}}`. */
-    key: z.string().default("apps"),
+    /** Also store the whole installed list, so other nodes can read it. */
+    saveList: z.boolean().default(true),
+    /** Where the list is stored, readable as `{{data.installedApps}}`. */
+    key: z.string().default("installedApps"),
 });
 
 export const DelayNodeDataSchema = z.object({

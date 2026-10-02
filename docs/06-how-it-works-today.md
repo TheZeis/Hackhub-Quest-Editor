@@ -1,10 +1,10 @@
 # How the editor works today
 
-**Current as of r259** (compiler build `2026-10-02.r259`). Where the other documents are histories — how we got here,
+**Current as of r260** (compiler build `2026-10-02.r260`). Where the other documents are histories — how we got here,
 and what we learned on the way — this one is a snapshot of the thing as it
 stands. If it disagrees with an older document, this one is right.
 
-Verified figures, counted from the code rather than remembered: **1,827 tests**
+Verified figures, counted from the code rather than remembered: **1,828 tests**
 across 89 files, **41 node types** in 10 categories (`schema.test.ts` asserts
 the count), **14 templates** (12 playable + 2 reference sheets, counted from
 `TEMPLATES` in `templates/index.ts`), **99 game events**, against

@@ -277,12 +277,9 @@ export function summarize(
         }
 
         case "flow.appcheck": {
-            /* List mode does not ask a question, so the summary must not read
-               like one. */
-            if (d.mode === "list") {
-                return [`Saves the list of installed apps as ${d.key || "apps"}`];
-            }
-            return [d.app ? `Does the player have ${String(d.app)}?` : "No app name yet"];
+            const lines = [d.app ? `Does the player have ${String(d.app)}?` : "No app name yet"];
+            if (d.saveList) lines.push(`Saves the installed list as ${d.key || "installedApps"}`);
+            return lines;
         }
 
         case "flow.delay":

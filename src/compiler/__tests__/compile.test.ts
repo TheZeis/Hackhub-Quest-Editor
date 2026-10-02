@@ -6268,13 +6268,13 @@ describe("App Install Check (r259)", () => {
     }
 
     it("takes the Installed path when the game says the app is there", () => {
-        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), ["Kisscord", "Terminal"]);
+        const { calls } = run(appCheckQuest({ app: "Kisscord", saveList: false }), ["Kisscord", "Terminal"]);
         expect(calls).toContain("toast:have it");
         expect(calls).not.toContain("toast:no app");
     });
 
     it("takes the Missing path when the player does not have it", () => {
-        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), ["Terminal"]);
+        const { calls } = run(appCheckQuest({ app: "Kisscord", saveList: false }), ["Terminal"]);
         expect(calls).toContain("toast:no app");
         expect(calls).not.toContain("toast:have it");
     });
@@ -6282,14 +6282,26 @@ describe("App Install Check (r259)", () => {
     it("fails to Missing rather than throwing on a build with no Desktop calls", () => {
         /* The widget path guards the same way. A quest that throws mid-walk
            strands the player with no message at all. */
-        const { calls } = run(appCheckQuest({ app: "Kisscord", mode: "one" }), null);
+        const { calls } = run(appCheckQuest({ app: "Kisscord", saveList: false }), null);
         expect(calls).toContain("toast:no app");
     });
 
-    it("stores the installed list where quest data can read it back", () => {
-        const { quest, calls } = run(appCheckQuest({ mode: "list", key: "apps" }), ["Kisscord", "Terminal"]);
-        expect(calls).toContain("setData:apps=Kisscord, Terminal");
-        expect(quest.Data.apps).toBe("Kisscord, Terminal");
+    it("saves the list alongside the check, and still routes on it", () => {
+        /* The toggle is not an alternative to the check — the node does both,
+           which is the whole reason it is a toggle and not a second mode. */
+        const { quest, calls } = run(
+            appCheckQuest({ app: "Kisscord", saveList: true, key: "installedApps" }),
+            ["Kisscord", "Terminal"],
+        );
+        expect(calls).toContain("setData:installedApps=Kisscord, Terminal");
+        expect(quest.Data.installedApps).toBe("Kisscord, Terminal");
+        expect(calls).toContain("toast:have it");
+        expect(calls).not.toContain("toast:no app");
+    });
+
+    it("does not write quest data when the toggle is off", () => {
+        const { calls } = run(appCheckQuest({ app: "Kisscord", saveList: false }), ["Kisscord"]);
+        expect(calls.some((c) => c.startsWith("setData:"))).toBe(false);
     });
 
     it("does not consult the desktop when no node asks it to", () => {

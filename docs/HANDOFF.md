@@ -1,3 +1,46 @@
+# Handoff — r260
+
+**App Install Check reshaped by Zeis's first look at it.**
+
+Two changes, both his, both from actually using the node.
+
+**Saving the list is a toggle, not a second mode.** His reasoning holds: the
+check is the node's job, and saving the list is a side effect an author may want
+*alongside* it — so a mode forced a choice between two things that are not
+alternatives. It also made the node's outputs change shape based on a dropdown,
+which is the kind of surprise a canvas should not have. The toggle is on by
+default and carries its own hint.
+
+**Not limited to one node per quest.** He reasoned his way to the counter-example
+himself and asked: the player unlocks apps *while* the quest runs, so the first
+snapshot goes stale and a second check later legitimately wants a fresh one.
+Two nodes writing the same key refresh it, which is the useful behaviour;
+different keys keep two moments. A uniqueness rule would have been wrong in
+exactly the case he named.
+
+The saved list is now offered in the **tag picker** next to anything “Set quest
+data” stores. A value an author cannot pick from a menu is a value they will not
+use, and the whole point of saving the list is that something later reads it.
+
+**His lynx probe came back Missing — and that is a pass for the node.** It ran,
+asked the game, and routed. The likely reason is now in the manual's mistakes
+list: terminal commands are not desktop apps, and `lynx` is something the player
+types, not something on their desktop. The definitive answer is the list itself
+— the toggle plus a **Notify** shows exactly what the game reports.
+
+**Not built, and deliberately:** the app-name dropdown he asked for. There is no
+authoritative list of desktop app names in the SDK or the handbook — the handbook
+names Kisscord, WeeChat and Multiplayer Chat in prose and never enumerates the
+desktop — and inventing one is the same mistake as the fabricated
+`player@gomail.com`. The precedent for doing it right is `GAME_LANGUAGES` in
+`schema/extras.ts`, captured from the game and stored as data. His list capture
+is exactly that input; the dropdown follows from it.
+
+Gates: **1,828 tests / 89 files**, `tsc --noEmit`, `vite build` — green.
+`EDITOR_BUILD` → `2026-10-02.r260`; the runtime changed, so AR13 requires it.
+
+---
+
 # Handoff — r259
 
 **App Install Check — the node that stops a quest sending players to an app
@@ -302,7 +345,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-252.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-253.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -382,7 +425,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-252.md`.
+Archived README rows for r227–r247: `archive/rounds-227-253.md`.
 
 ---
 

@@ -293,14 +293,6 @@ const falseOut: HandleSpec = { id: "false", kind: "flow", label: "No" };
 const appInstalledOut: HandleSpec = { id: "true", kind: "flow", label: "Installed" };
 const appMissingOut: HandleSpec = { id: "false", kind: "flow", label: "Missing" };
 
-/**
- * List mode does not branch — it stores a value and carries on — so it gets one
- * plain output. Showing Installed/Missing there would be two pins that both
- * mean the same thing, and an author would wire both "to be safe".
- */
-function appCheckSockets(data: Record<string, unknown>): HandleSpec[] {
-    return data.mode === "list" ? [outFlow] : [appInstalledOut, appMissingOut];
-}
 
 const io = { targets: [inFlow], sources: [outFlow] };
 
@@ -1301,22 +1293,17 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         icon: "branch",
         targets: [inFlow, triggerIn],
         sources: [appInstalledOut, appMissingOut],
-        dynamicSources: (data) => appCheckSockets(data),
         hook: "onObjectivesStart",
         fields: [
             { kind: "note", tone: "info", text: "Most desktop apps are not installed on a fresh save — the player unlocks them as they go. Check before your quest sends a message to one, or the player gets a notification for an app they cannot open." },
+            { kind: "text", key: "app", label: "App name", hint: "The name exactly as it appears on the player's desktop, e.g. Kisscord.", placeholder: "Kisscord" },
             {
-                kind: "select",
-                key: "mode",
-                label: "What to do",
-                hint: "Check one app and send the quest down a wire, or save the player's whole app list so a later Branch or message can read it.",
-                options: [
-                    { value: "one", label: "Check one app" },
-                    { value: "list", label: "Save the list of installed apps" },
-                ],
+                kind: "toggle",
+                key: "saveList",
+                label: "Also save the list of installed apps",
+                hint: "Stores every app the player has, so a later Branch can test the list or a message can mention what they actually own. Also the quickest way to see which apps the game counts on your own save — send the list to a Notify and read it in game.",
             },
-            { kind: "text", key: "app", label: "App name", hint: "The name exactly as it appears on the player's desktop, e.g. Kisscord. Used by “Check one app”.", placeholder: "Kisscord" },
-            { kind: "text", key: "key", label: "Save the list as", hint: "The name to store the list under. Later text can read it back with the tag picker. Used by “Save the list of installed apps”.", placeholder: "apps" },
+            { kind: "text", key: "key", label: "Save the list as", hint: "The name the list is stored under. Two checks using the same name refresh it, which is what you want after the player unlocks something.", placeholder: "installedApps" },
         ],
         create: () => seed(AppCheckNodeDataSchema),
     },

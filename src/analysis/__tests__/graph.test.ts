@@ -122,7 +122,7 @@ describe("analyseGraph", () => {
         /* Both outcomes are real players: whoever lacks the app walks the
            Missing path, so an unwired one is a stall, not an unused branch. */
         const claim = node("entry.start");
-        const check = node("flow.appcheck", { app: "Kisscord", mode: "one" });
+        const check = node("flow.appcheck", { app: "Kisscord" });
         const yes = node("fx.notify");
 
         const analysis = analyseGraph(

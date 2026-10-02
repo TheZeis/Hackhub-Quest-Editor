@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/extract-manual-inventory.mjs",
-  "editorBuild": "2026-10-02.r259",
+  "editorBuild": "2026-10-02.r260",
   "sdkVersion": "0.24.0",
   "counts": {
     "nodeTypes": 41,
@@ -2869,7 +2869,7 @@
           "label": "Missing"
         }
       ],
-      "hasDynamicSockets": true,
+      "hasDynamicSockets": false,
       "fields": [
         {
           "depth": 0,
@@ -2883,30 +2883,20 @@
         },
         {
           "depth": 0,
-          "path": "mode",
-          "kind": "select",
-          "key": "mode",
-          "label": "What to do",
-          "hint": "Check one app and send the quest down a wire, or save the player's whole app list so a later Branch or message can read it.",
-          "options": [
-            {
-              "value": "one",
-              "label": "Check one app"
-            },
-            {
-              "value": "list",
-              "label": "Save the list of installed apps"
-            }
-          ]
-        },
-        {
-          "depth": 0,
           "path": "app",
           "kind": "text",
           "key": "app",
           "label": "App name",
-          "hint": "The name exactly as it appears on the player's desktop, e.g. Kisscord. Used by “Check one app”.",
+          "hint": "The name exactly as it appears on the player's desktop, e.g. Kisscord.",
           "placeholder": "Kisscord"
+        },
+        {
+          "depth": 0,
+          "path": "saveList",
+          "kind": "toggle",
+          "key": "saveList",
+          "label": "Also save the list of installed apps",
+          "hint": "Stores every app the player has, so a later Branch can test the list or a message can mention what they actually own. Also the quickest way to see which apps the game counts on your own save — send the list to a Notify and read it in game."
         },
         {
           "depth": 0,
@@ -2914,15 +2904,15 @@
           "kind": "text",
           "key": "key",
           "label": "Save the list as",
-          "hint": "The name to store the list under. Later text can read it back with the tag picker. Used by “Save the list of installed apps”.",
-          "placeholder": "apps"
+          "hint": "The name the list is stored under. Two checks using the same name refresh it, which is what you want after the player unlocks something.",
+          "placeholder": "installedApps"
         }
       ],
       "editableFieldCount": 3,
       "defaults": {
         "app": "",
-        "mode": "one",
-        "key": "apps"
+        "saveList": true,
+        "key": "installedApps"
       }
     },
     {
