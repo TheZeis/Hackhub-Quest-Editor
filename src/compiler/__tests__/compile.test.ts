@@ -2058,7 +2058,12 @@ describe("a briefing mail that actually arrives", () => {
         const sdk = stubSdk(calls, listeners) as any;
         sdk.Mail = {
             getInbox: () => inbox,
-            getPlayerEmail: () => "player@gomail.com",
+            /* Deliberately a .test address, not a realistic one. This stub
+               stood in for the player's mailbox as "player@gomail.com" until
+               r250: gomail.com is a real in-game provider, so the fake looked
+               like an address a save could actually have, and seven QA fixture
+               mails were addressed to it and silently dropped (r250 §1). */
+            getPlayerEmail: () => "tester@qe24.test",
             /* Returns the mail's id — what the 2026-09-20 QA measured and what
                withdraw-on-quest-end needs as its handle. */
             send: (m: { subject: string; from?: string; to?: string }) => {
@@ -2220,10 +2225,10 @@ describe("a briefing mail that actually arrives", () => {
         /* The quest's own outgoing mail, echoed back as a Mail.Sent: not a match. */
         const onSent = listeners.find(([e]) => e === "Mail.Sent");
         expect(onSent).toBeDefined();
-        onSent![1]({ id: "x", from: "qa-reply@qe24.test", to: "player@gomail.com", subject: "reply to me", content: "c", sentAt: 1 });
+        onSent![1]({ id: "x", from: "qa-reply@qe24.test", to: "tester@qe24.test", subject: "reply to me", content: "c", sentAt: 1 });
         expect(calls).not.toContain("complete:send-a-reply");
         /* A player reply — addressed to the mail's From — is the match. */
-        onSent![1]({ id: "y", from: "player@gomail.com", to: "qa-reply@qe24.test", subject: "(Reply)", content: "done", sentAt: 2 });
+        onSent![1]({ id: "y", from: "tester@qe24.test", to: "qa-reply@qe24.test", subject: "(Reply)", content: "done", sentAt: 2 });
         expect(calls).toContain("complete:send-a-reply");
     });
 
@@ -2245,7 +2250,7 @@ describe("a briefing mail that actually arrives", () => {
         const q2 = new (registered0(sdk2).quests[0])();
         q2.OnStart();
         await new Promise((r) => setTimeout(r, 1700));
-        expect(calls).toContain("Mail.send:One file:i.faber@ghostmail.io:player@gomail.com");
+        expect(calls).toContain("Mail.send:One file:i.faber@ghostmail.io:tester@qe24.test");
     });
 
     it("hands the Hackhub post's avatars to the engine as asset FILES, and nothing when blank (r215)", () => {
@@ -2379,7 +2384,7 @@ describe("a briefing mail that actually arrives", () => {
         await new Promise((r) => setTimeout(r, 1700));
         spy.mockRestore();
 
-        expect(calls).toContain("Mail.send:One file:i.faber@ghostmail.io:player@gomail.com");
+        expect(calls).toContain("Mail.send:One file:i.faber@ghostmail.io:tester@qe24.test");
         // the path that QA proved silent is not used when Mail.send exists
         expect(calls.filter((c) => c.startsWith("sendMail:"))).toEqual([]);
         expect(said.join("\n")).toContain('mail "One file" sent via Mail.send');
@@ -2408,7 +2413,7 @@ describe("a briefing mail that actually arrives", () => {
         const sdk = stubSdk(calls, []) as any;
         sdk.Mail = {
             getInbox: () => [],
-            getPlayerEmail: () => "player@gomail.com",
+            getPlayerEmail: () => "tester@qe24.test",
             send: (m: { subject: string }) => calls.push(`Mail.send:${m.subject}`),
         };
         const said: string[] = [];
@@ -2511,7 +2516,7 @@ describe("mail bodies read as prose, not markup", () => {
         const sdk = stubSdk([], []) as any;
         sdk.Mail = {
             getInbox: () => [],
-            getPlayerEmail: () => "player@gomail.com",
+            getPlayerEmail: () => "tester@qe24.test",
             send: (m: { content: string }) => sent.push(m),
         };
         runMod(mailWith(content), sdk);

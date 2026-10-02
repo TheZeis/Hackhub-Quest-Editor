@@ -1040,90 +1040,101 @@ views. Without the event, the only remaining route is for the page's own code
 to call back into the quest — which is exactly the per-request-author-code
 boundary the no-code editor cannot cross.
 
-## 25. A mail sent from a page (or with a `to:` address) is accepted and then never delivered
+## 25. A mail whose `to:` names a mailbox that does not exist is accepted, given an id, and then silently dropped
 
-**Found running the r238 dynamic-page probe, confirmed by the player watching
-his inbox** (2026-09-28, game 1.3.13). Related to §14, and worth filing
-separately because the failure mode here is *silence*, not an exception.
+**Corrected 2026-10-02 (r250 audit). This section previously reported the
+failure as a page-context permission problem, and that reading was wrong — our
+own test changed two variables at once. The corrected finding is below; the
+superseded text is kept after it because it was sent to you as written.**
+
+### What we now believe
+
+`Mail.send` accepts a mail addressed to a recipient that does not exist,
+returns a real mail id for it, and then never delivers it. Nothing surfaces to
+the mod or the player.
+
+The evidence is three sends from one probe mod in one session
+(`qe-sdk-024-dynprobe`, game 1.3.13):
+
+| Sent from | `to:` | Result |
+|---|---|---|
+| the quest's `OnStart()` | **none** | **arrived** |
+| a page's own button, via the injected `HackhubSDK` global | `player@gomail.com` | accepted, id returned, never arrived |
+| **a top-level `Events.on()` handler — trusted mod context**, reached by the page emitting an event | `player@gomail.com` | accepted, id `ra1DgwPOsB` returned, never arrived |
+
+The third row is the one that settles it. We built that bridge specifically
+because we believed page context was the problem; running the *same* send from
+trusted context failed identically. The only difference between the mail that
+arrived and the two that did not is the `to:` field.
+
+`player@gomail.com` was our mistake, not yours: we invented that address. That
+it is silently fatal is the finding.
+
+### `to:` itself is not the problem
+
+Our own earlier in-game evidence contradicts any stronger claim, so we are not
+making one. The r211 mail-authoring probe — run on a mod this editor compiled,
+on a clean save — delivered three mails whose `to:` the runtime filled from
+`Mail.getPlayerEmail()`. A `to:` naming a real mailbox delivers.
+
+### What we would like
+
+- **A send that cannot be delivered should not return an id.** `Mail.send` is
+  documented as *"Send an email to the player's inbox"* and returns
+  `string | null`; a mail that will never arrive should be the `null` case, or
+  throw the way `UI.*` does when it refuses (§14). Returning an id for a mail
+  the engine then drops means the author's own error handling reports success —
+  the worst failure mode available.
+- **`to` is undocumented.** `MailDefinition.to?: string` has no doc comment,
+  while the surrounding function says the mail goes to the player's inbox. What
+  is it for? If it names a recipient other than the player, the function's
+  summary is misleading; if it is meant to be the player, an unresolvable value
+  should say so rather than swallow the mail.
+- If a `to:` is validated against real mailboxes, which addresses are valid,
+  and is there any way for a mod to check one before sending?
+
+### Withdrawn
+
+Two things this section asked for are withdrawn, because our own run answers
+them:
+
+- ~~*page-context calls to permissioned APIs are refused*~~ — not established.
+  The failure follows the `to:` field, not the calling context, and a
+  trusted-context send with the same `to:` failed too.
+- ~~*`Mail.send` from a page needs the `Events.emit()` → top-level
+  `Events.on()` bridge*~~ — we built exactly that bridge (probe 1.1.0) and it
+  failed the same way. It is not a workaround for anything, and we have removed
+  it from our plans.
+
+§14 — `UI.*` calls from a menu or right-click handler being refused with the
+mod read as `null` — is separately evidenced and unaffected by this
+correction.
+
+---
+
+*The original report, kept for the record because it was sent as written. Its
+calling-context reading is the part that was wrong.*
 
 A page's script called `HackhubSDK.Mail.send(...)` — the `HackhubSDK` global
 really is injected into the page, so the call exists and ran. It reported no
-error. **No mail ever arrived**: the player had his in-game inbox open in
-another browser tab the whole time, and the quest's own `Mail.Sent` listener
-never matched either.
+error, and no mail ever arrived: the player had his in-game inbox open in
+another browser tab the whole time.
 
-**Update 2026-10-02 (third run): it is the `to:` field.** Of two test mails
-sent from a trusted terminal command, **only the one with no `to:` field
-arrived**. The one addressed to `player@gomail.com` was accepted — we have its
-id — and never appeared. That leaves two explanations, and they need different
-fixes: either that address does not exist and the mail is routed nowhere, or
-**any** `to:` field sends the mail somewhere other than the player's inbox.
-`Mail.send` is documented as *"Send an email to the player's inbox"* and `to`
-is not documented at all, so a mod author filling it in — the obvious thing to
-do — silently loses the mail. A fourth test (addressed to the player's real
-address from `Mail.getPlayerEmail()`, plus a `Mail.getInbox()` roll-call to
-tell "dropped" from "not drawn") is in the probe build 1.3.0.
+The second run captured the return value instead of discarding it: the call was
+**accepted**, returning a real mail id (`yD1oMYYHUX`) from page context, and the
+`Events.emit` bridge version returned another (`ra1DgwPOsB`). Neither mail
+arrived. `Mail.send` is synchronous (`send(mail: MailDefinition): string | null`)
+and did not throw — our page's `try/catch` would have printed the error — so it
+failed silently, most likely by returning `null` while the caller had no way to
+tell.
 
-**Update 2026-09-28 (second run): this is a DELIVERY problem, not a permission
-refusal.** The rebuilt probe captured `Mail.send`'s return value instead of
-discarding it, and the call was **accepted** — it returned a real mail id
-(`yD1oMYYHUX`) from page context, and the `Events.emit` bridge version returned
-another (`ra1DgwPOsB`). Neither mail arrived. So §14 is not what happens here:
-the call is permitted and the mail is lost afterwards.
+What we got wrong: we compared that against the one mail from this mod that had
+ever arrived — the `OnStart()` mail — and concluded the difference was the
+calling context. The `OnStart` mail is also the only one of the three carrying
+no `to:` field, so the comparison never isolated anything, and the sentence
+below argued the opposite of what it claimed:
 
-The one mail that has ever arrived from this mod is the startup mail from
-`OnStart()` — and it is the only one carrying **no `to` field**. Both mails
-that vanished specify `to: "player@gomail.com"`. Is a mail whose `to` does not
-resolve (or is not the player's address) silently dropped?
+> *(That also rules the recipient out: the `OnStart` mail carries no `to` field
+> and still landed.)*
 
-*The original report, kept for the record — its §14 reading is now known to be
-wrong. What still stands is the silence:*
-
-- `Mail.send` is synchronous (`send(mail: MailDefinition): string | null`),
-  and it did **not** throw — our page's `try/catch` would have printed the
-  error, and §14 shows these refusals *do* throw for `UI.*`. So this one
-  failed **silently**, most likely by returning `null` while the caller had
-  no way to tell. The mod author's own error handling reported success.
-
-**The permission is not in question, and we can now show it with a clean
-A/B** — same mod, same `mail` permission, same session, only the calling
-context differs:
-
-| Sent from | Arrived? |
-|---|---|
-| the quest's `OnStart()` — trusted mod context | **yes** |
-| the page's own button via `HackhubSDK.Mail.send` — page context | **no**, silently |
-
-(That also rules the recipient out: the `OnStart` mail carries no `to` field
-and still landed.) And §14 records a mod that declared `"ui"` and was refused
-anyway, with the mod named `null`. So this is not a manifest problem.
-- Nothing surfaces to the player either: no mail, no toast, no log line.
-
-**What we would like:**
-
-- confirmation that page-context calls to permissioned APIs are refused (and
-  that `Mail.send` in particular needs the `Events.emit()` → top-level
-  `Events.on()` bridge);
-- if a call is refused, **reject the promise and log it** — a silent no-op
-  that the caller's own error handling reports as success is the worst
-  possible failure mode for an author;
-- **confirmed: a mail with a `to:` field is silently dropped; the same mail
-  without one arrives.** So — **what is `to` for?** If it names a recipient
-  other than the player, then `Mail.send` should not be documented as "send an
-  email to the player's inbox", and a call that cannot be delivered should
-  fail loudly instead of returning an id. If it is meant to be validated,
-  which addresses are valid, and what happens to one that is not?;
-- is a `to` address that does not resolve the trigger, or does **any** `to:`
-  lose the mail? Probe 1.3.0 sends a mail to the player's real address
-  (`Mail.getPlayerEmail()`) to separate the two;
-- if page scripts are meant to have a sanctioned way to act (the way
-  `Exports` functions do), a documented one would save every modder this
-  detour; in particular, **is an additional permission needed for a call made
-  from a page's own script**, or is `mail` alone supposed to be enough?
-- and if a call is refused, please **return `null` and log it** (or throw
-  consistently, the way `UI.*` does) rather than failing in a way the caller
-  cannot detect.
-
-Our workaround, which we will generate automatically if we ever build a
-no-code page editor: the page's action does a synchronous `Events.emit()`, and
-a top-level `Events.on()` handler performs the real permissioned work.
+The silence is the real finding and it stands; the explanation did not.
