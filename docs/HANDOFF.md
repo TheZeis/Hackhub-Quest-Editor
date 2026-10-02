@@ -1,3 +1,49 @@
+# Handoff — r252
+
+**Zeis ran probe 1.3.0 and closed the last open question himself: mails B and C
+both arrived.**
+
+**The mail runtime is correct as shipped.** B carried no `to:`; C carried
+whatever `Mail.getPlayerEmail()` returned, and it landed in his inbox. So the
+call does return a real, deliverable address, and `runtimeSource.ts:1429` —
+which fills `to:` from the author's value or that call — is verified in game.
+No editor change was needed. None was made on the theory while it was open
+either, which is the point of having waited.
+
+His reading of mail A is the better explanation and it dissolves the "bug"
+entirely: `to:` is a genuine recipient field, so the mail addressed to
+`player@gomail.com` went to that mailbox — not his. The game lets a player
+create any address at any provider, so an arbitrary address is a plausible
+destination, not an invalid one. `docs/03` §25 is therefore **withdrawn in
+full**, not merely corrected: two versions of it were sent to the developer and
+both were wrong, the first blaming page context and the second blaming the
+field. What survives is one documentation line — `MailDefinition.to` has no doc
+comment while `Mail.send` is summarised as "send an email to the player's
+inbox", and read together they suggest the field is cosmetic. §14 stands on its
+own evidence.
+
+**Then the QA cleanup.** Zeis: the folder is temporary scaffolding and previous
+agents kept it as though it were product. Everything whose question had closed
+is deleted — the dynamic-page probe (five builds), both ModSettings probes, the
+feed canary, every delivery zip — **and the 27 tests that pinned them**, which
+is the part that matters: a test asserting the contents of a hand-written probe
+is scaffolding, not a safety net, and keeping it is what made the probes
+impossible to remove. 47 files → 30; 1,894 tests → 1,865, and the 29 that went
+are exactly the 20 + 7 + 2 belonging to the three deleted probes.
+
+**Four rows are the only reason the folder still exists**, and they are Next-up
+#1 with an install card in the folder's own README: D-01a/b (the `deleteable`
+flag — a shipped editor feature never verified in game), S-11 (can the clock
+panel show a mod's own job), the one-command `curl` re-check, and T-08's two
+wrinkles. When they are run, the folder, `editor-export.notes.md`,
+`scripts/build-qa-export.mjs` and the rest of `sdk024QaScaffold.test.ts` go,
+and `STATUS.md` moves to `docs/archive/`.
+
+Gates: 1,865 tests / 91 files, typecheck, build — green. No compiler change, so
+the stamp stays `2026-09-28.r241` (AR13).
+
+---
+
 # Handoff — r251
 
 **Zeis: the previous agent hallucinated from r237 onward, chased a mail "issue"
@@ -25,7 +71,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-246.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-247.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -105,7 +151,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r246: `archive/rounds-227-246.md`.
+Archived README rows for r227–r247: `archive/rounds-227-247.md`.
 
 ---
 

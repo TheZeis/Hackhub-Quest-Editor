@@ -1,13 +1,36 @@
-# SDK 0.24 QA harness — kept as tooling, now carrying the P-01 backdate row
+# SDK 0.24 QA — temporary scaffolding, four rows from being deleted
 
-## Results first — both probes have been run (2026-09-28, game 1.3.13)
+**This whole folder is throwaway.** It exists to answer one question: what did
+SDK 0.24 introduce, and what could the editor do with it that it could not
+before. That question is answered. Everything below the banner is the history
+of how it got answered.
 
-Everything both runs established, with the evidence and the three corrections
-made along the way, is in
-[`QE24-TestResults-DynProbe-ModSettings.md`](QE24-TestResults-DynProbe-ModSettings.md).
-Zeis's own minute-by-minute log with the screenshots is on the `QA-filedump`
-branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.3.0.zip`** — if the quest does not appear on the Hackhub feed, try a fresh save first (run 2 showed it surfacing on one); if it still does not, type `qedyn claim` in the terminal or claim it from the sandbox group in the journal.
-— see the dynamic-page section below for what changed.
+**Removed in r252**, because their questions closed: the dynamic-page probe
+(`dynprobe/`, five builds), both ModSettings probes, the feed canary, and every
+delivery zip. Their tests went with them — a test that asserts the contents of
+a hand-written probe is scaffolding, not a safety net, and keeping it is what
+made the probes impossible to delete. See
+[`docs/plans/r251-qa-artifact-cleanup.md`](../../docs/plans/r251-qa-artifact-cleanup.md).
+
+**What is still here, and the only reason:** four rows have never been run in
+game, and three of them need a mod from this folder.
+
+| Row | Needs | What it checks |
+|---|---|---|
+| **D-01a / D-01b** | `editor-export/` | The `deleteable` file flag the editor has emitted since r235 — a **shipped editor feature that has never been verified in game**. On the Wi-Fi client `10.24.0.2`: `rm ~/delete-me` should succeed, `rm ~/logs/qa` should be refused. |
+| **S-11** | `mod/` (harness) | Whether the in-game clock panel can show a *mod's* scheduled job at all. `qe24 schedule 120` arms one two in-game hours out; open the clock panel inside that window. |
+| **`curl` re-check** | `mod/` (harness) | One command, `curl http://qe24-http.test/`. It was absent in the build tested in r166 even though the 1.3.0 changelog listed it. |
+| **T-08 wrinkles** | both | The profile showed **86 following** where the record holds **96**, and never reported the banner. `qe24 twotter audit` prints the stored record to compare against. |
+
+When those four are done, this folder, `editor-export.notes.md`,
+`scripts/build-qa-export.mjs` and the rest of `sdk024QaScaffold.test.ts` all
+go, and `STATUS.md` moves to `docs/archive/`.
+
+Install: copy the `editor-export/` and `mod/` folders into the game's `mods/`
+directory (delete any older copy first), restart. Nothing auto-starts —
+`qe24 run` lists what can be claimed.
+
+---
 
 ## ANSWERED: the ModSettings Probe (r239/r240) — the whole loop works
 

@@ -107,3 +107,41 @@ those summaries are contradicted; r251 corrected the ones in scope.
 The `.gitignore` exception `!reference/sdk-0.24-qa/*/dist/` — added in r239
 because losing those files to a clean checkout silently broke the QA tests — is
 a symptom of the same coupling, and can go if items 1–3 are taken.
+
+---
+
+## r252 — executed, after Zeis's call
+
+Zeis: *"I'm pretty sure we don't need the entirety of `sdk-0.24-qa` anymore…
+If there's nothing left to test, then that should be it. If there is something
+to test — tell me what and I'll get to testing."*
+
+There **is** something left to test — four rows — so the folder is not empty yet,
+but everything whose question had closed is gone:
+
+| Removed | Item |
+|---|---|
+| `dynprobe/` (5 builds) + `dynprobeMod.test.ts` | dynamic pages answered; §24 filed; the mail rows were built on a fabricated recipient |
+| `modsettings/`, `modsettings-v2/` + `modsettingsProbeMod.test.ts` | answered — the UI is in the main menu; MS-07's reset is a Next-up row |
+| `feedcanary/` + its block in `sdk024QaScaffold.test.ts` | the feed saga closed in r225 |
+| `delivery/` (all zips) | folders install directly; no test or script ever opened a zip |
+
+47 files → 30. 27 tests removed with the probes they pinned.
+
+**Kept, with the reason on the folder's own README:** `editor-export/`,
+`mod/` (the raw harness) and `projects/`, because four rows have never been run
+and need them — D-01a/b (the `deleteable` flag, a shipped editor feature never
+verified in game), S-11 (can the clock panel show a mod's job), the one-command
+`curl` re-check, and T-08's two wrinkles.
+
+**Deferred to the teardown commit, not skipped:** moving `STATUS.md` to
+`docs/archive/`. It still holds the ledger for those four rows, and moving it
+now only to move the fixture's in-game pointers with it is churn that
+disappears once the rows are run. The four rows live in the README's **Next up**
+table in the meantime, so nothing depends on finding them in the ledger.
+
+Also closed this round, on Zeis's probe 1.3.0 run: **mails B and C both
+arrived**, so `Mail.getPlayerEmail()` returns a real deliverable address and
+`runtimeSource.ts:1429` is correct as shipped. `docs/03` §25 is withdrawn in
+full — the mail addressed to `player@gomail.com` went to that mailbox, which is
+what a recipient field is for. See `r250-r237-r249-audit.md` §5.
