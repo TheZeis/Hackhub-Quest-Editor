@@ -2884,11 +2884,66 @@
         {
           "depth": 0,
           "path": "app",
-          "kind": "text",
+          "kind": "selectOrCustom",
           "key": "app",
           "label": "App name",
-          "hint": "The name exactly as it appears on the player's desktop, e.g. Kisscord.",
-          "placeholder": "Kisscord"
+          "hint": "Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.",
+          "placeholder": "Kisscord",
+          "mono": true,
+          "options": [
+            {
+              "value": "Terminal",
+              "label": "Terminal (pre-installed)"
+            },
+            {
+              "value": "Firebear Browser",
+              "label": "Firebear Browser (pre-installed)"
+            },
+            {
+              "value": "Code++",
+              "label": "Code++ (pre-installed)"
+            },
+            {
+              "value": "File Explorer",
+              "label": "File Explorer (pre-installed)"
+            },
+            {
+              "value": "Handbook",
+              "label": "Handbook (pre-installed)"
+            },
+            {
+              "value": "Wireshark",
+              "label": "Wireshark (installable)"
+            },
+            {
+              "value": "Skypersky",
+              "label": "Skypersky (installable)"
+            },
+            {
+              "value": "Kisscord",
+              "label": "Kisscord (installable)"
+            },
+            {
+              "value": "Database Manager",
+              "label": "Database Manager (installable)"
+            },
+            {
+              "value": "Hydra",
+              "label": "Hydra (terminal command)"
+            },
+            {
+              "value": "Lynx",
+              "label": "Lynx (terminal command)"
+            },
+            {
+              "value": "Metasploit",
+              "label": "Metasploit (terminal command)"
+            },
+            {
+              "value": "OpenSSL",
+              "label": "OpenSSL (terminal command)"
+            }
+          ]
         },
         {
           "depth": 0,

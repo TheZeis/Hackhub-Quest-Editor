@@ -1,3 +1,27 @@
+# Handoff — r261
+
+**App name is a dropdown of the game's real apps, with a Custom box.**
+
+Zeis corrected me with an App Store screenshot: `apt-get install lynx` is real,
+and Terminal Commands — Hydra, Lynx, Metasploit, OpenSSL — are a store category
+of installable apps. My "lynx is a terminal tool, not a desktop app" reading was
+wrong, and I've said so in the round row and the manual. The field is now
+`selectOrCustom` over **`GAME_APP_NAMES`**: the names he captured from the store,
+stored as data the way `GAME_LANGUAGES` is, never invented. It is partial by
+design (the sidebar counts more apps than he listed), so the Custom box covers
+the rest until a `getInstalledApps()` capture completes it.
+
+His lynx fail toast re-reads cleanly under this: lynx is what you install first,
+so on a save where it was not yet installed, `Missing` is the correct answer —
+the node working. Whether installed terminal commands appear in
+`getInstalledApps()` is now the only open question, and the list toggle answers
+it.
+
+Registry-only change (inspector UI), so `EDITOR_BUILD` stays `2026-10-02.r260`.
+Gates: **1,828 tests / 89 files**, typecheck, build — green.
+
+---
+
 # Handoff — r260
 
 **App Install Check reshaped by Zeis's first look at it.**
@@ -345,7 +369,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-253.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-254.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -425,7 +449,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-253.md`.
+Archived README rows for r227–r247: `archive/rounds-227-254.md`.
 
 ---
 

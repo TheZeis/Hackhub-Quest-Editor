@@ -615,7 +615,7 @@
     "game": "Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.",
     "fields": {
       "app": {
-        "put": "Copy it from the desktop rather than typing it from memory — the check is by exact name, so a spelling the desktop does not use never matches.",
+        "put": "Pick one from the list — those are the store's own names, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included, or the check reads it as not installed.",
         "empty": "With no name there is nothing to look for, so the <b class=\"ui\">Missing</b> path always runs. The editor warns you while you are still looking at the field."
       },
       "saveList": {

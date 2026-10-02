@@ -67,12 +67,31 @@
 <h2>Fields</h2>
 
 <h3 id="node-flow-appcheck-field-app">App name</h3>
-<blockquote class="blurb">The name exactly as it appears on the player's desktop, e.g. Kisscord.</blockquote>
+<blockquote class="blurb">Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.</blockquote>
 <dl class="facts-list">
-  <dt>What to put here</dt><dd>Copy it from the desktop rather than typing it from memory — the check is by exact name, so a spelling the desktop does not use never matches.</dd>
+  <dt>What to put here</dt><dd>Pick one from the list — those are the store's own names, so a pick can never be misspelled. If yours is not there, type it and make it match the desktop exactly, capitalization included, or the check reads it as not installed.</dd>
   <dt class="dt-mute">Default</dt><dd>empty</dd>
+  <dt>Limits</dt><dd>One of the 13 listed below.</dd>
   <dt class="dt-danger">If you leave it empty</dt><dd>With no name there is nothing to look for, so the &lt;b class="ui"&gt;Missing&lt;/b&gt; path always runs. The editor warns you while you are still looking at the field.</dd>
 </dl>
+<table>
+  <thead><tr><th>Choice</th><th>What it is stored as</th></tr></thead>
+  <tbody>
+    <tr><td class="name">Terminal (pre-installed)</td><td><code>Terminal</code></td></tr>
+    <tr><td class="name">Firebear Browser (pre-installed)</td><td><code>Firebear Browser</code></td></tr>
+    <tr><td class="name">Code++ (pre-installed)</td><td><code>Code++</code></td></tr>
+    <tr><td class="name">File Explorer (pre-installed)</td><td><code>File Explorer</code></td></tr>
+    <tr><td class="name">Handbook (pre-installed)</td><td><code>Handbook</code></td></tr>
+    <tr><td class="name">Wireshark (installable)</td><td><code>Wireshark</code></td></tr>
+    <tr><td class="name">Skypersky (installable)</td><td><code>Skypersky</code></td></tr>
+    <tr><td class="name">Kisscord (installable)</td><td><code>Kisscord</code></td></tr>
+    <tr><td class="name">Database Manager (installable)</td><td><code>Database Manager</code></td></tr>
+    <tr><td class="name">Hydra (terminal command)</td><td><code>Hydra</code></td></tr>
+    <tr><td class="name">Lynx (terminal command)</td><td><code>Lynx</code></td></tr>
+    <tr><td class="name">Metasploit (terminal command)</td><td><code>Metasploit</code></td></tr>
+    <tr><td class="name">OpenSSL (terminal command)</td><td><code>OpenSSL</code></td></tr>
+  </tbody>
+</table>
 
 <h3 id="node-flow-appcheck-field-saveList">Also save the list of installed apps</h3>
 <blockquote class="blurb">Stores every app the player has, so a later Branch can test the list or a message can mention what they actually own. Also the quickest way to see which apps the game counts on your own save — send the list to a Notify and read it in game.</blockquote>

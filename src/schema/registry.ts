@@ -286,6 +286,41 @@ const cancelledOut: HandleSpec = { id: "cancel", kind: "flow", label: "Cancelled
 const trueOut: HandleSpec = { id: "true", kind: "flow", label: "Yes" };
 const falseOut: HandleSpec = { id: "false", kind: "flow", label: "No" };
 
+/**
+ * The desktop's app names, captured from the in-game App Store on 2026-10-02
+ * (Zeis's screenshot and list), stored as data rather than invented — the same
+ * discipline as GAME_LANGUAGES in schema/extras.ts. The SDK gives no name list
+ * (index.d.ts:3893 says the name is "as the desktop knows it, e.g. Kisscord"),
+ * so this is what the game actually offers, grouped as the store did.
+ *
+ * PARTIAL BY DESIGN: the store's sidebar counts more apps than were listed
+ * (Utilities says 8; none were named), so this is a spell-guard for the known
+ * ones, not a closed list. Anything absent falls through to the custom box,
+ * and it is reconciled against getInstalledApps() once a capture exists.
+ */
+const GAME_APP_NAMES: { value: string; category: string }[] = [
+    // Pre-installed on every desktop.
+    { value: "Terminal", category: "pre-installed" },
+    { value: "Firebear Browser", category: "pre-installed" },
+    { value: "Code++", category: "pre-installed" },
+    { value: "File Explorer", category: "pre-installed" },
+    { value: "Handbook", category: "pre-installed" },
+    // Installable or buyable in the store.
+    { value: "Wireshark", category: "installable" },
+    { value: "Skypersky", category: "installable" },
+    { value: "Kisscord", category: "installable" },
+    { value: "Database Manager", category: "installable" },
+    // Terminal commands — installed via "apt-get install <name>".
+    { value: "Hydra", category: "terminal command" },
+    { value: "Lynx", category: "terminal command" },
+    { value: "Metasploit", category: "terminal command" },
+    { value: "OpenSSL", category: "terminal command" },
+];
+const APP_OPTIONS = GAME_APP_NAMES.map((a) => ({
+    value: a.value,
+    label: `${a.value} (${a.category})`,
+}));
+
 /* Dedicated output labels for the App Install Check (r259). On a node called
    "App Install Check", Yes/No leaves "yes what?" hanging, so these say the
    thing. The ids stay `true`/`false` so every wire, edge rule and the
@@ -1296,7 +1331,15 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onObjectivesStart",
         fields: [
             { kind: "note", tone: "info", text: "Most desktop apps are not installed on a fresh save — the player unlocks them as they go. Check before your quest sends a message to one, or the player gets a notification for an app they cannot open." },
-            { kind: "text", key: "app", label: "App name", hint: "The name exactly as it appears on the player's desktop, e.g. Kisscord.", placeholder: "Kisscord" },
+            {
+                kind: "selectOrCustom",
+                key: "app",
+                label: "App name",
+                hint: "Pick an app the desktop knows, or type another name exactly as the desktop spells it. The check is by exact name, so a spelling the desktop does not use never matches.",
+                mono: true,
+                placeholder: "Kisscord",
+                options: APP_OPTIONS,
+            },
             {
                 kind: "toggle",
                 key: "saveList",
