@@ -1,6 +1,6 @@
 # r182 (plan): the rows came back — one editor bug, one honest log
 
-Zeis's second Timer run: `reference/sdk-0.24-qa/QE24-TestResults-Timer_Rows_2.md`,
+Zeis's second Timer run: `docs/archive/sdk-0.24-qa/QE24-TestResults-Timer_Rows_2.md`,
 plus a screenshot of the editor with a fixture open.
 
 ## What the run settled

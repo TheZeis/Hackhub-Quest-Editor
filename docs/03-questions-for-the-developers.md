@@ -11,7 +11,7 @@ This is the fresh developer-facing list after the SDK 0.24 QA pass. The previous
 Detailed in-game evidence lives in:
 
 - `docs/plans/r166-sdk-0.24-ingame-qa.md`
-- `reference/sdk-0.24-qa/QE24-TestResults - 3.md`
+- `docs/archive/sdk-0.24-qa/QE24-TestResults - 3.md`
 
 ## Current summary
 
@@ -166,7 +166,7 @@ and profile screens showed the account immediately, and the same quest's
 **`Twotter.PostSeen`** listener fired normally when the profile was opened from
 the timeline — but the **`Twotter.AccountCreated`** listener, registered at quest
 start before the account existed, never fired. Transcript:
-`reference/sdk-0.24-qa/QE24-TestResults - Twotter.md`.
+`docs/archive/sdk-0.24-qa/QE24-TestResults - Twotter.md`.
 
 **Question.** Is `Twotter.AccountCreated` only raised for accounts the *player*
 creates in the Twotter app (and for quest-declared accounts at save creation),
@@ -176,7 +176,7 @@ content pack listen to when it needs to know "this account now exists"?
 **Editor stance.** No objective or trigger will be built on
 `Twotter.AccountCreated` until this is answered; `PostSeen` and `ProfileSeen` are
 the events QA actually observed firing. The finding is recorded in
-`reference/sdk-0.24-qa/STATUS.md` for the Twotter implementation round.
+`docs/archive/sdk-0.24-qa/STATUS.md` for the Twotter implementation round.
 
 ---
 
@@ -236,7 +236,7 @@ then we keep the field in the project file, show it only as an editor preview,
 and tell authors plainly that players will not see it.
 
 **Evidence.** Game `1.3.1`, build `25388883`; transcript
-`reference/sdk-0.24-qa/QE24-TestResults-Twotter.md`; the account's own avatar in
+`docs/archive/sdk-0.24-qa/QE24-TestResults-Twotter.md`; the account's own avatar in
 the same run rendered, so the image path itself works.
 
 ---
@@ -411,7 +411,7 @@ version to be treated as new.
 export loaded and prints it (`Editor export: loaded (v…)` / `NOT LOADED in this
 session`, with the fix in the message), and the export leaves that marker when it
 loads. The tester-facing note is in
-[`reference/sdk-0.24-qa/STATUS.md`](../reference/sdk-0.24-qa/STATUS.md).
+[`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).
 
 ## 14. `UI.*` calls made from a menu or right-click handler are refused: the permission check reads the mod as `null`
 
@@ -594,7 +594,7 @@ note records this measurement.
 
 **Found in game** 2026-09-20, on 1.3.1 / Content SDK 0.24, while measuring the
 mail rows (harness 1.0.24, transcript in
-[`reference/sdk-0.24-qa/QE24-TestResults-Mail.md`](../reference/sdk-0.24-qa/QE24-TestResults-Mail.md)).
+[`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md)).
 
 The SDK declares `MailDefinition.replyable` with: *"The player's reply raises
 `Mail.Sent` with a `repliedTo` field naming this mail, which is how a quest

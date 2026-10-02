@@ -10,7 +10,7 @@ Method: the pinned `@hotbunny/hackhub-content-sdk@0.24.0` `index.d.ts`
 (already generated, in the r167 plan), (b) every `sdk.*` call in the
 shipping runtime (`src/compiler/runtimeSource.ts`), (c) the compiled quest
 emission, and (d) the developer's fix record ([`docs/07`](../07-dev-response-mod-sdk-bug-report-response.md))
-plus the QA ledger ([`reference/sdk-0.24-qa/STATUS.md`](../sdk-0.24-qa/STATUS.md)).
+plus the QA ledger ([`docs/archive/sdk-0.24-qa/STATUS.md`](../sdk-0.24-qa/STATUS.md)).
 
 ## 0. Decisions taken (Zeis, r235)
 

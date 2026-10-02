@@ -34,7 +34,7 @@ of the freeze-era copy.
   strays. `src/index.ts` gets the leading `// @ts-nocheck` the committed copy
   carried, because the root tsconfig typechecks `reference/`.
 - The compiled README is the compiler's. The hand-written QA notes now live in
-  `reference/sdk-0.24-qa/editor-export.notes.md`, and the generator appends
+  `docs/archive/sdk-0.24-qa/editor-export.notes.md`, and the generator appends
   them — the r166 export had its test history spliced into README.md by hand,
   so a regenerate-and-forget would have dropped it silently.
 - The QA project moved to mod **1.0.3**, so the in-game mod list can tell the
@@ -108,7 +108,7 @@ single-file JS gets `node --check` after every write, always.
 - **Show a manual complete button** — "Puts a Complete button in the player's
   quest panel, so they decide when the quest is over."
 
-Evidence: `reference/sdk-0.24-qa/QE24-TestResults - 3.md` (complete, button,
+Evidence: `docs/archive/sdk-0.24-qa/QE24-TestResults - 3.md` (complete, button,
 retire, unclaim all clean on HackHub 1.3.0 / build 25341308), `docs/04`
 already marked historical, and no freeze copy left anywhere in `src/` or the
 manual. The runtime's network-cleanup comments about *promise* freezes are a

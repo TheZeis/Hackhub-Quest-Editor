@@ -40,7 +40,7 @@ reported the problem.
 
 Bookkeeping and stamps only — no editor behaviour:
 
-- `reference/sdk-0.24-qa/STATUS.md` — S-11 row, S-10 shelved row, and an opening
+- `docs/archive/sdk-0.24-qa/STATUS.md` — S-11 row, S-10 shelved row, and an opening
   line that now says plainly: nothing here is left to run.
 - `TIMER-ROWS.md` — the last two rows become a record rather than a to-do.
 - README "Done recently" r184 + the QA-folder README.

@@ -51,7 +51,7 @@ the design target for the series:
   path and it sorts **newest first** — the transcription is prose about
   hardcoded content in an earlier build, and since the declarative path is
   fenced off, our series follow the probe. The discrepancy is on the record in
-  [`P-01-BACKDATE.md`](../../reference/sdk-0.24-qa/P-01-BACKDATE.md). The player
+  [`P-01-BACKDATE.md`](docs/archive/sdk-0.24-qa/P-01-BACKDATE.md). The player
   gets the whole history in one visit, at the moment the story wants them to.
 - **@andrea_siebert** (later parts): *"One of her tweets from 2 hours ago shows
   she's about to board a plane"* — and it carries a **photo** (a boarding pass),
@@ -230,7 +230,7 @@ probe measured the build and the call we ship against.
 
 Both probes shipped as harness-only patches (no editor change, no risk to the
 project), and the checklist is
-[`reference/sdk-0.24-qa/P-01-BACKDATE.md`](../../reference/sdk-0.24-qa/P-01-BACKDATE.md)
+[`docs/archive/sdk-0.24-qa/P-01-BACKDATE.md`](docs/archive/sdk-0.24-qa/P-01-BACKDATE.md)
 — which mod (the **raw harness `mod/`, 1.0.13**, *not* the editor export), which
 account (`qe24_probe`), the exact commands, and what to report back. In-game the
 same instructions are two steps away: `qe24 twotter guide` carries steps 9 and
@@ -316,7 +316,7 @@ Twotter probe's, which is where the tester already looks:
 
 | Row | Check |
 | --- | --- |
-| ~~**P-01a**~~ | **Green 2026-09-18** — backdated tweets keep their time; all three spellings read "a month ago", the control read "a few seconds ago". Section 5. Results: [`P-01-BACKDATE.md`](../../reference/sdk-0.24-qa/P-01-BACKDATE.md). |
+| ~~**P-01a**~~ | **Green 2026-09-18** — backdated tweets keep their time; all three spellings read "a month ago", the control read "a few seconds ago". Section 5. Results: [`P-01-BACKDATE.md`](docs/archive/sdk-0.24-qa/P-01-BACKDATE.md). |
 | ~~**P-01b**~~ | **Green 2026-09-18** — a profile sorts by time, **newest first** (`B, C, A`). The preview mirrors it. |
 | **T-08** | An authored account appears in search with the authored bio, avatar, banner and follower counts. |
 | **T-09** | A **series** reads as lived-in: the ages are the ones authored, the order is the game's (**newest at the top**, ties in list order), the picture is on the right tweet, and the log has **no** moment.js line (the old blemish). |
@@ -341,7 +341,7 @@ Twotter probe's, which is where the tester already looks:
 
 **These rows are runnable now** — the fixtures, the quests and the command all
 exist, and every step is written out in
-[`STATUS.md`](../../reference/sdk-0.24-qa/STATUS.md) *Open: the Twotter editor
+[`STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md) *Open: the Twotter editor
 rows*: which mod (editor export **1.0.25**, beside raw harness **1.0.19**), the
 account (`qe24_editor`), the commands (`qe24 run tw1`, `qe24 run tw2`,
 `qe24 twotter audit`, `qe24 run clear`) and what to report per row. The QA
@@ -374,7 +374,7 @@ retire with the round, and nobody needs to run it unless a Twotter row returns.
 
 - **P-01a and P-01b (harness only):** both **shipped and answered green**; the
   result tables are in
-  [`P-01-BACKDATE.md`](../../reference/sdk-0.24-qa/P-01-BACKDATE.md). Nothing is
+  [`P-01-BACKDATE.md`](docs/archive/sdk-0.24-qa/P-01-BACKDATE.md). Nothing is
   waiting on them.
 - **Stage 1 (functional):** accounts panel + schema + migration, the node and its
   list, runtime create/post/cleanup, the fences and their tests, the QA export

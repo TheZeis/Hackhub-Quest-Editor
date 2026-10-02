@@ -5,8 +5,8 @@
 and what we learned on the way — this one is a snapshot of the thing as it
 stands. If it disagrees with an older document, this one is right.
 
-Verified figures, counted from the code rather than remembered: **1,865 tests**
-across 91 files, **40 node types** in 10 categories (`schema.test.ts` asserts
+Verified figures, counted from the code rather than remembered: **1,815 tests**
+across 89 files, **40 node types** in 10 categories (`schema.test.ts` asserts
 the count), **14 templates** (12 playable + 2 reference sheets, counted from
 `TEMPLATES` in `templates/index.ts`), **99 game events**, against
 `@hotbunny/hackhub-content-sdk@0.24.0`.

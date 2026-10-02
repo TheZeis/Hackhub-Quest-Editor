@@ -1,3 +1,53 @@
+# Handoff — r253
+
+**Zeis ran the final four rows. Every question `reference/sdk-0.24-qa/` was
+built to answer is now answered, so the folder is gone.**
+
+Raw transcript: `QE24_TestResults-FinalFour.md` on the `QA-filedump` branch.
+
+| Row | Verdict |
+|---|---|
+| **D-01a/b** the `deleteable` flag | **Green, both halves.** `rm delete-me.txt` → *"Moved to trash."*; the unprotected `logs/qa.txt` refused with *"Error - This file cannot be deleted"* and survived. This was the one shipped editor feature in the whole folder that had never been seen in game — it works. |
+| **S-11** the clock panel | **Green.** `qe24 schedule 120` → **`NEXT EVENT: 2h`**, ticking one in-game minute per real second. The panel *can* show a mod's job; the r181-era doubt was only ever that ours was not the nearest. |
+| **`curl`** | **Red, settled.** `Command "curl …" not found.` — absent as in r166. Nothing further is testable; the fence stays. |
+| **T-08** the two wrinkles | **Not reproduced, and not run as written.** `qe24 twotter seed` creates `@qe24_probe`, not the editor's `@qe24_editor` (the audit printed *"not on this save"*). On the account that did exist, record and profile agreed exactly — 64 followers, 8 following, both ways — so r185's 86-vs-96 was most likely a misreading, and the banner *was* present. Reopen with `qe24 run tw2` if it ever matters. |
+
+**Two findings the run produced that outlive the folder.** A placed file appears
+in game as **`name.extension`** — the row said `rm ~/delete-me` and the real
+command was `rm delete-me.txt`, because the compiler sends `name` and
+`extension` to the SDK as separate fields (`runtimeSource.ts:2462-2470`) and the
+game joins them. Any hint an author writes for the player must include the
+extension or the player's command fails. And a refused `rm` reports itself as a
+**popup notification, not terminal output**, so a quest cannot react to it. The
+SDK's own `NetworkFileMap` doc comment (`index.d.ts:1595-1614`) quotes that
+refusal string verbatim, which corroborates D-01b from the declarations side.
+
+**What was deleted, and what was saved from it.** The probes, the raw harness,
+the editor export, the QA project, `scripts/build-qa-export.mjs`, the
+`gen:qa-export` script, the `.gitignore` dist exception, and 49 tests whose only
+job was asserting the contents of hand-written QA mods.
+
+Three tests in that pile were **not** scaffolding and were relocated first, to
+`src/schema/__tests__/legacyFixtures.test.ts` with their fixtures in
+`src/schema/__tests__/fixtures/`: they are the only regression coverage for
+`migrate.ts` against real legacy project files (the r30 Twotter shape, the
+pre-r176 and r176 Timer shapes) and for the r182 fix that made an old draft open
+on its first quest rather than an empty canvas. They were verified green from
+the new path *before* anything was deleted. The Wi-Fi and calendar assertions
+beside them were not moved — `compile.test.ts` builds its own Wi-Fi fixtures and
+`scheduleBeat.test.ts` covers the calendar rows.
+
+The evidence is archived, not deleted: 14 result/ledger files, `STATUS.md` last,
+now in `docs/archive/sdk-0.24-qa/`. Those raw logs are what made the r250 audit
+possible, so they stay. Historical plan docs still name the old paths and were
+left alone on purpose — they are records of what was true at the time.
+
+Gates: **1,815 tests / 89 files** (was 1,865 / 91 — 53 scaffolding tests went
+with the folder, 3 of them relocated rather than lost), typecheck, build —
+green. No compiler change, so the stamp stays `2026-09-28.r241` (AR13).
+
+---
+
 # Handoff — r252
 
 **Zeis ran probe 1.3.0 and closed the last open question himself: mails B and C
@@ -89,7 +139,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-247.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-248.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -165,11 +215,11 @@ Where the evidence for those rounds actually lives:
 - **r234/r235** (SDK sweep, deleteable files) — `plans/r234-sdk024-unswept-surface.md`,
   and `FileDefinition.deleteable` in the compiler.
 - **r237–r243** — `plans/r237`, `r238`, `r239`, `r243`, plus
-  `reference/sdk-0.24-qa/STATUS.md` and the probe mods' own source.
+  `docs/archive/sdk-0.24-qa/STATUS.md` and the probe mods' own source.
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-247.md`.
+Archived README rows for r227–r247: `archive/rounds-227-248.md`.
 
 ---
 
@@ -425,7 +475,7 @@ an uploaded avatar + a comment from the editor, verifying visuals the
 harness already proved (HF-3's violet square, HF-4's named comments).
 
 Every run of this investigation is in
-[`../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md).
+[`docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md).
 
 ---
 # Handoff — r223
@@ -693,7 +743,7 @@ employer slot removed). Gates: full suite, typecheck, build — green.
 Stamps `2026-09-21.r216`.
 
 **Zeis retests from scratch** (rebuild the post, re-export, fresh save):
-[`../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md)
+[`docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md)
 — H-01…H-05 as before, **H-06** employer-vs-poster, **H-07** the player card.
 
 ---
@@ -730,7 +780,7 @@ to ignored, toggle-off keeps post) — all red → restored. Gates: 1,795 tests 
 89 files, typecheck, build.
 
 **Zeis's checklist** (authored in the editor this time — it dogfoods the UI):
-[`../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](../reference/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md)
+[`docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md`](docs/archive/sdk-0.24-qa/QE24-Playtest-HackhubPosting.md)
 — H-01 the post renders with OUR avatar (the one thing jsdom cannot see),
 H-02 likes + drawn commenter avatar, H-03 the feed Complete button, H-04 the
 once-claimed-post mystery on a second save, H-05 the mail To address.
@@ -742,7 +792,7 @@ once-claimed-post mystery on a second save, H-05 the mail To address.
 **The mail-authoring playtest ran green; the round is closed and nothing is
 open.** Zeis's run on a fresh save (export 1.0.40, harness 1.0.26,
 `qe24 run mailauth`), transcript:
-[`../reference/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md`](../reference/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md):
+[`docs/archive/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md`](docs/archive/sdk-0.24-qa/QE24-TestResults-MailAuthoring.md):
 
 - **W-01 green** — three mails, objective stayed open, `Mail.send [replyable]`,
   withdraw armed (id `MaGUHssZcU`).
@@ -841,7 +891,7 @@ Stamps → `2026-09-20.r212`. Gates: full suite green (see commit), typecheck,
 build.
 
 **Zeis: swap the export folder to 1.0.39 and start again from W-01** —
-[`../reference/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md`](../reference/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md)
+[`docs/archive/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md`](docs/archive/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md)
 has a history note. Nothing else changed in the checklist.
 
 ---
@@ -877,7 +927,7 @@ warning recipe, ledger). 1,789 tests / 88 files green; typecheck + build clean.
 **The playtest probe shipped with the round:** quest `QESdk024MailAuthoringQa`
 in export **1.0.38** (claimed from its Hackhub feed post, or `qe24 run
 mailauth` on harness 1.0.26), checklist in
-[`../reference/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md`](../reference/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md),
+[`docs/archive/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md`](docs/archive/sdk-0.24-qa/QE24-Playtest-MailAuthoring.md),
 rows W-01…W-05 open in STATUS.
 
 **For Zeis to playtest** (jsdom cannot see these):
@@ -892,9 +942,9 @@ rows W-01…W-05 open in STATUS.
 
 **The mail rows ran; all ten are answered, and three findings went to the
 developers.** The session transcript is in the repo now:
-[`reference/sdk-0.24-qa/QE24-TestResults-Mail.md`](../reference/sdk-0.24-qa/QE24-TestResults-Mail.md),
+[`docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md`](docs/archive/sdk-0.24-qa/QE24-TestResults-Mail.md),
 verbatim from the test dump. The verdicts, compressed (full versions at the top
-of [`../reference/sdk-0.24-qa/STATUS.md`](../reference/sdk-0.24-qa/STATUS.md)):
+of [`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md)):
 
 - **The Reply button draws on both paths.** Direct `Mail.send({ replyable:
   true })` (M-04) and the quest path the editor ships, `this.sendMail(0)`
@@ -1721,7 +1771,7 @@ brings every already-authored picture back, and a **feature request** is filed a
 question 10 in [`03-questions-for-the-developers.md`](03-questions-for-the-developers.md).
 
 **Open — three in-game rows and one editor row**, all in
-[`reference/sdk-0.24-qa/STATUS.md`](../reference/sdk-0.24-qa/STATUS.md) with the
+[`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md) with the
 commands (editor export **1.0.16** beside raw harness **1.0.16**):
 
 - **T-11b**, the abandon half (completion is green since 2026-09-19).
@@ -1891,7 +1941,7 @@ time (S-04).
 
 **Still open: S-03, S-10, S-11, S-12, S-15** — none needs waiting (S-12/S-15 are
 opening a file in the editor). Steps in
-[`reference/sdk-0.24-qa/TIMER-ROWS.md`](reference/sdk-0.24-qa/TIMER-ROWS.md).
+[`docs/archive/sdk-0.24-qa/TIMER-ROWS.md`](docs/archive/sdk-0.24-qa/TIMER-ROWS.md).
 
 Gates: typecheck 0 errors; `npm test` **1,656 passed / 82 files** (+7); build
 OK; manual + QA export regenerated. Falsified 5/5 (see the plan).
@@ -1906,8 +1956,8 @@ Two jobs, both from the return of the r179 probe. Plan:
 ## 1. Twotter: green on the read path — the feature can come back
 
 Game 1.3.0, Steam build **25388883**, throwaway save. Transcript:
-`reference/sdk-0.24-qa/QE24-TestResults - Twotter.md`; row-by-row reading in
-`reference/sdk-0.24-qa/STATUS.md`.
+`docs/archive/sdk-0.24-qa/QE24-TestResults - Twotter.md`; row-by-row reading in
+`docs/archive/sdk-0.24-qa/STATUS.md`.
 
 | Row | Result |
 | --- | --- |
@@ -1933,7 +1983,7 @@ He was right, and it was our fault twice over: the rows existed only as prose in
 three round plans, and the export's `QESdk024TimerQa` covered only S-01…S-03, so
 there was nothing installable that would run S-05…S-15.
 
-- **[`reference/sdk-0.24-qa/TIMER-ROWS.md`](reference/sdk-0.24-qa/TIMER-ROWS.md)** — every row S-01…S-15 with steps, what green looks like, what to paste back, and honest notes for the rows that cannot be run on demand (the clamp needs a 29th–31st in-game date; `NEXT EVENT` is fact-finding).
+- **[`docs/archive/sdk-0.24-qa/TIMER-ROWS.md`](docs/archive/sdk-0.24-qa/TIMER-ROWS.md)** — every row S-01…S-15 with steps, what green looks like, what to paste back, and honest notes for the rows that cannot be run on demand (the clamp needs a 29th–31st in-game date; `NEXT EVENT` is fact-finding).
 - **`qe24 timers`** (harness **1.0.10**) — prints every pending Scheduler job, from any mod, with `fireAt` rendered as the on-screen clock shows it, the payload naming the quest/node, a proper d/h/m breakdown and the real-seconds cost. A "1 month" row is now read in seconds instead of waited out (26 in-game days is ~10 real hours).
 - **Two new auto-start quests** — `QESdk024TimerCalQa` (an exact date already past, a coming day already past today, then a mixed `1 month 2 weeks 2 days at 18:23`) and `QESdk024WaitMonthQa` (a 1-minute Wait, then `Wait 1 month`, the `scheduleAt` path). Ordering is the trick: a Timer suspends its chain, so the instant rows go first and the far one is armed within seconds.
 - **Two legacy fixtures** — `projects/fixture-*.project.json` for S-12/S-15, guarded by a test that pins what the boxes must show.
@@ -1982,7 +2032,7 @@ rounds on game 1.1.2).
 
 ## The probe — `qe24 twotter` (harness 1.0.9)
 
-Rows T-01…T-07, in [`reference/sdk-0.24-qa/STATUS.md`](reference/sdk-0.24-qa/STATUS.md):
+Rows T-01…T-07, in [`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md):
 
 | Row | Does |
 | --- | --- |
@@ -2075,7 +2125,7 @@ documentation-and-tooling round: no editor behaviour changed, no new guards
 - **The raw harness stops printing test rows**: `qe24 guide` and `qe24 next`
   used to list the finished checks, which is exactly what a tester sees first.
   Mod **1.0.8** prints "every check is closed — results in
-  `reference/sdk-0.24-qa/STATUS.md`" and keeps the commands as tooling. The
+  `docs/archive/sdk-0.24-qa/STATUS.md`" and keeps the commands as tooling. The
   hand-edited file was patched with an assert-guarded script and passed
   `node --check`.
 - **Export regenerated** at mod **1.0.6**, editor build `2026-09-18.r178`

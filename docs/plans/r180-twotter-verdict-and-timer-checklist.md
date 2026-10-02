@@ -11,8 +11,8 @@ Two jobs, and the second one is the more important of the two.
 ## 1. The Twotter probe came back green on the read path
 
 Game 1.3.0, Steam build **25388883**, throwaway save. Full transcript:
-`reference/sdk-0.24-qa/QE24-TestResults - Twotter.md`; the row-by-row reading is
-in `reference/sdk-0.24-qa/STATUS.md`.
+`docs/archive/sdk-0.24-qa/QE24-TestResults - Twotter.md`; the row-by-row reading is
+in `docs/archive/sdk-0.24-qa/STATUS.md`.
 
 | Row | Result |
 | --- | --- |
@@ -48,7 +48,7 @@ them ("I had no idea they existed", r178), so the fix is not another plan doc.
 ### What was built
 
 **A checklist in the folder a tester installs from:**
-`reference/sdk-0.24-qa/TIMER-ROWS.md` — every row S-01…S-15 with the exact
+`docs/archive/sdk-0.24-qa/TIMER-ROWS.md` — every row S-01…S-15 with the exact
 steps, what green looks like, what to paste back, and an honest note for the
 rows that cannot be run on demand (the short-month clamp needs a 29th–31st
 in-game date; `NEXT EVENT` is fact-finding, not pass/fail).

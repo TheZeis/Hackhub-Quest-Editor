@@ -862,3 +862,41 @@ older build left behind. Row definitions:
 [`r173`](../../docs/plans/r173-timer-rename-and-calendar.md),
 [`r176`](../../docs/plans/r176-timer-calendar-ux.md),
 [`r177`](../../docs/plans/r177-every-unit.md).
+
+---
+
+## CLOSED 2026-10-02 (r253): the final four rows — this ledger is complete
+
+Zeis ran the last four on a fresh save with only `editor-export` (1.0.53) and
+`mod/` installed. Raw transcript: `QE24_TestResults-FinalFour.md` on the
+`QA-filedump` branch. With these, **every row this folder was built for is
+answered**, and the folder is retired.
+
+| Row | Verdict | Evidence |
+|---|---|---|
+| **D-01a** a `deleteable` file can be removed | **Green** | `rm delete-me.txt` → *"Moved to trash."*, and a following `ls` no longer lists it |
+| **D-01b** a placed file without the flag is protected | **Green** | `rm qa.txt` printed nothing in the terminal; a **System Notification** popped: *"Error - This file cannot be deleted"*, and `ls` confirmed the file survived |
+| **S-11** can the clock panel show a *mod's* scheduled job | **Green** | `qe24 schedule 120` → the panel read **`NEXT EVENT: 2h`**, ticking one in-game minute per real second. The r181-era doubt ("the panel showed the game's own job, not ours") was never about capability — the mod's job simply was not the nearest |
+| **`curl`** | **Red, and settled** | `Command "curl http://qe24-http.test/" not found.` — still absent in this build, as in r166, despite the 1.3.0 changelog listing it. Nothing further is testable; the fence stays |
+| **T-08** the two wrinkles | **Not reproduced — and not run as written** | `qe24 twotter seed` creates `@qe24_probe`, not the editor's `@qe24_editor` (which needs the editor quest claimed; the audit printed *"not on this save"*). On the account that did exist, record and profile **agreed exactly** — stored `followers: 64, following: 8`, profile showed *"8 Following, 64 Followers"* — so there is no systematic display bug and r185's 86-vs-96 was most likely a misreading. The banner, which r185 said was "not reported at all", **was** present. Closing as not reproducible; reopen with `qe24 run tw2` + claim if it ever matters |
+
+**So the r235 `deleteable` feature — the one shipped editor capability in this
+whole folder that had never been seen in game — works, both halves.** The
+declarations corroborate the refusal independently: the flag lives on
+`NetworkFileMap`, not `FileDefinition` (`index.d.ts:1595-1614`), and its own doc
+comment quotes the very string the popup showed — *"Everything that lives on
+someone else's machine is protected by default, so a file placed here refuses
+deletion ("This file cannot be deleted")"*. Implementation and documentation
+agree with the game.
+
+One authoring detail the run surfaced, worth keeping: **a placed file appears in
+game as `name.extension`.** The row was written as `rm ~/delete-me` and the real
+command was `rm delete-me.txt`; the protected one was `logs/qa` on paper and
+`logs/qa.txt` on the machine. The compiler sends `name` and `extension` to the
+SDK as separate fields (`runtimeSource.ts:2465`) and the game joins them, so any
+instruction an author writes for the player must include the extension or the
+player's command will fail.
+
+Note also that a refused `rm` reports itself as a **popup notification, not
+terminal output** — a quest that wants to react to the refusal has nothing to
+match on.

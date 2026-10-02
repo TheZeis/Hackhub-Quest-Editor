@@ -2,7 +2,7 @@
 
 **Status: RUN (2026-09-28, game 1.3.13). The content half is green; the
 HTTP-event half is still unrun and needs one more pass with the quest claimed
-*first*. Details in `reference/sdk-0.24-qa/STATUS.md` and
+*first*. Details in `docs/archive/sdk-0.24-qa/STATUS.md` and
 `docs/03` §24.**
 
 Headline results from Zeis's write-up (`QE24-TestResults-DynProbe+ModSettings.md`,

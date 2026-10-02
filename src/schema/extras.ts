@@ -4,7 +4,7 @@ import { z } from "zod";
  * Pack extras (r203) — the things a pack puts *outside* its own quests.
  *
  * Verified in game before any of this was authored (r200/r201 probe, rows
- * T-16..T-22 in `reference/sdk-0.24-qa/STATUS.md`):
+ * T-16..T-22 in `docs/archive/sdk-0.24-qa/STATUS.md`):
  *
  * - `Menu.addItem` works; the items appear in the strip at the bottom of the
  *   start menu, and the SDK's declared `section` field has **no visible

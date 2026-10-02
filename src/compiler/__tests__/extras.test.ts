@@ -4,7 +4,7 @@
  * items, and the `{{tr.key}}` token that reaches every text field.
  *
  * Every surface here was read in game before it was built (r200/r201 probe,
- * rows T-16..T-22 in reference/sdk-0.24-qa/STATUS.md), and the two findings
+ * rows T-16..T-22 in docs/archive/sdk-0.24-qa/STATUS.md), and the two findings
  * that changed the editor's design are fenced here as behaviour:
  *
  *  1. `section` is never sent — the SDK declares it and the game ignores it;

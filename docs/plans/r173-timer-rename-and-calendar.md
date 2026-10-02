@@ -158,7 +158,7 @@ node gets a **"When it fires"** select with **three** options:
     **Answered 2026-09-18:** `qe24 clock` read 20:15 local / 18:15 UTC while
     the on-screen clock showed 20:17 — the clock displays local time, so the
     `at` correction stays. Evidence:
-    [`reference/sdk-0.24-qa/STATUS.md`](../../reference/sdk-0.24-qa/STATUS.md).
+    [`docs/archive/sdk-0.24-qa/STATUS.md`](docs/archive/sdk-0.24-qa/STATUS.md).
   - **S-05 "daytime" fire:** in the editor, set beat B to mode `daytime` —
     0 days from now, a few in-game minutes ahead (read from the in-game
     clock) → it must fire when the clock shows that time, across a

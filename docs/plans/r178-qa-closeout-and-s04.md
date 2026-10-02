@@ -2,7 +2,7 @@
 
 ## Why this round
 
-Zeis, after looking for new rows in `reference/sdk-0.24-qa/README.md`:
+Zeis, after looking for new rows in `docs/archive/sdk-0.24-qa/README.md`:
 
 > I've tested every single thing and reported all my findings in previous rounds
 > (all green across the bank except for curl, which doesn't seem to exist in the
@@ -65,7 +65,7 @@ tool. So:
 - **The raw harness stops printing a checklist.** `qe24 guide` and `qe24 next`
   are what a tester actually sees, and both printed the finished test list. Mod
   **1.0.8** prints "every check is closed — results in
-  `reference/sdk-0.24-qa/STATUS.md`" and keeps the commands (`seed`, `status`,
+  `docs/archive/sdk-0.24-qa/STATUS.md`" and keeps the commands (`seed`, `status`,
   `history`, `clock`, `reset`, …) as tooling for the next probe. The hand-edited
   file was patched with an assert-guarded script and `node --check`ed, per the
   r173 lesson.
