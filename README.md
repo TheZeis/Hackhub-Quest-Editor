@@ -166,6 +166,21 @@ does must be backed by one of: the SDK declarations, the working reference mod,
 or a real in-game test. A fix shipped on a theory has cost this project more
 rounds than any bug — see r41, r43, r55, r60, r61 and r66.
 
+**Author-facing text is written for someone who has never written code.** Zeis
+is a former game QA tester with a year of Unreal Engine 5 and no coding
+background, and he is the audience for every label, hint, warning and dialog in
+this editor. A control must say what it *does*, in plain words, and keep any
+syntax out of the way behind it. His example: a field that inserts
+`{{random.username}}` must not read "Insert `{{random.username}}`" — it reads
+**"Fresh name"**, with "a new random name, different every time" underneath,
+and the raw tag shown last, small and grey. `TokenInsert.tsx` is the reference
+implementation: `label` (plain words) → `produces` (what the player will see) →
+`token` (the syntax, de-emphasised). The same applies to error messages, which
+say what to do rather than what failed.
+
+This rule never yields to convenience. If a feature cannot be described without
+showing its syntax, the feature is not finished.
+
 ### Known limitations (not bugs)
 
 | Item | Why |

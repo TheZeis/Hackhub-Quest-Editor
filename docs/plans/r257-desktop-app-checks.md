@@ -114,6 +114,23 @@ either way), and file the question rather than guess in the UI text.
 `runtimeSource.ts` is a `String.raw` file: a stray backtick breaks the build.
 One writer per DOM attribute; nothing eager in `dataScope()`.
 
+## Author-facing copy (Zeis's standing rule)
+
+The node's own text is author-facing, so it is written for a non-coder:
+
+| Field / pin | Text the author sees |
+|---|---|
+| node label | **Is an app installed?** |
+| blurb on the palette | "Send the quest one way or the other, depending on whether the player has an app" |
+| `app` field label | **App name** — hint: *"The name exactly as it appears on the player's desktop, e.g. Kisscord."* |
+| `mode` = `one` | **Check one app** — *"The quest goes down the 'Installed' wire if the player has it."* |
+| `mode` = `list` | **Save the list of installed apps** — *"Stores every app the player has, so a later Branch or a terminal message can read it."* |
+| output pins | **Installed** / **Missing** — never "true" / "false" |
+| blank-app warning | *"Add the app's name, or this check can never match anything."* |
+
+The word "boolean", the names `isAppInstalled` / `getInstalledApps`, and the
+tag syntax stay out of the UI entirely; they belong in the plan and the code.
+
 ## Out of scope
 
 Installing or uninstalling apps (no SDK surface), and any UI that lists apps for
