@@ -198,25 +198,46 @@ but see the questions below.)
 
 ---
 
-## 4. Questions for Zeis
+## 4. Zeis's answers, and what changed in `docs/03`
 
-1. **§11 / §8 logs.** Do you still have the session log from the disable-and-restart
-   run (the one with `unloading:` and `removeUser(qe-tw-account) -> true (mod
-   unloaded)`), and the probe session where `AccountCreated` stayed silent? If
-   they are gone, I will reword both sections so we claim the behaviour and not a
-   transcript.
-2. **§3.** Was the collaborator run single-player? And is it worth a fresh
-   `qe24 collab` → `nslookup <minted name>` → `qe24 history` pass before we send,
-   now that we know his `Terminal.DnsHistory` answer?
-3. **Game version.** Is `1.3.13` what the game showed on 2026-09-28, and do you
-   know the Steam build for it? Anything patched since then that would make the
-   still-open items worth re-testing first?
-4. **§7.** Keep the duplicate-toast item with its date and version attached, or
-   drop it?
-5. **Scope of the rewrite.** Do you want the whole document rebuilt as one
-   send-ready report (answered/stale asks removed, per-item version stamps, the
-   §4/§24 merge), or just the corrections in §2 above patched into the existing
-   file?
+Asked 2026-10-02, answered the same day.
+
+| Question | Answer | Effect |
+|---|---|---|
+| The §11 / §8 logs — do they still exist? | *"They're gone, but keep the quoted log lines, they came from an actual log I do not have anymore."* | The quotes stay. Only the **pointers** changed: both sections now say the lines are verbatim from a session log we no longer hold, instead of naming a file that does not contain them. `STATUS.md` row T-15c was corrected the same way. |
+| §3: retest, send as-is, or drop? | *"If you're 100% sure that DNS collaborator/history/etc. stuff is multiplayer-only, then drop it. Otherwise, keep it as is."* | **Kept as is.** The multiplayer-only caveat is not safe to generalise: it was his answer about `Terminal.DnsHistory` (a different event), while `Http.CollaboratorHit.kind` is declared as *"dns" for a lookup with nothing behind it* (`index.d.ts:577`) with no such caveat. Not 100% sure ⇒ not dropped. |
+| §7: keep or drop? | Keep — *"§7 is real, we just circumvented it immediately, that's why it didn't pop up again."* | Kept, now dated (2026-09-16, export 1.0.2, rows W-07/W-09) and stating plainly that we worked around our own side, so we have no later observation. |
+| How far to go on the document? | *"Patch the 8 issues in place"*, minus §11/§8 which are not issues, plus: *"remove things that don't need his input, like bugs that were ours."* | See below. |
+
+**Patched into `docs/03`** (section numbers untouched — 143 cross-references
+across the repo point at them):
+
+- Header: one build → a table of the three configurations the items were
+  measured on; §2, §3, §12 and §20 gained the stamps they were missing.
+- New **Current summary** that separates *closed* (§4, §19, §21, §23, §25) from
+  *needs your input*, ordered by how much each blocks an author.
+- **§4** folded into §24 as a pointer, measurement kept.
+- **§5** and **§6** reframed around his own earlier answers (docs/07 Q5, and the
+  verbal SMS agreement) — only the unanswered parts are asked now, plus the
+  `NetworkFileMap` typing gap he pointed at himself.
+- **§7** dated and scoped as above.
+- **§8**, **§11** pointers corrected.
+- **§10** now cites `QuestHackhubPostDefinition.media` (`index.d.ts:107`).
+- **§14** now carries the bundled-mod corroboration (`[synthetik-wallet]`,
+  `QE24-TestResults - Timer-Rows.md:240`, 2026-09-18).
+- **§18** dropped the author-fields bullet we have since measured and the
+  once-claimed clause the d.ts already documents.
+- **§19** and **§23** compressed to the answer plus the live remainder; the
+  superseded original questions point at git history.
+- **§21** rewritten: our own bug stated once, in one paragraph, then the three
+  engine notes. The falsification matrix, the attempt table and the
+  author/avatar findings are gone — they were ours or already measured. Its
+  "vanilla runs included" claim was dropped: no log we hold shows that warning
+  with zero mods installed, so the section now cites the one session that is
+  verifiable (2026-09-19 14:56:57, our pack removed, other mods loaded).
+- **§22** item 2 replaced with the HF-5 measurement: the employer fallback fires
+  and reveals the employer's name on accept, and the employer's file avatar does
+  not resolve.
 
 ## 5. Not for sending
 

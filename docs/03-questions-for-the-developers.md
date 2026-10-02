@@ -1,8 +1,14 @@
 # Questions and bug reports for SteelWaffe — HackHub 1.3.0 / SDK 0.24
 
-Date opened: 2026-09-16<br>
-Game evidence: HackHub `1.3.0`, Steam App ID `2980270`, Steam build `25341308`<br>
-SDK evidence: `@hotbunny/hackhub-content-sdk@0.24.0` from `package.json`, `package-lock.json`, and `node_modules/@hotbunny/hackhub-content-sdk/index.d.ts`.
+Date opened: 2026-09-16, last audited 2026-10-02<br>
+SDK evidence: `@hotbunny/hackhub-content-sdk@0.24.0` from `package.json`, `package-lock.json`, and `node_modules/@hotbunny/hackhub-content-sdk/index.d.ts`. Line numbers below are that file.<br>
+Steam App ID `2980270` throughout. **The items span three game configurations**, so each section carries the one it was measured on:
+
+| Game / build | Sections measured on it | When |
+|---|---|---|
+| `1.3.0` / `25341308` | §1–§4, §7 | 2026-09-16 |
+| `1.3.1` / `25388883` | §8–§18, §20–§22 | 2026-09-18 to 2026-09-22 |
+| `1.3.13` (as the game reported it) | §23, §24 | 2026-09-28 |
 
 This is the fresh developer-facing list after the SDK 0.24 QA pass. The previous long-running questions document has been archived at:
 
@@ -14,6 +20,28 @@ Detailed in-game evidence lives in:
 - `docs/archive/sdk-0.24-qa/QE24-TestResults - 3.md`
 
 ## Current summary
+
+**Audited 2026-10-02** against the pinned SDK 0.24.0 declarations and our in-game
+QA record. Where a section says *answered* or *ours*, it needs nothing from you.
+
+**Closed, kept only so the record is complete:** **§19** (API v2 — you
+answered), **§23** (mod settings — you answered; two cosmetic items remain),
+**§25** (withdrawn: our mistake, not a bug), **§4** (folded into §24), and
+**§21** (the cause was our own class emission; three engine notes remain).
+
+**Still needing your input**, roughly by how much it blocks an author: **§14**
+permission calls refused from a click handler with the mod read as `null` ·
+**§11** a disk-deleted mod's Twotter accounts outlive it · **§13** a disabled
+mod stays disabled forever · **§12** `Quest.claim` returns nothing · **§16** the
+promised `repliedTo` · **§17** `getInbox` entries with no `subject` · **§15**
+`Handbook.open` never reaches the article · **§18** no way to take a feed post
+down · **§22** author/avatar rendering · **§10** no picture on a tweet · **§2**
+Bettercap's `SSID: undefined` · **§24** mod sites never fire HTTP events, and
+every page view renders twice · **§3** DNS-only collaborator · **§1** `curl`
+absent · **§5**, **§6** suspicion and SMS: status and shape · **§20** a comment
+with no author · **§9** the load-time repair did not repair our record · **§7**
+a first-load toast duplicating, one sighting · **§8** `Twotter.AccountCreated`
+silent for API-created accounts.
 
 The raw SDK 0.24 harness is green for the core non-curl surfaces we tested: `Http.fetch`, Browser HTTP through a registered host, Browser interception, Browser collaborator hits, Scheduler/Time, quest completion/retire/unclaim, raw native Wi-Fi creation/connect/disconnect/reload, abandon, and reset/reseed. The editor-generated Wi-Fi scaffold is also green for startup mail/toasts, BSSID, connect/disconnect objectives, and reload stability.
 
@@ -40,7 +68,7 @@ The same happened for collaborator URLs. Browser requests against the same hosts
 
 ## 2. Bettercap `set wifi.ap <BSSID>` prints `SSID: undefined` for SDK-created APs
 
-**Observed.** The raw harness creates the AP with the SDK-declared fields:
+**Observed** 2026-09-16, game 1.3.0 / build 25341308. The raw harness creates the AP with the SDK-declared fields:
 
 ```js
 Network.createWifiNetwork({
@@ -79,7 +107,8 @@ Handshake captured: /home/Zeis/qe24-raw-5g.pcap
 
 ## 3. DNS-only collaborator lookup does not produce a collaborator hit
 
-**Observed.** Browser collaborator callbacks work, but a DNS-only lookup does not resolve and does not add a collaborator hit:
+**Observed** 2026-09-16, game 1.3.0 / build 25341308 (row H-07 of our SDK 0.24 QA
+grid). Browser collaborator callbacks work, but a DNS-only lookup does not resolve and does not add a collaborator hit:
 
 ```text
 qe24 collab
@@ -102,21 +131,15 @@ Collaborator hits: 3
 
 ## 4. Static editor websites load but do not fire `Http.Request` / `Http.Response` objectives
 
-**Observed.** The editor export's static website loads in Browser:
-
-```text
-http://qe24-website.test/
-http://qe24-website.test/echo
-```
-
-But neither editor objective completed:
-
-- `http-request`
-- `http-response`
-
-The raw harness's `Http.registerHost()` server did fire Browser-origin response/intercept events, so this may be a distinction between SDK-registered HTTP hosts and static `WebsiteDefinition` hosts.
-
-**Question.** Should Browser traffic to a mod's static `WebsiteDefinition` pages emit `Http.Request` / `Http.Response` / `Http.Intercepted` events? If not, can the SDK docs call out that HTTP events are only for `Http.registerHost()` / proxy-visible traffic and not static websites?
+**Merged into §24 — please answer it there.** This is the same fence, found
+earlier, and keeping two sections open meant one answer could be given twice or
+missed entirely. The measurement, for the record: the editor export's static
+`WebsiteDefinition` site loads in Browser (`http://qe24-website.test/` and
+`/echo`, 2026-09-16, game 1.3.0 / build 25341308) and neither the `http-request`
+nor the `http-response` objective completed — while in the same build the raw
+harness's `Http.registerHost()` server *did* fire Browser-origin
+response/intercept events. §24 extends this to dynamic pages on 1.3.13 and
+carries the actual questions.
 
 **Editor stance.** Keep HTTP authoring fenced until the event semantics are clear by origin and host type.
 
@@ -124,15 +147,28 @@ The raw harness's `Http.registerHost()` server did fire Browser-origin response/
 
 ## 5. Suspicion/log-forensics SDK surface still appears absent in SDK 0.24
 
-**Observed.** We expected possible suspicion support based on earlier conversation, but the pinned SDK declaration has no `Suspicion` namespace, no suspicion-related functions, and no suspicion event names in the generated catalogue. Searches against `index.d.ts` and `reference/hackhub-events.json` only find ordinary prose/old docs, not an API surface.
+**You have answered this once already — this is a status check plus the one part
+that still needs you.** In your response to our earlier report (Q5) you wrote
+that seeding a log file works today through `rootFiles`, that knowing when the
+player removed a line is not possible, and that *"Raising or lowering suspicion
+is not possible at all… Exposing `Suspicion.AddValue` and `SetValue` plus an
+event would be the fix… It is on the list with Q1, not in this patch."* We are
+not re-asking any of that.
 
-**Question.** Is suspicion/log-forensics participation planned for a later SDK? If yes, what shape should we expect? Examples that would unblock the editor:
+The pinned 0.24.0 declarations still agree with you: `suspicion` appears **zero**
+times in `index.d.ts` and **zero** times in our generated event catalogue.
 
-- read current suspicion level;
-- raise/lower suspicion;
-- listen for suspicion changes;
-- create log entries that the native suspicion system treats as cleanable evidence;
-- mark a quest action as suspicion-relevant.
+**What we would like, two things:**
+
+1. **Is it still on the list?** No timeline needed — the answer only decides
+   whether we keep telling authors "suspicion is game-native and outside the
+   editor", or start planning around a shape.
+2. **A typing gap you pointed at yourself.** You told us the engine's log viewer
+   expects a structured `data` array and an `open: "LogViewer"` marker, *"neither
+   of which the SDK's `NetworkFileMap` type currently describes, so you would be
+   passing game-native fields through"*. Should the type declare them, so a mod
+   can seed a log the viewer will actually render without guessing field names?
+   This one needs no new engine work.
 
 **Editor stance.** No suspicion nodes or promises. Suspicion remains game-native and outside the editor until a pinned SDK declares and in-game QA verifies it.
 
@@ -142,17 +178,41 @@ The raw harness's `Http.registerHost()` server did fire Browser-origin response/
 
 **Observed.** The pinned SDK has phone-call dialogs and `PhoneApp`, plus Mail/Kisscord/WeeChat messaging APIs, but no SMS/text-message namespace or event surface. Searches for `sms`, `text message`, and equivalent event names in `index.d.ts` / `reference/hackhub-events.json` do not find a native SMS API. (r232, verified in the pinned 0.24.0: `PhoneApp` is a mod app that appears on the in-game phone home screen — an HTML app driven through the `HackhubSDK.Phone` bridge — not a dial mechanism. The SDK has no dial event or callback either: a quest's call is started mod-side via `quest.createDialog(branch)`. The main game's own quests have a player-dials-a-number experience, but nothing in the mod SDK surface expresses it.)
 
-**Question.** Is native SMS planned for a later SDK? If yes, will it be quest-declared like phone-call dialog, an imperative namespace such as `SMS.send(...)`, an event surface for read/reply, or part of `PhoneApp`? And is the main game's player-dial flow (dial a number → the quest's call starts) reachable from mod content at all — e.g. a dialable-number registration or an `onDial`-style hook — or is it client-internal to the campaign?
+**Question.** "Is it planned" is already answered — you agreed verbally, on
+Discord after that report, to expose SMS to the SDK, so we are not asking again.
+What we cannot design around is the **shape**:
+
+- quest-declared, like phone-call dialog (`Dialog` + `this.createDialog(branch)`)?
+- an imperative namespace, `SMS.send(...)`?
+- an event surface for read/reply, so a quest can react to the player's half?
+- or part of `PhoneApp`?
+
+And one half that is still genuinely open: is the main game's own player-dial
+flow (dial a number → the quest's call starts) reachable from mod content at
+all — a dialable-number registration or an `onDial`-style hook — or is it
+client-internal to the campaign? Nothing in 0.24 expresses it: the only `dial`
+matches anywhere in `index.d.ts` are the word *dialog*.
 
 **Editor stance.** Keep using Kisscord/other channels as substitutes where templates need a contact beat. Do not ship an SMS editor until a pinned SDK declares it and in-game QA verifies it.
 
 ---
 
-## 7. Minor watch item: editor export first-load debug toasts can duplicate
+## 7. First-load debug toasts can duplicate — one sighting, 2026-09-16
 
-**Observed.** After adding `ui` permission, the editor export `1.0.2` showed setup mail and toasts on a fresh save. Zeis saw two similar initial debug toasts, both apparently saying the load/listener registration message, and then only one such toast after reload. Wi-Fi objectives still worked after reload and there was no duplicate AP.
+**Observed once** (2026-09-16, game 1.3.0 / build 25341308, editor export 1.0.2,
+fresh save — rows W-07/W-09 of our SDK 0.24 QA grid). The export showed its setup
+mail and toasts, and **two** near-identical debug toasts appeared on initial
+load, both the load/listener-registration message; after a reload only **one**
+appeared. Wi-Fi objectives still worked and there was no duplicate AP.
 
-**Question.** Is it expected that the load/objective-start path can fire twice on first save creation? If not, we can provide a smaller reproduction after the bigger SDK 0.24 items above are handled.
+We worked around our own side of it immediately, which is why it has not been
+seen again and why this is a watch item rather than a bug: we cannot tell you
+whether a double fire still happens on a current build.
+
+**Question.** Is the load/objective-start path expected to run twice on first
+save creation? If it is, we will stop guarding against a double callback; if it
+is not, we will build a smaller reproduction once the bigger items above are
+handled.
 
 **Editor stance.** Watch only; not blocking.
 
@@ -165,8 +225,11 @@ The raw harness's `Http.registerHost()` server did fire Browser-origin response/
 and profile screens showed the account immediately, and the same quest's
 **`Twotter.PostSeen`** listener fired normally when the profile was opened from
 the timeline — but the **`Twotter.AccountCreated`** listener, registered at quest
-start before the account existed, never fired. Transcript:
-`docs/archive/sdk-0.24-qa/QE24-TestResults - Twotter.md`.
+start before the account existed, never fired. The lines above are verbatim from
+that session's game log, which we no longer hold; the finding itself is recorded
+in our QA ledger (`docs/archive/sdk-0.24-qa/STATUS.md`, the T-01…T-07 block) and
+in the two round plans that acted on it. We can rebuild the probe if a log would
+help you more than the description.
 
 **Question.** Is `Twotter.AccountCreated` only raised for accounts the *player*
 creates in the Twotter app (and for quest-declared accounts at save creation),
@@ -230,7 +293,10 @@ in-game feed does), but a mod cannot post one.
 
 **Request.** Either a field on `TwotterTweet` (a data URI or a mod asset path,
 whatever the game's own content uses), or an overload such as
-`postTweet(tweet, { image })`. Our editor models a picture per tweet already, so
+`postTweet(tweet, { image })`. The engine already carries the concept on the
+other surface — `QuestHackhubPostDefinition.media?: string`, *"Optional image
+shown under the content (mod asset path or URL)"* (`index.d.ts:107`) — so this
+reads as a gap in one namespace rather than a missing feature. Our editor models a picture per tweet already, so
 the day the API accepts one the feature ships without any further work. Until
 then we keep the field in the project file, show it only as an editor preview,
 and tell authors plainly that players will not see it.
@@ -295,7 +361,8 @@ the game applies it while starting up — before any save is loaded. That is whe
 `OnModPackageUnloaded` fires: the log carries *"unloading: removing the Twotter
 accounts this mod declared"* and *"twotter: removeUser(qe-tw-account) -> true
 (mod unloaded)"*, and after loading the save the handle is gone from
-`getUserByUsername`. So the SDK's advice **is** followable through the Mods list,
+`getUserByUsername`. (Both lines are verbatim from that session's game log, which
+we no longer hold — the behaviour is recorded in our QA ledger as row T-15c.) So the SDK's advice **is** followable through the Mods list,
 and a player who disables a mod before deleting it leaves a clean save.
 
 That narrows this question to the one case left: a mod **deleted from disk while
@@ -331,7 +398,7 @@ nobody can clean up after.
 
 ## 12. `Quest.claim()` returns nothing, and a quest's state cannot be read back
 
-**What we hit.** Our QA harness starts a quest belonging to another mod with
+**What we hit** 2026-09-19, game 1.3.1 / build 25388883. Our QA harness starts a quest belonging to another mod with
 `Quest.claim("QESdk024TwotterQa")` — that is the documented way, and it is how a
 tester claims one row's quest without five of them running at once. In SDK 0.24
 the declaration is:
@@ -486,6 +553,18 @@ the engine calls back later.
 - or, at minimum, a message that says **"the click handler has no mod context"**
   instead of "add `ui` to your manifest.json", which sends the reader to a file
   that is already correct.
+
+**It is not only our registration code.** Our captured logs carry the identical
+refusal from a **bundled** mod, in a price-tick path rather than a click handler:
+
+```
+[RENDERER] [synthetik-wallet] tickPrices:challenges failed: [ContentSDK] Mod "null" tried to use UI.toast without "ui" permission. Add "ui" to the permissions array in your manifest.json.
+    at SynthetikWallet.tickPricesInner (eval at kLr (file:///S:/SteamLibrary/steamapps/common/Hackhub/resources/app.asar/dist/assets/index.js:171904:40510), <anonymous>:5033:50)
+```
+
+Game 1.3.1, 2026-09-18. So the caller-resolution failure reaches at least one
+path that is not a mod's own click handler, which is why we do not think this is
+about how we register anything.
 
 **We measured the workaround, and it works — this is what a pack has to do
 today.** Our QA harness ran one click that tried every channel, and then the same
@@ -693,12 +772,14 @@ The removal ask below stands on its own.
 - a `Hackhub.removePost(quest)` (or a flag on quest registration) so a mod
   can take its own post down;
 - or documentation of the intended post lifecycle — whether posts are meant
-  to be permanent, whether replacing a mod's registration refreshes the
-  post, and whether the engine really retires posts of once-claimed quests
-  per profile;
-- or, at minimum, confirmation that the post's *author* fields (name, drawn
-  avatar) are honored from `HackhubPost.author` — we now pass them through
-  and a game session is pending to confirm they render.
+  to be permanent, and whether replacing a mod's registration refreshes the
+  post. (The once-claimed half is settled: `index.d.ts:2156-2161` documents it,
+  and our probe confirmed a claimed quest's post never renders again.)
+
+We are **not** asking about the `author` fields any more — we measured them: a
+named author renders pre-accept, an uploaded avatar renders from a mod asset
+file, and no avatar is minted for a named-but-avatarless author (that last one is
+§22).
 
 **Note for the road:** quests accepted from the feed show their **Complete
 button on the feed post itself**, not in the journal — the post is the
@@ -719,53 +800,22 @@ So: v2 is simply the current API, v1 keeps working in compatibility mode, and
 the warning is noise rather than a symptom. **The editor now emits
 `apiVersion: 2` on every export** (r241 — the compiler emits it, the project
 schema defaults to it, and a project still carrying `1` is upgraded on
-export), and every hand-made QA mod in `reference/sdk-0.24-qa/` declares 2.
+export), and the QA scaffold still in `reference/sdk-0.24-qa/` declares 2 (`editor-export/dist/manifest.json`; the other hand-made probes were deleted in our r252 QA cleanup).
 
-One small suggestion if it is easy: the SDK's own manifest example and
-`build.mjs` scaffold still write `"apiVersion": 1`, which is what led every
-SDK-built mod into compatibility mode in the first place.
+**One small suggestion, if it is easy.** We shipped `apiVersion: 1` for a
+reason: the pinned SDK's own README example (`README.md:426`) and its `build.mjs`
+scaffold (`build.mjs:106`, `REQUIRED_MANIFEST_FIELDS`) both still write `1`, and
+everything we had measured worked under compatibility mode — so nothing suggested
+the warning meant anything. Updating those two spots in the next SDK release
+would stop every SDK-built mod starting life in compatibility mode.
 
-*The original question, kept for the record:*
-
-**Found while re-testing the feed-post round** (2026-09-22, game 1.3.1 /
-Content SDK 0.24.0).
-
-Every mod the editor exports logs the same line at boot:
-
-```
-[ContentSDK] Mod "…" uses API v1 (current: v2). Running in compatibility mode.
-```
-
-We ship `apiVersion: 1` because the pinned SDK itself does — its README's
-manifest example and its own `build.mjs` scaffold both write `"apiVersion": 1`,
-and `index.d.ts` documents nothing newer. Under that compatibility mode every
-feature we have measured verifies green in game: mail (both send paths),
-Twotter accounts and tweets, timers, the scheduler, quest completion. So
-compat mode is not known to break anything — but "current: v2" implies a
-pipeline we cannot see, and the one feature that has never verified (quest
-feed posts) is exactly the kind of thing a v2 could have re-plumbed.
-
-**2026-09-28 addition (r239/r240).** A declarative-settings probe ran under
-compatibility mode and its settings came back **intact**: the game parsed
-`Bootstrap.Settings` (six settings, all five types, exact defaults) and
-`ModSettings.getAll()` returned them at package load and again at quest
-claim. So compatibility mode is **not** known to touch the settings
-*pipeline*. What is unverified is the other half — the player-facing UI (see
-question 23) — and whether that UI is v2-only. A v2-manifest copy of the
-same probe is in the hands of the tester.
-
-**What we would like:** any of these —
-
-- what API v2 changes for mods, and whether it is reachable from the public
-  SDK at all;
-- or confirmation that v2 is first-party-only and compatibility mode is the
-  intended permanent state for SDK mods;
-- or a pointer to what (if anything) behaves differently under compatibility
-  mode, so we stop suspecting it when something fails.
+*The original question is kept in our git history and in
+[`docs/archive/`](archive/); nothing in it needs an answer now.*
 
 ## 20. The SDK requires comment authors to have names — does the game mint personas for blank ones?
 
-**Found while diagnosing the never-surfacing feed posts** (2026-09-22).
+**Found while diagnosing the never-surfacing feed posts** (2026-09-22, game 1.3.1 /
+build 25388883).
 
 `QuestHackhubPostComment` in `index.d.ts` requires `author: { name: string }`
 — not optional. The post-level author, by contrast, is documented: *"If
@@ -784,90 +834,40 @@ unverified.
 whose `author` is absent — persona, anonymous, or a failed post — so the
 editor knows whether "blank" is a feature or must be a required field.
 
-## 21. Mod quest posts have stopped surfacing on the feed — is `HackhubPost` (and its `author`) still read?
+## 21. Feed posts stopped surfacing — the cause was ours; three engine notes remain
 
-**Found across the editor's feed-post playtests** (2026-09-21/22, game 1.3.1,
-Content SDK 0.24.0; five exports, three fresh quest names, two fresh saves).
+**Resolved on our side, and said plainly so you do not spend time on it.** Across
+2026-09-21/22 (game 1.3.1, SDK 0.24.0) five consecutive editor exports never
+surfaced their feed post. The cause was **our own emission**: every
+editor-compiled quest was an anonymous class expression, so all of them shared
+the inferred name `cls`, and the per-quest class names we have emitted since
+2026-09-21 fixed it. The A/B was clean — the pre-fix export stayed absent on a
+fresh save the same day the fixed one rendered — while eleven hand-authored
+variants (post shapes, author and comment fields, avatars as asset files, the
+employer fallback, rewards, manifest permissions, co-installation) rendered
+throughout. `HackhubPost` was never broken, and we are not asking you to look at
+our bug. Three things from that run are yours, though:
 
-A quest's `HackhubPost` rendered **exactly once** across every session we
-have run: the r211 mail probe (export 1.0.38) — a **bare** post: `content`
-only, no `author`, no comments, and the game drew a persona for the poster
-("Kristina Kaczmarek"). Every attempt since carried the fields the d.ts
-advertises, and **none of them ever surfaced** — not on fresh saves, not
-with fresh quest names and fresh quest ids, not with avatars shipped as
-extracted asset files (mod icon/cover's proven contract), not with
-contract-clean `author: { name }` shapes:
+**1. `[Scheduler] Holding job "Queue.HandleQuestHackhubPosts": no handler
+registered.`** This WARN appears when feed-adjacent UI opens, and it is not tied
+to our content: on 2026-09-19 at 14:56:57 it fired in a session where our pack
+had been removed from the mods folder entirely (other mods were loaded, ours was
+not), one line before `[PruneOrphanQuests]`. Is a handler missing on that queue,
+and does it matter for feed posts?
 
-| Attempt | Post shape | Quest name | Result |
-|---|---|---|---|
-| r211 probe (1.0.38) | content only | fresh | **rendered once**, accepted from the feed |
-| same probe (1.0.39/40) | content only | already claimed | absent (the d.ts "hasn't been claimed yet" rule) |
-| r215 | `author{name}` + data-URI avatar | fresh | absent |
-| r216 (v2) | `author{name}`, blank-author comment | fresh ×2 | absent |
-| r217 (v3) | employer{name,avatar} + `author{name,avatar file}` + named comment + likes | fresh name + fresh id, fresh save | absent |
-| r218 H-10 | **bare** — content + likes only, no author, no comments, no employer | fresh, fresh save, no mods | **absent** |
+**2. Can a compiled quest's class name reach your identity checks?** Our failure
+needed the anonymous class *inside a compiled export's registration context* —
+the same inferred `cls` name rendered fine from a hand-written mod, so the name
+string alone is not the trigger. If quest identity (claim memory, and with it the
+feed's "hasn't been claimed yet" rule) is ever keyed on something a compiler can
+silently collapse, then one claimed quest could retire another pack's posts. We
+cannot see that from outside; you can.
 
-**Resolution direction (r219 + r220 grids ran, 2026-09-22): the post shapes,
-the quest fields, AND the manifest are all innocent** — eleven variants
-rendered from hand-authored mods, including a canary with the editor exports'
-exact manifest (`mail, events`). The one structural difference left: every
-editor-compiled quest is an anonymous class expression (`var cls = class …`),
-so `cls.name === "cls"` for **every quest in every export**, while hand mods
-name their classes. If the engine keys quest identity (claim memory, and with
-it the feed's "hasn't been claimed yet" check) on the class name, one claimed
-editor quest retires every editor export's posts on that profile — which
-would explain why fresh quest names never helped. The r221 pair RAN (the anonymous-class twin rendered — class names innocent
-like everything else), and then the r222 round produced the breakthrough:
-**an editor export rendered.** Zeis's v6 (bare post, build r222 with the
-renamed classes) surfaced on the feed — the first editor render since
-1.0.38, after five consecutive silent exports. The author string was
-doubly cleared on the way (canary 1.0.2 authored "Zeis" rendered; v6
-authored "Zeissss" rendered). **VF-1 has now run (Zeis, fresh save): the OLD v3 export — pre-rename
-emission — stayed ABSENT**, the same day v6 (renamed) rendered beside it in
-the matrix. Within editor exports the A/B is decisive: the anonymous-class
-emission does not surface feed posts; the per-quest-named emission does.
-The rename is the only emitted difference between those builds, and the
-editor carries it since 2026-09-21.r221 — every export from r221 on is
-fine; older exports need re-exporting.
-
-One honest footnote for your pipeline: the same inferred `cls` name rendered
-from our hand-written harness, so the raw name string alone is not the
-trigger — the failure needs the anonymous class inside a compiled export's
-registration context (the old runtime also inferred `cls` for its Command
-and Website classes in the same module, though neither was registered in the
-tested exports — the exact trip-wire is yours to pinpoint). Everything else
-was falsified as a cause along the way: post shapes, author/comment fields,
-avatars as asset files, the employer fallback, rewards/behaviour assignments,
-manifest permissions, the author string, co-installation. The documented
-once-claim-per-name rule stands as the only removal mechanism. A rendering footnote from the same
-run: an author declared with a name but no avatar draws a **broken-image
-icon**, and the employer's file avatar does not resolve on the post-accept
-revealed card either. All five harness variants rendered in one feed — bare, named
-poster, file-avatar poster, likes + named comments — so `HackhubPost` itself
-still works, the extracted-asset avatar contract renders, and the suppression
-is **mod-shaped**: the same shapes that render from our QA harness (five
-permissions) never surface from an editor export (`mail, events`, fresh ids).
-The r220 round isolates the two surviving deltas: the compiled editor quest's
-ALWAYS-ASSIGNED fields (`AutoComplete`/`HasCompleteButton`/`Abandonable`/zero
-`Rewards`) and the manifest shape (a canary mod with editor-identical
-permissions). One more engine observation from the same run: a post author
-declared with a **name but no avatar** draws a **broken-image icon** on the
-post — the anonymous "Hidden User" persona, by contrast, renders fine.
-
-At the same time, every session log — vanilla runs included — shows
-`[Scheduler] Holding job "Queue.HandleQuestHackhubPosts": no handler
-registered.` when feed-adjacent UI opens.
-
-**What we would like, any of these:**
-
-- confirmation whether `HackhubPost` (and specifically `author.name` /
-  `author.avatar`) still reaches the feed renderer in 1.3.1, or whether the
-  pipeline behind `Queue.HandleQuestHackhubPosts` lost its handler;
-- whether a bare `content`-only post is the supported shape (it is the only
-  one we have seen work);
-- whether the once-per-profile claim rule (d.ts, `HackhubPost`) also
-  suppresses posts for quest names a profile has claimed through
-  `Quest.claim` rather than the feed.
+**3. Does an API claim suppress the post too?** `index.d.ts:2156-2161` documents
+that the post shows only while the quest "hasn't been claimed yet", and we
+verified that a quest claimed **from the feed** never shows its post again — on
+any save. Does `Quest.claim(name)` suppress it identically? The answer decides
+whether a pack can ever re-offer a quest a player already started.
 
 ## 22. Feed-post author rendering: name-without-avatar draws a broken icon — and when exactly does the employer fallback fire?
 
@@ -885,23 +885,20 @@ declarations don't describe:
    `avatar` as effectively required whenever `author` is present. The
    anonymous route (no `author` at all) renders the drawn "Hidden User"
    persona without incident.
-2. **The documented employer fallback is unmeasured.** The d.ts says an
-   omitted post author falls back to "the quest's (auto-generated) employer,
-   falling back to an anonymous 'Hidden User'". A probe with an INVALID
-   employer shape (`{name}`) landed on "Hidden User"; whether a well-formed
-   `Employer` (`firstName/lastName/email/avatar`) becomes the post's author
-   is being measured right now (harness 1.0.28, row HF-5). Note the
-   interplay with 1: if the fallback fires, does the employer's avatar come
-   along, or does the post draw the broken icon?
+2. **The employer fallback fires, and its avatar does not come along —
+   measured, not asked (row HF-5, harness 1.0.28, 2026-09-22).** A quest with a
+   well-formed `Employer` and no post `author` showed "Hidden User" pre-accept
+   (which is normal, per the correction below), and **on accepting the quest the
+   poster revealed as the employer** — the name arrives exactly as `index.d.ts`
+   promises. The employer's **file avatar did not resolve** on the revealed card:
+   it drew the same broken-image icon as case 1. So the fallback carries the name
+   and drops the avatar. Either the avatar should travel with the name, or the
+   docs should say a fallback author never has one.
 
-   **Zeis's correction (2026-09-22), which reframes this half:** "Hidden
+   **Zeis's correction (2026-09-22), which reframed this half:** "Hidden
    User" is **standard Hackhub behaviour** — some posters are shown, some
-   are hidden and only get revealed once the quest is accepted. So a
-   "Hidden User" on an unaccepted probe post is not an anomaly to explain;
-   the open questions become: does a well-formed employer (or any authored
-   `author`) show pre-accept at all, and does accepting reveal the author
-   the d.ts promises? Row HF-5's read now includes: accept it and see
-   whether the poster changes.
+   are hidden and only get revealed once the quest is accepted. That is why
+   the pre-accept "Hidden User" above is not an anomaly to explain.
 
 **What we would like:** the intended author/avatar matrix — which
 combinations render what, and whether the employer fallback is expected to
@@ -936,46 +933,10 @@ Also worth confirming: the settings screen is **main-menu only** (not
 reachable mid-game). That is fine for difficulty-style choices; anything a
 player must tune *during* a quest would need another surface.
 
-*The original question, kept for the record:*
-
-**Found running the r239 ModSettings probe in game** (2026-09-28, game
-1.3.1, Content SDK 0.24.0).
-
-The SDK documents `Bootstrap.Settings` as *"declarative settings definitions
-rendered in the Mods UI"*, and `ModSettings.get/getAll/set/reset/resetAll`
-for mod code. A probe declaring six settings — one of every type
-(`toggle` ×2, `select`, `text`, `number`, `slider` with min/max/step) —
-verified the **code** half completely:
-
-- the game parsed the declaration: `ModSettings.getAll()` returned all six
-  keys with their exact defaults (select `blue`, slider `50`, toggles as
-  declared), at package load *and* later at quest claim;
-- so the values are, or would be, handed to mod code correctly, including
-  under API v1 compatibility mode (question 19).
-
-What we could not find is the **UI** half. The tester looked in the in-game
-**Settings app** and it has no Mods section at all. He has used a mods
-*list* before — the one where a mod is enabled/disabled and the game answers
-*"Mod changes detected. Restart the game to apply updates."* — so a
-player-facing mods surface does exist somewhere in the game; it simply is not
-where the docs led us to look, and its location was never written down in our
-notes.
-
-**What we would like:**
-
-- where in the game a player changes a mod's declarative settings (which
-  screen/menu, and is it reachable in-game or only from the main menu?);
-- whether that UI is gated on `apiVersion: 2` — the game reports *current:
-  v2* and runs our v1 mods in compatibility mode, and settings are a newer
-  surface, so v2-only is a plausible reading (a v2-manifest copy of the probe
-  is being tested to settle it);
-- whether changed values persist across restarts and are then returned by
-  `ModSettings.getAll()` on the next load, and whether the UI offers any
-  reset-to-defaults control (the SDK gives mod code `reset`/`resetAll`, but
-  says nothing about the menu exposing one).
-
-Until this is answered, the editor should not promise a settings feature: the
-data path is proven, the player-facing half is not.
+*The original question (where is the settings UI, is it v2-gated, do values
+persist) is answered above and kept in our git history; nothing in it needs an
+answer now. The two items above — the `number` widget's width and the missing
+reset control — are the whole of what is left.
 
 ## 24. `Http.Response` never reaches a mod for its own site's pages — is that intended, and can a mod observe a page view at all?
 

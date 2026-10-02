@@ -1,3 +1,62 @@
+# Handoff — r263
+
+**The developer list audited before it goes to SteelWaffe.**
+
+Zeis asked for `docs/03-questions-for-the-developers.md` to be read over and
+verified first, so nothing in it wastes the developer's time. Every claim was
+checked against the two evidence classes we actually hold: the pinned SDK 0.24.0
+declarations (installed with `npm run recover`; 4,180 lines) and the QA record —
+including two transcripts fetched from the `QA-filedump` branch, because §11
+cites one of them. The audit is
+[`docs/plans/r263-developer-list-audit.md`](plans/r263-developer-list-audit.md).
+
+**20 claims verified line-for-line**, each with its file:line — among them the
+three SDK doc comments §11 quotes (`index.d.ts:3624`, `:3148`, `:2072`),
+`claim`/`unclaim` being the only statics on `Quest` and both `void` (`:2253`,
+`:2261`), the promised `repliedTo` missing from `MailEvent` (`:726-734`) against
+the verbatim reply payload, `getInbox`'s 28/27/30 entries with the probe found by
+id and zero subject matches, and zero occurrences of `suspicion` or `sms`
+anywhere in the declarations or the event catalogue.
+
+**Eight things would have cost him time**, and all eight are fixed: §5 and §6
+re-asked questions he already answered in `docs/07`; §21's first two bullets were
+answered by our own later runs; §22's "unmeasured" employer fallback was measured
+by HF-5; §11 and §8 pointed at transcripts that do not contain the quoted lines;
+§4 and §24 filed one fence twice; §7 carried no date or version; and the header
+named one build while the items span 1.3.0/25341308, 1.3.1/25388883 and 1.3.13.
+
+**Two of my own findings were wrong, and the audit says so.** I first concluded
+§3's transcript block was composed and §7 had no evidence at all. Both were
+backed — in `docs/plans/r166-sdk-0.24-ingame-qa.md` (rows H-07, W-07/W-09), which
+I had not searched yet. Same failure mode as r262's lynx guess, one step earlier:
+a claim of "unsupported" is itself a claim, and needs the same search.
+
+**Zeis's calls, recorded verbatim in the plan.** The §11/§8 log lines are real and
+stay — the logs themselves are gone, so the pointers now say that instead of
+naming files that lack the lines (and `STATUS.md` row T-15c was corrected the same
+way). §7 is real and stays, dated. §3 stays as-is: the multiplayer-only caveat is
+his answer about `Terminal.DnsHistory`, a different event, while
+`Http.CollaboratorHit.kind` is declared as *"dns" for a lookup with nothing
+behind it* (`index.d.ts:577`) with no such caveat — so "100% sure it is
+multiplayer-only" is not available. And *"remove things that don't need his
+input, like bugs that were ours"*: §21 was rewritten to state our own bug in one
+paragraph and keep only the three engine notes; §19 and §23 compressed to their
+live remainder.
+
+Section numbers were left untouched — 143 cross-references across the repo point
+at them. Two additions that strengthen the report came out of the same read:
+`QuestHackhubPostDefinition.media` (`index.d.ts:107`) shows the engine already
+carries a post image field, which sharpens the §10 tweet-picture request, and our
+own logs hold the identical `Mod "null"` refusal from a **bundled** mod
+(`[synthetik-wallet]`, `QE24-TestResults - Timer-Rows.md:240`, 2026-09-18), which
+is §14's best evidence that the caller-resolution failure is not ours.
+
+Docs-only round: `EDITOR_BUILD` stays `2026-10-02.r260`. Gates: **1,830 tests /
+89 files**, typecheck, build — green (no test executes a markdown file, so those
+confirm nothing broke; the audit's claims come from the reads listed in the plan).
+
+---
+
 # Handoff — r262
 
 **The app dropdown now offers only desktop apps, because terminal commands can never pass the check.**
@@ -422,7 +481,7 @@ to the developer as written. §14 (`UI.*` refused with the mod read as `null`)
 is separately evidenced and untouched.
 
 **The hygiene, paid.** Done recently is back to five rows with nineteen
-archived to `docs/archive/rounds-227-255.md` behind a correction banner; the
+archived to `docs/archive/rounds-227-256.md` behind a correction banner; the
 r249/r248 rows that survive are corrected in place. In-progress #1 untangles
 what r237–r249 had fused into one story — content green, HTTP events fenced
 since r166, the mail question ours — and #2 records that the ModSettings UI was
@@ -502,7 +561,7 @@ Where the evidence for those rounds actually lives:
 - **r244–r249** — read `plans/r250-r237-r249-audit.md` **first**; the README
   rows for these rounds stated conclusions the audit disproved.
 
-Archived README rows for r227–r247: `archive/rounds-227-255.md`.
+Archived README rows for r227–r247: `archive/rounds-227-256.md`.
 
 ---
 
