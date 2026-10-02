@@ -52,6 +52,23 @@ rules the prose is written to: second person, present tense, active voice, no
 sentence over twenty words, every how gets a why, and UI labels quoted with
 `<b class="ui">` only when they really appear in the editor.
 
+Most of that list is not machine-checkable, but the twenty-word rule is, and
+`G18` now checks it. It found the rule had never been enforced: 160 prose
+sentences across 34 pages ran past the limit, one of them 43 words long. That
+is too many to rewrite responsibly in one pass, so `G18` is a **ratchet**:
+`how-do-i.html` is held to zero outright, and the handbook total is capped at
+`LONG_SENTENCE_BUDGET`. Fix pages as you touch them and lower the budget to the
+new total. It must only ever come down.
+
+Counting sentences means splitting on tag boundaries, and the obvious regex is
+wrong: `<(p|li|dd|figcaption)[^>]*>` also matches `<link` in the document head,
+so the match swallows the page and table rows get counted as sentences. That
+reported 293 violations where there are 160. The lookahead `(?=[\s>])` after
+the tag name is what makes it correct — do not remove it.
+
+`blockquote.blurb` is excluded from the count. Those quote the editor's own
+field hints, which are the product's wording and not ours to reword.
+
 ## Colour
 
 Colours are never invented here. They come from the editor's own palette, via

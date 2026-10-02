@@ -726,3 +726,63 @@ describe("manual coverage — G17: no scaffolding left behind", () => {
         ).toEqual({ unlisted: [], listed: Math.max(listed, declared), declared });
     });
 });
+
+/* ── G18: sentences stay under 20 words ────────────────────────────────────
+ * "Every sentence at most 20 words" has been a stated rule for the handbook
+ * since the start, and nothing ever checked it. how-do-i.html alone carried 17
+ * violations, one of them 43 words long.
+ *
+ * This is a ratchet, not a clean gate: the handbook currently holds more
+ * violations than can be rewritten responsibly in one pass, so the total is
+ * capped at what it is today and may only fall. The how-to page is held to
+ * zero outright, because it has been fixed. Lower the budget each time you
+ * fix a page — never raise it.
+ */
+const LONG_SENTENCE_MAX = 20;
+const LONG_SENTENCE_BUDGET = 160;
+
+function longSentences(page: string): string[] {
+    let s = read(page);
+    s = s.replace(/<(script|style|nav)[^>]*>[\s\S]*?<\/\1>/g, "");
+    /* blurbs quote the editor's own field hints, which are not ours to reword */
+    s = s.replace(/<blockquote class="blurb">[\s\S]*?<\/blockquote>/g, "");
+    const out: string[] = [];
+    /* The boundary lookahead matters: without it `<li` also matches `<link` in the
+       document head, the match swallows the whole page, and table rows get counted
+       as sentences. That bug reported 293 violations where there are 160. */
+    for (const block of s.matchAll(/<(p|li|dd|figcaption)(?=[\s>])[^>]*>([\s\S]*?)<\/\1>/g)) {
+        const text = block[2].replace(/<[^>]+>/g, " ");
+        for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+            const words = sentence.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w));
+            if (words.length > LONG_SENTENCE_MAX) out.push(sentence.replace(/\s+/g, " ").trim());
+        }
+    }
+    return out;
+}
+
+describe("manual coverage — G18: sentences stay under 20 words", () => {
+    it("the how-to page holds every sentence under 20 words", () => {
+        const page = join(MANUAL, "how-do-i.html");
+        if (!existsSync(page)) return;
+        const bad = longSentences(page);
+        expect(
+            bad,
+            `${bad.length} sentences on how-do-i.html run past ${LONG_SENTENCE_MAX} words. Split them:\n` +
+                `  ${bad.slice(0, 6).join("\n  ")}`,
+        ).toEqual([]);
+    });
+
+    it("the handbook's overlong sentences do not increase", () => {
+        const counts = PAGES.map((p) => [rel(p), longSentences(p).length] as const)
+            .filter(([, n]) => n > 0)
+            .sort((a, b) => b[1] - a[1]);
+        const total = counts.reduce((sum, [, n]) => sum + n, 0);
+        expect(
+            { total, budget: LONG_SENTENCE_BUDGET },
+            `The handbook gained overlong sentences: ${total} now, ${LONG_SENTENCE_BUDGET} allowed.\n` +
+                `  Fix the ones you added. If you fixed pages as well, lower LONG_SENTENCE_BUDGET\n` +
+                `  to the new total — it is a ratchet and must only ever come down.\n` +
+                `  Worst pages:\n    ${counts.slice(0, 8).map(([f, n]) => `${n}  ${f}`).join("\n    ")}`,
+        ).toEqual({ total: Math.min(total, LONG_SENTENCE_BUDGET), budget: LONG_SENTENCE_BUDGET });
+    });
+});

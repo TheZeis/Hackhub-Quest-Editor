@@ -32,13 +32,13 @@
 <header class="hero">
   <h1>How do I…</h1>
   <p class="tag">Walkthroughs, each one solving a single thing an author actually
-  wants. The ones not written yet are listed below, so you can see what is
+  wants. The ones not written yet are listed below. You can see what is
   coming and ask for the one you need.</p>
 </header>
 <section id="howto-list">
 <p>These are not a feature of the editor. They are arrangements other authors
 have built, written out as steps you can follow. Each one names the nodes it
-uses, how long it takes, why the arrangement works, and the two or three ways
+uses, how long it takes. It also says why the arrangement works, and the two or three ways
 it usually goes wrong. They are drawn from the built-in templates and from how
 the game's own quests are put together.</p>
 <table>
@@ -47,8 +47,8 @@ the game's own quests are put together.</p>
     <tr><td><a href="#howto-objective-that-ticks">Give the player an objective, and make it tick</a></td><td>The shape almost every quest is built on.</td></tr>
     <tr><td><a href="#howto-npc-message">Send the player a message from an NPC</a></td><td>An employer briefs the player, in their own words.</td></tr>
     <tr><td><a href="#howto-gated-message">Make a message arrive only after something else happens</a></td><td>The same conversation, held back until the player earns it.</td></tr>
-    <tr><td>Pay the player, and charge them</td><td>Money in both directions, and what a blank amount really does.</td></tr>
-    <tr><td>Branch the story on something the player did</td><td>One quest, two routes, and no duplicated nodes.</td></tr>
+    <tr><td><a href="#howto-payment">Pay the player, and charge them</a></td><td>Money in both directions, and what a blank amount really does.</td></tr>
+    <tr><td><a href="#howto-branch">Branch the story on something the player did</a></td><td>One quest, two routes, and no duplicated nodes.</td></tr>
     <tr><td>Ask the player for a passphrase, with a wrong-answer route</td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
     <tr><td>Build a website the player has to find</td><td>A clue in plain sight on a host you registered.</td></tr>
     <tr><td>Hide a page so only a brute-force finds it</td><td>An unlisted page, and how the player is meant to reach it.</td></tr>
@@ -63,9 +63,7 @@ the game's own quests are put together.</p>
     <tr><td>Update a quest you already exported</td><td>Shipping version two without losing version one.</td></tr>
   </tbody>
 </table>
-<p>Linked titles are written. The rest are planned, in roughly the order they
-will land. Each one will name the nodes it uses, how long it takes, why the
-arrangement works, and the two or three ways it usually goes wrong.</p>
+<p>Linked titles are written. The rest are planned, in roughly the order they will land.</p>
 </section>
 
 <section id="howto-objective-that-ticks">
@@ -78,11 +76,9 @@ arrangement works, and the two or three ways it usually goes wrong.</p>
 <h3>The idea</h3>
 <p>An objective on its own is a line in the player's journal that never ticks.
 It has no idea what completing it means. The node that knows is <b>When
-event</b> — it listens to the game, and when the thing you asked about happens,
-it fires. Wire the two together and the objective finishes itself.</p>
-<p>This is the single most common shape in a quest, and the one thing the
-editor refuses to let you forget: an objective with nothing wired into its
-<b class="ui">Trigger</b> socket is flagged as an error, because the player can
+event</b> — it listens to the game. It fires when the thing you asked about happens. Wire the two together and the objective finishes itself.</p>
+<p>This is the single most common shape in a quest. It is also the one thing the editor refuses to let you forget. An objective with nothing wired into its
+<b class="ui">Trigger</b> socket is flagged as an error. The player can
 never finish the quest.</p>
 
 <h3>Steps</h3>
@@ -101,8 +97,7 @@ never finish the quest.</p>
   <img src="img/howto-01-objective.png"
        alt="An Objective node and a When event node side by side, joined by a single condition-coloured wire running from the trigger's When socket into the objective's Trigger socket." />
   <figcaption>The finished pair. One wire, and it goes into <b>Trigger</b> —
-  not into <b>In</b>, which is a different kind of connection and will refuse
-  the wire.</figcaption>
+  not into <b>In</b>. It is a different kind of connection, and it will refuse the wire.</figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -116,8 +111,8 @@ never finish the quest.</p>
 <ul class="plain">
   <li><b>The objective still shows an error.</b> The wire went into <b class="ui">In</b> instead of <b class="ui">Trigger</b>. Delete it and try again — the two sockets are different colours for exactly this reason.</li>
   <li><b>It ticks too early, or on the wrong file.</b> The condition is too loose, or missing. Narrow it, or add a second clause.</li>
-  <li><b>It never ticks even though the player did the thing.</b> The event you picked is not the one the game fires for that action. A file pulled over ssh raises two events, and listening to only one is a common miss — see <a href="troubleshooting.html#objective-never-ticks">the objective never ticks</a>.</li>
-  <li><b>You still can't see why.</b> Drop a <a href="nodes/flow-debug.html">Debug probe</a> after the objective and run a dry run. It prints what each node does when it fires — and whether it fires at all — so you can tell if the trigger is even going off.</li>
+  <li><b>It never ticks even though the player did the thing.</b> The event you picked is not the one the game fires for that action. A file pulled over ssh raises two events. Listening to only one is a common miss — see <a href="troubleshooting.html#objective-never-ticks">the objective never ticks</a>.</li>
+  <li><b>You still can't see why.</b> Drop a <a href="nodes/flow-debug.html">Debug probe</a> after the objective and run a dry run. It prints what each node does when it fires , and whether it fires at all. So you can tell if the trigger is even going off.</li>
 </ul>
 </section>
 
@@ -162,15 +157,13 @@ back-and-forth. WeeChat is a public room, so other characters can be present.</p
 <h3>Variations</h3>
 <ul class="plain">
   <li><b>Let the player answer, and get it wrong.</b> Give a line a button for the player to
-  pick. The <b class="ui">Wrong</b> socket then carries the story somewhere else, and you
-  can write what the character says when the answer misses.</li>
+  pick. The <b class="ui">Wrong</b> socket then carries the story somewhere else. You can write what the character says when the answer misses.</li>
   <li><b>Make a chat arrive later.</b> Kisscord and WeeChat carry a
   <b class="ui">Play when the story reaches this node</b> toggle. Left off, the conversation
   is handed to the game when the quest starts — the safe, normal choice. Switched on, nothing
   appears until the story arrives, so a chat can land on a timed beat.</li>
   <li><b>Know what switching that on costs.</b> A live chat is delivered one message at a
-  time. Player replies, uploads and "unlocks after" steps only work in the ordinary script,
-  and the game does not clean live messages up when the quest ends.</li>
+  time. Player replies, uploads and "unlocks after" steps only work in the ordinary script. The game also does not clean live messages up when the quest ends.</li>
   <li><b>Keep a paper trail.</b> Use E-Mail when the player should be able to find the
   message again later.</li>
   <li><b>Attach a file to a Kisscord chat.</b> It does not reach the player as a file. It
@@ -188,8 +181,7 @@ back-and-forth. WeeChat is a public room, so other characters can be present.</p
   <li><b>A timed chat never plays.</b> The toggle is on but nothing is wired into the node,
   so the story never arrives. Wire it in, or turn the toggle off.</li>
   <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
-  after the node and run a dry run. It prints what each node does when it fires, so you can
-  tell whether the story reaches the conversation at all.</li>
+  after the node and run a dry run. It prints what each node does when it fires. So you can tell whether the story reaches the conversation at all.</li>
 </ul>
 </section>
 
@@ -204,7 +196,7 @@ back-and-forth. WeeChat is a public room, so other characters can be present.</p
 <p>A conversation is worth more once the player has earned it. The message that lands after
 the break-in lands harder than the one waiting at the start.</p>
 <p>A conversation has no "wait until" field. You build the wait out of two pieces: something
-that notices the thing happened, and a Branch that only lets the story through when it did.</p>
+that notices the thing happened. The other is a  Branch that only lets the story through when it did.</p>
 
 <h3>Steps</h3>
 <ol class="plain">
@@ -217,7 +209,7 @@ that notices the thing happened, and a Branch that only lets the story through w
   <b class="ui">Trigger</b> socket. That wire is cyan, because it carries a condition rather
   than the story.</li>
   <li><b>Say what has to be true.</b> On the branch, <b class="ui">Test against</b> reads
-  details from the event that fired, or quest data you stored earlier with a Set quest data
+  details from the event that fired. It can also read quest data you stored earlier with a Set quest data
   node. Add your clauses under <b class="ui">Take the "Yes" path when</b>. Every clause has
   to hold for the Yes path to run.</li>
   <li><b>Let the story in.</b> Drag a Then wire from the branch's <b class="ui">Yes</b> into
@@ -263,6 +255,137 @@ that notices the thing happened, and a Branch that only lets the story through w
   <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
   on each side of the branch and run a dry run. It prints what fires, so you can see which
   way the gate sent the story.</li>
+</ul>
+</section>
+
+<section id="howto-payment">
+<h2>Pay the player, and charge them</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Pay the player node and a Charge the player node, each somewhere on your story path</dd>
+<dt>Takes</dt><dd>about five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Money is how a quest tells the player what the work was worth. A payment at the end says
+it counted. A charge at the start says the tools cost something.</p>
+<p>Two nodes, one for each direction. <a href="nodes/fx-pay.html">Pay the player</a> deposits.
+<a href="nodes/fx-withdraw.html">Charge the player</a> takes. Both sit on the story path, run
+when the story reaches them, and hand it straight on.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the node on the path.</b> Both are in the Effect group. Wire a Then wire in and
+  another out.</li>
+  <li><b>Set the amount.</b> On Pay the player, <b class="ui">Amount</b> is the dollars to
+  deposit. A new node starts at <code>100</code>.</li>
+  <li><b>Name it on the statement.</b> <b class="ui">Description</b> is the label the player
+  sees in their bank. Write it the way the client would.</li>
+  <li><b>Say who sent it.</b> <b class="ui">From IBAN</b> and <b class="ui">From name</b> fill
+  in the transfer details. Each has a generator beside it, so you do not have to invent an
+  account number.</li>
+  <li><b>Charging works the same way, with one extra choice.</b> On Charge the player, pick
+  <b class="ui">Amount type</b> first. Fixed amount takes the number you type. Percentage of
+  balance takes a slice of whatever the player has when the node runs.</li>
+</ol>
+<figure>
+  <img src="img/howto-04-payment.png"
+       alt="A Pay the player node on the story path, with Amount set to 100 and a Description and sender filled in." />
+  <figcaption>One payment. The amount, the statement label, and who it came from.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Charge a slice instead of a sum.</b> Percentage of balance scales to how rich the
+  player is. It works out to whole dollars. A small balance can round down to a much
+  smaller charge than you pictured.</li>
+  <li><b>Put a tag in the description.</b> The statement label is filled in when the node runs. A tag you stored earlier can appear in it — the client's own name, for instance.</li>
+  <li><b>Charge for the tools, not the job.</b> Put the charge before the work rather than
+  after it. The player pays, then finds out what they bought.</li>
+  <li><b>Pay in stages.</b> Two payments read better than one big transfer. Half on the
+  briefing, half when the objective ticks.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>Nothing happens and nothing complains.</b> The amount is <code>0</code> or blank.
+  A payment of nothing is skipped outright, and the story carries on as if the node had run.
+  There is no warning for this, so check the field.</li>
+  <li><b>The player was charged less than you set.</b> You used Percentage of balance and it
+  rounded down to whole dollars.</li>
+  <li><b>The transfer shows no sender.</b> Fill <b class="ui">From IBAN</b> and
+  <b class="ui">From name</b> together, or leave both empty. They travel as a pair.</li>
+  <li><b>You cannot find a percentage option on Pay the player.</b> There is not one. Taking
+  a slice is the Charge node's job. Older projects that had one still run as written.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  either side of the node and run a dry run. It prints what fires, so you can tell whether
+  the story reaches the payment at all.</li>
+</ul>
+</section>
+
+<section id="howto-branch">
+<h2>Branch the story on something the player did</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Branch node, something to test, and somewhere for both routes to end up</dd>
+<dt>Takes</dt><dd>about ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Two routes through one quest. The player who got in quietly and the player who set off the
+alarm both finish. Neither sees the other's version.</p>
+<p>The two routes do not need two copies of the ending. Only one side of a branch ever runs. Both can walk back into the same node and it runs once.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Choose the moment.</b> Pick the point where the routes part. Everything before it
+  stays shared, and everything after can be shared again.</li>
+  <li><b>Drop the Branch.</b> It is in the Flow group. Wire the story into
+  <b class="ui">In</b>.</li>
+  <li><b>Give it something to test.</b> A branch reads details from the event that fired, or
+  quest data you stored earlier. Drag a When wire from a
+  <a href="nodes/trigger-event.html">When event</a> node into <b class="ui">Trigger</b>, or
+  point <b class="ui">Test against</b> at stored data instead.</li>
+  <li><b>Write the condition.</b> Under <b class="ui">Take the "Yes" path when</b>, add your
+  clauses. Every one has to hold, or the No path runs.</li>
+  <li><b>Build both routes.</b> Wire <b class="ui">Yes</b> and <b class="ui">No</b> into
+  whatever each version needs. Keep them short — the differences are the point.</li>
+  <li><b>Bring them back together.</b> Wire the end of both routes into one shared node. It
+  runs once, because only one route ever got there.</li>
+</ol>
+<figure>
+  <img src="img/howto-05-branch.png"
+       alt="A Branch node with Yes and No each running through a short separate route, and both routes wiring back into one shared node." />
+  <figcaption>The shape that avoids duplication: part in the middle, shared at both
+  ends.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Three outcomes or more.</b> Chain branches. Wire the first one's
+  <b class="ui">No</b> into a second branch's <b class="ui">In</b>, and each one splits again.
+  The canvas stays readable.</li>
+  <li><b>Test something from earlier in the quest.</b> Store it with a
+  <a href="nodes/fx-setdata.html">Set quest data</a> node when it happens, then point
+  <b class="ui">Test against</b> at that value. The branch no longer needs an event.</li>
+  <li><b>Tidy wires that cross.</b> Double-click a wire to drop a
+  <a href="nodes/flow-reroute.html">Reroute</a> into it. Wires route through it, and it
+  changes nothing about the story.</li>
+  <li><b>Branch on a wrong answer instead.</b> A Dialogue node's <b class="ui">Wrong</b>
+  socket is already a fork. Use it when the split is about what the player said.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The node says Dead end.</b> One of <b class="ui">Yes</b> or <b class="ui">No</b> has
+  no wire, and the quest stalls if the player takes it. Both need somewhere to go.</li>
+  <li><b>Both routes run.</b> Your clauses are empty or too loose, so the Yes path always
+  holds. Narrow them — every clause has to be true.</li>
+  <li><b>The shared ending plays twice.</b> That node has another wire into it as well. A
+  node runs every time the story reaches it, so give the shared node one way in.</li>
+  <li><b>The wire into Trigger will not connect.</b> Wires only join sockets of the same
+  kind. A condition wire has to come from a <b class="ui">When</b> socket, not a flow one.</li>
+  <li><b>You still cannot see which way it went.</b> Put a
+  <a href="nodes/flow-debug.html">Debug probe</a> on each route and run a dry run. Only the
+  one the story took will print.</li>
 </ul>
 </section>
 
