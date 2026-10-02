@@ -79,6 +79,11 @@ var DYN = {
     mailBridged: "(not tried yet)",
     mailWithTo: "(not sent yet)",
     mailNoTo: "(not sent yet)",
+    /* r249: run 3 - only the mail with NO to: arrived, so the recipient
+       field is what loses them. Two new records: the mail sent to the
+       player's REAL address, and the address itself. */
+    mailRealTo: "(not sent yet)",
+    playerEmail: "(not read yet)",
     visits: { state: 0, news: 0 },
     /* The /news front page. The beat PREPENDS an article, so the previous
        top story drops one slot - the bcc.com pattern, for the A/B. */
@@ -372,6 +377,8 @@ class QEDynProbeQuest extends sdk.Quest {
             { name: "dp-12-site-exports", description: "Open /site-exports. The line should show a greeting - site exports from a DYNAMIC page (dp-01 checked the static one)." },
             { name: "dp-13-http-events", description: "Type 'qedyn status' in the terminal. It prints how many Http.Response events the mod was offered, and every one of them. Zero is the expected result and the finding - write the line down anyway." },
             { name: "dp-14-tick-rows", description: "Housekeeping: if a row's objective does not tick by itself (they mostly cannot - Http.Response never reaches the mod), type 'qedyn tick <row-name>' to check it off and keep your place." },
+            { name: "dp-16-mail-to-field", description: "Type 'qedyn mail'. It sends three mails - one with to: player@gomail.com, one with NO to: (the shape that arrives), one with YOUR REAL address - and prints all three ids plus your address. Report WHICH ones land in the inbox." },
+            { name: "dp-17-inbox-roll-call", description: "Type 'qedyn inbox'. It lists every mail the game says is in the inbox, with its to: field. If a mail that never showed up IS in this list, the mail exists and the inbox screen is not drawing it." },
             { name: "dp-15-how-to-claim", description: "Did this quest appear on your Hackhub feed? If NOT: type 'qedyn claim' in the terminal, or claim it by hand from the sandbox group in the journal, and tell us - mod quest posts may simply have stopped surfacing (docs/03 §21)." }
         ];
     }
@@ -465,7 +472,7 @@ safe("register qedyn command", function () {
         this.Description = "QE24 dynamic page probe: claim, fire the beat, tick a row, print what the probe saw";
         this.Autocomplete = [
             { label: "qedyn", type: "STRING" },
-            { label: "claim|beat|status|tick", type: "STRING" }
+            { label: "claim|beat|mail|inbox|status|tick", type: "STRING" }
         ];
     }
     Run(tools) {
@@ -482,19 +489,31 @@ safe("register qedyn command", function () {
             return;
         }
         if (sub === "mail") {
-            /* r248: the page's mail was assumed REFUSED. It was not - button A
-               returned a mail id (yD1oMYYHUX), so the call was accepted and
-               the mail was lost in DELIVERY. The one mail that ever arrived -
-               the startup mail - carries no "to" field, so the obvious
-               suspect is the recipient. Send both shapes from this trusted
-               context and compare. */
+            /* r249: run 3 answered the r248 question - of the two mails, only
+               B (the one with NO to: field) arrived. So the recipient field
+               IS what loses a mail. Two very different explanations remain:
+                 (1) the address "player@gomail.com" simply does not exist, so
+                     the mail is routed nowhere; or
+                 (2) ANY to: field sends the mail somewhere other than the
+                     player's inbox, whatever the address says.
+               A third mail C, addressed to the player's REAL address from
+               Mail.getPlayerEmail(), separates them: C arrives => (1), the
+               address was just wrong. C does not arrive => (2). */
             var withTo = null;
             var noTo = null;
+            var realTo = null;
+            var playerEmail = "";
+            safe("Mail.getPlayerEmail", function () {
+                if (sdk.Mail && typeof sdk.Mail.getPlayerEmail === "function") {
+                    playerEmail = String(sdk.Mail.getPlayerEmail() || "");
+                }
+            });
+            DYN.playerEmail = playerEmail || "(Mail.getPlayerEmail unavailable)";
             safe("Mail.send with to:", function () {
                 withTo = sdk.Mail.send({
                     from: "qe24-dyn@qe24.test", to: "player@gomail.com",
                     subject: MAIL_MARKER + " [A with-to]",
-                    content: "Test A: sent WITH a to: field."
+                    content: "Test A: sent WITH a to: field (the shape that never arrives)."
                 });
             });
             safe("Mail.send without to:", function () {
@@ -504,11 +523,47 @@ safe("register qedyn command", function () {
                     content: "Test B: sent WITHOUT a to: field - the shape the startup mail uses."
                 });
             });
+            safe("Mail.send with the real address:", function () {
+                realTo = sdk.Mail.send({
+                    from: "qe24-dyn@qe24.test", to: playerEmail,
+                    subject: MAIL_MARKER + " [C real-to]",
+                    content: "Test C: sent WITH your real address (" + playerEmail + ")."
+                });
+            });
             DYN.mailWithTo = String(withTo);
             DYN.mailNoTo = String(noTo);
-            out(tools, "sent two mails: A (with to:) returned " + DYN.mailWithTo +
-                ", B (no to:) returned " + DYN.mailNoTo);
-            out(tools, "check the inbox - if only B arrives, the to: field is what loses them");
+            DYN.mailRealTo = String(realTo);
+            out(tools, "sent three mails: A with-to=" + DYN.mailWithTo +
+                ", B no-to=" + DYN.mailNoTo + ", C real-to=" + DYN.mailRealTo);
+            out(tools, "your address: " + DYN.playerEmail);
+            out(tools, "check the inbox - B should arrive. If C arrives too, the address was simply wrong;");
+            out(tools, "if C does not arrive either, then ANY to: field loses the mail.");
+            return;
+        }
+        if (sub === "inbox") {
+            /* r249: is a lost mail GONE, or present in the data and merely
+               not drawn? Mail.getInbox() separates those, and they are two
+               completely different bugs with two different fixes. */
+            out(tools, "player address: " + DYN.playerEmail);
+            var list = null;
+            safe("Mail.getInbox", function () {
+                if (sdk.Mail && typeof sdk.Mail.getInbox === "function") {
+                    list = sdk.Mail.getInbox();
+                }
+            });
+            if (!list || !list.length) {
+                out(tools, "Mail.getInbox() returned " + (list ? "an empty inbox" : "nothing (unavailable?)"));
+                return;
+            }
+            out(tools, "the inbox holds " + list.length + " mail(s):");
+            for (var m = 0; m < list.length; m++) {
+                var item = list[m] || {};
+                out(tools, "  [" + m + "] to=" + (item.to || "(none)") +
+                    " from=" + (item.from || "?") +
+                    " | " + String(item.subject || "(no subject)").slice(0, 64));
+            }
+            out(tools, "this probe sent: A=" + DYN.mailWithTo + " B=" + DYN.mailNoTo + " C=" + DYN.mailRealTo);
+            out(tools, "if A or C is in the LIST above but not on SCREEN, the mail exists and the inbox is not showing it");
             return;
         }
         if (sub === "tick") {
@@ -532,7 +587,8 @@ safe("register qedyn command", function () {
             " beatSource=" + DYN.beatSource +
             " stateVisits=" + DYN.visits.state + " newsVisits=" + DYN.visits.news);
         out(tools, "mail: direct=" + DYN.mailDirect + " bridged=" + DYN.mailBridged +
-            " withTo=" + DYN.mailWithTo + " noTo=" + DYN.mailNoTo);
+            " withTo=" + DYN.mailWithTo + " noTo=" + DYN.mailNoTo + " realTo=" + DYN.mailRealTo);
+        out(tools, "player address: " + DYN.playerEmail);
         out(tools, "Http.Response events offered to this mod: " + DYN.httpEvents.length);
         for (var i = 0; i < DYN.httpEvents.length; i++) {
             out(tools, "http[" + i + "] " + DYN.httpEvents[i]);
@@ -540,7 +596,7 @@ safe("register qedyn command", function () {
     }
     }
     sdk.RegisterCommand({ default: true, scope: "local" })(QEDynCommand);
-    log("command: qedyn registered (claim | beat | mail | status | tick <row>)");
+    log("command: qedyn registered (claim | beat | mail | inbox | status | tick <row>)");
 });
 
 /* A command's audience is the player at the terminal. r248: every subcommand

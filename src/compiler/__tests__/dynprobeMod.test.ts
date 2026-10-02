@@ -22,6 +22,10 @@ function stubSdk() {
     const emitted: { name: string; data: any }[] = [];
     const listeners: { name: string; cb: (d: any) => void }[] = [];
     const sent: any[] = [];
+    // r249: the probe now reads the player's real address and lists the
+    // inbox, to tell "the mail was dropped" from "the mail is there but not
+    // drawn". The stub answers both so the command can be exercised here.
+    const inbox: any[] = [];
     return {
         Website: class {},
         RegisterWebsite: (c: any) => { registered.websites.push(c); },
@@ -40,11 +44,16 @@ function stubSdk() {
                 listeners.filter((l) => l.name === name).forEach((l) => l.cb(data));
             },
         },
-        Mail: { send: (mail: any) => { sent.push(mail); return "mail-id-" + sent.length; } },
+        Mail: {
+            send: (mail: any) => { sent.push(mail); return "mail-id-" + sent.length; },
+            getPlayerEmail: () => "tester@gomail.com",
+            getInbox: () => inbox,
+        },
         __registered: registered,
         __emitted: emitted,
         __listeners: listeners,
         __sent: sent,
+        __inbox: inbox,
     };
 }
 
@@ -193,6 +202,8 @@ describe("dynprobe mod (r238)", () => {
             "dp-12-site-exports",
             "dp-13-http-events",
             "dp-14-tick-rows",
+            "dp-16-mail-to-field",
+            "dp-17-inbox-roll-call",
             "dp-15-how-to-claim",
         ]);
         expect(quest.HackhubPost.content).toContain("qe24-dyn.test");
@@ -302,19 +313,48 @@ describe("dynprobe mod (r238)", () => {
         expect(printed.join("\n")).toContain("dp-01-control");
     });
 
-    it("`qedyn mail` sends both shapes to test the to: field (r248)", () => {
-        // r248: the page's mail was ACCEPTED (it returned an id), so it is a
-        // delivery problem, not a permission refusal. The one mail that ever
-        // arrived carried no `to` field - so send both and compare.
+    it("`qedyn mail` sends all three shapes to isolate the to: field (r249)", () => {
+        // r249: run 3 - of the two r248 mails only B (no `to`) arrived, so
+        // the recipient field is what loses them. The question now is whether
+        // the address was simply wrong or whether ANY `to` loses the mail, so
+        // a third mail carries the player's REAL address from the SDK.
         const sdk8 = stubSdk();
         runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk8 as unknown);
+        const printed: string[] = [];
         const cmd = new (sdk8.__registered.commands[0])();
-        cmd.Run({ getArgs: () => ["mail"] });
-        expect(sdk8.__sent).toHaveLength(2);
+        cmd.Run({ getArgs: () => ["mail"], println: (t: string) => { printed.push(String(t)); } });
+        expect(sdk8.__sent).toHaveLength(3);
         expect(sdk8.__sent[0].to).toBe("player@gomail.com");
         expect(sdk8.__sent[1].to).toBeUndefined();
+        expect(sdk8.__sent[2].to).toBe("tester@gomail.com");
         expect(sdk8.__sent[0].subject).toContain("[A with-to]");
         expect(sdk8.__sent[1].subject).toContain("[B no-to]");
+        expect(sdk8.__sent[2].subject).toContain("[C real-to]");
+        // The player must be told their own address - otherwise the third
+        // result cannot be read.
+        expect(printed.join("\n")).toContain("tester@gomail.com");
+    });
+
+    it("`qedyn inbox` lists what the game says is in the inbox (r249)", () => {
+        // A mail that never shows up could be dropped, or present and simply
+        // not drawn. getInbox() separates those, and they are different bugs.
+        const sdk9 = stubSdk();
+        runMod(readFileSync(MOD_JS_PATH, "utf8"), sdk9 as unknown);
+        const cmd = new (sdk9.__registered.commands[0])();
+        // Empty inbox: it must say so rather than print nothing at all.
+        let printed: string[] = [];
+        let tools = { getArgs: () => ["inbox"], println: (t: string) => { printed.push(String(t)); } };
+        cmd.Run(tools);
+        expect(printed.join("\n")).toContain("empty inbox");
+        // A mail that arrived only in the data, not on screen.
+        sdk9.__inbox.push({ id: "m1", from: "qe24-dyn@qe24.test", to: "player@gomail.com", subject: "the lost one", read: false, sentAt: 0 });
+        printed = [];
+        tools = { getArgs: () => ["inbox"], println: (t: string) => { printed.push(String(t)); } };
+        cmd.Run(tools);
+        const text = printed.join("\n");
+        expect(text).toContain("the inbox holds 1 mail");
+        expect(text).toContain("the lost one");
+        expect(text).toContain("to=player@gomail.com");
     });
 
     it("`qedyn claim` claims the quest without the feed (docs/03 §21)", () => {

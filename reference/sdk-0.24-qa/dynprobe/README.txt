@@ -1,4 +1,25 @@
-QE24 Dynamic Page Probe 1.2.0 (r248)
+QE24 Dynamic Page Probe 1.3.0 (r249)
+
+WHAT RUN 3 FOUND, AND WHY THERE IS A 1.3.0
+  Only ONE of the two test mails arrived - B, the one with NO to: field.
+  The mail addressed to "player@gomail.com" was accepted (we have its id)
+  and then never turned up. So the recipient field is what loses a mail.
+  Two very different explanations are left:
+    (1) that address simply does not exist, so the mail goes nowhere;
+    (2) ANY to: field sends the mail somewhere that is not your inbox.
+  `qedyn mail` now sends a THIRD mail to your REAL address to tell those
+  apart. And `qedyn inbox` lists what the game itself says is in the
+  inbox - if a missing mail is IN that list, then it exists and the
+  inbox screen is simply not drawing it, which is a different bug with a
+  different fix.
+
+WHAT IS NEW IN 1.3.0
+  - `qedyn mail` sends THREE mails and prints your own address:
+      A  to: player@gomail.com   (the shape that never arrives)
+      B  no to: at all           (the shape that DOES arrive)
+      C  to: YOUR REAL ADDRESS   (the decider)
+  - `qedyn inbox`  prints every mail the game says is in the inbox, each
+      with its to: field, so we can tell "dropped" from "not drawn".
 
 WHAT IS NEW IN 1.2.0
   - `qedyn mail` - the decisive mail test. See the section below.
@@ -8,14 +29,6 @@ WHAT IS NEW IN 1.2.0
   - `qedyn tick` takes a row NUMBER as well as a name: `qedyn tick 3`.
     In 1.1.x `qedyn tick 1` silently did nothing.
 
-NEW IN 1.2.0 - the mail test
-  Run 2 proved the page's mail is ACCEPTED (Mail.send returns a real mail
-  id) and then lost in delivery - it is not a permission refusal. The only
-  mail that has ever arrived is the startup mail, which is also the only
-  one WITHOUT a to: field. So:
-    qedyn mail
-  sends two mails from the terminal - one WITH to: and one WITHOUT - and
-  prints both ids. Check which one lands in the inbox.
 
 What changed since 1.0.0 (which you may have already run)
   - The beat is now fired by a TERMINAL COMMAND instead of an HTTP event.
@@ -67,7 +80,8 @@ NEW IN 1.2.0 - the mail test
 The terminal command
   qedyn claim             claim the quest without the feed
   qedyn beat              fire the quest's beat (DP-06)
-  qedyn mail              send the two test mails (see above) (DP-16)
+  qedyn mail              send the three test mails (see above) (DP-16)
+  qedyn inbox             list what the game says is in your inbox (DP-17)
   qedyn status            print everything the probe recorded (DP-13)
   qedyn tick <row>        check a row off by hand - a NUMBER or a name:
                           qedyn tick 3

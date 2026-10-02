@@ -123,11 +123,11 @@ themselves, because `Http.Response` never reaches the mod).
 | **DP-08** state twice | Open `/state` twice | The counter must climb — expect **+2 per open** (the double render); phase reads `beat-fired` | Confirms the double render, and that nothing is cached |
 | **DP-09** direct mail | On `/form`, click **button A** | **What `Mail.send` returned**: `null` = refused, an id = accepted. Then check the inbox | **RUN 2: returned the id `yD1oMYYHUX` — accepted — and no mail arrived.** Not the §14 refusal; a delivery bug. Now docs/03 §25 |
 | **DP-10** bridge mail | Click **button B** | Did *this* mail arrive? | **RUN 2: returned the id `ra1DgwPOsB` — also accepted — and also never arrived.** The bridge does not rescue delivery either |
-| **DP-16** the `to:` test (1.2.0) | Type **`qedyn mail`** in the terminal | It sends two mails from a trusted context: one **with** `to: "player@gomail.com"` and one **without**, and prints both ids. Report which one lands in the inbox | **The decisive row.** The only mail that has ever arrived is the startup mail — the only one with no `to`. If only the no-`to` mail arrives, the recipient field is what loses them |
+| **DP-16** the `to:` test | Type **`qedyn mail`** in the terminal | It sends three mails: one **with** `to: "player@gomail.com"`, one **without** any `to`, and one with **your real address**, and prints all three ids plus your address. Report which ones land in the inbox | **RUN 3: only B (no `to`) arrived — the `to:` field is what loses a mail.** Whether that is a wrong address or any `to:` at all is what mail C decides |
 | **DP-11** page exports | Open `/exports?article=2` | The span must read `article-2` | Per-page exports reach page scripts |
 | **DP-12** site exports | Open `/site-exports` | A greeting for "zeis" | Site exports from a *dynamic* page (DP-01 was the static one) |
 | **DP-13** event roll-call | Type **`qedyn status`** | How many `Http.Response` events the mod was offered, and every one of them | **Zero is the expected result** — it confirms the r166 fence now covers dynamic pages too |
-| **DP-14** housekeeping | `qedyn tick <row>` for any row that could not tick itself | — | Keeps the run in order |
+| **DP-17** inbox roll-call (1.3.0) | Type **`qedyn inbox`** | Every mail the game says is in the inbox, each with its `to:` field | If a mail that never showed up **is** in this list, it was never dropped — the inbox screen is not drawing it |
 | **DP-15** claiming it | Did the quest appear on your Hackhub feed? | Yes/no — and if not, whether `qedyn claim` got it | Mod quest posts have stopped surfacing game-side (docs/03 §21); this row records whether that is still true |
 
 **Reading reds** (what each failure changes in the r237 plan):
@@ -151,7 +151,20 @@ themselves, because `Http.Response` never reaches the mod).
 - DP-11/12 exports **absent** → phase 3 shrinks to server-side
   rendering only (no client-side interactivity).
 
-## 6. What the second run changed (2026-09-28, probe 1.2.0)
+## 6. What the third run changed (2026-10-02, probe 1.3.0)
+
+- **`to:` is confirmed as the culprit.** Only the mail with no `to:` arrived;
+  the one addressed to `player@gomail.com` was accepted and vanished. Two
+  explanations remain — *that address does not exist* versus *any `to:` sends
+  the mail away from the player's inbox* — and they need different fixes, so
+  `qedyn mail` now sends a third mail to the player's real address
+  (`Mail.getPlayerEmail()`), which the command prints.
+- **`Mail.getInbox()` separates "dropped" from "not drawn".** A mail that is
+  in the data but missing from the inbox screen is a display bug, not a
+  delivery bug, and the two look identical from the player's chair. `qedyn
+  inbox` prints the list so the run can tell them apart.
+
+## 6b. What the second run changed (2026-09-28, probe 1.2.0)
 
 - **`to:` became the prime suspect.** DP-09 and DP-10 both returned real mail
   ids, so the page's mail is *permitted* — it is lost afterwards. The one mail

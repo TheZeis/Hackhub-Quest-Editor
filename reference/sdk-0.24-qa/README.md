@@ -6,7 +6,7 @@ Everything both runs established, with the evidence and the three corrections
 made along the way, is in
 [`QE24-TestResults-DynProbe-ModSettings.md`](QE24-TestResults-DynProbe-ModSettings.md).
 Zeis's own minute-by-minute log with the screenshots is on the `QA-filedump`
-branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.2.0.zip`** — and if the quest does not appear on the Hackhub feed, that is the known feed problem, not the mod: type `qedyn claim` in the terminal (or claim it from the sandbox group in the journal).
+branch. **The build to install now is `delivery/qe-sdk-024-dynprobe-1.3.0.zip`** — if the quest does not appear on the Hackhub feed, try a fresh save first (run 2 showed it surfacing on one); if it still does not, type `qedyn claim` in the terminal or claim it from the sandbox group in the journal.
 — see the dynamic-page section below for what changed.
 
 ## ANSWERED: the ModSettings Probe (r239/r240) — the whole loop works
@@ -42,15 +42,24 @@ probe — one game session covers both**: do the seven MS rows first
 around the restart. **The checklist, the run order and the red-reading are in
 [`docs/plans/r239-modsettings-probe.md`](../../docs/plans/r239-modsettings-probe.md)**.
 
-## RUN ONCE, REBUILT: the Dynamic Page Probe (r238 → 1.1.0, r246)
+## RUN TWICE, REBUILT TWICE: the Dynamic Page Probe (r238 → 1.1.0 → 1.3.0)
 
-`dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.1.0.zip`) answers the open
+**Two runs are in, and they answer the headline question: YES — a mod can
+reproduce the game's own news-site behaviour.** `qedyn beat` fires the beat and
+the UPDATE article then sits on top of `/news` with the old three dropping a
+slot. What is still open is the mail, and the two runs moved it a long way:
+run 2 proved a page's mail is **accepted** (`Mail.send` returns a real id) and
+lost in delivery — *not* refused, as the 1.0.0 run concluded — and run 3
+narrowed it further: of a pair of test mails, **only the one with no `to:`
+field arrived**. So the recipient field is what loses them, and 1.3.0 is built
+to say whether that is a wrong address or any `to:` at all.
+
+`dynprobe/` (+ `delivery/qe-sdk-024-dynprobe-1.3.0.zip`) answers the open
 questions from the r237 dynamic-webpages investigation. The 1.0.0 run
 answered the content questions — path params arrive, no caching, the 404 look,
-site and per-page exports — and proved two things the hard way: `Http.Response`
+site and per-page exports — and proved the hard way that `Http.Response`
 never reaches a mod for its own site (so the beat wired to it never fired and
-the bcc.com A/B never ran its "after" half), and **a page's own permissioned
-call does not work** (the quest's mail arrives, the page's does not).
+the bcc.com A/B never ran its "after" half).
 
 **1.1.0 fixes exactly those three things:** the beat now fires from the
 `qedyn beat` terminal command; `Http.Response` is logged *before* any filter
@@ -59,8 +68,8 @@ prints what `Mail.send` **returned** (`null` = refused, an id = accepted) and
 adds a second button that goes through the documented `Events.emit` bridge, so
 we learn whether the workaround actually delivers.
 
-Install the zip, accept the "QA probe (r238)" feed post, and work the fourteen
-quest objectives top to bottom — the checklist, the run order and the
+Install the zip, accept the "QA probe (r238)" feed post, and work the
+seventeen quest objectives top to bottom — the checklist, the run order and the
 red-reading are in
 [`docs/plans/r238-dynamic-pages-probe.md`](../../docs/plans/r238-dynamic-pages-probe.md).
 

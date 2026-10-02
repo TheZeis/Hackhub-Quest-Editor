@@ -1052,6 +1052,18 @@ error. **No mail ever arrived**: the player had his in-game inbox open in
 another browser tab the whole time, and the quest's own `Mail.Sent` listener
 never matched either.
 
+**Update 2026-10-02 (third run): it is the `to:` field.** Of two test mails
+sent from a trusted terminal command, **only the one with no `to:` field
+arrived**. The one addressed to `player@gomail.com` was accepted — we have its
+id — and never appeared. That leaves two explanations, and they need different
+fixes: either that address does not exist and the mail is routed nowhere, or
+**any** `to:` field sends the mail somewhere other than the player's inbox.
+`Mail.send` is documented as *"Send an email to the player's inbox"* and `to`
+is not documented at all, so a mod author filling it in — the obvious thing to
+do — silently loses the mail. A fourth test (addressed to the player's real
+address from `Mail.getPlayerEmail()`, plus a `Mail.getInbox()` roll-call to
+tell "dropped" from "not drawn") is in the probe build 1.3.0.
+
 **Update 2026-09-28 (second run): this is a DELIVERY problem, not a permission
 refusal.** The rebuilt probe captured `Mail.send`'s return value instead of
 discarding it, and the call was **accepted** — it returned a real mail id
@@ -1095,10 +1107,15 @@ anyway, with the mod named `null`. So this is not a manifest problem.
 - if a call is refused, **reject the promise and log it** — a silent no-op
   that the caller's own error handling reports as success is the worst
   possible failure mode for an author;
-- **is a mail whose `to` address does not resolve silently dropped?** That is
-  our leading theory for two mails that were accepted (real ids returned) and
-  then never arrived, and it fits the one mail that did arrive carrying no
-  `to` at all;
+- **confirmed: a mail with a `to:` field is silently dropped; the same mail
+  without one arrives.** So — **what is `to` for?** If it names a recipient
+  other than the player, then `Mail.send` should not be documented as "send an
+  email to the player's inbox", and a call that cannot be delivered should
+  fail loudly instead of returning an id. If it is meant to be validated,
+  which addresses are valid, and what happens to one that is not?;
+- is a `to` address that does not resolve the trigger, or does **any** `to:`
+  lose the mail? Probe 1.3.0 sends a mail to the player's real address
+  (`Mail.getPlayerEmail()`) to separate the two;
 - if page scripts are meant to have a sanctioned way to act (the way
   `Exports` functions do), a documented one would save every modder this
   detour; in particular, **is an additional permission needed for a call made

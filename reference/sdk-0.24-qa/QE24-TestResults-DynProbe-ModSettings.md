@@ -73,6 +73,11 @@ listeners were armed; the finding stands.
 
 ## 4. A page's own permissioned call does not work — proven with a clean A/B
 
+> **Corrected by runs 2 and 3 (§5, §6).** The A/B was real, but the reading
+> was wrong: the page's mail is **accepted**, not refused — it is lost in
+> delivery, and §6 narrows the cause to the `to:` field. §4 is kept because the
+> A/B itself, and the silence around it, are still exactly what a tester sees.
+
 The `/form` button called `HackhubSDK.Mail.send(...)`. Nothing threw. **No mail
 arrived** — Zeis had his in-game inbox open in another browser tab.
 
@@ -140,7 +145,54 @@ trusted context, so the inbox decides.
   post was the load-time bug in 1.1.0 (§6 below) rather than the game-side
   feed problem — though a fresh save could also explain it.
 
-## 6. The follow-up probes
+## 6. The third run (1.2.0, 2026-10-02) — the `to:` field is what loses a mail
+
+Zeis installed 1.2.0 on a fresh save and ran the one row that mattered:
+
+| Row | Result |
+|---|---|
+| DP-16 `qedyn mail` | **Only ONE of the two mails arrived: B, the one with no `to:` field.** Mail A, addressed to `player@gomail.com`, was accepted (1.2.0 prints the id) and never turned up |
+
+The mail that arrived:
+
+> **QE24 dynprobe: talk-back [B no-to]**
+> From: qe24-dyn@qe24.test
+> Test B: sent WITHOUT a to: field - the shape the startup mail uses.
+
+So the suspicion from run 2 holds: **`to:` is what loses a mail.** It still
+does not tell us *why*, and the two remaining explanations lead to different
+fixes:
+
+1. `player@gomail.com` **does not exist** in Zeis's save, so the mail is
+   routed to a mailbox that is not there and quietly dropped. A correct
+   address would have arrived.
+2. **Any** `to:` field routes the mail away from the player's inbox, whatever
+   the address says. In that case `to` means "send this to somebody else" and
+   a mod filling it in — the obvious thing to do — always loses the mail.
+
+`Mail.send` is documented as *"Send an email to the player's inbox"* and `to`
+is not documented at all, which is why this is easy to walk into.
+
+### How 1.3.0 separates them
+
+The SDK has two readers we had not used: `Mail.getPlayerEmail()` (the
+player's real address) and `Mail.getInbox()` (every mail in the inbox). They
+turn the question into two commands:
+
+- `qedyn mail` now sends **three** mails — A with `to: player@gomail.com` (the
+  known-lost shape), B with no `to:` (the known-arriving control) and **C with
+  the player's real address** — and prints all three ids plus the address it
+  used. **C arrives ⇒ explanation 1, the address was simply wrong. C does not
+  arrive ⇒ explanation 2, any `to:` loses the mail.**
+- `qedyn inbox` lists every mail the game says is in the inbox, each with its
+  `to:` field. **A mail that appears in this list but not on screen has not
+  been dropped at all — the inbox screen is simply not drawing it**, which is a
+  different bug with a different fix.
+
+Two new objective rows carry this: `dp-16-mail-to-field` and
+`dp-17-inbox-roll-call`.
+
+## 7. The follow-up probes
 
 **1.1.0** (r246) made three changes, each aimed at one thing the first run
 could not settle:
@@ -171,6 +223,14 @@ added `qedyn claim` for claiming without the feed.
 every subcommand now prints to the terminal as well as the log; and `qedyn
 tick` takes a row number as well as a name.
 
+**1.3.0** (r249) acts on the third run (§6), which confirmed the `to:` field is
+the culprit. `qedyn mail` sends a third mail, addressed to the player's real
+address from `Mail.getPlayerEmail()`, to tell "the address was wrong" apart
+from "any `to:` loses the mail"; and the new `qedyn inbox` lists what the game
+says is in the inbox, so a mail that exists but is not drawn is not mistaken
+for one that was dropped.
+
 Filed for the developers: `docs/03` §24 (HTTP events for a mod's own sites,
-and the double render) and §25 (page-context calls fail silently — please make
-the refusal detectable).
+and the double render) and §25 (a mail sent with a `to:` address that does not
+resolve is accepted and then never delivered, silently — please either deliver
+it to the player's inbox or fail loudly).
