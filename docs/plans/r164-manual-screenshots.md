@@ -206,10 +206,11 @@ walkthrough and crop to the relevant cluster — not the whole canvas.
 | `howto-10-scan-gate.png` | Make the player scan a target before the story moves on |
 | `howto-11-lead.png` | Give the player a lead they can look up |
 | `howto-12-tool-match.png` | Set up a target a tool mod actually matches |
-| `howto-13-chained-talk.png` | Chain two conversations together |
-| `howto-14-ending.png` | End the story cleanly with Complete quest |
-| `howto-15-from-template.png` | Start from a template and make it yours |
-| `howto-16-update.png` | Update a quest you already exported |
+| `howto-13-app-check.png` | Route the story on whether the player has an app installed |
+| `howto-14-chained-talk.png` | Chain two conversations together |
+| `howto-15-ending.png` | End the story cleanly with Complete quest |
+| `howto-16-from-template.png` | Start from a template and make it yours |
+| `howto-17-update.png` | Update a quest you already exported |
 
 ### 3.2 Troubleshooting (3) — all cropped to **Region**
 

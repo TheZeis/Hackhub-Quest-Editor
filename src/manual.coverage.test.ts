@@ -662,3 +662,67 @@ describe("manual coverage — G16: the When it appears rows", () => {
         ).toEqual([]);
     });
 });
+
+/* ── G17: no scaffolding left behind ───────────────────────────────────────
+ * how-do-i.html shipped for sixteen days with a live "Being written" note in
+ * #howto-list while its own header promised "the other fifteen are listed at
+ * the bottom". The header had been corrected; the section had not. Nothing
+ * caught it, because the stub markers were removed by hand one page at a time
+ * and no gate ever checked for them.
+ *
+ * A word-count or block-count heuristic was considered and rejected:
+ * index.html#three-things is a complete section built from a single <ul>, and
+ * any threshold loose enough to spare it is loose enough to spare a stub.
+ */
+describe("manual coverage — G17: no scaffolding left behind", () => {
+    const MARKERS = [
+        "Being written",
+        "Written in Phase 4",
+        "Phase 3 skeleton",
+        'class="wip"',
+        "lands in Phase",
+    ];
+
+    it("ships no page still marked as unfinished", () => {
+        const hits: string[] = [];
+        for (const page of PAGES) {
+            const text = read(page);
+            for (const marker of MARKERS) {
+                if (text.includes(marker)) hits.push(`${rel(page)}: “${marker}”`);
+            }
+        }
+        expect(
+            hits,
+            `${hits.length} pages still carry Phase 3 scaffolding. Either write the section or\n` +
+                `  say plainly what is missing — a note that promises prose "later" reads as a\n` +
+                `  claim that the page is not finished:\n  ${hits.join("\n  ")}`,
+        ).toEqual([]);
+    });
+
+    it("the how-to list covers every walkthrough on the page", () => {
+        const page = join(MANUAL, "how-do-i.html");
+        if (!existsSync(page)) return;
+        const text = read(page);
+        const start = text.indexOf('<section id="howto-list">');
+        const end = text.indexOf("</section>", start);
+        const list = text.slice(start, end);
+
+        /* Every walkthrough that exists must be linked from the list. */
+        const written = [...text.matchAll(/<section id="(howto-(?!list)[^"]+)">/g)].map((m) => m[1]);
+        const unlisted = written.filter((id) => !list.includes(`href="#${id}"`));
+
+        /* The list is also the promise of what is coming, so it cannot be
+           shorter than the scope the screenshot plan already declares a shot
+           for. Without this, gutting the list passes while one how-to exists. */
+        const plan = readFileSync(join(ROOT, "docs/plans/r164-manual-screenshots.md"), "utf8");
+        const declared = new Set(plan.match(/howto-\d+-[a-z-]+/g) ?? []).size;
+        const listed = [...list.matchAll(/<tr><td>/g)].length;
+
+        expect(
+            { unlisted, listed, declared },
+            `how-do-i.html#howto-list has fallen behind.\n` +
+                `  Unlinked walkthroughs: ${unlisted.join(", ") || "none"}\n` +
+                `  The list holds ${listed} rows; the screenshot plan declares shots for ${declared}.`,
+        ).toEqual({ unlisted: [], listed: Math.max(listed, declared), declared });
+    });
+});
