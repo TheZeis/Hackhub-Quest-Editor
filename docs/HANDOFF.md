@@ -20,7 +20,7 @@ The README's **Done recently** table now holds r269–r265. The displaced r264 e
 - `git diff --check`: passed.
 - Browser visual review and in-game review: not performed; no browser or screenshot tooling is available in this environment.
 
-Origin was fetched immediately before the documentation commit; the session branch had no remote-only commits. No pull request was requested or opened.
+Origin was fetched immediately before the documentation commit; the session branch had no remote-only commits. The changes are committed and pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
 
 ## Next work
 
