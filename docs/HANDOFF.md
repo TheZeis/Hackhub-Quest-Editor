@@ -1,3 +1,34 @@
+# Handoff — r266
+
+**The handbook's next five high-count pages are clear; G18 falls from 67 to 29.**
+
+Continued [r265 §6](plans/r265-manual-sentence-ratchet.md). These pages now have zero overlong sentences: `appendices.html` (7→0), `nodes/comms-tweet.html` (7→0), `tutorial.html` (7→0), `nodes/flow-appcheck.html` (6→0), and `index.html` (5→0). `nodes/flow-timer.html` is also clean, and `how-do-i.html` remains at zero. The whole-manual total is **29 across 21 pages**; `LONG_SENTENCE_BUDGET` is 29.
+
+The source and generated Timer prose are now in sync. The node-page builder also puts a period after each message label and capitalizes the explanation that follows. `npm run gen:manual` writes 41 node pages, reports zero awaiting prose, and rebuilds the 285-entry search index from 51 pages. See the [r266 execution record](plans/r266-manual-sentence-ratchet-followup.md) for counts, evidence, and the exact verification record.
+
+The tutorial's template instructions are now code-checked: there are 14 templates, the welcome panel says **Browse 14 templates**, and the top bar's **Templates** button opens the template picker. **New** opens a separate blank-project dialog, so it is no longer recommended as a route to templates. The tutorial also drops a tool-price estimate that was not verified this round, and notes the Pay node's source-confirmed starting amount of 100. No editor behavior or in-app copy changed.
+
+## Verification
+
+- `npm test`: **1,834 passed across 89 files**. This ran after the only `src/` change, the G18 budget.
+- `npx vitest run src/manual.coverage.test.ts`: **27 passed** after the final manual copy and generation.
+- `npm run typecheck`: passed.
+- `npm run build`: passed. Vite reports that the main JavaScript chunk exceeds 1 MB.
+- `git diff --check`: passed.
+- G18 audit: **29** sentences across **21** pages; every target listed above is at zero.
+- Screenshot coverage still reports **77 screenshots to capture**. None were captured here. No browser visual review or in-game install/play test was performed.
+
+The manual-content checkpoint is commit `645801b` on `arena/01a1013d-hackhub-quest-editor`, pushed before this roadmap/handoff update. `EDITOR_BUILD` remains `2026-10-02.r260`: this round changed documentation and its generator, not the editor. No pull request was requested or opened.
+
+## Next work
+
+1. Continue the sentence ratchet without raising its budget. `nodes/reply-input.html` has the highest remaining count (**3**). Six pages tie at **2**: `nodes/flow-beat.html`, `nodes/flow-branch.html`, `nodes/flow-sequence.html`, `nodes/fx-prompt.html`, `nodes/world-network.html`, and `nodes/world-wifi.html`. Choose the next batch by reader need as well as count.
+2. Capture the **77** missing manual screenshots.
+3. Finish the 12 how-tos still unwritten on `how-do-i.html`; passphrase and website are next in the r265 plan.
+4. Keep product recommendations separate from documentation edits. P7 remains open: Pay and Charge say “Credits” in their field hints while the verified game money and manual use dollars. No in-app wording was changed in r266.
+
+---
+
 # Handoff — r264
 
 **The answered and the withdrawn are out of the developer list, and it is renumbered.**
