@@ -31,16 +31,10 @@
 <main>
 <header class="hero">
   <h1>How do I…</h1>
-  <p class="tag">Walkthroughs, each one solving a single thing an author actually
-  wants. The ones not written yet are listed below. You can see what is
-  coming and ask for the one you need.</p>
+  <p class="tag">Walkthroughs for practical tasks authors handle in the editor. Each guide solves one job with clear, grounded steps. All 17 are listed below; five more guides are being added.</p>
 </header>
 <section id="howto-list">
-<p>These are not a feature of the editor. They are arrangements other authors
-have built, written out as steps you can follow. Each one names the nodes it
-uses, how long it takes. It also says why the arrangement works, and the two or three ways
-it usually goes wrong. They are drawn from the built-in templates and from how
-the game's own quests are put together.</p>
+<p>These are practical arrangements built from editor features. Each guide names the nodes you need and estimates the time. It explains why the setup works and lists common failure points. Examples draw on built-in templates and the game's own quests.</p>
 <table>
   <thead><tr><th>Walkthrough</th><th>What it gets you</th></tr></thead>
   <tbody>
@@ -51,19 +45,19 @@ the game's own quests are put together.</p>
     <tr><td><a href="#howto-branch">Branch the story on something the player did</a></td><td>One quest, two routes, and no duplicated nodes.</td></tr>
     <tr><td><a href="#howto-passphrase">Ask the player for a passphrase, with a wrong-answer route</a></td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
     <tr><td><a href="#howto-website">Build a website the player has to find</a></td><td>A public clue on a distinctive host the player can reach.</td></tr>
-    <tr><td>Hide a page so only a brute-force finds it</td><td>An unlisted page, and how the player is meant to reach it.</td></tr>
-    <tr><td>Put a file on a machine the player has to break into</td><td>Placing files where the exploit will actually find them.</td></tr>
-    <tr><td>Make the player scan a target before the story moves on</td><td>Gating progress on a real command rather than a timed pause.</td></tr>
-    <tr><td>Give the player a lead they can look up</td><td>A name, a handle, an address — and the lookup that follows.</td></tr>
-    <tr><td>Set up a target a tool mod actually matches</td><td>Making your network answer the way an addon expects.</td></tr>
-    <tr><td>Route the story on whether the player has an app installed</td><td>App Install Check, and what to do about the players who do not have it.</td></tr>
-    <tr><td>Chain two conversations together</td><td>A reply that leads somewhere, instead of a dead end.</td></tr>
-    <tr><td>End the story cleanly with Complete quest</td><td>Rewards, the complete hook, and the order to put them in.</td></tr>
-    <tr><td>Start from a template and make it yours</td><td>Taking a built-in quest apart without breaking it.</td></tr>
-    <tr><td>Update a quest you already exported</td><td>Shipping version two without losing version one.</td></tr>
+    <tr><td><a href="#howto-hidden-page">Hide a page from in-game search</a></td><td>Unlisted from search, but still reachable by URL or dirhunter.</td></tr>
+    <tr><td><a href="#howto-file-drop">Place a file on a remote device</a></td><td>A clue placed on the right device and account.</td></tr>
+    <tr><td><a href="#howto-scan-gate">Gate progress on a target scan</a></td><td>Only a scan of the intended address advances the story.</td></tr>
+    <tr><td><a href="#howto-lead">Give the player a lead to look up</a></td><td>A scripted Whois record the player can request.</td></tr>
+    <tr><td><a href="#howto-tool-match">Match a tool addon to its target</a></td><td>Use target warnings without treating them as proof.</td></tr>
+    <tr><td>Route on whether a supported app is installed</td><td>A safe path for players who lack the app.</td></tr>
+    <tr><td>Chain conversations together</td><td>Phone calls wait to end; replies can take Wrong.</td></tr>
+    <tr><td>End the story cleanly with Complete quest</td><td>Place the final beat, reward and completion hook in order.</td></tr>
+    <tr><td>Customize a template safely</td><td>Protect current work before replacing it with a template.</td></tr>
+    <tr><td>Update an exported quest</td><td>Edit the source project and export a versioned replacement.</td></tr>
   </tbody>
 </table>
-<p>Linked titles are written. The rest are planned, in roughly the order they will land.</p>
+<p>Twelve guides are linked. Five more are planned.</p>
 </section>
 
 <section id="howto-objective-that-ticks">
@@ -476,6 +470,212 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>The export flags the host.</b> Replace <code>example.net</code> with a distinctive host. Two sites in this mod cannot share one host.</li>
   <li><b>The page is missing from search.</b> Turn on <b class="ui">Listed in the in-game search</b>. If it is off, the player needs its direct address.</li>
   <li><b>The browser cannot find the page.</b> Check <b class="ui">Host</b> and <b class="ui">Path</b>. An in-site link must match a page path on this site.</li>
+</ul>
+</section>
+
+<section id="howto-hidden-page">
+<h2>Hide a page from in-game search</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="guides.html#websites">Websites</a>, a page to unlist, and optionally <a href="nodes/trigger-event.html">When event</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Turning off <b class="ui">Listed in the in-game search</b> removes a page from search. It does not make the page private.</p>
+<p>Players can still type its full address. They can also find its path with <code>dirhunter</code>. Use this for discoverable pages, not secrets.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>In <b class="ui">Websites</b>, select the site and page. Note the site's <b class="ui">Host</b> and the page's <b class="ui">Path</b>.</li>
+  <li>Turn off <b class="ui">Listed in the in-game search</b>. The page leaves search but stays reachable by its address.</li>
+  <li>Give the player the site's host. Include a clue about the site if they must search for its hidden path.</li>
+  <li>To check a completed search, add a <b class="ui">When event</b>. Choose <code>Terminal.Dirhunter</code>.</li>
+  <li>Under <b class="ui">Only when</b>, set <b class="ui">Field</b> to <code>results</code>. Set <b class="ui">Rule</b> to <b class="ui">contains</b> and use the page path as <b class="ui">Value</b>.</li>
+  <li>Connect the trigger's <b class="ui">When</b> wire to an objective's <b class="ui">Trigger</b> socket. This checks discovery, not whether the page was opened.</li>
+  <li>To check a visit, choose <code>Browser.WebsiteOpened</code> instead. Match <code>Url</code> to the page path and connect its <b class="ui">When</b> wire.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-08-hidden-page.png"
+       alt="A selected website page with Listed in the in-game search turned off, plus its host and path." />
+  <figcaption>Unlisted pages leave search, but remain reachable by address.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Give the player a direct link.</b> Put the complete address in a message. The search listing does not block that route.</li>
+  <li><b>Keep the rest of the site public.</b> Change the listing setting on the individual page you want to unlist.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The page still appears in search.</b> Check the listing setting on that page, not another page on the site.</li>
+  <li><b>The objective ticks on another result.</b> Match <code>results</code> against the complete path you expect.</li>
+  <li><b>The hidden page opens from a typed address.</b> That is expected. The setting removes search listings; it does not block direct access.</li>
+</ul>
+</section>
+
+<section id="howto-file-drop">
+<h2>Put a file on a remote device</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-network.html">Create network</a> and <a href="nodes/world-files.html">Place files</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Remote files are included with a matching network device at export. They are there before the player connects.</p>
+<p>The editor places them under the account marked <b class="ui">Accepts reverse TCP</b>. If none is marked, it uses the first account.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Create network</b> node and choose the device that should hold the clue. The game assigns its address.</li>
+  <li>Add <b class="ui">Place files</b>. Set <b class="ui">Where</b> to <b class="ui">A remote device</b>.</li>
+  <li>Set <b class="ui">Device IP</b> to the same address as the target. For the main network device, use <code>{{data.targetIp}}</code>.</li>
+  <li>Set <b class="ui">Parent folder</b>, such as <code>~/docs</code>. Choose a folder the player can find in their account.</li>
+  <li>Click <b class="ui">Add file</b>. Fill in <b class="ui">Name</b>, <b class="ui">Extension</b> and <b class="ui">Contents</b>.</li>
+  <li>Give the player a way into that device and account. See <a href="nodes/world-network.html">Create network</a> for account and port settings.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-09-file-drop.png"
+       alt="Create network and Place files aimed at the same remote device, with a clue file listed." />
+  <figcaption>The same device address ties the file to its target.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Put a folder tree there.</b> Set <b class="ui">Parent folder</b> to a path such as <code>~/docs</code>, or add a folder row.</li>
+  <li><b>Write to the player's PC instead.</b> Set <b class="ui">Where</b> to <b class="ui">The player's PC</b>. That copy is written when the story reaches the node.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The export says the device was not found.</b> Match <b class="ui">Device IP</b> to the address of a device in this quest's network.</li>
+  <li><b>The file is missing after login.</b> Check which account accepts reverse TCP. Otherwise, the first account owns the files.</li>
+  <li><b>The folder is empty.</b> Add at least one file and fill in its contents.</li>
+</ul>
+</section>
+
+<section id="howto-scan-gate">
+<h2>Gate progress on a target scan</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-network.html">Create network</a>, <a href="nodes/objective.html">Objective</a> and <a href="nodes/trigger-event.html">When event</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>An objective can wait for the player to scan one particular address. Its completion can release the next story beat.</p>
+<p>The game assigns the network address. Use <code>{{data.targetIp}}</code> instead of copying an address from an example.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add an <b class="ui">Objective</b> that asks the player to scan the target.</li>
+  <li>Add a <b class="ui">When event</b> node. Choose <code>Terminal.NmapScan</code> under <b class="ui">Game event</b>.</li>
+  <li>Under <b class="ui">Only when</b>, add a condition. Set <b class="ui">Field</b> to <code>ip</code>, <b class="ui">Rule</b> to <b class="ui">equals</b>, and <b class="ui">Value</b> to <code>{{data.targetIp}}</code>.</li>
+  <li>Connect <b class="ui">When</b> from the trigger to the objective's <b class="ui">Trigger</b> socket. Do not connect it to the flow input.</li>
+  <li>Connect the objective's <b class="ui">On complete</b> output to the next story node. That beat starts after the matching scan.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-10-scan-gate.png"
+       alt="A Terminal.NmapScan condition matching data.targetIp and wired into an objective's Trigger socket." />
+  <figcaption>The event checks the scanned address, not the command's timing.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Ask for an ordinary scan.</b> Match <code>ip</code> only. A version scan is not required.</li>
+  <li><b>Show a reply after completion.</b> Connect the objective's completion output to a message or another objective.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The objective never ticks.</b> Check that the scan targeted this quest's device and the condition uses <code>ip</code>.</li>
+  <li><b>The address changes between builds.</b> Use <code>{{data.targetIp}}</code> for the game-assigned target instead of a typed example address.</li>
+  <li><b>The next beat starts too soon.</b> Connect it to <b class="ui">On complete</b>, not directly after the trigger.</li>
+</ul>
+</section>
+
+<section id="howto-lead">
+<h2>Give the player a lead to look up</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-toolresponse.html">Tool response</a> and a domain the player can investigate</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A clue can name a domain, then let the player ask <code>whois</code> for its record. The reply is text you provide.</p>
+<p><b class="ui">Register domain</b> is separate. Add it only when the player should also resolve that domain to an address.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Tool response</b> node to the quest.</li>
+  <li>Set <b class="ui">Tool</b> to <code>whois</code>. Set <b class="ui">Keyed by</b> to the exact domain the player will type.</li>
+  <li>Write one fact per line under <b class="ui">Response</b>. Use labels such as <code>Domain</code>, <code>IP</code>, <code>Registrant</code> and <code>Email</code>.</li>
+  <li>Give the same domain to the player in a message, website or other clue. Keep its spelling identical to <b class="ui">Keyed by</b>.</li>
+  <li>To count the lookup, add a <b class="ui">When event</b>. Choose <code>Terminal.Whois</code> and match its <code>domain</code> to the clue.</li>
+  <li>Connect the trigger's <b class="ui">When</b> wire to the objective's <b class="ui">Trigger</b> socket.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-11-lead.png"
+       alt="A Tool response set to whois, keyed to a domain, with labeled response lines." />
+  <figcaption>The lookup returns the facts you wrote for that domain.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let the player use <code>nslookup</code> too.</b> Add <a href="nodes/world-domain.html">Register domain</a> and point <b class="ui">Resolves to</b> at the intended address.</li>
+  <li><b>Use a changing network address.</b> Put <code>{{data.targetIp}}</code> in the response's IP line.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The normal Whois result appears.</b> Check the tool name and exact input in <b class="ui">Keyed by</b>.</li>
+  <li><b>The response is blank.</b> Add labeled lines under <b class="ui">Response</b>.</li>
+  <li><b><code>nslookup</code> cannot resolve the name.</b> A Whois response does not register a domain. Add <b class="ui">Register domain</b> separately.</li>
+</ul>
+</section>
+
+<section id="howto-tool-match">
+<h2>Match a tool addon to its target</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd>A tool mod's <code>.json</code> pack, a target in your quest, and the matching game mod</dd>
+  <dt>Takes</dt><dd>About ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A loaded pack lets the editor compare your declared targets with a tool mod's stated requirements. It cannot test the mod in the game.</p>
+<p>Target warnings appear only when the pack is loaded, the quest uses it, and the quest declares a target.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Ask the tool mod's author for its <code>.json</code> pack. Open <b class="ui">Addons</b> and choose <b class="ui">Load a pack (<code>.json</code>)</b>.</li>
+  <li>Keep in mind that the pack is stored in this browser, not in your project. Players still need the matching game mod.</li>
+  <li>Read the pack's target requirements. Give your target a listed service and fill in any required port versions or domain weaknesses.</li>
+  <li>For example, the Recon-NG pack accepts services such as <code>http</code>. It also recognizes aliases such as <code>https</code> and <code>web</code>.</li>
+  <li>For that pack, add version text to each service port. Add a supported weakness, such as <code>RCE</code>, to a registered domain.</li>
+  <li>Use an event, data node or addon node from the pack in the quest. The editor checks targets only when the quest shows it uses that pack.</li>
+  <li>Open <b class="ui">Export mod</b> or <b class="ui">Dry run</b>. Read the target warnings and adjust any unmatched services, versions or weaknesses.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-12-tool-match.png"
+       alt="A loaded tool pack listing its supported services beside a quest target with a matching service and version." />
+  <figcaption>A pack checks target details that the game tool can use.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Check another pack.</b> Use the rules in that pack instead of copying the Recon-NG example.</li>
+  <li><b>Keep a local checklist.</b> Addons stay in this browser's storage, so load the pack again in another browser.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>No target warnings appear.</b> Confirm the pack is loaded, the quest uses it, and a target is declared.</li>
+  <li><b>A service warning appears.</b> Change the target's service to one accepted by the pack.</li>
+  <li><b>A version warning disappears.</b> That confirms a version value is present. It does not prove that version fits the tool's real requirements.</li>
 </ul>
 </section>
 
