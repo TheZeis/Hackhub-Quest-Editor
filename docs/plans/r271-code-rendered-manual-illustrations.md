@@ -1,35 +1,40 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: investigation complete; proposal only. Awaiting Zeis's approval.** No
-manual figures, editor code, screenshot slots or coverage tests have been changed.
+**Status: prototype built after Zeis approved the plan; awaiting visual review.**
+The game-only tutorial figure has been removed by decision, its useful prose
+remains, and no editor figure has been replaced. Bulk conversion is still held
+until the five-scene prototype has been reviewed.
 
-## Decision requested
+## Approved direction
 
-Approve a small prototype before replacing any existing figure:
+Zeis approved the shared, offline-capable renderer and the five-scene prototype,
+with **no game screenshot**:
 
 1. Use one locally bundled, read-only figure renderer, shared by the manual, with
    each illustration selected by a scene ID. Prefer one reusable iframe document
    and lazy-loaded frames; do not create a separate HTML or image file for every
    scene.
-2. If the prototype passes the offline, accessibility, search and visual checks
-   below, replace the **88 current editor-only figure slots** with rendered
-   scenes. Keep the one current game-only figure as a genuine capture unless
-   Zeis prefers to remove it or use a clearly labelled schematic instead.
+2. After the prototype passes visual review and the offline, accessibility,
+   search and safety checks below, replace the **88 current editor-only figure
+   slots** with rendered scenes. The game-only tutorial figure is removed, not
+   depicted as an editor view or an invented game screenshot.
 3. Leave the five other game-only names and two unlinked editor-panel names
    dormant; they are not figures on current manual pages.
 
-The game-only exception is the only content decision this code investigation
-cannot make for Zeis. The renderer must not pretend an editor view is a view of
-the game.
+The content decision is settled: this manual will not include a game screenshot
+for the installation step. The written instructions remain, and the renderer
+must not pretend an editor view is a view of the game.
 
 ## What the audit found
 
-`src/manual.coverage.test.ts` G8 walks all manual HTML and currently reports **89
-missing image references**. A filesystem walk of the same 51 HTML pages confirms
-that every one is missing from `public/manual/img/`; the directory is absent.
-The targeted coverage file passes **27/27 tests** and prints the same 89 count.
+At the start of the investigation, `src/manual.coverage.test.ts` G8 reported
+**89 missing image references**. A filesystem walk of the same 51 HTML pages
+confirmed every one was missing from `public/manual/img/`; the directory was
+absent. The targeted coverage file passed **27/27 tests** and printed the same
+89 count. The table below records that pre-decision audit; removing the game-only
+figure now leaves **88 current editor-image references**.
 
-| Current references | Count | What they depict |
+| References before the no-game choice | Count | What they depict |
 |---|---:|---|
 | Node reference panels | 41 | One editor inspector figure for each of the 41 documented node types |
 | How-to diagrams | 17 | Editor node arrangements and wires |
@@ -47,15 +52,49 @@ and `node-trigger-event-conditions.png`—are likewise declared but not linked.
 The present G8 count is based on references in pages, so none of those seven
 unlinked names is included in 89.
 
-The r164 manifest currently contains **96 unique PNG names**, not the 91 in its
-summary. Its intro and capture instructions still say 33 node shots; the node
-table actually lists 41 inspector names, while its heading and arithmetic say
-37, plus two additional editor panels. Its recipe table has 17 how-tos, not 16.
-The current Node Reference and manual inventory both confirm 41 node types. The
-correct arithmetic is 71 Tier 1 names, 20 Tier 2 names and five additional
-unlinked game names: 96 total. The proposal must correct the manifest's counts
-and distinguish a rendered illustration from a PNG capture rather than carry
-these stale totals forward.
+At audit time, before Zeis's no-game decision, the r164 manifest contained
+**96 unique PNG names**, not the 91 in its summary. Its intro and capture
+instructions still said 33 node shots; the node table actually listed 41
+inspector names, while its heading and arithmetic said 37, plus two additional
+editor panels. Its recipe table listed 17 how-tos, not 16. The current Node
+Reference and manual inventory both confirm 41 node types. The pre-decision
+arithmetic was 71 Tier 1 names, 20 Tier 2 names and five additional unlinked
+game names: 96. The corrected r164 inventory now has **95 declared names**:
+70 Tier 1 editor slots, 20 Tier 2 editor slots and five dormant game-only names.
+The tutorial game slot was removed. The manifest now distinguishes rendered
+illustrations from PNG captures rather than carrying the stale totals forward.
+
+## Prototype checkpoint — 2026-10-03
+
+The first renderer is in place at `public/figures/renderer.html`, with one
+bundled script and stylesheet in `public/figures/assets/`. Its checked-in scene
+catalogue and renderer source live in `scripts/manual-figures/`. The review page
+is `public/manual-figure-prototype.html`; it is outside the handbook folder, so
+it does not become a manual search result or a new page in G8.
+
+The five scenes are `node-objective-inspector`, `howto-wired-canvas`,
+`settings-panel`, `tour-workspace`, and `tutorial-drag-wire`. They seed the real
+First Contact template into an in-memory editor store and compose the current
+inspector, canvas, node library, top bar, status bar and Settings panel where
+appropriate. The mid-drag wire is a fixed SVG line over real node cards, clearly
+identified as a static illustration. Every frame is sandboxed without same-origin
+access, marked inert, and receives a no-op local-storage shim; the renderer does
+not mount `App` or autosave. Its isolated CSS bundle omits the optional font
+files because every prototype uses the default system font, so it has no font
+asset URLs to resolve from disk.
+
+The local bundle is built as part of `npm run gen:manual`. The prototype page has
+parent-page descriptions and descriptive iframe titles, and lazy-loads each
+scene. The search builder now adds iframe titles to indexed page text; the scene
+heading and parent description remain ordinary page prose. A temporary manual
+fixture confirmed the title, parent description and caption all reach the search
+index; the final index remains 285 entries from 51 manual pages. The builder
+walks only `public/manual/`, so the shared renderer and review page are not
+indexed. The prototype is meant to be opened in a browser both from the dev preview
+and from disk. This environment has no browser binary, so the local-file,
+visual-fidelity, keyboard and screen-reader checks remain unverified. No editor
+figures have been bulk-migrated; G8 should now report **88 current missing
+editor-image references** and no game-only figure.
 
 ## What can render the real editor
 
@@ -157,50 +196,48 @@ If the iframe approach fails the direct-from-disk or accessibility tests, use
 the same scene catalogue to generate static inline SVG/HTML at manual-build
 time; do not fall back to 88 hand-maintained mockups.
 
-## Work sequence after approval
+## Work sequence
 
-1. **Correct the inventory.** Update the r164 manifest's stale counts and mark
-   each slot as editor illustration, actual capture, or declared-but-unlinked.
-   Update `scripts/build-node-pages.mjs` so `npm run gen:manual` keeps the 41
-   generated node pages on scene references. Keep current scope to the 88 editor
-   figures. Do not add the two dormant editor scenes or five dormant game scenes
-   to the manual without a separate decision.
-2. **Prove the renderer on five representative scenes:** a registry-driven node
-   inspector; a how-to canvas with typed wires; a dialog or settings panel; the
-   full editor workspace; and a transient state such as the mid-drag wire. This
-   checks the five different rendering problems before 88 references move.
-   Compare the scenes with the actual editor at its default Midnight theme and
-   system font. Show this prototype for visual review before bulk conversion.
-3. **Test the offline and semantic path.** Open the manual page directly from
-   disk with the network unavailable. Confirm the local frame script and CSS
-   load; the search still finds figure labels; the frame has an accessible name;
-   and its controls are not interactive. If this fails, stop and use the
-   build-time inline-renderer fallback before migrating pages.
-4. **Convert the 88 current editor figures** to scene references, preserving
-   useful existing captions and descriptions. Keep
-   `tutorial-14-installed.png` as an actual capture slot pending Zeis's decision;
-   do not render an editor lookalike for the game's mod list. Leave the five
-   additional game-only and two unlinked editor slots unused.
-5. **Teach G8 the difference.** Validate every scene ID against the catalogue,
-   require descriptions/captions, reject unknown or unused active scenes, and
-   count only real missing PNG captures as pending. If the game figure stays,
-   the expected current result is **88 rendered editor scenes and one capture
-   pending**. If Zeis removes that figure, it becomes **88 scenes and zero
-   current captures pending**. The five dormant game names must not inflate the
-   live count.
+1. **Correct the inventory.** The r164 manifest's totals and slot types are
+   updated below to separate editor illustrations, the five dormant game names
+   and two unlinked editor panels. The tutorial's game-only figure has been
+   removed by Zeis's direction while the useful installation prose stays.
+2. **Build and review the five-scene prototype.** The scenes now cover a
+   registry-backed node inspector, a wired how-to canvas, the Settings panel,
+   the full workspace and a fixed mid-drag state. Compare them with the actual
+   editor at its default Midnight theme and system font. Bulk migration remains
+   stopped until Zeis reviews this prototype.
+3. **Test the offline and semantic path.** Open
+   `public/manual-figure-prototype.html` in a browser and directly from disk,
+   with the network unavailable. Confirm the local frame script and CSS load;
+   the frame has an accessible name; and no control is interactive. The page's
+   descriptions and captions must remain outside the frame for screen readers
+   and search. If direct-from-disk loading fails, stop and use the build-time
+   inline-renderer fallback before migrating pages. This environment has no
+   browser, so these checks are still open.
+4. **After review, convert the 88 current editor figures** to scene references,
+   preserving useful existing captions and descriptions. Do not render an editor
+   lookalike for the game's mod list. Leave the five additional game-only and
+   two unlinked editor slots dormant.
+5. **Teach G8 the difference during that migration.** Validate every scene ID
+   against the catalogue, require descriptions/captions, reject unknown or
+   unused active scenes, and count only real missing PNG captures as pending.
+   With the game figure removed, the expected end state is **88 rendered editor
+   scenes and zero current capture slots**. The five dormant game names must not
+   inflate the live count.
 6. **Verify and record.** Run `npm run gen:manual` after updating its page and
    renderer steps, then run G8, G17 and G18; run `npm run typecheck`,
    `npm run build`, the full test suite if the coverage test under `src/` changes,
    and `git diff --check`. Inspect the manual at normal and narrow widths, with a
    keyboard and screen reader, and check that every visual claim matches the
-   actual editor. Since this is a documentation-only renderer, do not bump
+   actual editor. Since this is a documentation renderer, do not bump
    `EDITOR_BUILD` unless product editor code changes.
 
 ## Acceptance criteria
 
-- The 88 current editor figures render from one shared local renderer and
-  scene catalogue. There are no 88 separate hand-maintained HTML files or
-  image assets.
+- After the review gate, the 88 current editor figures render from one shared
+  local renderer and scene catalogue. There are no 88 separate hand-maintained
+  HTML files or image assets.
 - Every scene is fixed and non-interactive, uses current editor labels and
   defaults, and is visually checked against the editor. Dynamic states are
   identified as illustrations, not working controls.
@@ -209,11 +246,14 @@ time; do not fall back to 88 hand-maintained mockups.
 - Opening the manual directly from disk with no network renders the scenes and
   keeps search working.
 - G8 reports generated scenes separately from actual PNG captures, rejects
-  unknown IDs, and does not count the 88 rendered figures as missing PNGs.
-- The single current game-only slot is either a true game capture or removed by
-  Zeis's decision; it is never represented as an editor screenshot.
-- No existing figure is replaced before Zeis approves this plan. No editor
-  behavior or product copy changes are included in the proposal.
+  unknown IDs, and does not count rendered figures as missing PNGs. At this
+  prototype checkpoint, before any migration, it still reports **88 missing
+  editor-image references**.
+- The game-only tutorial figure is removed by Zeis's decision and is never
+  represented as an editor screenshot. The five other game-only names and two
+  unlinked editor-panel names remain dormant.
+- No editor figure is replaced before Zeis approves the five-scene prototype.
+  No editor behavior or product copy changes are included.
 
 ## Self-review
 
@@ -224,9 +264,9 @@ iframe is a recommendation, not an untested guarantee: its local-file behavior,
 search treatment, frame naming and loading cost are explicit prototype gates.
 
 The other significant finding changes the apparent scope. Not every pending
-figure is an editor screenshot: the tutorial's installation image shows the
-game's mod list. The plan preserves that truth and leaves the five unlinked
-game images alone. It also corrects the r164 manifest's stale counts rather than
-using its stated 91-image total. No browser-rendered examples were produced in
-this investigation, and no implementation is authorized until Zeis approves or
-revises the plan.
+figure is an editor screenshot: the tutorial's installation image showed the
+game's mod list. Zeis chose no game screenshot, so that figure is removed and
+its useful prose remains. The five unlinked game images and two editor panels
+stay dormant. The five-scene renderer is now built, but its visual and
+browser-only gates remain open; do not bulk-convert editor figures until Zeis
+reviews the prototype.

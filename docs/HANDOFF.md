@@ -1,26 +1,27 @@
-# Handoff — r271 plan awaiting approval
+# Handoff — r271 prototype awaiting visual review
 
-**The missing manual figures have been audited; a code-rendered alternative is proposed, but no illustration implementation or figure replacement has begun.**
+**Zeis approved the shared renderer prototype and chose no game screenshot.** The tutorial's game-only installation figure has been removed; the written installation instructions remain. G8 should now report **88 missing editor-image references**. No editor figure has been migrated yet; bulk conversion stays gated on review of the five-scene prototype.
 
-The current 89 missing image references break down to 88 editor views and one game view: `tutorial-14-installed.png` is the game's mod list. The r164 manifest also has five unlinked game-only names and two unlinked editor panels. Its prose says 91 total, but its 96 unique filenames and the actual table rows show the counts are stale. The evidence, proposed single offline renderer, scope, tests and game-only decision are in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
+Open `public/manual-figure-prototype.html` in the live preview, or open that file directly from disk. It shows an Objective inspector, a two-node wired canvas, the Settings panel, the full workspace and a fixed mid-drag illustration. The shared frame is at `public/figures/renderer.html`; source and scene IDs are in `scripts/manual-figures/`. Every iframe is lazy-loaded, sandboxed without same-origin access, inert and provided a no-op storage shim. `App` and autosave are not mounted. The five other unlinked game-only names and two unlinked editor-panel names remain dormant.
 
-This checkpoint changes planning documents only. No manual figure, `src/**` product code or G8 test has changed; `EDITOR_BUILD` remains `2026-10-03.r267`. The README now records r271 in **Done recently**, the next-up row says approval is required, and the displaced r266 entry is archived. The r271 investigation is indexed in [`docs/plans/README.md`](plans/README.md).
+The r164 manifest now records 95 declared names: 70 Tier 1 editor slots (68 linked), 20 Tier 2 editor slots and five dormant game-only names. The prior 96-name count included the removed tutorial image. No `src/**` product code or product copy changed; `EDITOR_BUILD` remains `2026-10-03.r267`. The README roadmap and plans index are current; the r271 evidence and acceptance gates are in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 
 ## Verification
 
-- `npm run recover`: restored the pushed r270 tip at `cbd2ff0`, found no recovery residue and reinstalled dependencies.
-- `npm test -- src/manual.coverage.test.ts`: **27 passed**; G8 still reports 89 missing references.
-- `npm run typecheck`: passed.
-- `npm run build`: passed; Vite emitted its existing nonfatal warning that the main JavaScript chunk exceeds 1 MB.
-- `git diff --check`: passed after drafting the plan and roadmap updates.
-- No browser or browser-automation package is available, so the proposed renderer was not visually tested. No images were captured.
-- No full suite ran because this checkpoint changes documentation only.
+- `npm run gen:manual`: passed; **41 node pages written**, zero awaiting prose; the offline index remains **285 entries from 51 pages**. It builds the local renderer bundle (**1.63 MB JS**, **95.6 KB CSS**).
+- `npm test -- src/manual.coverage.test.ts`: **27/27 passed**; G8 reports **88** missing editor-image references; G17 still links all 17 how-tos and G18 remains **0**.
+- `npm run build`: passed, including TypeScript checking and the production copy of the prototype assets. Vite emitted the existing nonfatal warning that the app's main chunk exceeds 1 MB.
+- A temporary search-index smoke fixture verified that an iframe title, parent description and caption are indexed; the fixture was removed and the index regenerated to **285 entries from 51 pages**.
+- An offline-path smoke check verified all five prototype frames are titled, sandboxed and point to local renderer, script and stylesheet files. The live preview serves the prototype and its assets successfully.
+- `git diff --check`: passed after all source, generated-asset and documentation changes.
+- No browser binary or automation package is available in this environment. Visual fidelity, direct-from-disk loading, keyboard and screen-reader checks have **not** been performed; ask Zeis to review the preview before converting figures.
+- No screenshots were captured. No full suite ran because `src/**` and product behavior were unchanged.
 
 ## Next work
 
-1. Zeis reviews or revises the plan, including whether the one game-only tutorial figure should remain a true capture or be removed/replaced by a labelled schematic.
-2. Do not implement the renderer or replace figures before approval. After approval, build and show the five-scene prototype before migrating the other 83 editor figures.
-3. Keep the five unlinked game-only slots and two unlinked editor panels out of scope unless requested; keep G18 at **0** and the editor stamp at r267 unless editor source changes.
+1. Ask Zeis to review the five-scene prototype in the live preview, especially visual fidelity and opening it from disk. Do not bulk-convert the 88 editor figures until explicit approval.
+2. After approval, migrate the 88 editor figures and extend G8 to validate scene IDs, descriptions, captions and search indexing; the five dormant game-only names and two unlinked editor panels stay out of scope.
+3. Keep G18 at **0** and the editor stamp at r267 unless editor source changes.
 
 ---
 

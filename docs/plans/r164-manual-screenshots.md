@@ -1,15 +1,26 @@
-# r164: screenshot manifest — filenames, capture specs, tiers
+# r164: legacy screenshot manifest — filenames, capture specs, tiers
 
-Every image the handbook will use, with its **final filename** already decided.
-The pages reference exactly these paths, so dropping a correctly named file into
-`public/manual/img/` makes it appear — no code edit, no rename.
+> **Current status (r271, 2026-10-03):** Zeis approved a shared code-rendered
+> illustration system and chose **no game screenshot**. The tutorial's game-only
+> installation figure has been removed; its useful instructions remain. The 88
+> current editor `<img>` references are still pending until the five-scene
+> prototype is reviewed and later migrated. The two unlinked editor-panel names
+> and five other unlinked game-only names remain dormant. This file is retained
+> as the historical filename inventory, not as a request to capture screenshots.
 
-The 33 node filenames were derived from `NODE_TYPES_REGISTRY` programmatically,
+The original raster-image pages used the filenames below. The r271 audit found
+that their count was stale; the corrected current inventory is recorded in §6.
+
+The 41 node filenames were derived from `NODE_TYPES_REGISTRY` programmatically,
 not typed by hand, so a node cannot be misnamed.
 
 ---
 
-## 1. Capture setup — same for every shot
+## 1. Historical capture setup — superseded for current work
+
+The capture dimensions, file-size projections and setup notes in this section
+belong to the original PNG workflow. They do not apply to the code-rendered
+figures now being prototyped. No current screenshots are requested.
 
 | | |
 |---|---|
@@ -41,46 +52,25 @@ of canvas beside it. Each table below has a **Crop to** column.
 | **Region** | up to **900 wide**, crop tight | a dialog, the status bar, the palette, a settings section | 60–120 |
 | **Full editor** | **1280 × 800** | only where the whole screen *is* the point | 150–200 |
 
-### Projected total
+### Retired raster-size estimate
 
-| Kind | Shots | Subtotal |
-|---|---|---|
-| Panel (440 wide) | 45 | ~2.0 MB |
-| Region (≤900 wide) | 19 | ~1.7 MB |
-| Full editor (1280 × 800) | 5 | ~0.9 MB |
-| Recipe cluster (760 × 480) | 16 | ~1.4 MB |
-| In-game (1280 × 720) | 6 | ~0.9 MB |
-| **Total, before optimising** | **91** | **~6.9 MB** |
+The old estimate is withdrawn. It totalled 91 images, but the r271 audit found
+96 distinct names before Zeis removed the tutorial's game-only figure. Current
+counts are classified in §6. Editor figures are being prototyped as local scenes,
+so no PNG size estimate or capture budget applies to them.
 
-Optimised on ingest that should land around **4–5 MB**. I'll report the actual
-figure once the images are in, and if it's over budget I'll say so rather than
-quietly dropping shots.
+### Source fixture for the 41 node illustrations
 
-Only **five** shots need the whole screen. That's the change from the original
-plan: a 340px inspector panel and a status bar strip do not need 1280×800 each,
-and at 1× display scale the whole set fits in a few megabytes instead of
-thirty.
-
-### The one project to load for 33 of the 33 node shots
-
-Load the **Node Reference** template (top bar → **Templates** → *Node
-Reference*). It builds one of every obtainable node type, laid out and labelled
-(`templates/reference.ts`, asserted by `templates.test.ts:240-251`). So per
-node:
-
-1. click the node on the canvas
-2. make sure the inspector's **Node** tab is showing
-3. screenshot, cropped to the panel
-
-Thirty-three times, no setup between them.
-
-**Record the build you captured on** — hover the stamp in the top bar. If it
-isn't `2026-09-14.r162`, tell me, because a label change invalidates the text
-next to the picture.
+The **Node Reference** template (top bar → **Templates** → *Node Reference*)
+builds one example of every obtainable node type, laid out and labelled
+(`templates/reference.ts`, asserted by `templates.test.ts:240-251`). The shared
+renderer can use it to populate the 41 inspector scenes without a screenshot
+setup. The five-scene prototype currently uses *First Contact* to test the real
+inspector and canvas components first.
 
 ---
 
-## 2. Tier 1 — 67 shots, the manual is incomplete without them
+## 2. Tier 1 — 70 editor illustration slots (68 linked)
 
 ### 2.1 The screen tour (2)
 
@@ -89,7 +79,7 @@ next to the picture.
 | `tour-workspace.png` | Full editor | *First Contact* loaded, with the top bar, quest strip, palette, canvas, docked inspector and status bar all visible and nothing collapsed. I'll add the numbered callouts. |
 | `tour-empty-canvas.png` | Full editor | A brand-new blank project, before anything is added. |
 
-### 2.2 The tutorial (14) — all in the *First Contact* template
+### 2.2 The tutorial (13 editor figures) — all in the *First Contact* template
 
 | # | Filename | Crop to | Step | What to show |
 |---|---|---|---|---|
@@ -106,7 +96,6 @@ next to the picture.
 | 11 | `tutorial-11-status-clean.png` | Region | 2.8 | The status bar alone: saved state, node/wire/objective counts, selection and history depth. A short wide strip is all this needs. Note the bar reports no issue counts at all — problems surface on the nodes and in the export window, so this shot cannot show a clean/unclean state. |
 | 12 | `tutorial-12-dryrun.png` | Region | 2.9 | The **Dry run** dialog part-way through a trace. |
 | 13 | `tutorial-13-export-dialog.png` | Region | 2.10 | The **Export mod** dialog with its summary and the *Download .zip* button. |
-| 14 | `tutorial-14-installed.png` | In-game | 2.10 | The mod visible in the game's mod list. See §5. |
 
 ### 2.3 Feature guides (12)
 
@@ -125,9 +114,11 @@ next to the picture.
 | `guide-canvas-tools.png` | Region | The small canvas toolbar with the arrange tools open. |
 | `guide-inspector-drawer.png` | Full editor | The inspector **torn off into a floating drawer** — worth the whole screen, because the point is where it sits relative to the canvas. |
 
-### 2.4 Node inspectors (37) — all cropped to **Panel**, 440 wide
+### 2.4 Node inspectors (41) — scene catalogue, all obtainable node types
 
-Load *Node Reference*, click the node, screenshot. Same three steps every time.
+The former click-and-screenshot instructions are superseded. The shared scene
+renderer will draw each node's inspector from the registry and template after
+the prototype review; no screenshots are requested.
 
 | Filename | Node | Registry type |
 |---|---|---|
@@ -173,21 +164,22 @@ Load *Node Reference*, click the node, screenshot. Same three steps every time.
 | `node-flow-note-inspector.png` | Sticky note | `flow.note` |
 | `node-flow-beat-inspector.png` | Story Beat | `flow.beat` |
 
-Plus two, for the nodes whose real content is a bigger editor:
+Two more editor-panel names are declared but unlinked. Keep them dormant; they are out of the current 88-figure migration:
 
 | Filename | Crop to | What to show |
 |---|---|---|
 | `node-world-network-devicetree.png` | Panel | *Create network* with the device tree expanded, showing a device's ports and accounts. Tall is fine. |
 | `node-trigger-event-conditions.png` | Panel | *When event* with the condition builder open and at least one clause filled in. |
 
-**Tier 1 total: 2 + 14 + 12 + 37 + 2 = 67 shots** (66 excluding the one in-game
-shot, `tutorial-14-installed.png`).
+**Tier 1 inventory: 2 + 13 + 12 + 41 + 2 = 70 editor illustration slots.**
+Sixty-eight are linked from current pages; the two extra editor panels above are
+unlinked and remain dormant.
 
 ---
 
-## 3. Tier 2 — 19 shots, valuable but the manual works without them
+## 3. Tier 2 — 20 editor illustration slots, valuable but optional
 
-### 3.1 Recipes (16) — "the finished piece", 760 × 480
+### 3.1 Recipes (17) — "the finished piece"
 
 Each is the node arrangement the walkthrough builds. Load the template named in the
 walkthrough and crop to the relevant cluster — not the whole canvas.
@@ -241,10 +233,11 @@ wants — so a missing shot is visible on the page, not invisible.
 
 ---
 
-## 5. Five shots only you can take, because they're inside the game
+## 5. Five dormant game-only names — do not capture
 
-The editor can't show what the player sees. These need HackHub running, at
-**1280 × 720**:
+These five game-only names remain in the legacy inventory but are unlinked from
+current pages and outside the approved scope. No game screenshot or substitute
+schematic is requested. Do not capture or add any of these unless Zeis asks.
 
 | Filename | What to show |
 |---|---|
@@ -254,32 +247,33 @@ The editor can't show what the player sees. These need HackHub running, at
 | `ingame-website.png` | One of your built websites open in the game's browser. |
 | `ingame-mod-loaded.png` | The moment your quest starts — whatever the player sees first. |
 
-(`tutorial-14-installed.png` is also in-game, but it's counted with the
-tutorial in §2.2.)
-
-**Spoilers (S8):** keep the quest text in these shots early-game or from the
-built-in templates. Nothing from the late story.
-
-If you'd rather not take these now, the manual ships without them and the pages
-say so in one line.
+None of these names is a current manual figure. They do not contribute to the
+88 live references or the G8 missing-image count.
 
 ---
 
-## 6. Counting up
+## 6. Corrected inventory (r271)
 
-| | Shots |
-|---|---|
-| Tier 1 — required | **67** (66 excluding its one in-game shot) |
-| Tier 2 — valuable | **19** |
-| In-game, only you, beyond the tutorial's | **5** |
-| **Total, all capturable** | **91** |
+| Slot group | Declared names | Current page references | Status |
+|---|---:|---:|---|
+| Tier 1 editor illustrations | 70 | 68 | Includes two unlinked editor-panel names; keep those dormant. |
+| Tier 2 editor illustrations | 20 | 20 | Seventeen how-to scenes and three troubleshooting scenes. |
+| Other game-only names | 5 | 0 | Dormant and outside the current scope. |
+| **Total** | **95** | **88** | All 88 live references are editor figures. |
 
-**No shot is impossible.** `world.wifi` is now palette-visible after the SDK 0.24
-QA pass, so it has a planned inspector screenshot like the other node pages.
+The former tutorial game-list figure was removed by Zeis's direction and is no
+longer a declared capture slot. G8 currently reports the 88 remaining editor
+`<img>` references as pending; after the later, approved migration it should
+count them as scenes instead of missing PNGs. The five game-only names and two
+unlinked editor panels must not inflate the live count.
 
 ---
 
-## 7. PNG or WebP?
+## 7. Historical PNG/WebP comparison — no current format decision
+
+The synthetic measurement below belonged to the raster screenshot proposal. The
+approved figures are generated from local code scenes, so this comparison is
+kept as historical background rather than a current format recommendation.
 
 Measured, not guessed. A synthetic 440 × 620 dark-UI panel — flat background,
 field labels, mono values, bordered inputs, the shape of a real node inspector —
@@ -301,20 +295,9 @@ fills, one typeface, no antialiased sub-pixel detail. Real screenshots will not
 hit 67%; expect something in the 30–50% range. The direction is not in
 question, the magnitude is.
 
-### Recommendation
+### Current disposition
 
-**You capture PNG. Whether we ship PNG or lossless WebP is a separate call, and
-it should not change what you do** — every screenshot tool produces PNG, and I
-can convert on ingest with the ImageMagick already here, so the drop-a-file-in
-workflow survives either way.
-
-- **Ship PNG** (default): zero conversion, ~6.7 MB raw and ~4–5 MB optimised,
-  which is fine for a manual that is opened from local disk and never crosses a
-  network. This is what I'll do unless you say otherwise.
-- **Ship lossless WebP**: same images at roughly half the size or less, bit
-  identical. Costs one mechanical step — a conversion pass plus `.webp` in the
-  `src` attributes — and gate G8 has to accept either extension.
-
-Converting later is a five-minute reversible change, so there is no cost to
-starting with PNG and revisiting once the real images exist and we can measure
-the actual ratio instead of a proxy.
+No raster capture or PNG/WebP conversion is in scope. The shared renderer and
+its locally bundled JavaScript and stylesheet are the current prototype; their
+size and direct-from-disk behaviour will be reviewed before any manual-page
+migration.

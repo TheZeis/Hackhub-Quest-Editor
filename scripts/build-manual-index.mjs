@@ -31,6 +31,9 @@ function walk(dir, out = []) {
 /** Strip everything that is not reader-facing prose. */
 function proseOf(html) {
     return html
+        // An iframe's accessible name is an attribute, not page prose. Add it
+        // before stripping tags so figure titles remain searchable offline.
+        .replace(/<iframe\b[^>]*\btitle=["']([^"']+)["'][^>]*>/gi, " $1 ")
         .replace(/<script[\s\S]*?<\/script>/gi, " ")
         .replace(/<style[\s\S]*?<\/style>/gi, " ")
         .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
