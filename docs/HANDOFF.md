@@ -16,6 +16,7 @@ The r164 manifest now records 95 declared names: 70 Tier 1 editor slots (68 link
 - `git diff --check`: passed after all source, generated-asset and documentation changes.
 - No browser binary or automation package is available in this environment. Visual fidelity, direct-from-disk loading, keyboard and screen-reader checks have **not** been performed; ask Zeis to review the preview before converting figures.
 - No screenshots were captured. No full suite ran because `src/**` and product behavior were unchanged.
+- The prototype checkpoint is commit `1eaafc1` (`docs: prototype code-rendered manual figures`), pushed to `arena/01a1013d-hackhub-quest-editor`. Origin was fetched before committing; no remote-only changes were present. No pull request was requested or opened.
 
 ## Next work
 
