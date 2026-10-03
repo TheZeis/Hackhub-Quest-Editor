@@ -103,21 +103,30 @@ for (const scene of scenes) {
     if (scene === "tutorial-drag-wire") {
         const svg = root?.querySelector(".react-flow__viewport-portal .figure-drag-wire");
         const endpoint = svg?.querySelector("circle");
-        const pointer = svg?.querySelector(".figure-drag-pointer");
-        const coordinates = pointer?.getAttribute("d")?.match(/-?\d+(?:\.\d+)?/g)?.map(Number);
-        const [tipX, tipY, tailX] = coordinates ?? [];
+        const cursor = svg?.querySelector(".figure-drag-cursor");
+        const coordinates = cursor?.getAttribute("d")?.match(/-?\d+(?:\.\d+)?/g)?.map(Number);
+        const [tipX, tipY] = coordinates ?? [];
+        const cursorXs = (coordinates ?? []).filter((_, index) => index % 2 === 0);
+        const cursorYs = (coordinates ?? []).filter((_, index) => index % 2 === 1);
+        const cursorWidth = Math.max(...cursorXs) - Math.min(...cursorXs);
+        const cursorHeight = Math.max(...cursorYs) - Math.min(...cursorYs);
         const endpointX = Number(endpoint?.getAttribute("cx"));
         const endpointY = Number(endpoint?.getAttribute("cy"));
         const endpointRadius = Number(endpoint?.getAttribute("r"));
         const children = svg ? [...svg.children] : [];
 
         if (!svg) runtimeErrors.push("the detached wire is not attached to the fitted canvas viewport");
-        if (!pointer || !(tipX < tailX)) runtimeErrors.push("the drag pointer does not face left toward its endpoint");
-        if (!endpoint || !Number.isFinite(tipX) || Math.hypot(tipX - endpointX, tipY - endpointY) > endpointRadius) {
-            runtimeErrors.push("the drag pointer does not meet the loose wire endpoint");
+        if (!cursor || !(tipX < endpointX && tipY < endpointY)) {
+            runtimeErrors.push("the mouse cursor does not point up and left toward its endpoint");
         }
-        if (pointer && endpoint && children.indexOf(pointer) <= children.indexOf(endpoint)) {
-            runtimeErrors.push("the drag pointer is painted behind the loose wire endpoint");
+        if (!cursor || !(cursorHeight > cursorWidth)) {
+            runtimeErrors.push("the drag indicator is not shaped like a regular mouse cursor");
+        }
+        if (!endpoint || !Number.isFinite(tipX) || !Number.isFinite(tipY) || Math.hypot(tipX - endpointX, tipY - endpointY) > endpointRadius) {
+            runtimeErrors.push("the mouse cursor does not meet the loose wire endpoint");
+        }
+        if (cursor && endpoint && children.indexOf(cursor) <= children.indexOf(endpoint)) {
+            runtimeErrors.push("the mouse cursor is painted behind the loose wire endpoint");
         }
     }
     const failed =

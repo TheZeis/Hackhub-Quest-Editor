@@ -1,13 +1,14 @@
 # r273 — Manual figure scene layout review
 
-**Status: the scene layout and cursor corrections are implemented; awaiting
-visual re-review.** The full r271 figure migration remains gated on Zeis's approval.
+**Status: Zeis approved the five-scene prototype on 2026-10-04.** At his
+suggestion, scene 5's white horizontal arrow is now a regular mouse cursor. The
+planned 88-figure migration has not started.
 
 ## Review feedback and scope
 
-Zeis confirmed that opening the latest prototype directly from disk now renders
-all five scenes in Firefox. No editor process needs to run. He approved the
-overall scenes except for two layout issues shown in his screenshots:
+Zeis's r272 check confirmed that the prototype opens directly from disk and
+renders all five scenes in Firefox without the editor running. In his first
+visual review, he praised the other three scenes and requested two focused fixes:
 
 - **Scene 2, wired how-to canvas:** the canvas toolbar and zoom controls are
   unrelated to the connection explanation, and the fixed-width frame clips the
@@ -15,11 +16,13 @@ overall scenes except for two layout issues shown in his screenshots:
 - **Scene 5, mid-drag state:** its fixed-width frame clips the nodes, and the
   loose wire endpoint sits too close to the Objective socket, suggesting a
   completed connection instead of a drag in progress. After the layout revision,
-  Zeis noted that the cursor faced right and appeared behind the endpoint; the
-  cursor should face left and sit visibly in front of the loose end.
+  Zeis noted that the cursor faced right and appeared behind the endpoint. That
+  was corrected to face left and paint in front. He approved the prototype on
+  2026-10-04, then suggested a regular mouse-cursor shape instead of a white
+  horizontal arrow; the cursor silhouette now follows that suggestion.
 
-Only these two scenes are in scope. No figure is being migrated into the manual,
-no game image is added, and no product UI or copy is changed.
+Only these two scenes are in scope. No figure was migrated into the manual in
+this polish round, no game image was added, and no product UI or copy changed.
 
 ## Changes
 
@@ -29,11 +32,13 @@ no game image is added, and no product UI or copy is changed.
 - Scene 5's iframe now fills the available width (up to 900 px) in a wide card.
   React Flow fits the nodes to the current frame, and the decorative wire now
   lives in `ViewportPortal`, so its curve follows the same pan/zoom transform as
-  the node cards. Its open end sits in the gap before the Objective socket; the
-  cursor now points left at that end and is painted in the foreground.
+  the node cards. Its open end sits in the gap before the Objective socket. A
+  regular mouse cursor points up-left at the loose end, with its tip overlapping
+  the connection point; it is painted in front.
 - The offline-renderer smoke checks responsive frame widths, hides the unwanted
-  controls in scene 2, and asserts scene 5's cursor faces left, touches the loose
-  endpoint, paints above it, and shares the fitted viewport.
+  controls in scene 2, and asserts scene 5's cursor points toward the endpoint,
+  has the taller-than-wide silhouette of a mouse cursor, overlaps the endpoint,
+  paints above it, and shares the fitted viewport.
 
 ## Verification
 
@@ -46,17 +51,17 @@ no game image is added, and no product UI or copy is changed.
 - Source uses the existing editor components. No `src/**` product code or copy
   changed, and `EDITOR_BUILD` remains `2026-10-03.r267`.
 - JSDOM verifies startup, CSS visibility and layout rules, not visual pixels.
-  Firefox's direct-file load was confirmed by Zeis before these layout changes;
-  he should inspect the updated scenes in the live preview and directly from
-  disk before the prototype is considered approved.
+  Zeis confirmed Firefox's direct-file load and approved the visual prototype on
+  2026-10-04. The subsequent mouse-cursor shape change follows his optional
+  suggestion; automated checks validate its SVG geometry, not rendered pixels.
 
 ## Next
 
-1. Ask Zeis for a quick re-review of scene 5's cursor in the live preview and
-   from disk: confirm it faces the loose wire end and reads clearly in front of
-   the connection point. The positive scene 2 and overall layout review stands.
-2. Keep all 88 existing editor figures unchanged until the revised prototype is
-   approved.
+1. Zeis's visual approval is recorded; this round does not need another review
+   request. The live preview reflects the optional mouse-cursor shape change.
+2. Keep the 88 figure references unchanged in this polish round. Resume the
+   separate r271 migration phase with its remaining accessibility checks and
+   scene-ID/search coverage work.
 3. Preserve the scope decisions: no game screenshot, the five unlinked
    game-only names and two unlinked editor-panel names remain dormant, and G18
    stays at zero.

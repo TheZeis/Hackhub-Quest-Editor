@@ -1,13 +1,13 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: direct-from-disk loading is confirmed; scenes 2 and 5 have r273 layout
-corrections and are awaiting re-review.** The game-only tutorial figure has been
-removed by decision, its useful prose remains, and no editor figure has been
+**Status: Zeis approved the five-scene prototype on 2026-10-04.** The optional
+scene 5 cursor-style refinement is recorded in r273. The game-only tutorial
+figure remains removed and its useful prose remains; no editor figure has been
 replaced. r272 fixed the bundle's `process.env.NODE_ENV` reference and Firefox's
 sandboxed `moz-nullprincipal` origin blocking local assets. Zeis confirmed that
-all five frames now load from disk without the editor running. r273 implements
-the two visual changes he requested; bulk conversion remains held until he
-reviews the updated prototype.
+all five frames load from disk without the editor running. The visual approval
+gate is satisfied; keyboard and screen-reader checks remain open before the
+planned bulk conversion.
 
 ## Approved direction
 
@@ -227,20 +227,21 @@ time; do not fall back to 88 hand-maintained mockups.
 2. **Build and review the five-scene prototype.** The scenes now cover a
    registry-backed node inspector, a wired how-to canvas, the Settings panel,
    the full workspace and a fixed mid-drag state. Compare them with the actual
-   editor at its default Midnight theme and system font. Bulk migration remains
-   stopped until Zeis reviews this prototype.
+   editor at its default Midnight theme and system font. Zeis approved the
+   prototype visually on 2026-10-04; the 88-figure migration has not started.
 3. **Test the offline and semantic path.** The r272 JSDOM smoke checks that
    local-file frames receive the file-only origin permission, HTTP frames remain
    scripts-only, and all five local scenes start. Zeis confirmed that the page
-   now opens from disk in Firefox without the editor running. JSDOM does not
-   enforce Firefox's sandbox origin rules or verify pixels. Review scenes 2 and
-   5 after r273, then check that each frame has an accessible name, no control
-   is interactive, and descriptions and captions remain outside the frame.
-   Keep keyboard and screen-reader checks open until review.
-4. **After review, convert the 88 current editor figures** to scene references,
-   preserving useful existing captions and descriptions. Do not render an editor
-   lookalike for the game's mod list. Leave the five additional game-only and
-   two unlinked editor slots dormant.
+   opens from disk in Firefox without the editor running and approved the
+   updated scenes visually on 2026-10-04. JSDOM does not enforce Firefox's
+   sandbox origin rules or verify pixels. Before migration, check that each frame
+   has an accessible name, no control is interactive, and descriptions and
+   captions remain outside the frame; keyboard and screen-reader checks remain
+   open.
+4. **After the remaining accessibility checks, convert the 88 current editor
+   figures** to scene references, preserving useful existing captions and
+   descriptions. Do not render an editor lookalike for the game's mod list.
+   Leave the five additional game-only and two unlinked editor slots dormant.
 5. **Teach G8 the difference during that migration.** Validate every scene ID
    against the catalogue, require descriptions/captions, reject unknown or
    unused active scenes, and count only real missing PNG captures as pending.
@@ -291,6 +292,6 @@ game's mod list. Zeis chose no game screenshot, so that figure is removed and
 its useful prose remains. The five unlinked game images and two editor panels
 stay dormant. r272 corrected the renderer's undefined `process.env.NODE_ENV`
 reference and Firefox's sandbox-origin block on local files; Zeis confirmed that
-the page now opens in Firefox from disk. r273 addresses the layout issues in
-scenes 2 and 5. Visual re-review and assistive-technology checks remain open; do
-not bulk-convert editor figures until Zeis approves the revised prototype.
+the page opens in Firefox from disk. r273 addresses the layout and cursor in
+scenes 2 and 5; Zeis approved the prototype visually on 2026-10-04. Assistive-
+technology checks remain open, and the 88-figure conversion has not started.

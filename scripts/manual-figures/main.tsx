@@ -156,8 +156,8 @@ function DragWireScene() {
                                 strokeWidth="3"
                             />
                             <path
-                                className="figure-drag-pointer"
-                                d="M 421 260 L 439 249 L 435 258 L 453 258 L 453 262 L 435 262 L 439 271 Z"
+                                className="figure-drag-cursor"
+                                d="M 421 258 L 441 272 L 433 273 L 438 284 L 433 286 L 428 275 L 422 281 Z"
                                 fill="var(--color-ink)"
                                 stroke="var(--color-canvas)"
                                 strokeWidth="1"

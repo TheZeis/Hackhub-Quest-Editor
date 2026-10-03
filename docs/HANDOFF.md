@@ -1,31 +1,30 @@
-# Handoff — r273 scene layout refinements; awaiting re-review
+# Handoff — r273 scene layout; prototype approved, mouse-cursor polish
 
-**Zeis confirmed the downloaded prototype now opens all five scenes in Firefox.**
-His first visual review requested two corrections: simplify and center scene 2,
-and make scene 5's nodes visible while moving its loose wire end away from the
-Objective socket. Those changes are implemented. On reviewing scene 5, he also
-flagged the cursor; it now faces left and sits in front of the endpoint. A quick
-visual re-review is pending, and no bulk conversion has started.
+**Zeis approved the five-scene prototype on 2026-10-04.** His visual feedback
+led to simplifying and centering scene 2, making scene 5's nodes visible, and
+moving its loose wire end away from the Objective socket. After the left-facing
+cursor fix, Zeis suggested a regular mouse cursor instead of the white horizontal
+arrow; that optional shape refinement is now implemented.
 
-Scene 2 now hides the editor toolbar, React Flow zoom controls and minimap. Its
-frame is responsive, spans the wide card, and fits the two nodes to the visible
-canvas. Scene 5 also uses a responsive wide frame; React Flow fits the nodes,
-and its detached wire is in the same viewport transform, ending clearly in the
-gap before the Objective. The cursor now faces left and is painted over the
-loose endpoint. The other three scenes are unchanged.
+Scene 2 hides the editor toolbar, React Flow zoom controls and minimap. Its
+responsive frame spans the wide card and fits both nodes to the visible canvas.
+Scene 5 also has a responsive wide frame; React Flow fits the nodes, and its
+wire is in the same viewport transform, ending in the gap before the Objective.
+The regular mouse cursor points up-left toward the loose endpoint, overlaps it,
+and is painted in front. The other three scenes are unchanged.
 
-The live preview server is running; open `/manual-figure-prototype.html` on its
-preview. Please give scene 5's cursor a quick visual re-review there and from the
-latest downloaded file; the broader layout review is positive. JSDOM checks the
-responsive frame rules, hidden controls, detached-wire viewport and all five
-renderer starts; it does not verify pixels. The user's Firefox check confirmed
-the offline-origin fix before these layout changes, so the new downloaded HTML
-still needs a quick re-open after updating.
+The live preview server is running; open `/manual-figure-prototype.html` to see
+the updated cursor. JSDOM checks the responsive frame rules, hidden controls,
+detached-wire viewport, cursor shape/direction/layering, and all five renderer
+starts; it does not verify pixels. Zeis's Firefox check confirmed the
+offline-origin fix, and his visual approval covers the prototype; no separate
+pixel-level browser check was run after the optional cursor restyle.
 
 No editor figure has been replaced. The game-only installation image stays
 removed and its useful prose stays; no game screenshot was captured. The five
 other unlinked game-only names and two unlinked editor-panel names remain
-dormant. G8 reports **88** missing editor images; G18 remains **0**.
+dormant. G8 reports **88** missing editor images; G18 remains **0**. Keyboard
+and screen-reader checks remain open before the separate figure-migration phase.
 
 No `src/**` product code or product copy changed; `EDITOR_BUILD` remains
 `2026-10-03.r267`. The layout work and gates are recorded in the
@@ -35,30 +34,30 @@ scope is in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 ## Verification
 
 - `npm run gen:manual-figures`: passed; file and HTTP policy checks passed, as
-  did the responsive-frame/control assertions, the left-facing foreground-cursor
-  check, and all five file-URL scene boot smokes.
+  did the responsive-frame/control assertions, the mouse-cursor silhouette,
+  direction, endpoint-overlap and paint-order checks, and all five file-URL scene
+  boot smokes.
 - `npm run build`: passed; the existing nonfatal warning that the main app
   chunk exceeds 1 MB remains.
 - `npm test -- src/manual.coverage.test.ts`: **27/27 passed**; G8 remains at 88
   missing editor-image references and G18 remains **0**.
 - `git diff --check` and `node --check
   scripts/manual-figures/smoke-offline-renderer.mjs`: passed.
-- No real browser is installed in the workspace. The two revised scenes still
-  need Zeis's visual re-review; keyboard and screen-reader checks are also open.
+- No real browser is installed in the workspace. Zeis approved the prototype
+  visually on 2026-10-04; JSDOM geometry checks cannot verify pixels. Keyboard
+  and screen-reader checks remain open before conversion.
 - No full suite ran because `src/**` and product behavior were unchanged. No
   screenshot or game image was captured.
-- Scene refinements commit `1c71c1f` (`fix: refine manual canvas figure scenes`)
-  is pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was
-  requested or opened.
+- The r273 scene-layout and cursor updates are committed and pushed to
+  `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
 
 ## Next work
 
-1. Ask Zeis for a quick re-review of scene 5's cursor in the live preview and
-   from the latest downloaded file: confirm it faces the loose wire end and
-   reads clearly in front of the connection point. His positive layout review
-   otherwise stands.
-2. Keep conversion of the 88 editor figures stopped until he approves the
-   revised prototype.
+1. Close the remaining keyboard, screen-reader and semantic checks listed in
+   the r271 plan before starting the separate figure-migration phase.
+2. After those checks, convert the 88 current editor figures and extend G8 as
+   planned, keeping the five game-only names and two unlinked editor panels out
+   of scope.
 3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless editor source
    changes.
 
