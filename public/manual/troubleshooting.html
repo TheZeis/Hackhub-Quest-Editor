@@ -39,8 +39,7 @@ entry below begins with a symptom and works backwards to a cause.</p>
 <p>The two tools that answer most questions are on the top bar.
 <a href="guides.html#dry-run">Dry run</a> walks through your quest the way the
 mod would run it. The <a href="nodes/flow-debug.html">Debug probe</a> is a node
-you drop on the canvas that prints what a node does when it fires — and whether
-it fires at all. When something does not happen, the probe tells you which
+you drop on the canvas. It prints what a node does when it fires, and whether it fires at all. When something does not happen, the probe tells you which
 half of that sentence is the problem.</p>
 
 <h2 id="start-here">What is happening?</h2>
@@ -116,8 +115,7 @@ the quest cannot be finished.</p>
   <figcaption>The <b class="ui">No trigger</b> badge. It is red because the
   player cannot finish the quest.</figcaption>
 </figure>
-<p>To find out which of these it is, put a Debug probe on the wire feeding the
-objective and run a dry run. The probe prints whether it fired. A probe that
+<p>To find out which of these it is, put a Debug probe on the wire feeding the objective. Then run a dry run. The probe prints whether it fired. A probe that
 prints and an objective that stays open means the trigger is the problem, not
 the flow.</p>
 
@@ -126,7 +124,7 @@ the flow.</p>
 order.</p>
 <dl class="facts-list">
   <dt class="dt-danger">The router has no way in</dt><dd>The device tree says so
-  in plain words: <span class="mono">This router has no way in: set a model for
+  in plain words. <span class="mono">This router has no way in: set a model for
   `fern`, or enable support-mail recovery.</span> Neither route is open, so
   there is nothing to try.</dd>
   <dt class="dt-warn">The exploit lands in the wrong account</dt><dd>An SSH
@@ -135,7 +133,7 @@ order.</p>
   that should hold only the accounts you listed.</dd>
   <dt class="dt-warn">The address does not exist</dt><dd>If a
   <a href="nodes/world-files.html">Place files</a> node points at an address
-  nothing uses, the message is red for a reason: the export drops those files
+  nothing uses, the message is red for a reason. The export drops those files
   rather than failing. Check the four red messages about addresses in
   <a href="checking.html#msg-field-files-no-network">checking your quest</a>.</dd>
   <dt>A port or firewall rule has no machine</dt><dd>Both need a target. With
@@ -182,11 +180,10 @@ solvable, which is what
   rounds to nothing. Use a fixed amount for small sums.</dd>
   <dt>My files are missing in the game</dt><dd>Almost always an address
   mismatch. A <b class="ui">Place files</b> node aimed at a network your quest
-  does not create has its files dropped by the export, and the field turns red
-  to say so.</dd>
+  does not create has its files dropped by the export. The field turns red to say so.</dd>
   <dt>The quest panel shows <span class="mono">{{data.targetIp}}</span> instead
   of an address</dt><dd>Tags are filled in when the quest starts. Seeing one raw
-  means the value it names does not exist at that moment — usually because the
+  means the value it names does not exist at that moment. Usually that is because the
   network that would create it has not run yet.</dd>
   <dt>Can I use two <b class="ui">Quest start</b> nodes?</dt><dd>Yes. Every one
   of them runs. Authors use that for opening threads that do not depend on each
@@ -196,16 +193,15 @@ solvable, which is what
   quest</a> to the final beat, or switch on <b class="ui">Complete
   automatically</b>. See <a href="concepts.html#why-no-complete">how quests
   finish</a>.</dd>
-  <dt>The game does not list my mod</dt><dd>Check that you unzipped it, that the
-  folder is directly inside <code>mods/</code>, and that the folder holds a
+  <dt>The game does not list my mod</dt><dd>Check that you unzipped it, and that the
+  folder is directly inside <code>mods/</code>. Then check that the folder holds a
   <code>manifest.json</code> rather than another archive.</dd>
   <dt>Something worked before and now it does not</dt><dd>Undo is unlimited in
   practice, and the editor keeps a copy in your browser as you work. Before
   rebuilding anything, try <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</dd>
 </dl>
 <p>If none of this matches, open the canvas
-<b class="ui">Debug</b> panel and note the build stamp, then describe the
-symptom rather than the fix you tried. <a href="export.html#build-stamp">The
+<b class="ui">Debug</b> panel and note the build stamp. Then describe the symptom rather than the fix you tried. <a href="export.html#build-stamp">The
 build stamp</a> explains where to find it.</p>
 </section>
 

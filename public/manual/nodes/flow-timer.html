@@ -54,15 +54,15 @@
 <section id="node-flow-timer-page">
 
 <h2>What it does</h2>
-<p>Wait X amount of time until the next node fires. Great for when you want the story to hold for a moment. Unlike a Wait, the time keeps passing while the player is away — a timer set two in-game days out lands two in-game days later even if the player saves and quits.</p>
+<p>Wait X amount of time until the next node fires. Great for when you want the story to hold for a moment. Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later, even if the player saves and quits.</p>
 
 <h2>When you'd use it</h2>
-<p>For things that happen on the world's own schedule: an article hits the wire, a report gets triaged, a deadline lands — while the player is doing something else.</p>
-<p>For world events that all land on one in-game date: set several timers to the same date and they fire together.</p>
-<p>Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later even if the player saves and quits — which is what lets a campaign happen in the world's own time.</p>
+<p>Use it for things that happen on the world's own schedule. An article hits the wire, a report gets triaged, a deadline lands — all while the player is doing something else.</p>
+<p>For world events that all land on one in-game date, set several timers to the same date. They fire together.</p>
+<p>Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later even if the player saves and quits. That is what lets a campaign happen in the world's own time.</p>
 
 <h2>In the game, this looks like</h2>
-<p>The story pauses at the timer (the wires after it do not run yet). When the in-game clock reaches the due time, the timer's “Out” wire runs, as if the story jumped back to this point. If the quest finishes or is abandoned first, the timer is cancelled.</p>
+<p>The story pauses at the timer (the wires after it do not run yet). When the in-game clock reaches the due time, the timer's “Out” wire runs. It is as if the story jumped back to this point. If the quest finishes or is abandoned first, the timer is cancelled.</p>
 
 <h2>Fields</h2>
 
@@ -87,7 +87,7 @@
   <dt>Example</dt><dd><code>1</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. A whole in-game year added to the calendar — the day number is kept, and a leap day that does not exist next year falls back to 28 February.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. A whole in-game year added to the calendar. The day number is kept, and a leap day that does not exist next year falls back to 28 February.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-months">Months</h3>
@@ -96,7 +96,7 @@
   <dt>Example</dt><dd><code>1</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. A whole in-game month added to the calendar: 31 January plus one month lands on 28 February, not in March, because February has no 31st.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. A whole in-game month added to the calendar. So 31 January plus one month lands on 28 February, not in March, because February has no 31st.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-weeks">Weeks</h3>
@@ -114,7 +114,7 @@
   <dt>Example</dt><dd><code>1</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. Every unit is added up, so days, months and hours all count towards one due time — blank everywhere means nothing waits.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. Every unit is added up, so days, months and hours all count towards one due time. Blank everywhere means nothing waits.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-hours">Hours</h3>
@@ -132,7 +132,7 @@
   <dt>Example</dt><dd><code>30</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. These are in-game minutes: at the default game speed one in-game minute passes every real second, so 30 minutes is half a real minute.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. These are in-game minutes. At the default game speed one in-game minute passes every real second, so 30 minutes is half a real minute.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-offsetYears">Years</h3>
@@ -141,7 +141,7 @@
   <dt>Example</dt><dd><code>1</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no years. Counted from the in-game day the player reaches this node, so “1 year, at 18:23” is that same date next year; a 29 February falls back to 28 February when the next year has no leap day.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no years. Counted from the in-game day the player reaches this node. So “1 year, at 18:23” is that same date next year. A 29 February falls back to 28 February when the next year has no leap day.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-offsetMonths">Months</h3>
@@ -150,7 +150,7 @@
   <dt>Example</dt><dd><code>1</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no months. Whole in-game months, counted from the day the player gets here: 31 January plus one month lands on 28 February rather than skipping into March.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no months. Whole in-game months, counted from the day the player gets here. So 31 January plus one month lands on 28 February rather than skipping into March.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-offsetWeeks">Weeks</h3>
@@ -159,7 +159,7 @@
   <dt>Example</dt><dd><code>2</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no weeks. A week is seven in-game days, so 2 weeks is 14 days — the clock time below is what the timer rings at, whatever time the player arrived.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no weeks. A week is seven in-game days, so 2 weeks is 14 days. The clock time below is what the timer rings at, whatever time the player arrived.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-offsetDays">Days</h3>
@@ -168,7 +168,7 @@
   <dt>Example</dt><dd><code>3</code></dd>
   <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
   <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>0 means today — the next time the clock reads the time below. Days are added after the months and weeks, and 0 with 0 in the other boxes is a legal “today at 09:00”.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means today — the next time the clock reads the time below. Days are added after the months and weeks. And 0 with 0 in the other boxes is a legal “today at 09:00”.</dd>
 </dl>
 
 <h3 id="node-flow-timer-field-dateDay">Day</h3>
@@ -270,7 +270,7 @@ the connection takes, mismatch them and it will not.</p>
 
 <h2>Common mistakes</h2>
 <ul class="plain">
-  <li><b>Treating the time as real minutes.</b> The clock is the game's, not the wall clock's. One in-game minute is one real second at default speed, and a full in-game day is about 24 real minutes of play.</li>
+  <li><b>Treating the time as real minutes.</b> The clock is the game's, not the wall clock's. One in-game minute is one real second at default speed. A full in-game day is about 24 real minutes of play.</li>
   <li><b>Expecting the timer to fire after the quest is over.</b> A timer belongs to its quest. Complete or abandon the quest before the due time and the timer is cancelled — nothing arrives afterwards.</li>
   <li><b>Setting an in-game date from your own calendar.</b> The in-game clock runs at 60× your wall clock and starts where the save started. Read the year, month, day and time off the in-game clock itself, then work backwards from there.</li>
 </ul>
@@ -278,7 +278,7 @@ the connection takes, mismatch them and it will not.</p>
 <h2>Messages you might see</h2>
 <ul class="plain">
   <li><a href="../checking.html#msg-nothing-scheduled">Nothing scheduled</a> — no time or full date is set, so the timer fires the moment the story reaches it</li>
-  <li><a href="../checking.html#msg-timer-nothing-to-do">The timer has nothing to do</a> — the “Out” socket is unwired, so the story stops at the timer when it fires</li>
+  <li><a href="../checking.html#msg-timer-nothing-to-do">The timer has nothing to do</a>. The “Out” socket is unwired, so the story stops at the timer when it fires</li>
 </ul>
 
 <h2>Related nodes</h2>

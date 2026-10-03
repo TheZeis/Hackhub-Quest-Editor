@@ -88,18 +88,15 @@ is why they look different.</p>
   </tbody>
 </table>
 <p>A socket accepts only its own kind of wire. Dragging a flow wire at a
-condition socket will not connect. That is deliberate rather than fussy: a
-wire meaning "and then" arriving at something that asked "when" would be a
-question the game has no answer for.</p>
+condition socket will not connect. That is deliberate rather than fussy. A wire meaning "and then" cannot arrive at something that asked "when". That would be a question the game has no answer for.</p>
 
 <h2 id="objectives">Objectives are how the player knows what to do</h2>
 <p>An objective is a line in the player's quest panel. It is the only part of
-your quest the player is told about, so it is where the story stops being
+your quest the player is told about. So it is where the story stops being
 yours and starts being theirs.</p>
 <p>An objective completes in one of two ways. Either the story flow reaches it,
 which ticks it off at that moment. Or an event is wired into its
-<b class="ui">Trigger</b> socket, and the objective completes when the player
-does that thing in the game.</p>
+<b class="ui">Trigger</b> socket. The objective then completes when the player does that thing in the game.</p>
 <p>The second is the one you want most of the time. It is the difference
 between "the story says you did it" and "you did it". Wiring a
 <b class="ui">When event</b> node to an objective's trigger is how a quest
@@ -114,16 +111,14 @@ spoiler and all.</p>
 
 <h2 id="events">Events are how your quest hears the player</h2>
 <p>An event fires when the player does something in the game. Searching for
-something, logging into a bank, cracking a password, downloading a file — each
-of those has a name, and there are 99 of them in 10 groups.</p>
+something, logging into a bank, cracking a password, downloading a file. Each of those has a name, and there are 99 of them in 10 groups.</p>
 <p>A <b class="ui">When event</b> node picks one of those names. When it fires,
 your quest hears about it and carries on down the wire. That single node is how
 a quest becomes reactive rather than scripted.</p>
 <p>Some events carry information with them. <code>Terminal.Lynx.Search</code>
-tells you what the player typed, which is how a quest reacts to a specific
+tells you what the player typed. That is how a quest reacts to a specific
 search rather than to searching in general. The groups are named after the part
-of the game they come from: terminal, browser, cracking, files, e-mail, social,
-and the rest.</p>
+of the game they come from. Those are terminal, browser, cracking, files, e-mail, social, and the rest.</p>
 <p>The full list is in the
 <a href="nodes/trigger-event.html">When event reference</a>. You do not need to
 learn the names. You need to know they exist, because an unwired quest can
@@ -136,8 +131,7 @@ folder the game loads.</p>
 <p>These two are not interchangeable, and treating them as the same thing is
 how work gets lost. The mod is finished output. You cannot open it again and
 carry on building.</p>
-<p>Everything about the file it produces, where it goes and what to do about
-updates is on the <a href="export.html">exporting and installing</a> page.</p>
+<p>Everything about the file it produces, where it goes and what to do about updates. All of it is on the  <a href="export.html">exporting and installing</a> page.</p>
 
 <h2 id="permissions">Permissions, in plain words</h2>
 <p>A permission is a promise about what your mod is allowed to touch. The game
@@ -160,7 +154,7 @@ permission disappears with it.</p>
 </table>
 <p>A quest that only talks to the player and pays them asks for two. One that
 builds a whole network to break into asks for four. Neither is wrong, but a
-short list is a friendlier one, and a player who sees <b class="mono">bank</b>
+short list is a friendlier one. A player who sees  <b class="mono">bank</b>
 wants to know why.</p>
 
 <h2 id="why-no-complete">How quests finish</h2>
@@ -169,7 +163,7 @@ wants to know why.</p>
 <p>You can also turn on <code>autoComplete</code>. Then the game closes the quest
 when every objective is done. Use that when the objectives alone prove success.</p>
 <p><b class="ui">On quest complete</b> is not the ending itself. It is the path
-that runs after one of those finish routes fires, so keep critical clues before
+that runs after one of those finish routes fires. So keep critical clues before
 the finish point.</p>
 <div class="note"><b>Keep one deliberate finish path.</b> A final objective, a
 closing message and then <b class="ui">Complete quest</b> is the easiest shape to

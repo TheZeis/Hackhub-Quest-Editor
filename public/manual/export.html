@@ -44,19 +44,16 @@
 <main>
 <header class="hero">
   <h1>Exporting and installing</h1>
-  <p class="tag">Turning your project into a mod the game can play, what is inside
-  the file it gives you, and what to do with it afterwards.</p>
+  <p class="tag">Turning your project into a mod the game can play. Also what is inside the file it gives you, and what to do with it afterwards.</p>
 </header>
 
 <section id="export">
 <p>Exporting is the last step. It reads everything you built — the quests, the
-websites, the machines — and packs it into a <code>.zip</code> the game loads as
+websites, the machines. Then it packs it into a  <code>.zip</code> the game loads as
 a mod. Nothing about your project changes when you do it, and you can export as
 often as you like.</p>
-<p>Exporting also runs the second set of checks, the ones that need the whole
-mod in front of them rather than one node at a time. Read
-<a href="checking.html#pre-export">the report</a> before you download, because
-some of what it finds means the game will quietly drop something you built.</p>
+<p>Exporting also runs the second set of checks. These need the whole mod in front of them, rather than one node at a time. Read
+<a href="checking.html#pre-export">the report</a> before you download. Some of what it finds means the game will quietly drop something you built.</p>
 
 <h2 id="export-dialog">The export window</h2>
 <p>Opening the export window shows you what you are about to ship before it is
@@ -99,9 +96,7 @@ those. Delete the node and the permission goes with it.</p>
 <a href="concepts.html#permissions">Permissions, in plain words</a>.</p>
 
 <h2 id="zip-contents">What is in the <code>.zip</code></h2>
-<p>Two of these files are the mod. The rest are there so that somebody who wants
-to change the mod later can rebuild it, and so the folder makes sense to anyone
-who opens it. You never need to touch any of them.</p>
+<p>Two of these files are the mod. The rest let somebody who wants to change the mod later rebuild it. They also make the folder make sense to anyone who opens it. You never need to touch any of them.</p>
 <table>
   <thead><tr><th>File</th><th>What it is</th></tr></thead>
   <tbody>
@@ -120,10 +115,8 @@ editor builds the whole folder for you. It is listed here so the export window
 is not a list of unexplained filenames.</div>
 
 <h2 id="installing">Installing it</h2>
-<p>The file downloads with a name built from your mod's identifier and version,
-so <code>meridian-1.0.0.zip</code> is version <code>1.0.0</code> of the mod
-called <code>meridian</code>. Two versions of one mod therefore never share a
-filename, which matters when you are testing a change against the last one.</p>
+<p>The file downloads with a name built from your mod's identifier and version. So  <code>meridian-1.0.0.zip</code> is version <code>1.0.0</code> of the mod
+called <code>meridian</code>. Two versions of one mod therefore never share a filename. That matters when you are testing a change against the last one.</p>
 <ol class="plain">
   <li>Open the export window and read the report. Fix anything red.</li>
   <li>Choose <b class="ui">Download .zip</b>. The button reads
@@ -140,8 +133,7 @@ directory is ignored.</div>
 
 <h2 id="export-is-not-a-save">Export is not a save</h2>
 <p>This is the mistake worth understanding properly, because it loses work. The
-<code>.zip</code> is the finished mod. It is the thing the game plays, and it is
-not something you can open in the editor and carry on editing.</p>
+<code>.zip</code> is the finished mod. It is the thing the game plays. It is not something you can open in the editor and carry on editing.</p>
 <p>Your project file is the editable thing. It holds your canvas, your node
 settings and your websites in the form the editor understands. Saving keeps that
 up to date; exporting only produces a copy for the game to run.</p>
@@ -158,11 +150,9 @@ up to date; exporting only produces a copy for the game to run.</p>
 <h2 id="build-stamp">The build stamp</h2>
 <p>Every export writes the editor's own build into
 <code>dist/mod.js</code>, as <code>2026-10-02.r260</code>. It is how you tell
-which version of the editor produced a mod, which is the first thing worth
-knowing when a quest behaves differently for someone else than it does for
+which version of the editor produced a mod. That is the first thing worth knowing when a quest behaves differently for someone else than it does for
 you.</p>
-<p>The same stamp is in the footer of every page of this handbook, so you can
-check that the handbook you are reading describes the editor you are using. A
+<p>The same stamp is in the footer of every page of this handbook. So you can check that the handbook you are reading describes the editor you are using. A
 handbook for an older build can describe a field that has since moved.</p>
 <div class="note"><b>When you report a problem, give the build.</b> Open any
 <code>.zip</code> you exported and the stamp is at the top of
