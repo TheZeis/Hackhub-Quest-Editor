@@ -45,7 +45,9 @@ remain in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
   and real-browser sandbox checks remain unperformed.
 - No full suite ran because `src/**` and product behavior were unchanged. No
   screenshots were captured.
-- No pull request was requested or opened.
+- Fix commit `79ddb76` (`fix: boot manual figures from file URLs`) is pushed to
+  `arena/01a1013d-hackhub-quest-editor`. Origin had no remote-only commits before
+  it was created. No pull request was requested or opened.
 
 ## Next work
 
