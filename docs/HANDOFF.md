@@ -47,9 +47,9 @@ remain in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
   policy; visual, keyboard and screen-reader checks also remain unperformed.
 - No full suite ran because `src/**` and product behavior were unchanged. No
   screenshots were captured. No pull request was requested or opened.
-- The initial bundle correction is pushed as `79ddb76` to
-  `arena/01a1013d-hackhub-quest-editor`; this follow-up will be recorded after
-  its commit and push.
+- The bundle correction `79ddb76` and Firefox file-origin fix `1d2db6d` are
+  pushed to `arena/01a1013d-hackhub-quest-editor`. Origin had no remote-only
+  commits before this follow-up. No pull request was requested or opened.
 
 ## Next work
 
