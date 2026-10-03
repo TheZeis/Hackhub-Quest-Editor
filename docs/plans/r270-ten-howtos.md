@@ -38,7 +38,7 @@ Ground-truth extraction was completed before editing any walkthrough prose. The 
 
 1. Link all ten rows in `how-do-i.html#howto-list` and add ten complete sections with exact, source-grounded steps. Soften the hidden-page title so it does not promise that direct URLs are blocked.
 2. Use the ten filenames already declared in `docs/plans/r164-manual-screenshots.md`, from `howto-08-hidden-page.png` through `howto-17-update.png`. Leave missing-image placeholders in place; do not fabricate captures.
-3. Correct the stale template warning in `tutorial.html` without changing any editor copy.
+3. Correct the stale template-picker count in `guides.html` and the destructive-template warning in `tutorial.html`, without changing any editor copy.
 4. Regenerate the manual index; run manual coverage, `npm run typecheck`, `npm run build`, and `git diff --check`. Do not run the full suite because no `src/**` files change.
 5. Update `README.md` and `docs/HANDOFF.md`; move the displaced sixth **Done recently** entry into `docs/archive/round-265.md`. Keep the editor stamp at `2026-10-03.r267`.
 6. Commit and push the plan before prose. Then write the walkthroughs in two batches, commit and push each checkpoint, and finish with a pushed delivery record. Do not pause for approval between how-tos.
