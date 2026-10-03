@@ -1,14 +1,47 @@
+# Handoff — r270
+
+**All 17 how-to guides are written and linked; G18 remains at zero.**
+
+Completed the ten remaining walkthroughs in two pushed content checkpoints. The new guides cover unlisted pages, remote files, Nmap gates, Whois leads, tool-pack targets, app checks, chained conversations, clean endings, templates and exported updates. They use the declared r164 screenshot slots and make no claim that an uncaptured image exists.
+
+Ground-truth evidence and scope are recorded in the [r270 plan](plans/r270-ten-howtos.md). The hidden-page guide explains that direct URLs still work and `dirhunter` can find the page. It does not describe an unlisted page as private. The tool-pack guide distinguishes a loaded editor pack from the game mod and limits what target warnings prove. The template guide describes the replacement risk; the tutorial no longer calls templates harmless. The old template count in the feature guide is corrected to fourteen picker entries.
+
+No `src/**` files changed, and `EDITOR_BUILD` remains `2026-10-03.r267`. The README's **Done recently** table now holds r270–r266. The displaced r265 record is preserved in [`docs/archive/round-265.md`](archive/round-265.md), with r264 and r263 in their existing archives. The r270 plan is indexed in [`docs/plans/README.md`](plans/README.md).
+
+The ten new figures reference `howto-08-hidden-page.png` through `howto-17-update.png`. Manual coverage reports **89 screenshots still to capture**. `public/manual/img/` is absent, and no browser or capture tooling is available here. No screenshot, browser visual review or in-game test was performed.
+
+## Verification
+
+- `npm run recover`: restored the pushed r269 tip, found no recovery residue, and reinstalled dependencies.
+- `npm run gen:manual`: **41 node pages written**, zero awaiting prose; **285 search entries from 51 pages**.
+- `npx vitest run src/manual.coverage.test.ts`: **27 passed**; G17 links all 17 guides; G18 remains zero; G8 reports **89** pending screenshots.
+- `npm run typecheck`: passed.
+- `npm run build`: passed, including typecheck. Vite emitted its nonfatal warning that the main JavaScript chunk exceeds 1 MB.
+- `git diff --check`: passed after the delivery edits.
+- No full suite ran because the work changed documentation only.
+- No screenshots, browser visual review or in-game review were possible in this environment.
+
+The plan, index and two content batches were pushed as `c62db60`, `1218d07`, `074e876` and `e70ee01` to `arena/01a1013d-hackhub-quest-editor`. The README, handoff and delivery record are the final checkpoint. Origin was fetched before commits; no remote-only changes were found. No pull request was requested or opened.
+
+## Next work
+
+1. Capture the **89** outstanding manual screenshots in a browser-capable environment.
+2. Continue the remaining manual tidy-ups listed in the README's **Next up** row.
+3. Keep G18 at **0** and `EDITOR_BUILD` at r267 unless an editor source change is explicitly approved.
+
+---
+
 # Handoff — r269
 
 **The public website walkthrough is written and linked; G18 remains at zero.**
 
 Continued the manual backlog after [r268](plans/r268-passphrase-howto.md). The new [website walkthrough](../public/manual/how-do-i.html#howto-website) starts from a blank site, replaces the placeholder host, edits the public home page, keeps it listed in search, previews it, and tells the player where to go. Optional visit-gating uses `Browser.WebsiteOpened` without claiming it proves the player read the page. Ground-truth extraction and the chosen pattern are recorded in the [r269 plan](plans/r269-website-howto.md).
 
-The index now has **7 written walkthroughs and 10 still planned**. No `src/**` files changed, so `EDITOR_BUILD` remains `2026-10-03.r267`.
+At this r269 checkpoint, the index had **7 written walkthroughs and 10 still planned**. r270 has since completed all 17; see the current handoff above. No `src/**` files changed, so `EDITOR_BUILD` remains `2026-10-03.r267`.
 
-The guide references its declared `howto-07-website.png` slot, but no image exists. Manual coverage now reports **79 screenshots still to capture**. No browser binary or Playwright/Puppeteer package is available here, so no screenshot or visual review was attempted. No in-game test was performed.
+The guide references its declared `howto-07-website.png` slot, but no image existed at the r269 checkpoint. Coverage reported **79 screenshots still to capture** then; r270 now reports **89**. No browser binary or Playwright/Puppeteer package is available here, so no screenshot or visual review was attempted. No in-game test was performed.
 
-The README's **Done recently** table now holds r269–r265. The displaced r264 entry is preserved in [`docs/archive/round-264.md`](archive/round-264.md), alongside r263 in [`docs/archive/round-263.md`](archive/round-263.md). The r269 plan is indexed in [`docs/plans/README.md`](plans/README.md).
+At the r269 checkpoint, the README's **Done recently** table held r269–r265 and archived r264. r270 now holds r270–r266 and archives r265 as well. The r269 plan remains indexed in [`docs/plans/README.md`](plans/README.md).
 
 ## Verification
 
@@ -22,10 +55,10 @@ The README's **Done recently** table now holds r269–r265. The displaced r264 e
 
 Origin was fetched immediately before the documentation commit; the session branch had no remote-only commits. The changes are committed and pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
 
-## Next work
+## Next work (as listed at the r269 checkpoint; superseded by r270)
 
-1. Capture the **79** outstanding manual screenshots when a browser-capable capture environment is available.
-2. Write the **10** remaining how-tos; hidden pages are next.
+1. Capture the **79** screenshots pending at r269; the current count is **89**.
+2. Write the **10** remaining how-tos. **Completed in r270**; hidden-page guidance is now linked.
 3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless an editor source change is explicitly approved.
 
 ---

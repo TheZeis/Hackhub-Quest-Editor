@@ -9,7 +9,7 @@ Not current documentation. For how the editor works today, see
 
 | Round | Investigation | What it established |
 |---|---|---|
-| r270 | **Finish the ten remaining how-tos** | Grounded all ten walkthroughs in schemas, UI, runtime, shipped templates, the Recon-NG tool-pack example and export behavior before prose. Records the hidden-page URL caveat, remote-file placement, target-warning limits, screenshot constraint and sentence-ratchet gates. See [`r270-ten-howtos.md`](r270-ten-howtos.md). |
+| r270 | **Finish the ten remaining how-tos** | Completed all ten linked walkthroughs after grounding them in schemas, UI, runtime, templates, the Recon-NG example and export behavior. G17 covers all 17 guides; G18 remains zero; G8 reports 89 screenshots still pending. See [`r270-ten-howtos.md`](r270-ten-howtos.md). |
 | r269 | **Build a website the player has to find** | Grounded the public-site walkthrough in the builder, schema, compiler, Byline template and event docs; keeps the home page listed and distinguishes the browser host from an optional domain lookup. The screenshot remains pending. See [`r269-website-howto.md`](r269-website-howto.md). |
 | r268 | **Ask player for a passphrase, with a wrong-answer route** | Grounded the first remaining walkthrough in the registry, runtime, tests and dry-run simulator; records output switching, cancellation, blank-answer warnings and the screenshot constraint. See [`r268-passphrase-howto.md`](r268-passphrase-howto.md). |
 | r267 | **Handbook sentence ratchet: zero violations; Pay and Charge use dollars** | G18 fell from 29 sentences across 21 pages to zero; its budget is now 0. Pay and Charge's field hints now use dollars at Zeis's direction. See [`r267-manual-sentence-ratchet.md`](r267-manual-sentence-ratchet.md). |
