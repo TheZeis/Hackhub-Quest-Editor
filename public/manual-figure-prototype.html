@@ -43,7 +43,7 @@
     <main>
       <h1>Manual illustration prototype</h1>
       <p class="intro">
-        Five fixed scenes test a shared, locally bundled renderer before any editor figures are converted. They use the editor's default Midnight colours and system font, with a fresh First Contact example in an isolated frame.
+        Five fixed scenes test a shared, locally bundled renderer before any editor figures are converted. They use the editor's default Midnight colours and system font, with a fresh First Contact example in a separate, read-only frame.
       </p>
       <p class="notice">
         <strong>Review checkpoint:</strong> these are frozen illustrations, not a working editor. The original 88 editor figures have not been migrated. The game-only installation image has been removed rather than replaced with an invented game screen; its surrounding tutorial instructions remain. The other five unlinked game-image names and two unlinked editor-panel names remain dormant.
@@ -55,7 +55,7 @@
           <p id="alt-objective">The Objective node is selected. Its name, player-facing description, hint and suggested command appear in the inspector.</p>
           <div class="frame-scroll">
             <iframe
-              src="figures/renderer.html?scene=node-objective-inspector"
+              data-renderer-src="figures/renderer.html?scene=node-objective-inspector"
               title="Objective node inspector scene"
               aria-describedby="alt-objective"
               loading="lazy"
@@ -72,7 +72,7 @@
           <p id="alt-howto">A When event with a search condition is wired to the Objective it completes. The wire and node cards come from the editor's canvas renderer.</p>
           <div class="frame-scroll">
             <iframe
-              src="figures/renderer.html?scene=howto-wired-canvas"
+              data-renderer-src="figures/renderer.html?scene=howto-wired-canvas"
               title="When event connected to an Objective on the quest canvas"
               aria-describedby="alt-howto"
               loading="lazy"
@@ -89,7 +89,7 @@
           <p id="alt-settings">The real Settings panel is open over the fixed First Contact workspace. It shows theme and typography choices, plus the canvas preferences below.</p>
           <div class="frame-scroll">
             <iframe
-              src="figures/renderer.html?scene=settings-panel"
+              data-renderer-src="figures/renderer.html?scene=settings-panel"
               title="Settings panel open over the First Contact editor workspace"
               aria-describedby="alt-settings"
               loading="lazy"
@@ -106,7 +106,7 @@
           <p id="alt-workspace">First Contact is open with the top bar, node library, connected quest canvas, selected Objective inspector and status bar visible.</p>
           <div class="frame-scroll">
             <iframe
-              src="figures/renderer.html?scene=tour-workspace"
+              data-renderer-src="figures/renderer.html?scene=tour-workspace"
               title="First Contact in the full quest editor workspace"
               aria-describedby="alt-workspace"
               loading="lazy"
@@ -123,7 +123,7 @@
           <p id="alt-drag">A still illustration shows a connection being pulled from the When event toward the Objective. The loose wire is drawn as a fixed snapshot, not an active drag.</p>
           <div class="frame-scroll">
             <iframe
-              src="figures/renderer.html?scene=tutorial-drag-wire"
+              data-renderer-src="figures/renderer.html?scene=tutorial-drag-wire"
               title="Fixed illustration of a wire being dragged toward an Objective"
               aria-describedby="alt-drag"
               loading="lazy"
@@ -136,5 +136,21 @@
         </section>
       </div>
     </main>
+    <script>
+      (() => {
+        const frames = [...document.querySelectorAll("iframe[data-renderer-src]")];
+        const openedFromDisk = window.location.protocol === "file:";
+
+        // Firefox gives a sandboxed file document an opaque moz-nullprincipal
+        // origin, which blocks its sibling renderer.js and renderer.css files.
+        // These are trusted local prototype assets, so restore the file origin
+        // only for file:// review; keep the stricter scripts-only sandbox online.
+        const sandbox = openedFromDisk
+          ? "allow-scripts allow-same-origin"
+          : "allow-scripts";
+        for (const frame of frames) frame.setAttribute("sandbox", sandbox);
+        for (const frame of frames) frame.src = frame.dataset.rendererSrc;
+      })();
+    </script>
   </body>
 </html>

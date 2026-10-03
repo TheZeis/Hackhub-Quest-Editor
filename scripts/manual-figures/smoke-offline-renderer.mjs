@@ -3,8 +3,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
 
+const prototypePath = fileURLToPath(new URL("../../public/manual-figure-prototype.html", import.meta.url));
 const rendererPath = fileURLToPath(new URL("../../public/figures/renderer.html", import.meta.url));
 const bundlePath = path.resolve(path.dirname(rendererPath), "assets/renderer.js");
+const prototypeHtml = await readFile(prototypePath, "utf8");
 const bundle = await readFile(bundlePath, "utf8");
 
 if (/\bprocess\.env\.NODE_ENV\b/.test(bundle)) {
@@ -18,6 +20,36 @@ const scenes = [
     "tour-workspace",
     "tutorial-drag-wire",
 ];
+
+for (const [mode, pageUrl, expectedSandbox] of [
+    ["file", pathToFileURL(prototypePath).href, "allow-scripts allow-same-origin"],
+    ["http", "https://manual-preview.example/manual-figure-prototype.html", "allow-scripts"],
+]) {
+    const dom = new JSDOM(prototypeHtml, { url: pageUrl, runScripts: "dangerously" });
+    const frames = [...dom.window.document.querySelectorAll("iframe[data-renderer-src]")];
+    const problems = [];
+
+    if (frames.length !== scenes.length) problems.push(`expected ${scenes.length} frames, found ${frames.length}`);
+    for (const [index, frame] of frames.entries()) {
+        const frameUrl = new URL(frame.src);
+        const scene = new URLSearchParams(frameUrl.search).get("scene");
+        if (scene !== scenes[index]) problems.push(`frame ${index + 1} points to scene ${scene}`);
+        if (frame.getAttribute("sandbox") !== expectedSandbox) {
+            problems.push(`frame ${index + 1} has sandbox ${frame.getAttribute("sandbox")}`);
+        }
+        if (mode === "file") {
+            if (frameUrl.protocol !== "file:" || fileURLToPath(frameUrl) !== rendererPath) {
+                problems.push(`frame ${index + 1} does not point to the local renderer file`);
+            }
+        } else if (frameUrl.origin !== "https://manual-preview.example" || frameUrl.pathname !== "/figures/renderer.html") {
+            problems.push(`frame ${index + 1} does not point to the same-origin preview renderer`);
+        }
+    }
+
+    dom.window.close();
+    if (problems.length) throw new Error(`Prototype ${mode} bootstrap failed: ${problems.join("; ")}`);
+    console.log(`${mode}:// prototype frames use the expected local renderer and sandbox`);
+}
 
 for (const scene of scenes) {
     const virtualConsole = new VirtualConsole();

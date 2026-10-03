@@ -1,59 +1,63 @@
-# Handoff — r272 offline renderer fix; prototype ready for review
+# Handoff — r272 Firefox file-origin follow-up
 
-**The downloaded prototype's fallback was caused by an unresolved browser bundle
-reference, and the boot failure is fixed.** The standalone renderer bundle
-retained `process.env.NODE_ENV`; browsers have no Node `process` global, so it
-threw before any of the five scenes could render. The manual-figure Vite build
-now replaces that expression with `"production"`.
+**Zeis's Firefox console log confirms why the first file-open fix was still
+insufficient.** The generated renderer bundle's `process.env.NODE_ENV` issue is
+fixed in `79ddb76`, but Firefox then blocked the sibling JS and CSS because the
+sandbox assigned each `file://` frame a `moz-nullprincipal` origin.
 
-`npm run gen:manual` now runs a `file://` smoke through the real renderer HTML,
-script and stylesheet for all five scene IDs. All five mount successfully in
-JSDOM. Its no-op `ResizeObserver` is only there because JSDOM has no layout
-engine; this does **not** prove visual fidelity or real-browser iframe policy.
-The live preview server returns HTTP 200 for the prototype and its local
-renderer assets; open `/manual-figure-prototype.html` on that preview. Also
-reopen the latest downloaded files, especially the Objective inspector, wired
-canvas, Settings panel, full workspace and fixed mid-drag scene.
+The prototype page now sets each frame's sandbox before assigning its `src`:
+when opened from disk, it allows scripts and the local file origin so Firefox
+can load the renderer assets; over HTTP, it keeps the stricter scripts-only
+sandbox. The renderer remains a trusted, static illustration, with `body`
+`inert`, a no-op storage shim, and no `App` or autosave. The review file is
+intended to be opened directly; the editor does **not** need to be running.
 
-The sandbox configuration remains unchanged. No editor figure has been
-replaced: the 88-figure conversion remains stopped until Zeis reviews the
-prototype. The game-only installation image stays removed and its useful prose
-stays; no game screenshot was captured. The five other unlinked game-only names
-and two unlinked editor-panel names remain dormant. G8 reports **88** missing
-editor images; G18 remains **0**.
+The smoke check now verifies both the `file://` and HTTP frame policies and
+local renderer URLs, then boots all five scene IDs from file URLs. All checks
+pass. JSDOM does not enforce Firefox's sandbox origin rules and cannot verify
+pixels, so please retry the latest downloaded file in Firefox. The live preview
+server is also running; open `/manual-figure-prototype.html` on its preview.
+
+No editor figure has been replaced: the 88-figure conversion remains stopped
+until Zeis reviews the prototype. The game-only installation image stays
+removed and its useful prose stays; no game screenshot was captured. The five
+other unlinked game-only names and two unlinked editor-panel names remain
+dormant. G8 reports **88** missing editor images; G18 remains **0**.
 
 No `src/**` product code or product copy changed; `EDITOR_BUILD` remains
-`2026-10-03.r267`. The current renderer bundle is 1.23 MB JS (375.61 KB gzip)
-and 95.57 KB CSS. The diagnosis and scope are in the [r272 record](plans/r272-offline-manual-figure-renderer.md); the prototype and migration gates
+`2026-10-03.r267`. The renderer bundle is 1.23 MB JS (375.61 KB gzip) and
+95.57 KB CSS. Diagnosis and scope are in the [r272 record](plans/r272-offline-manual-figure-renderer.md); the original prototype and migration gates
 remain in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 
 ## Verification
 
-- `npm run gen:manual`: passed; 41 node pages written, zero awaiting prose; all
-  five `file://` scene smokes passed; the index remains 285 entries from 51
-  pages.
+- `npm run gen:manual`: passed; 41 node pages written, zero awaiting prose;
+  the file and HTTP sandbox-policy checks passed, as did all five file-URL scene
+  boot smokes; the index remains 285 entries from 51 pages.
+- The live preview returns HTTP 200 for the prototype, renderer HTML, script and
+  stylesheet.
 - `npm test -- src/manual.coverage.test.ts`: **27/27 passed**; G8 reports **88**
   missing editor-image references; G17 still links all 17 how-tos; G18 is **0**.
 - `npm run build`: passed. Vite emitted the existing nonfatal warning that the
   main app chunk exceeds 1 MB.
 - `git diff --check` and `node --check
   scripts/manual-figures/smoke-offline-renderer.mjs`: passed.
-- JSDOM reproduced the original `ReferenceError: process is not defined` from
-  the generated file bundle before the fix. After the fix, every scene renders
-  through its own `file://` renderer URL without runtime errors. There is no
-  real browser binary in this environment, so visual, keyboard, screen-reader
-  and real-browser sandbox checks remain unperformed.
+- Firefox's actual console log confirmed the opaque-origin block. There is no
+  Firefox or other real browser installed here to verify the new file-only
+  policy; visual, keyboard and screen-reader checks also remain unperformed.
 - No full suite ran because `src/**` and product behavior were unchanged. No
-  screenshots were captured.
-- Fix commit `79ddb76` (`fix: boot manual figures from file URLs`) is pushed to
-  `arena/01a1013d-hackhub-quest-editor`. Origin had no remote-only commits before
-  it was created. No pull request was requested or opened.
+  screenshots were captured. No pull request was requested or opened.
+- The initial bundle correction is pushed as `79ddb76` to
+  `arena/01a1013d-hackhub-quest-editor`; this follow-up will be recorded after
+  its commit and push.
 
 ## Next work
 
-1. Ask Zeis to review all five scenes in the live preview and reopen the latest
-   prototype files from disk. Record any visual corrections.
-2. Keep the 88-figure migration stopped until explicit review approval.
+1. Ask Zeis to reopen the latest `public/manual-figure-prototype.html` from disk
+   in Firefox. No editor process or separate launch step is needed. Confirm all
+   five frames render and send any new console errors if they do not.
+2. Review the scenes visually in the live preview and locally. Keep the
+   88-figure migration stopped until that review is accepted.
 3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless editor source
    changes; preserve the five game-only and two unlinked editor names as dormant.
 

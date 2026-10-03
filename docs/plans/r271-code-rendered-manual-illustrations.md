@@ -1,11 +1,12 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: five-scene prototype built; offline boot fix shipped; awaiting user review.**
+**Status: five-scene prototype built; two offline boot blockers fixed; awaiting user review.**
 The game-only tutorial figure has been removed by decision, its useful prose
-remains, and no editor figure has been replaced. r272 fixes a browser-only
-`process.env.NODE_ENV` reference that stopped the renderer from booting from
-disk; all five scene entry points now pass the local-file smoke test. Bulk
-conversion is still held until the prototype has been reviewed.
+remains, and no editor figure has been replaced. r272 fixes the bundle's
+`process.env.NODE_ENV` reference and Firefox's sandboxed `moz-nullprincipal`
+origin blocking local assets. The file-only same-origin policy is now selected
+before iframe loading; all five scene entry points pass the local smoke test.
+Bulk conversion is still held until the prototype has been reviewed.
 
 ## Approved direction
 
@@ -79,11 +80,14 @@ The five scenes are `node-objective-inspector`, `howto-wired-canvas`,
 First Contact template into an in-memory editor store and compose the current
 inspector, canvas, node library, top bar, status bar and Settings panel where
 appropriate. The mid-drag wire is a fixed SVG line over real node cards, clearly
-identified as a static illustration. Every frame is sandboxed without same-origin
-access, marked inert, and receives a no-op local-storage shim; the renderer does
-not mount `App` or autosave. Its isolated CSS bundle omits the optional font
-files because every prototype uses the default system font, so it has no font
-asset URLs to resolve from disk.
+identified as a static illustration. The initial prototype sandboxed every frame
+without same-origin access. Firefox later confirmed that this opaque origin blocks
+local file assets, so r272 now grants `allow-same-origin` only when opened from
+`file://`; the HTTP preview remains scripts-only. The frames are marked inert
+and receive a no-op local-storage shim; the renderer does not mount `App` or
+autosave. Its isolated CSS bundle omits the optional font files because every
+prototype uses the default system font, so it has no font asset URLs to resolve
+from disk.
 
 The local bundle is built as part of `npm run gen:manual`. The prototype page has
 parent-page descriptions and descriptive iframe titles, and lazy-loads each
@@ -97,13 +101,16 @@ indexed.
 Zeis's first direct-from-disk test exposed a bundle boot failure. The generated
 IIFE retained `process.env.NODE_ENV`, which is not defined in browsers, so the
 renderer script threw before any scene replaced its HTML fallback. r272 defines
-that expression as production for the static renderer build and adds a local-file
-smoke test to `gen:manual-figures`. The smoke opens the real renderer document,
-CSS and script through `file://` for all five scene IDs; all five mount without
-runtime errors. JSDOM needs a no-op `ResizeObserver` because it has no browser
-layout engine. This verifies asset loading and scene startup, not pixels or the
-real browser's sandbox behavior. No browser binary is available here, so visual
-fidelity, keyboard, screen-reader and real-browser review remain open. No editor
+that expression as production. Afterward, Zeis's Firefox console identified a
+second blocker: the frame's opaque sandbox origin blocked `renderer.js` and
+`renderer.css`. The parent now grants the file origin only for `file://` and
+keeps the HTTP preview scripts-only. A smoke in `gen:manual-figures` checks both
+parent-page policies, then opens the renderer document, CSS and script from disk
+for all five scene IDs. All five mount without runtime errors. JSDOM needs a
+no-op `ResizeObserver` and does not enforce iframe sandbox origins; this verifies
+startup and the selected policy, not Firefox's enforcement or pixels. No
+browser binary is available here, so Zeis must retry the latest local file;
+visual fidelity, keyboard and screen-reader review also remain open. No editor
 figures have been bulk-migrated; G8 should still report **88 current missing
 editor-image references** and no game-only figure.
 
@@ -218,14 +225,14 @@ time; do not fall back to 88 hand-maintained mockups.
    the full workspace and a fixed mid-drag state. Compare them with the actual
    editor at its default Midnight theme and system font. Bulk migration remains
    stopped until Zeis reviews this prototype.
-3. **Test the offline and semantic path.** The r272 JSDOM smoke opens the real
-   renderer document, script and stylesheet over `file://` and confirms that all
-   five scenes start; it also rejects the undefined-`process` bundle regression.
-   This does not replace opening the prototype page in a real browser, with the
-   network unavailable. Confirm the iframe sandbox permits the local assets to
-   load, each frame has an accessible name, no control is interactive, and page
-   descriptions and captions remain available outside the frame. Keep visual,
-   keyboard and screen-reader checks open until that review.
+3. **Test the offline and semantic path.** The r272 JSDOM smoke checks that
+   local-file frames receive the file-only origin permission, HTTP frames remain
+   scripts-only, and all five local scenes start. The Firefox console confirmed
+   the original opaque-origin error, but JSDOM does not enforce it. Reopen the
+   prototype in Firefox with the network unavailable and confirm the assets now
+   load. Check that each frame has an accessible name, no control is interactive,
+   and descriptions and captions remain outside the frame. Keep visual, keyboard
+   and screen-reader checks open until that review.
 4. **After review, convert the 88 current editor figures** to scene references,
    preserving useful existing captions and descriptions. Do not render an editor
    lookalike for the game's mod list. Leave the five additional game-only and
@@ -279,6 +286,7 @@ figure is an editor screenshot: the tutorial's installation image showed the
 game's mod list. Zeis chose no game screenshot, so that figure is removed and
 its useful prose remains. The five unlinked game images and two editor panels
 stay dormant. r272 corrected the renderer's undefined `process.env.NODE_ENV`
-reference, and all five scenes now pass a JSDOM `file://` startup smoke. Real
-browser, visual and assistive-technology checks remain open; do not bulk-convert
-editor figures until Zeis reviews the prototype.
+reference and Firefox's sandbox-origin block on local files. Its bootstrap now
+grants same-origin only when opened from disk; all five scenes pass the JSDOM
+`file://` startup smoke. Real Firefox, visual and assistive-technology checks
+remain open; do not bulk-convert editor figures until Zeis reviews the prototype.
