@@ -739,7 +739,7 @@ describe("manual coverage — G17: no scaffolding left behind", () => {
  * fix a page — never raise it.
  */
 const LONG_SENTENCE_MAX = 20;
-const LONG_SENTENCE_BUDGET = 67;
+const LONG_SENTENCE_BUDGET = 29;
 
 function longSentences(page: string): string[] {
     let s = read(page);

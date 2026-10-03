@@ -413,10 +413,10 @@ function page(node, v) {
         .join("\n");
 
     const messages = (v.messages ?? [])
-        .map(
-            ([label, anchor, gloss]) =>
-                `  <li><a href="../checking.html#${anchor}">${esc(label)}</a> — ${gloss}</li>`,
-        )
+        .map(([label, anchor, gloss]) => {
+            const explanation = gloss.charAt(0).toUpperCase() + gloss.slice(1);
+            return `  <li><a href="../checking.html#${anchor}">${esc(label)}</a>. ${explanation}</li>`;
+        })
         .join("\n");
 
     const related = ORDER.filter((n) => n.category === node.category && n.type !== node.type)

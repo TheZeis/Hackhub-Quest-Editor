@@ -608,9 +608,9 @@
     "oneliner": "Asks the game whether the player has an app, and splits the story on the answer.",
     "what": "Checks the player's desktop and sends the story down <b class=\"ui\">Installed</b> or <b class=\"ui\">Missing</b>. It can also save their whole list of installed apps at the same time, so something later can read it.",
     "when": [
-      "Use it before your quest sends the player to an app. Most apps are not installed on a fresh save — the player unlocks them as they play — so a message telling them to open one they do not have reads as your quest being broken.",
-      "Use it to write a hint instead of a dead end: send players who have the app one way, and give everyone else a different route or a nudge.",
-      "Turn on <b class=\"ui\">Also save the list of installed apps</b> when a later <a href=\"flow-branch.html\">Branch</a> should test the list, when a message should mention what the player actually owns, or when you want to see which apps the game counts on your own save — send the list to a <a href=\"fx-notify.html\">Notify</a> and read it in game."
+      "Use it before your quest sends the player to an app. Most apps are not installed on a fresh save. The player unlocks them as they play. A quest that tells a player to open an app they lack can look broken.",
+      "Use it to avoid a dead end. Send players who have the app one way. Give everyone else a different route or a nudge.",
+      "Turn on <b class=\"ui\">Also save the list of installed apps</b> when a later <a href=\"flow-branch.html\">Branch</a> needs to test the list. It can also help a message name the apps the player owns. To see which apps the game counts on your save, send the list to a <a href=\"fx-notify.html\">Notify</a>. Read the Notify in game."
     ],
     "game": "Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.",
     "fields": {
@@ -620,10 +620,10 @@
       },
       "saveList": {
         "put": "Stores every app the player has under the name below, then carries on with the check as normal. The node does both.",
-        "watch": "On by default, because the list costs nothing to keep and it is the only way to see what the game counts as an app. Turn it off if nothing in the quest reads it and you would rather not store it."
+        "watch": "It is on by default. Keeping the list costs nothing. It is the only way to see which apps the game counts. Turn it off if no part of the quest reads it."
       },
       "key": {
-        "put": "Anything you like. It is only the label other parts of the quest use to find the list again, and it never appears on screen.",
+        "put": "Anything you like. Other parts of the quest use this label to find the list again. The player never sees it.",
         "watch": "Two checks using the same name refresh it, which is what you want after the player unlocks something. Use two different names if you want to keep a snapshot of each moment."
       }
     },
@@ -1691,22 +1691,22 @@
     ]
   },
   "flow.timer": {
-    "oneliner": "Fires the next node at a later in-game time — a delay, a clock time N in-game days from now, or a fixed in-game date.",
-    "what": "Wait X amount of time until the next node fires. Great for when you want the story to hold for a moment. Unlike a Wait, the time keeps passing while the player is away — a timer set two in-game days out lands two in-game days later even if the player saves and quits.",
+    "oneliner": "Fires the next node at a later in-game time. Choose a delay, a clock time N in-game days from now, or a fixed in-game date.",
+    "what": "It holds the story until the time you set. Use it when the story needs to pause. Unlike a Wait, time keeps passing while the player is away. A timer set two in-game days ahead fires two in-game days later, even if the player saves and quits.",
     "when": [
-      "For things that happen on the world's own schedule: an article hits the wire, a report gets triaged, a deadline lands — while the player is doing something else.",
-      "For world events that all land on one in-game date: set several timers to the same date and they fire together.",
-      "Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later even if the player saves and quits — which is what lets a campaign happen in the world's own time."
+      "Use it for things that happen on the world's own schedule. An article goes out, a report is reviewed, or a deadline lands while the player is busy elsewhere.",
+      "For world events that all land on one in-game date, set several timers to the same date. They fire together.",
+      "Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later even if the player saves and quits. That is what lets a campaign happen in the world's own time."
     ],
-    "game": "The story pauses at the timer (the wires after it do not run yet). When the in-game clock reaches the due time, the timer's “Out” wire runs, as if the story jumped back to this point. If the quest finishes or is abandoned first, the timer is cancelled.",
+    "game": "The story pauses at the timer (the wires after it do not run yet). When the in-game clock reaches the due time, the timer's “Out” wire runs. It is as if the story jumped back to this point. If the quest finishes or is abandoned first, the timer is cancelled.",
     "fields": {
       "years": {
         "example": "1",
-        "empty": "Counts as zero. A whole in-game year added to the calendar — the day number is kept, and a leap day that does not exist next year falls back to 28 February."
+        "empty": "Counts as zero. It adds one in-game year to the calendar. The day number stays the same. If the next year has no leap day, 29 February becomes 28 February."
       },
       "months": {
         "example": "1",
-        "empty": "Counts as zero. A whole in-game month added to the calendar: 31 January plus one month lands on 28 February, not in March, because February has no 31st."
+        "empty": "Counts as zero. It adds one in-game month to the calendar. For example, 31 January plus one month lands on 28 February, not March, because February has no 31st."
       },
       "weeks": {
         "example": "2",
@@ -1714,7 +1714,7 @@
       },
       "days": {
         "example": "1",
-        "empty": "Counts as zero. Every unit is added up, so days, months and hours all count towards one due time — blank everywhere means nothing waits."
+        "empty": "Counts as zero. The units are added together, so days, months and hours count towards one due time. If every box is blank, the timer does not wait."
       },
       "hours": {
         "example": "2",
@@ -1722,23 +1722,23 @@
       },
       "minutes": {
         "example": "30",
-        "empty": "Counts as zero. These are in-game minutes: at the default game speed one in-game minute passes every real second, so 30 minutes is half a real minute."
+        "empty": "Counts as zero. These are in-game minutes. At the default game speed, one in-game minute passes every real second, so 30 minutes is half a real minute."
       },
       "offsetYears": {
         "example": "1",
-        "empty": "0 means no years. Counted from the in-game day the player reaches this node, so “1 year, at 18:23” is that same date next year; a 29 February falls back to 28 February when the next year has no leap day."
+        "empty": "0 means no years. Count from the in-game day the player reaches this node. So “1 year, at 18:23” is that same date next year. If the next year has no leap day, 29 February becomes 28 February."
       },
       "offsetMonths": {
         "example": "1",
-        "empty": "0 means no months. Whole in-game months, counted from the day the player gets here: 31 January plus one month lands on 28 February rather than skipping into March."
+        "empty": "0 means no months. Count whole in-game months from the day the player gets here. So 31 January plus one month lands on 28 February, rather than skipping into March."
       },
       "offsetWeeks": {
         "example": "2",
-        "empty": "0 means no weeks. A week is seven in-game days, so 2 weeks is 14 days — the clock time below is what the timer rings at, whatever time the player arrived."
+        "empty": "0 means no weeks. A week is seven in-game days, so 2 weeks is 14 days. Use the clock time below to set when the timer rings, whatever time the player arrived."
       },
       "offsetDays": {
         "example": "3",
-        "empty": "0 means today — the next time the clock reads the time below. Days are added after the months and weeks, and 0 with 0 in the other boxes is a legal “today at 09:00”."
+        "empty": "0 means today — the next time the clock reads the time below. Days are added after the months and weeks. With all offset fields at 0, the timer can still ring today at 09:00."
       },
       "hour": {
         "example": "12",
@@ -1764,7 +1764,7 @@
     "mistakes": [
       [
         "Treating the time as real minutes.",
-        "The clock is the game's, not the wall clock's. One in-game minute is one real second at default speed, and a full in-game day is about 24 real minutes of play."
+        "The clock is the game's, not the wall clock's. One in-game minute is one real second at default speed. A full in-game day is about 24 real minutes of play."
       ],
       [
         "Expecting the timer to fire after the quest is over.",
@@ -1790,13 +1790,13 @@
   },
   "comms.tweet": {
     "oneliner": "Post tweets from one of the mod's Twotter accounts — a single post, or a profile's worth of history.",
-    "what": "A post on Twotter, the game's social network. The node posts from one of your mod's accounts, so a character can have a public voice your players can look up and read.",
+    "what": "A post on Twotter, the game's social network. The node posts from one of your mod's accounts. Players can look up the account and read that character's posts.",
     "when": [
-      "Use it when the story is something the player should be able to <i>find</i> rather than be told: a missing person's last posts, a company account issuing a flat denial, a journalist building a case in public.",
-      "Several rows on one node make a history. Set them to <b class=\"ui\">Already on the profile</b> with ages of weeks or months and the account has been living in the world since long before the quest began.",
-      "One row set to <b class=\"ui\">When the story arrives</b> posts as the flow reaches the node — the player is watching it land, seconds old. That is the shape for a post the story itself provokes."
+      "Use it when the player should find the story rather than hear it from a character. Examples: a missing person's last posts, a company account's flat denial, or a journalist building a case in public.",
+      "Several rows on one node make a history. Set them to <b class=\"ui\">Already on the profile</b> and give them ages of weeks or months. The account's history then reaches back before the quest begins.",
+      "One row set to <b class=\"ui\">When the story arrives</b> posts as the flow reaches this node. It appears seconds old to the player. Use this for a post caused by the story."
     ],
-    "game": "The profile in the in-game Twotter app shows the account's name, handle, picture and the posts. Players can search for a handle there, and a post with <b class=\"ui\">Also in the main timeline</b> switched on also turns up in the public feed everyone sees.",
+    "game": "The in-game Twotter profile shows the account's name, handle, picture, and posts. Players can search for handles there. Turn on <b class=\"ui\">Also in the main timeline</b> to put that post in the public feed. Everyone can see the feed.",
     "sockets": {
       "in": {
         "in": "Whatever should run immediately before the tweets are posted."
@@ -1808,7 +1808,7 @@
     "steps": [
       "Find <b class=\"ui\">Twotter</b> under <b>Communication</b> in the palette.",
       "Drag it onto the canvas where the posts belong, and wire it into the story.",
-      "Pick the account that posts. If the character does not exist yet, use <b class=\"ui\">Manage accounts</b> — accounts belong to the whole mod, so the same one can post in several quests.",
+      "Pick the account that posts. If the character does not exist yet, use <b class=\"ui\">Manage accounts</b>. Accounts belong to the whole mod, so one can post in several quests.",
       "Write the first tweet. Set <b class=\"ui\">When</b> to <b class=\"ui\">Already on the profile</b> and give it an age if it should have been there all along.",
       "Press <b class=\"ui\">Add a tweet</b> for each further post. Write them oldest first — that is the order they happened.",
       "Fill in the numbers the post shows: likes, replies, reposts and views. They are decoration, and they are what makes an account look real."
@@ -1824,7 +1824,7 @@
       ],
       [
         "Ages that run the wrong way.",
-        "A row marked <b class=\"ui\">Already on the profile</b> counts back from the moment the story reaches the node, so ages further down the list should be smaller, not larger."
+        "A row marked <b class=\"ui\">Already on the profile</b> counts back from when the story reaches this node. Use smaller ages for rows farther down the list."
       ]
     ],
     "messages": [

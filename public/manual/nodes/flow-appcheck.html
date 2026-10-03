@@ -57,9 +57,9 @@
 <p>Checks the player's desktop and sends the story down <b class="ui">Installed</b> or <b class="ui">Missing</b>. It can also save their whole list of installed apps at the same time, so something later can read it.</p>
 
 <h2>When you'd use it</h2>
-<p>Use it before your quest sends the player to an app. Most apps are not installed on a fresh save — the player unlocks them as they play — so a message telling them to open one they do not have reads as your quest being broken.</p>
-<p>Use it to write a hint instead of a dead end: send players who have the app one way, and give everyone else a different route or a nudge.</p>
-<p>Turn on <b class="ui">Also save the list of installed apps</b> when a later <a href="flow-branch.html">Branch</a> should test the list, when a message should mention what the player actually owns, or when you want to see which apps the game counts on your own save — send the list to a <a href="fx-notify.html">Notify</a> and read it in game.</p>
+<p>Use it before your quest sends the player to an app. Most apps are not installed on a fresh save. The player unlocks them as they play. A quest that tells a player to open an app they lack can look broken.</p>
+<p>Use it to avoid a dead end. Send players who have the app one way. Give everyone else a different route or a nudge.</p>
+<p>Turn on <b class="ui">Also save the list of installed apps</b> when a later <a href="flow-branch.html">Branch</a> needs to test the list. It can also help a message name the apps the player owns. To see which apps the game counts on your save, send the list to a <a href="fx-notify.html">Notify</a>. Read the Notify in game.</p>
 
 <h2>In the game, this looks like</h2>
 <p>Nothing appears on screen. The player only notices that the story took the path that matches what is on their desktop.</p>
@@ -95,13 +95,13 @@
   <dt>What to put here</dt><dd>Stores every app the player has under the name below, then carries on with the check as normal. The node does both.</dd>
   <dt class="dt-mute">Default</dt><dd>on</dd>
   <dt>Limits</dt><dd>On or off.</dd>
-  <dt class="dt-warn">Watch out</dt><dd>On by default, because the list costs nothing to keep and it is the only way to see what the game counts as an app. Turn it off if nothing in the quest reads it and you would rather not store it.</dd>
+  <dt class="dt-warn">Watch out</dt><dd>It is on by default. Keeping the list costs nothing. It is the only way to see which apps the game counts. Turn it off if no part of the quest reads it.</dd>
 </dl>
 
 <h3 id="node-flow-appcheck-field-key">Save the list as</h3>
 <blockquote class="blurb">The name the list is stored under. Two checks using the same name refresh it, which is what you want after the player unlocks something.</blockquote>
 <dl class="facts-list">
-  <dt>What to put here</dt><dd>Anything you like. It is only the label other parts of the quest use to find the list again, and it never appears on screen.</dd>
+  <dt>What to put here</dt><dd>Anything you like. Other parts of the quest use this label to find the list again. The player never sees it.</dd>
   <dt class="dt-mute">Default</dt><dd><code>"installedApps"</code></dd>
   <dt class="dt-warn">Watch out</dt><dd>Two checks using the same name refresh it, which is what you want after the player unlocks something. Use two different names if you want to keep a snapshot of each moment.</dd>
 </dl>
@@ -165,16 +165,16 @@ the connection takes, mismatch them and it will not.</p>
 
 <h2>Messages you might see</h2>
 <ul class="plain">
-  <li><a href="../checking.html#msg-dead-end">Dead end</a> — an <b class="ui">Installed</b> or <b class="ui">Missing</b> output has nothing wired to it</li>
-  <li><a href="../checking.html#msg-unreachable">Unreachable</a> — nothing leads to this node, so the check never happens</li>
-  <li><a href="../checking.html#msg-field-app-no-name">No app name</a> — <b class="ui">App name</b> is empty, so the <b class="ui">Missing</b> path runs every time</li>
+  <li><a href="../checking.html#msg-dead-end">Dead end</a>. An <b class="ui">Installed</b> or <b class="ui">Missing</b> output has nothing wired to it</li>
+  <li><a href="../checking.html#msg-unreachable">Unreachable</a>. Nothing leads to this node, so the check never happens</li>
+  <li><a href="../checking.html#msg-field-app-no-name">No app name</a>. <b class="ui">App name</b> is empty, so the <b class="ui">Missing</b> path runs every time</li>
 </ul>
 
 <h2>Related nodes</h2>
 <ul class="plain">
   <li><a href="flow-branch.html">Branch</a> — Sends the story down one of two paths.</li>
   <li><a href="flow-delay.html">Wait</a> — Pauses the story.</li>
-  <li><a href="flow-timer.html">Timer</a> — Fires the next node at a later in-game time — a delay, a clock time N in-game days from now, or a fixed in-game date.</li>
+  <li><a href="flow-timer.html">Timer</a> — Fires the next node at a later in-game time. Choose a delay, a clock time N in-game days from now, or a fixed in-game date.</li>
   <li><a href="flow-reroute.html">Reroute</a> — A tidy point for your wires.</li>
   <li><a href="flow-random.html">Random pick</a> — Picks one path at random.</li>
   <li><a href="flow-sequence.html">Sequence</a> — Fires several outputs in order.</li>

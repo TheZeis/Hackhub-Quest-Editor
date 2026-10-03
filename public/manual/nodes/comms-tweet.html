@@ -54,15 +54,15 @@
 <section id="node-comms-tweet-page">
 
 <h2>What it does</h2>
-<p>A post on Twotter, the game's social network. The node posts from one of your mod's accounts, so a character can have a public voice your players can look up and read.</p>
+<p>A post on Twotter, the game's social network. The node posts from one of your mod's accounts. Players can look up the account and read that character's posts.</p>
 
 <h2>When you'd use it</h2>
-<p>Use it when the story is something the player should be able to <i>find</i> rather than be told: a missing person's last posts, a company account issuing a flat denial, a journalist building a case in public.</p>
-<p>Several rows on one node make a history. Set them to <b class="ui">Already on the profile</b> with ages of weeks or months and the account has been living in the world since long before the quest began.</p>
-<p>One row set to <b class="ui">When the story arrives</b> posts as the flow reaches the node — the player is watching it land, seconds old. That is the shape for a post the story itself provokes.</p>
+<p>Use it when the player should find the story rather than hear it from a character. Examples: a missing person's last posts, a company account's flat denial, or a journalist building a case in public.</p>
+<p>Several rows on one node make a history. Set them to <b class="ui">Already on the profile</b> and give them ages of weeks or months. The account's history then reaches back before the quest begins.</p>
+<p>One row set to <b class="ui">When the story arrives</b> posts as the flow reaches this node. It appears seconds old to the player. Use this for a post caused by the story.</p>
 
 <h2>In the game, this looks like</h2>
-<p>The profile in the in-game Twotter app shows the account's name, handle, picture and the posts. Players can search for a handle there, and a post with <b class="ui">Also in the main timeline</b> switched on also turns up in the public feed everyone sees.</p>
+<p>The in-game Twotter profile shows the account's name, handle, picture, and posts. Players can search for handles there. Turn on <b class="ui">Also in the main timeline</b> to put that post in the public feed. Everyone can see the feed.</p>
 
 <h2>Fields</h2>
 
@@ -171,7 +171,7 @@ the connection takes, mismatch them and it will not.</p>
 <ol class="plain">
   <li>Find <b class="ui">Twotter</b> under <b>Communication</b> in the palette.</li>
   <li>Drag it onto the canvas where the posts belong, and wire it into the story.</li>
-  <li>Pick the account that posts. If the character does not exist yet, use <b class="ui">Manage accounts</b> — accounts belong to the whole mod, so the same one can post in several quests.</li>
+  <li>Pick the account that posts. If the character does not exist yet, use <b class="ui">Manage accounts</b>. Accounts belong to the whole mod, so one can post in several quests.</li>
   <li>Write the first tweet. Set <b class="ui">When</b> to <b class="ui">Already on the profile</b> and give it an age if it should have been there all along.</li>
   <li>Press <b class="ui">Add a tweet</b> for each further post. Write them oldest first — that is the order they happened.</li>
   <li>Fill in the numbers the post shows: likes, replies, reposts and views. They are decoration, and they are what makes an account look real.</li>
@@ -187,13 +187,13 @@ the connection takes, mismatch them and it will not.</p>
 <ul class="plain">
   <li><b>Numbers that do not add up.</b> A post with four thousand views and one like reads as invented. Keep the figures in proportion to how many followers the account has.</li>
   <li><b>A handle the game will not accept.</b> Handles take letters, numbers and underscores, three to fifteen characters. The compiler says so before you export, and an account nothing can find is a clue the player never gets.</li>
-  <li><b>Ages that run the wrong way.</b> A row marked <b class="ui">Already on the profile</b> counts back from the moment the story reaches the node, so ages further down the list should be smaller, not larger.</li>
+  <li><b>Ages that run the wrong way.</b> A row marked <b class="ui">Already on the profile</b> counts back from when the story reaches this node. Use smaller ages for rows farther down the list.</li>
 </ul>
 
 <h2>Messages you might see</h2>
 <ul class="plain">
-  <li><a href="../checking.html#msg-export-twotter-account">No account to post as</a> — the node has no account chosen, so nothing is posted</li>
-  <li><a href="../checking.html#msg-export-twotter-empty">Nothing to post</a> — the node has no tweet rows, so it does nothing at all</li>
+  <li><a href="../checking.html#msg-export-twotter-account">No account to post as</a>. The node has no account chosen, so nothing is posted</li>
+  <li><a href="../checking.html#msg-export-twotter-empty">Nothing to post</a>. The node has no tweet rows, so it does nothing at all</li>
 </ul>
 
 <h2>Related nodes</h2>

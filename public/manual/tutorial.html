@@ -34,9 +34,9 @@
   <p class="tag">Twenty minutes, start to finish, ending in a mod you install and play.</p>
 </header>
 <section id="tutorial">
-<p>Twenty minutes, and you finish with a mod installed in the game. You build on
-top of a template rather than a blank canvas, because seeing a working quest is
-the fastest way to learn what the pieces are for.</p>
+<p>Twenty minutes, and you finish with a mod installed in the game. Start from
+a template rather than a blank canvas. Seeing a working quest is the fastest way
+to learn what its parts do.</p>
 <div class="note ok"><b>Nothing here is destructive.</b> Every step can be
 undone with <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and the editor keeps a copy in your
 browser as you work. The editor says so itself, in the panel you meet first.</div>
@@ -68,9 +68,8 @@ own description of the job:</p>
   <b class="ui">Quest</b> and <b class="ui">Mod</b>. The
   <b class="ui">Node</b> tab stays greyed out until you click a node, because
   there is nothing to show yet.</dd>
-  <dt>Status bar</dt><dd>Along the bottom. Whether your work is saved, how many
-  nodes and wires the quest has, what you have selected, and how deep your undo
-  history goes.</dd>
+  <dt>Status bar</dt><dd>The bottom bar shows whether your work is saved. It also
+  shows node and wire counts, your selection, and how far you can undo.</dd>
 </dl>
 <figure>
   <img src="img/tour-empty-canvas.png"
@@ -79,15 +78,13 @@ own description of the job:</p>
 </figure>
 
 <h2 id="new-project">Start from a template</h2>
-<p>Thirteen templates come with the editor, from a blank canvas up to a
+<p>Fourteen templates come with the editor, including a blank quest and a
 36-node quest. You want <b class="ui">First Contact</b>: eight nodes, marked
 Beginner, and deliberately no hacking in it. Its own description:</p>
 <blockquote class="blurb">The whole spine in miniature: a brief, one objective (a person lookup), a payment and a closing line. No hacking — just the shape of a quest.</blockquote>
 <ol class="plain">
   <li>Click <b class="ui">Browse 14 templates</b> on the welcome panel. If you
-  have already closed that panel, use <b class="ui">New</b> instead — though
-  note that <b class="ui">New</b> opens a different window that only clears
-  your work.</li>
+  closed it, click <b class="ui">Templates</b> in the top bar instead.</li>
   <li>In the window titled <b class="ui">Start from a template</b>, choose
   <b class="ui">First Contact</b>. The editor confirms with a message reading
   <span class="mono">Loaded “First Contact”.</span></li>
@@ -208,9 +205,7 @@ an employer explains the job and where the story closes.</p>
   <figcaption>A conversation, node by node.</figcaption>
 </figure>
 <p>A <b class="ui">Pay the player</b> node puts money in their account. Set the
-amount in dollars. A hundred is a reasonable fee for a first job; the tools the
-player buys run around thirty-five, so the number should mean something to
-them.</p>
+amount in dollars. It starts at 100. Adjust the amount to suit the job.</p>
 <figure>
   <img src="img/tutorial-10-pay-inspector.png"
        alt="The inspector for a Pay the player node, with its amount field set." />
@@ -237,15 +232,15 @@ the way the exported mod would run it.</p>
   installing it.</figcaption>
 </figure>
 <p>Run it and watch the order. If a node you expected never appears, it is not
-wired to anything. Drop a <b class="ui">Debug probe</b> after it and run again —
-the probe prints what a node does when it fires, and whether it fires at all.
-<a href="checking.html">Checking your quest</a> lists every message the editor
-can show you.</p>
+wired to anything. Drop a <b class="ui">Debug probe</b> after it and run again.
+The probe prints what a node does when it fires. It also shows whether the node
+fires at all. <a href="checking.html">Checking your quest</a> lists every message
+the editor can show you.</p>
 
 <h2 id="export">Export, install, play</h2>
-<p>Click <b class="ui">Export mod</b>. The window that opens shows what you are
-about to ship before it packs anything: your quests, your websites, the
-permissions your nodes need, and every file that will go in the archive.</p>
+<p>Click <b class="ui">Export mod</b>. Before packing, the window shows what you
+are about to ship. It lists your quests, websites, the permissions your nodes
+need, and every file in the archive.</p>
 <figure>
   <img src="img/tutorial-13-export-dialog.png"
        alt="The Export mod window showing the quest list, websites, permission chips and the file list, with a Download .zip button." />
@@ -265,8 +260,8 @@ remembering from it: the <code>.zip</code> is finished output. Your project file
 is the thing you keep editing.</p>
 
 <h2 id="recap">What you now know</h2>
-<p>You loaded a quest, read what it did, added to it, made one objective respond
-to real play, and installed the result. Four ideas carried all of it:</p>
+<p>You loaded a quest and read what it did. You added to it, made an objective
+respond to real play, and installed the result. Four ideas carried all of it:</p>
 <ul>
   <li><b>Wires decide order, not position.</b> Moving a node changes nothing.
   <a href="concepts.html#quest-map">Your quest map</a> explains why.</li>
