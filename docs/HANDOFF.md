@@ -43,8 +43,10 @@ scope is in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 - No real browser is installed in the workspace. The two revised scenes still
   need Zeis's visual re-review; keyboard and screen-reader checks are also open.
 - No full suite ran because `src/**` and product behavior were unchanged. No
-  screenshot or game image was captured. No pull request was requested or
-  opened.
+  screenshot or game image was captured.
+- Scene refinements commit `1c71c1f` (`fix: refine manual canvas figure scenes`)
+  is pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was
+  requested or opened.
 
 ## Next work
 
