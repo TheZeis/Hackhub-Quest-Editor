@@ -53,7 +53,7 @@
     "what": "Runs when the quest is claimed, and again every time the game loads it. Anything that has to be true in every session goes here.",
     "when": [
       "Put anything that watches for a player action here rather than in <a href=\"entry-start.html\">Quest start</a>. A watcher armed once stops working after the player reloads.",
-      "Use it for the pieces a returning player expects to still be working: the listeners behind your triggers, the state of a machine they left mid-job.",
+      "Use it for the pieces a returning player expects to still be working. Examples include the triggers waiting for the player and the state of a machine they left mid-job.",
       "Keep one-off story beats out of it. They belong in <a href=\"entry-start.html\">Quest start</a>, or the player sees them again on every load."
     ],
     "game": "The player loads a save with your quest in progress and this fires again, before they touch anything.",
@@ -116,7 +116,7 @@
     "oneliner": "Runs if the player gives up.",
     "what": "Runs if the player abandons the quest. Use it to tidy up whatever the quest left behind.",
     "when": [
-      "Reach for it when your quest changes the world in a way that should not outlive a quit: a machine left unlocked, a contact left waiting mid-conversation.",
+      "Use it when the quest leaves something behind that should be undone if the player abandons it. For example, a machine left unlocked or a contact left waiting mid-conversation.",
       "Most quests do not need it. If nothing has to be undone, delete the node rather than leaving it sitting there empty."
     ],
     "game": "The player drops the quest and this fires. Anything you wired after it runs once, and the quest is gone.",
@@ -386,9 +386,9 @@
   },
   "fx.prompt": {
     "oneliner": "Asks the player a one-line question.",
-    "what": "Opens a question box, waits for the player to type one line, then sends the story onward. It can accept any answer, check for one expected answer, save what the player typed, or treat closing the box as its own path.",
+    "what": "Opens a question box, waits for the player to type one line, then sends the story onward. It can accept any answer or check for one expected answer. It can also save what the player typed or treat closing the box as its own path.",
     "when": [
-      "Use it when the quest needs the player to give a name, code, verdict, passphrase or confirmation outside a terminal command.",
+      "Use it when the quest needs an answer from the player. They can type a name, code, verdict, passphrase, or confirmation without running a terminal command.",
       "Use Manual input instead when the player should type a custom command first. Use Ask player when the question itself should appear at this point in the story.",
       "Save the answer when later mail, notifications or branches need to mention it again. If the answer only chooses the next path, you can leave saving off."
     ],
@@ -545,7 +545,7 @@
     "oneliner": "Sends the story down one of two paths.",
     "what": "Splits the story in two. One path runs when your condition holds, the other runs when it does not.",
     "when": [
-      "Use it when the story should differ based on something the player did: whether they were spotted, whether they paid, which file they pulled.",
+      "Use it when the story should differ based on something the player did. For example, whether they were spotted, whether they paid, or which file they pulled.",
       "Both paths need somewhere to go. A branch with an unwired <b class=\"ui\">Yes</b> or <b class=\"ui\">No</b> is a dead end the player walks into.",
       "For three or more outcomes, chain branches. Each one splits again, and the canvas stays readable."
     ],
@@ -557,7 +557,7 @@
       },
       "conditions": {
         "put": "Add one clause per thing that has to be true.",
-        "empty": "With no clauses there is nothing to fail, so the <b class=\"ui\">Yes</b> path always runs and the <b class=\"ui\">No</b> path never does."
+        "empty": "With no clauses, there is nothing to fail. The <b class=\"ui\">Yes</b> path always runs, and the <b class=\"ui\">No</b> path never does."
       }
     },
     "sockets": {
@@ -689,7 +689,7 @@
     "what": "Stores a value under a name you choose, so a later node can read it back.",
     "when": [
       "Use it to remember something the player did: which door they opened, who they met, what they paid.",
-      "Read the value back with a <a href=\"flow-branch.html\">Branch</a> set to test quest data, or drop it into a message with a tag.",
+      "Use a <a href=\"flow-branch.html\">Branch</a> later to test the saved value. You can also include it in a message with a tag.",
       "The name is yours to pick. Use the same name to read it back."
     ],
     "game": "Nothing appears on screen. The value sits in the quest's memory until something reads it.",
@@ -765,7 +765,7 @@
     "oneliner": "Runs a command in the player's terminal.",
     "what": "Runs a command in the player's terminal as if they had typed it themselves.",
     "when": [
-      "Use it when the story should do something in the terminal that the player has not done: start a scan, open a connection, leave output where they will find it.",
+      "Use it when the story needs to act in the terminal before the player does. For example, it can start a scan, open a connection, or leave output for them to find.",
       "Keep it to something a player could have typed. The output lands in their terminal, so it has to read like the real thing."
     ],
     "game": "The command appears in the player's terminal and its output follows, exactly as though they had run it.",
@@ -801,7 +801,7 @@
     "oneliner": "Opens an in-game article.",
     "what": "Opens a page of the game's own handbook for the player.",
     "when": [
-      "Use it when the player needs background the story should not have to spell out: what a company does, who owns a domain, how a protocol behaves.",
+      "Use it when the player needs background the story should not have to spell out. For example, what a company does, who owns a domain, or how a protocol behaves.",
       "Pick a page that already exists in the game, or type the identifier of one your mod adds."
     ],
     "game": "The handbook opens on the page you chose.",
@@ -870,7 +870,7 @@
   },
   "flow.random": {
     "oneliner": "Picks one path at random.",
-    "what": "Picks one of its outgoing paths at random, and stores the name of the pick so you can read it back.",
+    "what": "Picks one of its outgoing paths at random. It stores the name of the pick so you can read it back.",
     "when": [
       "Use it for variety that does not depend on the player: which guard is on duty, which route is blocked.",
       "Wire each option to a different path. The story goes down one of them and skips the rest.",
@@ -905,8 +905,8 @@
     "oneliner": "Fires several outputs in order.",
     "what": "Takes one input and fires as many outputs as you like, from the top down, with a pause before each.",
     "when": [
-      "Use it for a beat that lands in pieces: a door opens, then the lights come up, then a message arrives.",
-      "Each row you add is a socket on the node, so the shape of the beat is visible on the canvas."
+      "Use it for a beat that lands in pieces. For example, a door opens, then the lights come up, then a message arrives.",
+      "Each row you add becomes a socket on the node. That makes the shape of the beat visible on the canvas."
     ],
     "game": "The outputs happen one after another, spaced by the pauses you set.",
     "fields": {
@@ -941,7 +941,7 @@
   },
   "flow.debug": {
     "oneliner": "Prints what is happening here.",
-    "what": "Prints what the quest is doing at this point, so you can see whether a node runs and what it carries.",
+    "what": "Prints what the quest is doing at this point. You can see whether a node runs and what it carries.",
     "when": [
       "Drop one anywhere the story seems to stop. If it prints, the story got that far. If it stays silent, look upstream.",
       "Turn on <b class=\"ui\">Show on screen too</b> while you test, so you do not have to open the log file."
@@ -976,7 +976,7 @@
     "oneliner": "A comment on the canvas.",
     "what": "A note on the canvas for you. It never reaches the player.",
     "when": [
-      "Use it to leave yourself a reason: why this branch exists, what a placeholder is standing in for, what you meant to come back to.",
+      "Use it to leave yourself a reason. Note why this branch exists, what a placeholder stands for, or what you meant to come back to.",
       "Notes are stripped from the exported mod, so nothing you write here can reach the player."
     ],
     "game": "Nothing. A note is a drawing aid and never runs."
@@ -986,9 +986,9 @@
     "what": "A planning card for one beat of your story. It is stripped from the exported mod and never runs.",
     "when": [
       "Use it to sketch a scene before you build it: what happens, and which ways it can go.",
-      "Each row under <b class=\"ui\">Branch choices</b> becomes an output socket, so you can wire the paths out and see the shape of the scene."
+      "Each row under <b class=\"ui\">Branch choices</b> becomes an output socket. Wire the paths out to see the shape of the scene."
     ],
-    "game": "Nothing. The card is stripped from the mod, and the wires that ran through it are spliced together, so the story reaches the same place it would have. The beat describes a moment; it does not create one.",
+    "game": "Nothing. The card is stripped from the mod. The wires that ran through it are spliced together. The story reaches the same place it would have. The beat describes a moment; it does not create one.",
     "fields": {
       "title": {
         "put": "The card's title bar. Name the beat after the scene.",
@@ -1019,7 +1019,7 @@
       "Use it to keep a long quest readable: one frame per act, per location, or per character.",
       "It changes nothing about how the quest runs. Its name and comment still travel with the export."
     ],
-    "game": "The frame itself never runs. Its Name and Comment do ship: the export writes each group as a comment near the top of the mod, so somebody reading that file without this editor can still follow how you laid the quest out. Sticky notes ship nothing at all.",
+    "game": "The frame itself never runs. Its Name and Comment do ship. The export writes each group as a comment near the top of the mod. Someone can read that file without this editor and still follow how you laid out the quest. Sticky notes ship nothing at all.",
     "fields": {
       "comment": {
         "put": "Worth writing as though a stranger will read it, because they might. This text is the part of the frame that survives into the exported mod.",
@@ -1029,10 +1029,10 @@
   },
   "world.network": {
     "oneliner": "Builds the machines the player breaks into.",
-    "what": "Creates a network in the game's world: a router at the root, and every machine behind it, with their ports, users and weaknesses.",
+    "what": "It creates a network in the game's world, starting with a router. You can add machines behind it, along with their ports, users and weaknesses.",
     "when": [
       "Use it for any quest where the player has to break into something. The machines exist because your quest put them there.",
-      "Build the shape of the network in the <b class=\"ui\">Devices</b> editor: the router first, then the machines the player has to reach behind it.",
+      "Build the network in the <b class=\"ui\">Devices</b> editor. Start with the router, then add the machines the player has to reach behind it.",
       "Leave the player a way in. A network with every port closed and no weakness to exploit is a wall, not a puzzle."
     ],
     "game": "The network appears in the game's world. The player can scan it, find what is open, and connect.",
@@ -1072,13 +1072,13 @@
   },
   "world.wifi": {
     "oneliner": "Creates a wireless target the player can crack and join.",
-    "what": "Adds a Wi-Fi access point to the game's world, with a passphrase, signal strength, optional BSSID and optional devices behind it.",
+    "what": "Adds a Wi-Fi access point to the game's world. Set its passphrase and signal strength. You can also set a BSSID and add devices behind it.",
     "when": [
       "Use it when the player should work through Bettercap and hashcat before reaching a network.",
       "Give the access point a clue trail. The player needs to learn which network to attack and how to recover the passphrase.",
       "Put machines behind the access point when joining the Wi-Fi should open the rest of the job."
     ],
-    "game": "The network appears in the Wi-Fi list and Bettercap scan output. The player can capture a handshake, crack the passphrase, join it, and then reach whatever you placed behind the access point.",
+    "game": "The network appears in the Wi-Fi list and Bettercap scan output. The player can capture a handshake and crack the passphrase. Then they can join the access point and reach anything you placed behind it.",
     "fields": {
       "ssid": {
         "example": "DOCKNET-5G",
@@ -1176,7 +1176,7 @@
     "oneliner": "Allows or blocks a port.",
     "what": "Adds a firewall rule to a machine, so a port is open or closed to whoever you name.",
     "when": [
-      "Use it to shut a door the player has to find another way through, or to open one at the right moment in the story.",
+      "Use it to shut a door the player has to find another way through. You can also open one at the right moment in the story.",
       "Point it at the quest's own network, or at one machine you name."
     ],
     "game": "The player's scans show the port as blocked or reachable, depending on the rule.",
@@ -1319,7 +1319,7 @@
     "oneliner": "Drops files on a machine.",
     "what": "Creates files and folders on a machine — the player's own, or one you name.",
     "when": [
-      "Use it for the clues the player has to find: a config with a password in it, a log with the right timestamp, a note somebody should not have written down.",
+      "Use it for clues the player has to find. These include a settings file with a password or a log with the right timestamp. You can also leave a note somebody should not have written down.",
       "Pick whose filesystem you are writing to. The player's own machine is written when the story reaches this node."
     ],
     "game": "The files appear in the filesystem, and the player finds them with the usual commands.",
@@ -1375,7 +1375,7 @@
   },
   "world.packData": {
     "oneliner": "Fills in a data shape from an addon.",
-    "noFields": "This node has no fields of its own. Pick an installed addon pack and one of its data shapes, and the editor shows that pack's own fields for you to fill in. With no addon installed there is nothing here to configure.",
+    "noFields": "This node has no fields of its own. Pick an installed addon pack and one of its data shapes. The editor then shows that pack's fields for you to fill in. With no addon installed, there is nothing here to configure.",
     "what": "Hands a filled-in data shape to a community addon.",
     "when": [
       "Use it when an addon your quest depends on asks for data. Pick the pack, pick the shape, fill in what it wants.",
@@ -1423,7 +1423,7 @@
     "oneliner": "Scripts what a tool reports.",
     "what": "Overrides what one of the game's tools prints, so a scan or a lookup answers with what your story needs.",
     "when": [
-      "Use it when the player runs a real command and the answer has to be one you wrote: the scan that reveals the target, the lookup that names its owner.",
+      "Use it when the player runs a real command and you want to show an answer you wrote. For example, you can write the scan that reveals the target or the lookup that names its owner.",
       "Key it to what the player types. A response that answers every input hands them the target on their first random try."
     ],
     "game": "The player runs the command and reads your response instead of the game's own.",
@@ -1500,10 +1500,10 @@
   },
   "reply.input": {
     "oneliner": "Asks the player to type an answer.",
-    "what": "Adds a command to the player's terminal that waits for them to type an answer, then sends the story down the matching path.",
+    "what": "Adds a command to the player's terminal. The command waits for the player to type an answer, then sends the story down the matching path.",
     "when": [
-      "Use it for a passphrase, a code, or any moment where the player has to know something rather than do something.",
-      "Both outcomes need somewhere to go. The player can try again after a miss, so the wrong path is not a dead end unless you make it one."
+      "Use it for a passphrase or a code. It also fits any moment when the player has to know something rather than do something.",
+      "Both outcomes need somewhere to go. The player can try again after a miss. The wrong path is not a dead end unless you make it one."
     ],
     "game": "The player types the command, sees your prompt, and types their answer. The terminal prints your success or failure line.",
     "fields": {

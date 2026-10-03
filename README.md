@@ -36,7 +36,7 @@ Only relevant to coders, if you just want to use the tool you can ignore this.
 
 ```bash
 npm run typecheck    # tsc --noEmit
-npm test             # 1,830 tests (vitest)
+npm test             # 1,834 tests (vitest)
 npm run recover      # re-align after a sandbox re-provision (docs/SANDBOX-RESETS.md)
 npm run build        # typecheck + vite build → dist/
 ```
@@ -151,11 +151,11 @@ Deferred on Zeis's call, with the reason recorded so the work is not lost.
 
 | # | Item | Notes |
 |---|---|---|
+| r267 | **The handbook's sentence gate reaches zero; Pay and Charge use dollars** | Continued r266 at `reply-input.html` and cleared every remaining G18 violation. The handbook now has zero sentences over 20 words; `LONG_SENTENCE_BUDGET` is 0. Changed both money hints from Credits to Dollars at Zeis's direction, and bumped the editor stamp to `2026-10-03.r267`. No runtime behavior changed. See [`docs/plans/r267-manual-sentence-ratchet.md`](docs/plans/r267-manual-sentence-ratchet.md). |
 | r266 | **The handbook's sentence ratchet drops to 29** | Cleared the five highest-count pages, synced Timer prose with its source and generator, and corrected the tutorial's template count and route. The whole-manual G18 count falls from 67 to 29; the budget is 29. Documentation only; no editor build bump. See [`docs/plans/r266-manual-sentence-ratchet-followup.md`](docs/plans/r266-manual-sentence-ratchet-followup.md). |
 | r265 | **The handbook's twenty-word rule is now enforced** | Added G18, held `how-do-i.html` at zero, and cleared six further priority pages. The handbook had 67 overlong sentences across 28 files. The plan records the counting hazards, remaining how-tos, screenshot state, and workflow lessons. See [`docs/plans/r265-manual-sentence-ratchet.md`](docs/plans/r265-manual-sentence-ratchet.md). |
 | r264 | **The answered and the withdrawn are out of the developer list — and it is renumbered** | Zeis's call on the r263 audit: *"remove §19 and §25 completely, then fix the numbering. There's no need to make the file longer with something he already answered, or to tell him about a bug we had that is entirely unrelated to him."* Gone are the API v2 question (answered 2026-09-28 — add `"apiVersion": 2`, which the editor has emitted since r241) and the withdrawn mail-delivery report (our own invented `player@gomail.com`). The list is **23 sections with no gaps**. Renumbering a document with **143 cross-references** was the real work: the mapping went into the file's header, the *live* pointers moved (`README.md`, four rows of the QA ledger), the *historical* ones stayed as written per this repository's archive rule, and the r263 row now names sections instead of numbering them. Three code comments cited the deleted §19 and now carry the date instead. One deliberate omission: `runtimeSource.ts:2956` also cites a section, but its comments ship inside `dist/mod.js` (verified against the built QA export), so editing it would change compiler output and cost an `EDITOR_BUILD` bump — left alone and flagged. |
 | r263 | **The developer list audited before it goes to SteelWaffe** | Zeis asked that every claim in [`docs/03`](docs/03-questions-for-the-developers.md) be verified first, so nothing in it wastes the developer's time. Each was checked against the pinned SDK 0.24.0 declarations and the QA record, including two transcripts fetched from the `QA-filedump` branch: **20 claims verified line-for-line** (each with its file:line in [`docs/plans/r263`](docs/plans/r263-developer-list-audit.md)) and **eight time-wasters** found and fixed — the suspicion and SMS sections re-asked questions he already answered in [`docs/07`](docs/07-dev-response-mod-sdk-bug-report-response.md); the feed-post section's first two bullets were answered by our own later runs; the author/avatar section's "unmeasured" employer fallback was in fact measured by HF-5; the Twotter-uninstall and `AccountCreated` sections pointed at transcripts that do not contain the quoted lines; the static- and dynamic-HTTP sections filed one fence twice; the duplicate-toast item had no date or version; and the header named one build while the items span 1.3.0/25341308, 1.3.1/25388883 and 1.3.13. Zeis's calls: the quoted log lines are real and stay (the logs are gone, so the pointers now say that instead of naming files that lack them), and *"remove things that don't need his input, like bugs that were ours"* — so the feed-post section keeps one paragraph about our own class-emission bug and only the three engine notes. Two of my own audit findings were wrong and are recorded as such: I called §3's transcript block and §7 unsupported before searching `docs/plans/r166-sdk-0.24-ingame-qa.md`, which backs both. Section numbers were left alone in that round (143 cross-references point at them); r264 then removed the two answered items and renumbered the list, so the numbers quoted here are the pre-r264 ones. |
-| r262 | **The app dropdown now offers only desktop apps — terminal commands can never pass the check** | Zeis ran the test on one save with **lynx installed**: `Lynx` → fail, `apt-get install lynx` → fail, and the control `Kisscord` → **success**. The control is what makes it a result: the node worked, name matching worked, and terminal commands still read `Missing`, so `isAppInstalled` reports **desktop apps only** and no quest can route on a terminal command. Three changes follow. The captured store list is split — `GAME_DESKTOP_APPS` (5 pre-installed + 4 installable) feeds the dropdown, while `GAME_TERMINAL_COMMANDS` stays in the file as captured data but is **deliberately not offered**, because a dropdown offering a value that can never work is worse than no dropdown. Typing one now **warns beside the field** ("the game does not count Lynx as an app, so this check always reads Missing even when it is installed"), so the author finds out before shipping rather than after a player reports a dead branch. And the manual's mistake row is rewritten to the verified finding. Two of my own claims are retracted on the record: **r261's "the list is partial by design" was wrong** — Zeis confirmed it is complete apart from `apt-get` options, and the store sidebar counts I read as missing apps double-count apps filed under several categories; and **r260/r261 assumed lynx simply was not installed on his save** — it was. One question to him would have settled it before two rounds were built on the guess. |
 ---
 
 ### Standing rule
@@ -202,7 +202,8 @@ which is kept as an archive — the bug histories in it explain several of the
 rules the code now follows.
 
 Older **Done recently** rows are archived in
-[`docs/archive/`](docs/archive/): r260–r261 in
+[`docs/archive/`](docs/archive/): r262 in
+[`round-262.md`](docs/archive/round-262.md), r260–r261 in
 [`rounds-260-261.md`](docs/archive/rounds-260-261.md) (read its correction
 banner), r227–r259 in
 [`rounds-227-259.md`](docs/archive/rounds-227-259.md) (carries a correction
@@ -218,7 +219,7 @@ tested were deleted in r253, the findings are what remain.
 All four original steps are complete — the editor builds playable mods. The
 work since has been in-game QA, and the polish that came out of it.
 
-Current editor build: `2026-10-02.r260`. The current test suite has
+Current editor build: `2026-10-03.r267`. The current test suite has
 **1,834 tests** across 89 files, **41 node types** in 10 categories (all palette-visible), **164 editable
 fields** and **80 sockets** (counted in the manual), **14 templates**
 (12 playable + 2 reference sheets), **99 game events**, against

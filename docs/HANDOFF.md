@@ -1,3 +1,36 @@
+# Handoff — r267
+
+**G18 is complete: the handbook has zero sentences over 20 words, and Pay and Charge now call the amounts dollars.**
+
+Continued [r266](plans/r266-manual-sentence-ratchet-followup.md) at `nodes/reply-input.html`, then cleared the remaining 26 violations across 20 other pages. The r266 baseline was **29 overlong sentences across 21 pages**; the current whole-manual count is **zero**. `LONG_SENTENCE_BUDGET` is now **0**, and `how-do-i.html` remains at zero. The complete count table, copy decisions, and evidence are in the [r267 execution record](plans/r267-manual-sentence-ratchet.md).
+
+The handbook source and generated pages are in sync. `npm run gen:manual` writes **41 node pages**, reports **zero awaiting prose**, and rebuilds the search index with **285 entries from 51 pages**. The node index now says **41** node types, matching the generated inventory's 41 obtainable types.
+
+**P7 is resolved at Zeis's direction.** Pay and Charge's in-app hints now say **dollars**, not Credits, matching the game's money term and the handbook. This is the only product-copy change in the round; no quest behavior changed. Because the editor itself changed, `EDITOR_BUILD` and the handbook stamp are now `2026-10-03.r267`.
+
+The README's **Done recently** table now keeps r267–r263, with the former r262 row preserved in [`docs/archive/round-262.md`](archive/round-262.md). The new r267 plan is indexed in [`docs/plans/README.md`](plans/README.md).
+
+## Verification
+
+- `npm run recover`: healthy; no recovery residue; dependencies present.
+- `npm run gen:manual`: **41 pages written**, zero awaiting prose; **285 search entries from 51 pages**.
+- `npm test`: **1,834 passed across 89 files**. The suite ran after the source, build-stamp, and G18-gate changes; the final edits after that run were documentation-only.
+- `npx vitest run src/manual.coverage.test.ts`: **27 passed** after the final manual copy; G18 is zero and `how-do-i.html` remains zero.
+- `npm run typecheck`: passed.
+- `npm run build`: passed. Vite warns that the main JavaScript chunk exceeds 1 MB.
+- `git diff --check`: passed.
+- The manual suite still reports **77 screenshots to capture**. None were captured. No browser visual review or in-game install/play test was performed.
+
+Fetched `origin/arena/01a1013d-hackhub-quest-editor` and compared histories before committing; there were no remote-only commits. The r267 changes are committed and pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
+
+## Next work
+
+1. Capture the **77** missing manual screenshots.
+2. Write the **12** how-tos still missing from `how-do-i.html`; passphrase and website are next in the r265 plan.
+3. Keep the G18 budget at **0**. P7 is resolved; there is no remaining money-unit copy recommendation.
+
+---
+
 # Handoff — r266
 
 **The handbook's next five high-count pages are clear; G18 falls from 67 to 29.**

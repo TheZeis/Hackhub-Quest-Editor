@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/extract-manual-inventory.mjs",
-  "editorBuild": "2026-10-02.r260",
+  "editorBuild": "2026-10-03.r267",
   "sdkVersion": "0.24.0",
   "counts": {
     "nodeTypes": 41,
@@ -2065,7 +2065,7 @@
           "kind": "number",
           "key": "amount",
           "label": "Amount",
-          "hint": "Credits deposited into the player's bank account.",
+          "hint": "Dollars deposited into the player's bank account.",
           "min": 0
         },
         {
@@ -2173,7 +2173,7 @@
           "kind": "number",
           "key": "amount",
           "label": "Amount",
-          "hint": "Credits taken from the player's account.",
+          "hint": "Dollars taken from the player's account.",
           "min": 0
         },
         {

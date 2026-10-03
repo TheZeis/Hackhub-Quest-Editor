@@ -1087,7 +1087,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "number", key: "amount", hint: "Credits deposited into the player's bank account.", label: "Amount", min: 0 },
+            { kind: "number", key: "amount", hint: "Dollars deposited into the player's bank account.", label: "Amount", min: 0 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
             { kind: "text", key: "fromIBAN", hint: "The sending account, shown in the transfer details.", label: "From IBAN", mono: true, generate: { kind: "iban", label: "IBAN" } },
             { kind: "text", key: "fromName", hint: "The sender's name on the statement.", label: "From name", generate: { kind: "initialName", label: "sender name" } },
@@ -1118,7 +1118,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "percent", label: "Percentage of balance" },
                 ],
             },
-            { kind: "number", key: "amount", hint: "Credits taken from the player's account.", label: "Amount", min: 0 },
+            { kind: "number", key: "amount", hint: "Dollars taken from the player's account.", label: "Amount", min: 0 },
             { kind: "number", key: "percent", hint: "Percentage of the player's current balance, taken when this node runs.", label: "Percent", min: 0, max: 100 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
         ],
