@@ -1,7 +1,7 @@
 # r273 — Manual figure scene layout review
 
-**Status: the two requested scene corrections are implemented; awaiting visual
-re-review.** The full r271 figure migration remains gated on Zeis's approval.
+**Status: the scene layout and cursor corrections are implemented; awaiting
+visual re-review.** The full r271 figure migration remains gated on Zeis's approval.
 
 ## Review feedback and scope
 
@@ -14,7 +14,9 @@ overall scenes except for two layout issues shown in his screenshots:
   Objective node at the page width he reviewed.
 - **Scene 5, mid-drag state:** its fixed-width frame clips the nodes, and the
   loose wire endpoint sits too close to the Objective socket, suggesting a
-  completed connection instead of a drag in progress.
+  completed connection instead of a drag in progress. After the layout revision,
+  Zeis noted that the cursor faced right and appeared behind the endpoint; the
+  cursor should face left and sit visibly in front of the loose end.
 
 Only these two scenes are in scope. No figure is being migrated into the manual,
 no game image is added, and no product UI or copy is changed.
@@ -27,11 +29,11 @@ no game image is added, and no product UI or copy is changed.
 - Scene 5's iframe now fills the available width (up to 900 px) in a wide card.
   React Flow fits the nodes to the current frame, and the decorative wire now
   lives in `ViewportPortal`, so its curve follows the same pan/zoom transform as
-  the node cards. Its open end and pointer sit visibly in the gap before the
-  Objective socket.
+  the node cards. Its open end sits in the gap before the Objective socket; the
+  cursor now points left at that end and is painted in the foreground.
 - The offline-renderer smoke checks responsive frame widths, hides the unwanted
-  controls in scene 2, and requires scene 5's wire to be attached to the fitted
-  viewport.
+  controls in scene 2, and asserts scene 5's cursor faces left, touches the loose
+  endpoint, paints above it, and shares the fitted viewport.
 
 ## Verification
 
@@ -50,9 +52,9 @@ no game image is added, and no product UI or copy is changed.
 
 ## Next
 
-1. Ask Zeis to review scenes 2 and 5 in the live preview and from disk, checking
-   that both nodes are centered and fully visible, the unnecessary controls are
-   gone, and the wire end reads clearly as detached.
+1. Ask Zeis for a quick re-review of scene 5's cursor in the live preview and
+   from disk: confirm it faces the loose wire end and reads clearly in front of
+   the connection point. The positive scene 2 and overall layout review stands.
 2. Keep all 88 existing editor figures unchanged until the revised prototype is
    approved.
 3. Preserve the scope decisions: no game screenshot, the five unlinked

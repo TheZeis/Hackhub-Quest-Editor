@@ -3,21 +3,24 @@
 **Zeis confirmed the downloaded prototype now opens all five scenes in Firefox.**
 His first visual review requested two corrections: simplify and center scene 2,
 and make scene 5's nodes visible while moving its loose wire end away from the
-Objective socket. Those changes are now implemented; no bulk conversion has
-started.
+Objective socket. Those changes are implemented. On reviewing scene 5, he also
+flagged the cursor; it now faces left and sits in front of the endpoint. A quick
+visual re-review is pending, and no bulk conversion has started.
 
 Scene 2 now hides the editor toolbar, React Flow zoom controls and minimap. Its
 frame is responsive, spans the wide card, and fits the two nodes to the visible
 canvas. Scene 5 also uses a responsive wide frame; React Flow fits the nodes,
 and its detached wire is in the same viewport transform, ending clearly in the
-gap before the Objective. The other three scenes are unchanged.
+gap before the Objective. The cursor now faces left and is painted over the
+loose endpoint. The other three scenes are unchanged.
 
 The live preview server is running; open `/manual-figure-prototype.html` on its
-preview. Please re-review scenes 2 and 5 there and from the latest downloaded
-file. JSDOM checks the responsive frame rules, hidden controls, detached-wire
-viewport and all five renderer starts; it does not verify pixels. The user's
-Firefox check confirmed the offline-origin fix before these layout changes, so
-the new downloaded HTML still needs a quick re-open after updating.
+preview. Please give scene 5's cursor a quick visual re-review there and from the
+latest downloaded file; the broader layout review is positive. JSDOM checks the
+responsive frame rules, hidden controls, detached-wire viewport and all five
+renderer starts; it does not verify pixels. The user's Firefox check confirmed
+the offline-origin fix before these layout changes, so the new downloaded HTML
+still needs a quick re-open after updating.
 
 No editor figure has been replaced. The game-only installation image stays
 removed and its useful prose stays; no game screenshot was captured. The five
@@ -32,8 +35,8 @@ scope is in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 ## Verification
 
 - `npm run gen:manual-figures`: passed; file and HTTP policy checks passed, as
-  did the new responsive-frame/control/wire assertions and all five file-URL
-  scene boot smokes.
+  did the responsive-frame/control assertions, the left-facing foreground-cursor
+  check, and all five file-URL scene boot smokes.
 - `npm run build`: passed; the existing nonfatal warning that the main app
   chunk exceeds 1 MB remains.
 - `npm test -- src/manual.coverage.test.ts`: **27/27 passed**; G8 remains at 88
@@ -50,9 +53,10 @@ scope is in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
 
 ## Next work
 
-1. Ask Zeis to review scenes 2 and 5 in the live preview and from the latest
-   downloaded file: confirm both nodes are centered and fully visible, scene 2
-   has no unrelated controls, and scene 5 reads as a detached in-progress wire.
+1. Ask Zeis for a quick re-review of scene 5's cursor in the live preview and
+   from the latest downloaded file: confirm it faces the loose wire end and
+   reads clearly in front of the connection point. His positive layout review
+   otherwise stands.
 2. Keep conversion of the 88 editor figures stopped until he approves the
    revised prototype.
 3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless editor source

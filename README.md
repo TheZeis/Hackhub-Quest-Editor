@@ -122,12 +122,13 @@ archived once it has stayed fixed for a few rounds.
 The five-scene prototype now opens directly from disk in Firefox. After that
 confirmed fix, Zeis's visual review requested two focused layout changes: remove
 unneeded controls and fit both nodes in scene 2, then center scene 5 and move its
-loose wire end away from the Objective socket. Those changes are in; review is
-pending before any of the 88 editor figures are converted.
+loose wire end away from the Objective socket. Its cursor now faces left and
+sits over the endpoint. Those changes are in; review is pending before any of
+the 88 editor figures are converted.
 
 | Row | Disposition |
 |---|---|
-| **Manual figure prototype** | r272 fixed both offline boot blockers, and Zeis confirmed the downloaded page now renders all five scenes in Firefox without the editor running. r273 removes the canvas toolbar/zoom/minimap from scene 2, makes scenes 2 and 5 responsive, fits their nodes to the frame, and moves scene 5's detached wire end into open space. Waiting on Zeis to re-review those two scenes; do not bulk-convert figures yet. |
+| **Manual figure prototype** | r272 fixed both offline boot blockers, and Zeis confirmed the downloaded page now renders all five scenes in Firefox without the editor running. r273 removes the canvas toolbar/zoom/minimap from scene 2, makes scenes 2 and 5 responsive, fits their nodes to the frame, and places a left-facing cursor over scene 5's detached wire end. The layouts were reviewed positively; awaiting a quick re-review of the cursor adjustment. Do not bulk-convert figures yet. |
 | **Dynamic webpages** | **Closed — nothing actionable is left in the editor.** The content half is green in game (per-request content, path params, no caching, the 404 look, the iframe bridge, all four export combinations, and r248's reproduction of the game's own news-site behaviour). What remains needs the developers, not us: the `Http.Response` fence *and* the "every page view renders twice" observation are both filed in [`docs/03` §23](docs/03-questions-for-the-developers.md), and the fence is already listed under **Known limitations** below. The row's last open line — whether `Mail.getPlayerEmail()` round-trips — was answered by r252's mail C arriving. |
 | **ModSettings** | **Closed — answered 2026-09-28, filed in [`docs/03` §22](docs/03-questions-for-the-developers.md).** The UI was never missing; it is main-menu only, and the full loop is proven. Both remainders are recorded there, including the one obligation that outlives the probe: **if the editor ever generates mod settings it must ship its own reset**, because the game's menu exposes none. Nothing to build until the editor grows a settings surface. |
 | *(the placeholder row)* | Removed — it recorded only that nothing else was mid-flight at r251. |

@@ -100,8 +100,25 @@ for (const scene of scenes) {
             }
         }
     }
-    if (scene === "tutorial-drag-wire" && !root?.querySelector(".react-flow__viewport-portal .figure-drag-wire")) {
-        runtimeErrors.push("the detached wire is not attached to the fitted canvas viewport");
+    if (scene === "tutorial-drag-wire") {
+        const svg = root?.querySelector(".react-flow__viewport-portal .figure-drag-wire");
+        const endpoint = svg?.querySelector("circle");
+        const pointer = svg?.querySelector(".figure-drag-pointer");
+        const coordinates = pointer?.getAttribute("d")?.match(/-?\d+(?:\.\d+)?/g)?.map(Number);
+        const [tipX, tipY, tailX] = coordinates ?? [];
+        const endpointX = Number(endpoint?.getAttribute("cx"));
+        const endpointY = Number(endpoint?.getAttribute("cy"));
+        const endpointRadius = Number(endpoint?.getAttribute("r"));
+        const children = svg ? [...svg.children] : [];
+
+        if (!svg) runtimeErrors.push("the detached wire is not attached to the fitted canvas viewport");
+        if (!pointer || !(tipX < tailX)) runtimeErrors.push("the drag pointer does not face left toward its endpoint");
+        if (!endpoint || !Number.isFinite(tipX) || Math.hypot(tipX - endpointX, tipY - endpointY) > endpointRadius) {
+            runtimeErrors.push("the drag pointer does not meet the loose wire endpoint");
+        }
+        if (pointer && endpoint && children.indexOf(pointer) <= children.indexOf(endpoint)) {
+            runtimeErrors.push("the drag pointer is painted behind the loose wire endpoint");
+        }
     }
     const failed =
         renderedScene !== scene ||
