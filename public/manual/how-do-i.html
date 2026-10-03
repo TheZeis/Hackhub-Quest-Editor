@@ -31,7 +31,7 @@
 <main>
 <header class="hero">
   <h1>How do I…</h1>
-  <p class="tag">Walkthroughs for practical tasks authors handle in the editor. Each guide solves one job with clear, grounded steps. All 17 are listed below; five more guides are being added.</p>
+  <p class="tag">Walkthroughs for practical tasks authors handle in the editor. Each guide solves one job with clear, grounded steps. All 17 guides are written and linked below.</p>
 </header>
 <section id="howto-list">
 <p>These are practical arrangements built from editor features. Each guide names the nodes you need and estimates the time. It explains why the setup works and lists common failure points. Examples draw on built-in templates and the game's own quests.</p>
@@ -50,14 +50,14 @@
     <tr><td><a href="#howto-scan-gate">Gate progress on a target scan</a></td><td>Only a scan of the intended address advances the story.</td></tr>
     <tr><td><a href="#howto-lead">Give the player a lead to look up</a></td><td>A scripted Whois record the player can request.</td></tr>
     <tr><td><a href="#howto-tool-match">Match a tool addon to its target</a></td><td>Use target warnings without treating them as proof.</td></tr>
-    <tr><td>Route on whether a supported app is installed</td><td>A safe path for players who lack the app.</td></tr>
-    <tr><td>Chain conversations together</td><td>Phone calls wait to end; replies can take Wrong.</td></tr>
-    <tr><td>End the story cleanly with Complete quest</td><td>Place the final beat, reward and completion hook in order.</td></tr>
-    <tr><td>Customize a template safely</td><td>Protect current work before replacing it with a template.</td></tr>
-    <tr><td>Update an exported quest</td><td>Edit the source project and export a versioned replacement.</td></tr>
+    <tr><td><a href="#howto-app-check">Route on whether a supported app is installed</a></td><td>A safe path for players who lack the app.</td></tr>
+    <tr><td><a href="#howto-chained-talk">Chain conversations together</a></td><td>Phone calls wait to end; replies can take Wrong.</td></tr>
+    <tr><td><a href="#howto-ending">End the story cleanly with Complete quest</a></td><td>Place the final beat, reward and completion hook in order.</td></tr>
+    <tr><td><a href="#howto-from-template">Customize a template safely</a></td><td>Protect current work before replacing it with a template.</td></tr>
+    <tr><td><a href="#howto-update">Update an exported quest</a></td><td>Edit the source project and export a versioned replacement.</td></tr>
   </tbody>
 </table>
-<p>Twelve guides are linked. Five more are planned.</p>
+<p>All 17 walkthroughs are written and linked above.</p>
 </section>
 
 <section id="howto-objective-that-ticks">
@@ -676,6 +676,206 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>No target warnings appear.</b> Confirm the pack is loaded, the quest uses it, and a target is declared.</li>
   <li><b>A service warning appears.</b> Change the target's service to one accepted by the pack.</li>
   <li><b>A version warning disappears.</b> That confirms a version value is present. It does not prove that version fits the tool's real requirements.</li>
+</ul>
+</section>
+
+<section id="howto-app-check">
+<h2>Route on whether a supported app is installed</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/flow-appcheck.html">App Install Check</a> and a desktop app your story may require</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">App Install Check</b> checks desktop apps, not terminal commands. It routes the story through <b class="ui">Installed</b> or <b class="ui">Missing</b>.</p>
+<p>It does not install the app. Give players who lack it another way forward.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Place the check.</b> Put <b class="ui">App Install Check</b> before a story beat that assumes the player can open an app. Connect the previous step to its <b class="ui">In</b> socket.</li>
+  <li><b>Choose the app.</b> Select its desktop name under <b class="ui">App name</b>. Supported choices include <code>Kisscord</code>, <code>Wireshark</code> and <code>Database Manager</code>.</li>
+  <li><b>Connect both routes.</b> Send <b class="ui">Installed</b> to the app task. Send <b class="ui">Missing</b> to a fallback or another route.</li>
+  <li><b>Save the full app list only when needed.</b> Leave <b class="ui">Also save the list of installed apps</b> on if a later node needs it. Set <b class="ui">Save the list as</b> to choose its name.</li>
+  <li><b>Keep terminal commands out of this check.</b> Commands such as <code>lynx</code> cannot be checked as desktop apps.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-13-app-check.png"
+       alt="App Install Check set to a supported desktop app, with Installed and Missing routes connected." />
+  <figcaption>Give both outcomes a useful destination.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Use another supported app.</b> Select the name shown in the desktop app list.</li>
+  <li><b>Check the full list later.</b> Keep the list-saving option on and use its saved name in a later node.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The Missing route always runs.</b> Select a supported app name. A terminal command cannot match here.</li>
+  <li><b>The story stops on one outcome.</b> Connect both <b class="ui">Installed</b> and <b class="ui">Missing</b> outputs.</li>
+  <li><b>A later node cannot read the app list.</b> Turn on <b class="ui">Also save the list of installed apps</b> and reuse the same name.</li>
+</ul>
+</section>
+
+<section id="howto-chained-talk">
+<h2>Chain conversations together</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/comms-dialogue.html">Dialogue</a> and the next story beat</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A Dialogue node has an <b class="ui">Out</b> route and a <b class="ui">Wrong</b> route. Phone calls can wait to finish before the next beat.</p>
+<p>A typed reply reaches <b class="ui">Wrong</b> only when its answer setting selects that route.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Dialogue</b> node and choose <b class="ui">Phone call</b>. Connect the previous story node to its <b class="ui">In</b> socket.</li>
+  <li>Write the call, then set <b class="ui">Out fires</b> to <b class="ui">When the call ends</b>.</li>
+  <li>Add the next conversation. Connect the first node's <b class="ui">Out</b> to the next node's <b class="ui">In</b>.</li>
+  <li>For each typed reply, set <b class="ui">On a wrong answer</b> to <b class="ui">Node's Wrong output</b>. Change this in the script editor.</li>
+  <li>Connect <b class="ui">Wrong</b> to a hint or retry route. Give the wrong answer somewhere useful to go.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-14-chained-talk.png"
+       alt="Two Dialogue nodes connected in order, with the first call set to continue when it ends." />
+  <figcaption>The second conversation starts after the first call ends.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Start the next beat immediately.</b> Set <b class="ui">Out fires</b> to <b class="ui">Right after starting the call</b>. The call can still be in progress.</li>
+  <li><b>Give a wrong reply a separate ending.</b> Connect <b class="ui">Wrong</b> to a different message or branch.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The next call starts too soon.</b> Set <b class="ui">Out fires</b> to <b class="ui">When the call ends</b>.</li>
+  <li><b>A wrong reply does not branch.</b> Set <b class="ui">On a wrong answer</b> to <b class="ui">Node's Wrong output</b>.</li>
+  <li><b>The wrong route stops.</b> Connect the node's <b class="ui">Wrong</b> output to a follow-up.</li>
+</ul>
+</section>
+
+<section id="howto-ending">
+<h2>End the story cleanly with Complete quest</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/fx-completequest.html">Complete quest</a>, a final story beat and optional rewards</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">Complete quest</b> is a terminal ending with no output. Put closing story and payments before it, or under <b class="ui">On quest complete</b>.</p>
+<p>Quest <b class="ui">Money</b> and <b class="ui">XP</b> are completion rewards. <b class="ui">Pay the player</b> is a separate transfer node.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>In Quest settings, set the quest's <b class="ui">Money</b> and <b class="ui">XP</b> rewards.</li>
+  <li>Leave <b class="ui">Complete automatically</b> off when this node should control the ending.</li>
+  <li>Place the closing message, payment or notification before <b class="ui">Complete quest</b>.</li>
+  <li>Connect the final story beat to the node's <b class="ui">In</b> socket. Nothing connects after its ending.</li>
+  <li>Put optional follow-up work under the quest's <b class="ui">On quest complete</b> entry.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-15-ending.png"
+       alt="A final story message and payment lead into Complete quest, with separate On quest complete work." />
+  <figcaption>Finish the story before the terminal ending.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let completion pay a reward.</b> Set <b class="ui">Money</b> or <b class="ui">XP</b> in Quest settings.</li>
+  <li><b>Run cleanup afterward.</b> Use <b class="ui">On quest complete</b> for work that should start after the quest ends.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The quest ends before the closing message.</b> Turn off <b class="ui">Complete automatically</b> and use the ending node.</li>
+  <li><b>A payment never happens.</b> Connect it before <b class="ui">Complete quest</b> or under <b class="ui">On quest complete</b>.</li>
+  <li><b>You cannot wire a next beat from the ending.</b> That node has no output. Move the beat before it or into the completion entry.</li>
+</ul>
+</section>
+
+<section id="howto-from-template">
+<h2>Customize a template safely</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd>A saved project file if you want to keep your current work</dd>
+  <dt>Takes</dt><dd>About five minutes to load; longer to customize</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>The picker has 14 entries: 12 templates and two Reference sheets. <b class="ui">First Contact</b> is a Beginner template with eight nodes.</p>
+<p>Choosing an entry replaces the current project and clears undo history. Autosave is not a versioned backup.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Save what you have.</b> Use top-bar <b class="ui">Save</b> or <b class="ui">Export current quest</b> in the picker.</li>
+  <li>Open <b class="ui">Templates</b> in the top bar, or click <b class="ui">Browse 14 templates</b> on the welcome panel.</li>
+  <li>Choose <b class="ui">First Contact</b> to study an eight-node Beginner quest. Read its connections before changing them.</li>
+  <li>Edit the quest's messages, objectives and connections to fit your story. Keep the saved project file as your recovery copy.</li>
+  <li>To reopen saved work, use top-bar <b class="ui">Load</b> or <b class="ui">Import a quest file</b> in the picker.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-16-from-template.png"
+       alt="The template picker showing First Contact and the Export current quest and Import a quest file options." />
+  <figcaption>Save current work before choosing a replacement template.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Browse reference sheets.</b> <b class="ui">Node Reference</b> and <b class="ui">Quest Cookbook</b> show examples; they are not starter quests.</li>
+  <li><b>Share your starting project.</b> Use <b class="ui">Export current quest</b> to make a project file another editor can import.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>Your old work is gone.</b> Loading a template replaces the project. Restore it with the saved project file.</li>
+  <li><b>You expected autosave to restore an earlier version.</b> Autosave keeps the current draft, not a version history. Save a separate project file first.</li>
+  <li><b>The reference sheet is not a playable quest.</b> Choose a quest template such as <b class="ui">First Contact</b> instead.</li>
+</ul>
+</section>
+
+<section id="howto-update">
+<h2>Update an exported quest</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd>The editable project file and the exported mod folder</dd>
+  <dt>Takes</dt><dd>About ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>The saved project is the editable source. The exported <code>.zip</code> is finished game output, not a project you can reopen.</p>
+<p>Keep the same <b class="ui">Mod id</b> for an update. Increase <b class="ui">Version</b> before you export again.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Open the saved project with top-bar <b class="ui">Load</b>. Do not try to load the exported <code>.zip</code>.</li>
+  <li>Make and save your changes in the editor. Keep the original project file for future edits.</li>
+  <li>Open the inspector's <b class="ui">Mod</b> tab. Leave <b class="ui">Mod id</b> unchanged and increase <b class="ui">Version</b>.</li>
+  <li>Open <b class="ui">Export mod</b>, read its report, then choose <b class="ui">Download .zip</b>.</li>
+  <li>Unzip the new archive. Replace the old extracted mod folder inside the game's <code>mods/</code> folder.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-17-update.png"
+       alt="The Mod settings showing the unchanged Mod id and increased Version before exporting a new zip." />
+  <figcaption>Keep the mod identity and raise its version for the new export.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Recover the editable project.</b> Use the saved project file, or ask its author for one. The exported archive cannot restore the canvas.</li>
+  <li><b>Ship through the Workshop.</b> Increase <b class="ui">Version</b> before each upload, as the editor's hint says.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The game still loads the old files.</b> Replace the extracted folder under <code>mods/</code>, not the zip beside it.</li>
+  <li><b>The update appears as a different mod.</b> Check that <b class="ui">Mod id</b> still matches the original.</li>
+  <li><b>You only have the exported archive.</b> It is not editable. Find the saved project file or rebuild the quest in the editor.</li>
 </ul>
 </section>
 
