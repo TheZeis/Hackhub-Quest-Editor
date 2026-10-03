@@ -1,3 +1,29 @@
+# Handoff — r271 plan awaiting approval
+
+**The missing manual figures have been audited; a code-rendered alternative is proposed, but no illustration implementation or figure replacement has begun.**
+
+The current 89 missing image references break down to 88 editor views and one game view: `tutorial-14-installed.png` is the game's mod list. The r164 manifest also has five unlinked game-only names and two unlinked editor panels. Its prose says 91 total, but its 96 unique filenames and the actual table rows show the counts are stale. The evidence, proposed single offline renderer, scope, tests and game-only decision are in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
+
+This checkpoint changes planning documents only. No manual figure, `src/**` product code or G8 test has changed; `EDITOR_BUILD` remains `2026-10-03.r267`. The README now records r271 in **Done recently**, the next-up row says approval is required, and the displaced r266 entry is archived. The r271 investigation is indexed in [`docs/plans/README.md`](plans/README.md).
+
+## Verification
+
+- `npm run recover`: restored the pushed r270 tip at `cbd2ff0`, found no recovery residue and reinstalled dependencies.
+- `npm test -- src/manual.coverage.test.ts`: **27 passed**; G8 still reports 89 missing references.
+- `npm run typecheck`: passed.
+- `npm run build`: passed; Vite emitted its existing nonfatal warning that the main JavaScript chunk exceeds 1 MB.
+- `git diff --check`: passed after drafting the plan and roadmap updates.
+- No browser or browser-automation package is available, so the proposed renderer was not visually tested. No images were captured.
+- No full suite ran because this checkpoint changes documentation only.
+
+## Next work
+
+1. Zeis reviews or revises the plan, including whether the one game-only tutorial figure should remain a true capture or be removed/replaced by a labelled schematic.
+2. Do not implement the renderer or replace figures before approval. After approval, build and show the five-scene prototype before migrating the other 83 editor figures.
+3. Keep the five unlinked game-only slots and two unlinked editor panels out of scope unless requested; keep G18 at **0** and the editor stamp at r267 unless editor source changes.
+
+---
+
 # Handoff — r270
 
 **All 17 how-to guides are written and linked; G18 remains at zero.**
