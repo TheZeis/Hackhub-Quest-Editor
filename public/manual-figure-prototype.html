@@ -27,10 +27,10 @@
       .frame-scroll { overflow: auto; border-top: 1px solid #e3e8ef; background: #dfe4ea; }
       iframe { display: block; border: 0; background: #0c0e13; }
       .inspector-frame iframe { width: 440px; height: 700px; }
-      .canvas-frame iframe { width: 960px; height: 520px; }
+      .canvas-frame iframe { width: 100%; max-width: 960px; height: 520px; margin-inline: auto; }
       .settings-frame iframe,
       .workspace-frame iframe { width: 1360px; height: 820px; }
-      .drag-frame iframe { width: 900px; height: 520px; }
+      .drag-frame iframe { width: 100%; max-width: 900px; height: 520px; margin-inline: auto; }
       .wide { grid-column: 1 / -1; }
       @media (max-width: 900px) {
         main { padding: 24px 14px 40px; }
@@ -67,7 +67,7 @@
           </div>
         </section>
 
-        <section class="scene canvas-frame">
+        <section class="scene canvas-frame wide">
           <h2>2. How-to canvas with a typed wire</h2>
           <p id="alt-howto">A When event with a search condition is wired to the Objective it completes. The wire and node cards come from the editor's canvas renderer.</p>
           <div class="frame-scroll">
@@ -118,7 +118,7 @@
           </div>
         </section>
 
-        <section class="scene drag-frame">
+        <section class="scene drag-frame wide">
           <h2>5. Transient mid-drag state</h2>
           <p id="alt-drag">A still illustration shows a connection being pulled from the When event toward the Objective. The loose wire is drawn as a fixed snapshot, not an active drag.</p>
           <div class="frame-scroll">

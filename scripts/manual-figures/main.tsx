@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { ReactFlow, ReactFlowProvider } from "@xyflow/react";
+import { ReactFlow, ReactFlowProvider, ViewportPortal } from "@xyflow/react";
 import { GraphNode, type GraphRFNode } from "@/editor/canvas/GraphNode";
 import { QuestCanvas } from "@/editor/canvas/QuestCanvas";
 import { InspectorPanel } from "@/editor/inspector/InspectorPanel";
@@ -125,8 +125,10 @@ function DragWireScene() {
                     nodes={nodes}
                     edges={[]}
                     nodeTypes={{ qe: GraphNode }}
-                    defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-                    fitView={false}
+                    fitView
+                    fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
+                    minZoom={0.2}
+                    maxZoom={1}
                     nodesDraggable={false}
                     nodesConnectable={false}
                     elementsSelectable={false}
@@ -135,29 +137,34 @@ function DragWireScene() {
                     zoomOnScroll={false}
                     zoomOnDoubleClick={false}
                     proOptions={{ hideAttribution: true }}
-                />
-                <svg
-                    className="figure-drag-wire"
-                    viewBox="0 0 900 520"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
                 >
-                    <path
-                        d="M 320 209 C 384 209 452 275 540 209"
-                        fill="none"
-                        stroke="var(--color-cat-trigger)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                    />
-                    <circle cx="540" cy="209" r="7" fill="var(--color-canvas)" stroke="var(--color-cat-trigger)" strokeWidth="3" />
-                    <path
-                        d="M 550 201 L 560 193 L 558 207 L 554 204 L 551 211 Z"
-                        fill="var(--color-ink)"
-                        stroke="var(--color-canvas)"
-                        strokeWidth="1"
-                        strokeLinejoin="round"
-                    />
-                </svg>
+                    <ViewportPortal>
+                        <svg className="figure-drag-wire" viewBox="0 0 900 520" aria-hidden="true">
+                            <path
+                                d="M 320 209 C 356 209 376 260 425 260"
+                                fill="none"
+                                stroke="var(--color-cat-trigger)"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                            />
+                            <circle
+                                cx="425"
+                                cy="260"
+                                r="7"
+                                fill="var(--color-canvas)"
+                                stroke="var(--color-cat-trigger)"
+                                strokeWidth="3"
+                            />
+                            <path
+                                d="M 435 253 L 445 245 L 443 259 L 439 256 L 436 263 Z"
+                                fill="var(--color-ink)"
+                                stroke="var(--color-canvas)"
+                                strokeWidth="1"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </ViewportPortal>
+                </ReactFlow>
                 <div className="figure-drag-label" aria-hidden="true">
                     Fixed mid-drag illustration
                 </div>

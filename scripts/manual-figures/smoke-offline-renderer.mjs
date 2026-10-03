@@ -37,6 +37,13 @@ for (const [mode, pageUrl, expectedSandbox] of [
         if (frame.getAttribute("sandbox") !== expectedSandbox) {
             problems.push(`frame ${index + 1} has sandbox ${frame.getAttribute("sandbox")}`);
         }
+        if (scene === "howto-wired-canvas" || scene === "tutorial-drag-wire") {
+            const style = dom.window.getComputedStyle(frame);
+            const maxWidth = scene === "howto-wired-canvas" ? "960px" : "900px";
+            if (style.width !== "100%" || style.maxWidth !== maxWidth) {
+                problems.push(`frame ${index + 1} is not responsive (width ${style.width}, max ${style.maxWidth})`);
+            }
+        }
         if (mode === "file") {
             if (frameUrl.protocol !== "file:" || fileURLToPath(frameUrl) !== rendererPath) {
                 problems.push(`frame ${index + 1} does not point to the local renderer file`);
@@ -81,6 +88,21 @@ for (const scene of scenes) {
     const root = dom.window.document.getElementById("root");
     const renderedScene = dom.window.document.documentElement.dataset.figureScene;
     const text = root?.textContent ?? "";
+    if (scene === "howto-wired-canvas") {
+        for (const selector of [
+            ".figure-canvas .react-flow__controls",
+            ".figure-canvas .react-flow__minimap",
+            ".figure-canvas > .relative > .absolute.top-3.left-3",
+        ]) {
+            const control = root?.querySelector(selector);
+            if (!control || dom.window.getComputedStyle(control).display !== "none") {
+                runtimeErrors.push(`unwanted canvas control is visible: ${selector}`);
+            }
+        }
+    }
+    if (scene === "tutorial-drag-wire" && !root?.querySelector(".react-flow__viewport-portal .figure-drag-wire")) {
+        runtimeErrors.push("the detached wire is not attached to the fitted canvas viewport");
+    }
     const failed =
         renderedScene !== scene ||
         !root?.querySelector(".figure-root") ||

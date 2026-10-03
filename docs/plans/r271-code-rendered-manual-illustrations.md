@@ -1,12 +1,13 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: five-scene prototype built; two offline boot blockers fixed; awaiting user review.**
-The game-only tutorial figure has been removed by decision, its useful prose
-remains, and no editor figure has been replaced. r272 fixes the bundle's
-`process.env.NODE_ENV` reference and Firefox's sandboxed `moz-nullprincipal`
-origin blocking local assets. The file-only same-origin policy is now selected
-before iframe loading; all five scene entry points pass the local smoke test.
-Bulk conversion is still held until the prototype has been reviewed.
+**Status: direct-from-disk loading is confirmed; scenes 2 and 5 have r273 layout
+corrections and are awaiting re-review.** The game-only tutorial figure has been
+removed by decision, its useful prose remains, and no editor figure has been
+replaced. r272 fixed the bundle's `process.env.NODE_ENV` reference and Firefox's
+sandboxed `moz-nullprincipal` origin blocking local assets. Zeis confirmed that
+all five frames now load from disk without the editor running. r273 implements
+the two visual changes he requested; bulk conversion remains held until he
+reviews the updated prototype.
 
 ## Approved direction
 
@@ -101,18 +102,21 @@ indexed.
 Zeis's first direct-from-disk test exposed a bundle boot failure. The generated
 IIFE retained `process.env.NODE_ENV`, which is not defined in browsers, so the
 renderer script threw before any scene replaced its HTML fallback. r272 defines
-that expression as production. Afterward, Zeis's Firefox console identified a
-second blocker: the frame's opaque sandbox origin blocked `renderer.js` and
-`renderer.css`. The parent now grants the file origin only for `file://` and
-keeps the HTTP preview scripts-only. A smoke in `gen:manual-figures` checks both
-parent-page policies, then opens the renderer document, CSS and script from disk
-for all five scene IDs. All five mount without runtime errors. JSDOM needs a
-no-op `ResizeObserver` and does not enforce iframe sandbox origins; this verifies
-startup and the selected policy, not Firefox's enforcement or pixels. No
-browser binary is available here, so Zeis must retry the latest local file;
-visual fidelity, keyboard and screen-reader review also remain open. No editor
-figures have been bulk-migrated; G8 should still report **88 current missing
-editor-image references** and no game-only figure.
+that expression as production. Firefox then exposed a second blocker: the
+sandbox's opaque origin blocked `renderer.js` and `renderer.css`. The parent now
+grants the file origin only for `file://` and keeps the HTTP preview
+scripts-only. The automated smoke checks both parent-page policies and boots all
+five local scenes. JSDOM needs a no-op `ResizeObserver` and does not enforce
+Firefox's sandbox origins; Zeis has since confirmed the fix by opening the latest
+file directly in Firefox.
+
+His visual review found that scene 2's editor toolbar/zoom controls were noise
+and its Objective node was clipped, while scene 5's nodes were clipped and its
+wire endpoint looked connected. r273 hides the unneeded canvas chrome, makes
+both frames responsive, fits the nodes to each frame, and puts the scene 5 wire
+endpoint visibly in the gap. These changes pass the scene smoke but still need
+visual re-review. No editor figures have been bulk-migrated; G8 should still
+report **88 current missing editor-image references** and no game-only figure.
 
 ## What can render the real editor
 
@@ -227,12 +231,12 @@ time; do not fall back to 88 hand-maintained mockups.
    stopped until Zeis reviews this prototype.
 3. **Test the offline and semantic path.** The r272 JSDOM smoke checks that
    local-file frames receive the file-only origin permission, HTTP frames remain
-   scripts-only, and all five local scenes start. The Firefox console confirmed
-   the original opaque-origin error, but JSDOM does not enforce it. Reopen the
-   prototype in Firefox with the network unavailable and confirm the assets now
-   load. Check that each frame has an accessible name, no control is interactive,
-   and descriptions and captions remain outside the frame. Keep visual, keyboard
-   and screen-reader checks open until that review.
+   scripts-only, and all five local scenes start. Zeis confirmed that the page
+   now opens from disk in Firefox without the editor running. JSDOM does not
+   enforce Firefox's sandbox origin rules or verify pixels. Review scenes 2 and
+   5 after r273, then check that each frame has an accessible name, no control
+   is interactive, and descriptions and captions remain outside the frame.
+   Keep keyboard and screen-reader checks open until review.
 4. **After review, convert the 88 current editor figures** to scene references,
    preserving useful existing captions and descriptions. Do not render an editor
    lookalike for the game's mod list. Leave the five additional game-only and
@@ -286,7 +290,7 @@ figure is an editor screenshot: the tutorial's installation image showed the
 game's mod list. Zeis chose no game screenshot, so that figure is removed and
 its useful prose remains. The five unlinked game images and two editor panels
 stay dormant. r272 corrected the renderer's undefined `process.env.NODE_ENV`
-reference and Firefox's sandbox-origin block on local files. Its bootstrap now
-grants same-origin only when opened from disk; all five scenes pass the JSDOM
-`file://` startup smoke. Real Firefox, visual and assistive-technology checks
-remain open; do not bulk-convert editor figures until Zeis reviews the prototype.
+reference and Firefox's sandbox-origin block on local files; Zeis confirmed that
+the page now opens in Firefox from disk. r273 addresses the layout issues in
+scenes 2 and 5. Visual re-review and assistive-technology checks remain open; do
+not bulk-convert editor figures until Zeis approves the revised prototype.

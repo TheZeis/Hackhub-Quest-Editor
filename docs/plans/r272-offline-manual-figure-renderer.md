@@ -1,8 +1,9 @@
 # r272 — Direct-from-disk renderer boot failure
 
-**Status: both boot blockers have fixes; waiting for Zeis to retry the local
-prototype.** Bulk conversion of the 88 current editor figures remains gated on
-that review.
+**Status: both boot blockers are fixed; Zeis confirmed the downloaded prototype
+now renders all five scenes in Firefox.** The subsequent visual refinements for
+scenes 2 and 5 are tracked in [r273](r273-manual-figure-scene-layout.md); the
+88-figure conversion remains gated on that re-review.
 
 ## Report and scope
 
@@ -74,20 +75,20 @@ asset path, not Firefox security enforcement or rendered pixels.
   above 1 MB remains.
 - `git diff --check` and `node --check
   scripts/manual-figures/smoke-offline-renderer.mjs`: passed.
-- The Firefox console log confirms the sandbox-origin failure; its resolution is
-  now addressed in the parent page. No Firefox or other real browser is
-  installed here, so Zeis must retry the latest local file. Visual fidelity,
-  keyboard and screen-reader checks also remain unperformed.
+- The Firefox console log confirmed the sandbox-origin failure, and Zeis later
+  confirmed that all five scenes load from the downloaded file without the
+  editor running. This does not certify visual fidelity; scenes 2 and 5 received
+  separate layout feedback in r273. Keyboard and screen-reader checks remain
+  unperformed.
 - No `src/**` product code or copy changed. `EDITOR_BUILD` remains
   `2026-10-03.r267`; no editor figure was replaced and no game screenshot was
   captured.
 
 ## Next
 
-1. Ask Zeis to reopen the latest `public/manual-figure-prototype.html` from disk
-   in Firefox. Confirm that all five frames render without a running editor or
-   network connection; capture any new console errors if they do not.
-2. Review the scenes visually in the live preview and locally. Keep the
-   88-figure migration stopped until that review is accepted.
+1. Zeis confirmed that the updated page opens all five scenes from disk in
+   Firefox without the editor running. The remaining visual re-review of scenes
+   2 and 5 is tracked in [r273](r273-manual-figure-scene-layout.md).
+2. Keep the 88-figure migration stopped until the revised prototype is approved.
 3. Keep G18 at zero and leave the five other game-only names and two unlinked
    editor-panel names dormant.
