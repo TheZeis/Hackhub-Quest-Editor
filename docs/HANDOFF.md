@@ -1,3 +1,35 @@
+# Handoff — r269
+
+**The public website walkthrough is written and linked; G18 remains at zero.**
+
+Continued the manual backlog after [r268](plans/r268-passphrase-howto.md). The new [website walkthrough](../public/manual/how-do-i.html#howto-website) starts from a blank site, replaces the placeholder host, edits the public home page, keeps it listed in search, previews it, and tells the player where to go. Optional visit-gating uses `Browser.WebsiteOpened` without claiming it proves the player read the page. Ground-truth extraction and the chosen pattern are recorded in the [r269 plan](plans/r269-website-howto.md).
+
+The index now has **7 written walkthroughs and 10 still planned**. No `src/**` files changed, so `EDITOR_BUILD` remains `2026-10-03.r267`.
+
+The guide references its declared `howto-07-website.png` slot, but no image exists. Manual coverage now reports **79 screenshots still to capture**. No browser binary or Playwright/Puppeteer package is available here, so no screenshot or visual review was attempted. No in-game test was performed.
+
+The README's **Done recently** table now holds r269–r265. The displaced r264 entry is preserved in [`docs/archive/round-264.md`](archive/round-264.md), alongside r263 in [`docs/archive/round-263.md`](archive/round-263.md). The r269 plan is indexed in [`docs/plans/README.md`](plans/README.md).
+
+## Verification
+
+- `npm run recover`: healthy at the pre-round checkpoint; no recovery residue; dependencies present.
+- `npm run gen:manual`: **41 node pages written**, zero awaiting prose; **285 search entries from 51 pages**.
+- `npx vitest run src/manual.coverage.test.ts`: **27 passed**; G18 remains zero; the how-to index covers all 17 walkthroughs; G8 reports **79** pending screenshots.
+- `npm run typecheck`: passed.
+- `npm run build`: passed, including typecheck. Vite warns that the main JavaScript chunk exceeds 1 MB.
+- `git diff --check`: passed.
+- Browser visual review and in-game review: not performed; no browser or screenshot tooling is available in this environment.
+
+Origin was fetched immediately before the documentation commit; the session branch had no remote-only commits. No pull request was requested or opened.
+
+## Next work
+
+1. Capture the **79** outstanding manual screenshots when a browser-capable capture environment is available.
+2. Write the **10** remaining how-tos; hidden pages are next.
+3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless an editor source change is explicitly approved.
+
+---
+
 # Handoff — r268
 
 **The passphrase walkthrough is written and linked; G18 remains at zero.**
