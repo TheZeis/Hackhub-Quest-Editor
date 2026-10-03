@@ -85,15 +85,15 @@ edge.</div>
 </dl>
 <h3>Hackhub feed post</h3>
 <p>The toggle that puts the quest on the Hackhub feed as a job the player can
-accept on the spot — the organic way to be found, next to the scripted
-<b class="ui">Claim quest</b> node for quests the story starts itself. Quests
+accept on the spot. It is the organic way to be found. The scripted
+<b class="ui">Claim quest</b> node covers quests the story starts itself. Quests
 accepted from the feed complete from the post itself, not the journal.</p>
 <dl class="facts-list">
   <dt>Post this quest to the Hackhub feed</dt><dd>Off (the default) ships no
   post at all.</dd>
   <dt>Post text</dt><dd>The feed body — the pitch the player accepts.</dd>
   <dt>Poster name</dt><dd>Who seems to have written the post. Blank, the game
-  generates a name; your own reads best when it is tied to the story rather
+  generates a name. Your own reads best when it is tied to the story rather
   than a name anyone could have.</dd>
   <dt>Poster avatar</dt><dd>A PNG or JPG. Blank, the game draws one — a mod
   that ships no avatars still looks at home on the board.</dd>
@@ -103,14 +103,12 @@ accepted from the feed complete from the post itself, not the journal.</p>
   uploaded avatar, and a line of text.</dd>
 </dl>
 <p><b>About the game-generated persona:</b> every field you leave blank is
-filled by the game with a generated name and a drawn avatar, so a post with
-nothing set still looks like it belongs. Feed posts are part of the quest's
-registration — there is currently no way for a mod to take one back down;
+filled by the game. It supplies a generated name and a drawn avatar. A post with nothing set still looks like it belongs. Feed posts are part of the quest's
+registration. There is currently no way for a mod to take one back down.
 asking the game's developers for that is on the list.</p>
 <h3>Rewards</h3>
 <p><b class="ui">Money</b> and <b class="ui">XP</b>, both plain numbers. These
-are what the game pays for finishing the quest, which is separate from anything
-a <b class="ui">Pay the player</b> node does mid-story.</p>
+are what the game pays for finishing the quest. That is separate from anything a <b class="ui">Pay the player</b> node does mid-story.</p>
 <h3>Behaviour</h3>
 <dl class="facts-list">
   <dt>Start automatically</dt><dd>The quest begins on its own instead of waiting
@@ -134,7 +132,7 @@ a <b class="ui">Pay the player</b> node does mid-story.</p>
 <b class="ui">E-mail</b>. The person the quest is from. Worth filling in,
 because a job with no name behind it reads as a system message.</p>
 <h3>Health</h3>
-<p>Not a setting. This group reads your quest back to you: how many objectives
+<p>Not a setting. This group reads your quest back to you. It says how many objectives
 it has, and how many of them nothing can ever complete. It is the fastest check
 in the editor.</p>
 <figure>
@@ -177,13 +175,11 @@ what, in what order, and with what delay.</p>
   <figcaption>One conversation, line by line.</figcaption>
 </figure>
 <p>A conversation needs something to reach it. Nothing wiring into a
-<b class="ui">Dialogue</b> node is a problem the export report will raise,
-because a conversation nobody triggers is a conversation the player never
+<b class="ui">Dialogue</b> node is a problem the export report will raise. A conversation nobody triggers is a conversation the player never
 sees.</p>
 
 <h2 id="websites">Websites</h2>
-<p>The <b class="ui">Websites</b> button opens the builder: your sites on the
-left, and the pages of whichever site you picked on the right. A site is a host;
+<p>The <b class="ui">Websites</b> button opens the builder. Your sites are on the left, and the pages of whichever site you picked on the right. A site is a host;
 a page is a path on it.</p>
 <figure>
   <img src="img/guide-websites.png"
@@ -230,8 +226,7 @@ to a test drive the editor has.</p>
 </figure>
 <p>Watch the order rather than the outcome. If a node you expected never
 appears, nothing is wired to reach it. Drop a
-<a href="nodes/flow-debug.html">Debug probe</a> after it and run again: the
-probe prints what a node does when it fires, and whether it fires at all.</p>
+<a href="nodes/flow-debug.html">Debug probe</a> after it and run again. The probe prints what a node does when it fires, and whether it fires at all.</p>
 <div class="note"><b>Dry run is not the game.</b> It runs your logic, not the
 game's tools. A conversation, a scan or an exploit can still behave differently
 in the real thing, which is why the timed-conversation warning tells you to
@@ -248,7 +243,7 @@ your editor. The window's own description of them:</p>
   appear.</figcaption>
 </figure>
 <p>Once a pack is loaded, its events show up in the trigger picker under
-<b class="ui">Community addons</b>, and its tool actions appear in the palette
+<b class="ui">Community addons</b>. Its tool actions appear in the palette
 under the same name. Nothing changes until you load one.</p>
 <div class="note warn"><b>Your players need the pack too.</b> A quest built on an
 addon does nothing for anyone without it, and the game will not tell them what
@@ -294,7 +289,7 @@ your quest does.</p>
   Purely cosmetic, and off is calmer on a big map.</dd>
   <dt>Debug</dt><dd>Opens the editor's own diagnostics: the build stamp, wire
   numbers, counters and a recent-event log. <b>This is not the Debug probe
-  node</b> — that one goes on your canvas and prints what a node does at
+  node</b>. That one goes on your canvas and prints what a node does at
   runtime.</dd>
 </dl>
 <figure>
@@ -309,21 +304,18 @@ reads <span class="mono">No issues</span> when the quest is clean.</p>
 
 <h2 id="pack-extras">Things outside your quests</h2>
 <p>Every other part of this handbook is about a quest. This section is about the
-four things a pack can put <em>outside</em> a quest — a start-menu entry, a small
-box on the desktop, entries in a right-click menu, and the words your pack can
-speak in another language.</p>
+four things a pack can put <em>outside</em> a quest. They are a start-menu entry, a small box on the desktop, and entries in a right-click menu. The fourth is the words your pack can speak in another language.</p>
 <p>They all live in one window, opened from <b class="ui">Pack extras</b> on the
 toolbar. Nothing there is required: a pack with none of it exports exactly as it
 always did.</p>
 
 <h3 id="menu-entry">A start-menu entry</h3>
 <p>The start menu has a strip of entries along the bottom. A pack can add one,
-with a picture and four possible jobs: say something, start one of your quests,
+with a picture. It has four possible jobs. It can say something, start one of your quests,
 send the player a letter, or open the game's own handbook.</p>
 <dl class="facts-list">
   <dt>Picture</dt><dd>Optional, and worth having for a pack whose entry sits
-  beside the game's own. Pick a picture from your machine: it travels inside the
-  pack, so keep it small — the menu draws it the size of a letter in this
+  beside the game's own. Pick a picture from your machine. It travels inside the pack, so keep it small. The menu draws it the size of a letter in this
   sentence.</dd>
   <dt>The entry's own words</dt><dd>The label, and the sentence a "say
   something" entry shows. Both take translated words (see below).</dd>
@@ -335,9 +327,7 @@ strip. An earlier version of the game ignored a "top" or "bottom" choice, so thi
 editor does not offer one.</div>
 
 <h3 id="desktop-widget">A box on the desktop</h3>
-<p>A widget is a small web page the game draws on the player's desktop: a note,
-a counter, a status board — anything you can build with the same editor the
-website builder uses, including the preview.</p>
+<p>A widget is a small web page the game draws on the player's desktop. Think a note, a counter, a status board. You build it with the same editor the website builder uses, including the preview.</p>
 <dl class="facts-list">
   <dt>Size and place</dt><dd>Width, height and the corner it sits at, in the
   desktop's own pixels.</dd>
@@ -351,23 +341,20 @@ reach in there, because the widget is a file the game opens, not a line of text
 it fills in. Write those words in the language you want them in.</div>
 
 <h3 id="right-click-entry">An entry in a right-click menu</h3>
-<p>Where a player right-clicks, a pack can add an entry: on a file, on the
+<p>Where a player right-clicks, a pack can add an entry. That can be on a file, on the
 desktop, on the taskbar, or on a window. Each entry carries a label, an optional
 picture, and one of the four jobs above.</p>
-<p>Use it for the thing a player reaches for while looking at something —
-"inspect this file", "send this to my notes", "open the walkthrough".</p>
+<p>Use it for the thing a player reaches for while looking at something. Think "inspect this file", "send this to my notes", or "open the walkthrough".</p>
 
 <h3 id="translated-words">The same words in another language</h3>
-<p>The language table is a grid: one row per line of text, one column per
+<p>The language table is a grid. One row per line of text, one column per
 language you have written it in. The game ships with the languages a player can
 choose, and this editor offers exactly those.</p>
 <p>A line you add is used with a token that looks like this:</p>
 <pre class="code">{{tr.name.of.your.line}}</pre>
-<p>Paste that token wherever a text field takes your words — a quest title, a
+<p>Paste that token wherever a text field takes your words. That means a quest title, a
 mail's subject, a menu label, a notification. When the game shows it, it looks
-up the line in the player's language, falls back to English when that language
-has no line yet, and shows the token itself if the line is missing
-altogether.</p>
+up the line in the player's language. It falls back to English when that language has no line yet. If the line is missing altogether, it shows the token itself.</p>
 <div class="note ok"><b>The game reads some words once, at load.</b> A quest's
 title, and the labels on a menu entry, are taken by the game while your pack
 loads. Whatever language the player had chosen for that save is the language
@@ -377,9 +364,8 @@ a save does.</div>
 
 <h3 id="extras-handbook">The handbook entry, honestly</h3>
 <p>One of the four jobs opens the game's handbook. In the game as it stands, it
-opens the handbook on that book's own front page: there is no way, yet, to send
-a player to a named page inside it. The entry is still worth having for "here is
-the book", and the editor's log file records what was asked for. See
+opens the handbook on that book's own front page. There is no way, yet, to send
+a player to a named page inside it. The entry is still worth having for "here is the book". The editor's log file records what was asked for. See
 <a href="troubleshooting.html">When something goes wrong</a> for reading the
 log.</p>
 
@@ -395,8 +381,7 @@ opposite things, which is worth getting straight early.</p>
   every playthrough, because it does not exist yet.</dd>
 </dl>
 <p>Roll the dice when you want something concrete to look at while you build.
-Use the sparkle when the game is the only thing that knows the answer — a
-machine address is the common case, since the game allocates it.</p>
+Use the sparkle when the game is the only thing that knows the answer. A machine address is the common case, since the game allocates it.</p>
 <div class="note ok"><b>Both are ordinary edits.</b> Either one can be undone
 with <kbd>Ctrl</kbd>+<kbd>Z</kbd>, exactly like typing.</div>
 </section>
