@@ -49,7 +49,7 @@ the game's own quests are put together.</p>
     <tr><td><a href="#howto-gated-message">Make a message arrive only after something else happens</a></td><td>The same conversation, held back until the player earns it.</td></tr>
     <tr><td><a href="#howto-payment">Pay the player, and charge them</a></td><td>Money in both directions, and what a blank amount really does.</td></tr>
     <tr><td><a href="#howto-branch">Branch the story on something the player did</a></td><td>One quest, two routes, and no duplicated nodes.</td></tr>
-    <tr><td>Ask the player for a passphrase, with a wrong-answer route</td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
+    <tr><td><a href="#howto-passphrase">Ask the player for a passphrase, with a wrong-answer route</a></td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
     <tr><td>Build a website the player has to find</td><td>A clue in plain sight on a host you registered.</td></tr>
     <tr><td>Hide a page so only a brute-force finds it</td><td>An unlisted page, and how the player is meant to reach it.</td></tr>
     <tr><td>Put a file on a machine the player has to break into</td><td>Placing files where the exploit will actually find them.</td></tr>
@@ -386,6 +386,53 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>You still cannot see which way it went.</b> Put a
   <a href="nodes/flow-debug.html">Debug probe</a> on each route and run a dry run. Only the
   one the story took will print.</li>
+</ul>
+</section>
+
+<section id="howto-passphrase">
+<h2>Ask the player for a passphrase, with a wrong-answer route</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/fx-prompt.html">Ask player</a>, a clue that reveals the passphrase, and three possible follow-ups</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">Ask player</b> opens a question box when the story reaches it. It accepts one line of text.</p>
+<p>Turn on <b class="ui">Mask typing</b> to hide the answer while the player enters it.</p>
+<p>With <b class="ui">Accept</b> set to check an answer, the node shows <b class="ui">Correct</b> and <b class="ui">Wrong</b> outputs. Closing the box uses <b class="ui">Cancelled</b>.</p>
+<p>The player should have a way to discover the passphrase before this question appears.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Choose the moment.</b> Put the question after the player can find the passphrase.</li>
+  <li><b>Add Ask player.</b> Find it under <b>Effects</b>. Connect the previous story step to its <b class="ui">In</b> socket.</li>
+  <li><b>Write the question.</b> Fill <b class="ui">Question</b> with words that tell the player what to enter. Add a <b class="ui">Title</b> only if the question needs a heading.</li>
+  <li><b>Hide the typing.</b> Turn on <b class="ui">Mask typing</b>.</li>
+  <li><b>Set the accepted answer.</b> Set <b class="ui">Accept</b> to <b class="ui">Exactly this answer</b>. Fill <b class="ui">Answer to accept</b> with the passphrase from the clue.</li>
+  <li><b>Set capitalisation.</b> Leave <b class="ui">Case sensitive</b> off unless capital letters matter to the puzzle.</li>
+  <li><b>Connect all three routes.</b> Send <b class="ui">Correct</b> to the success route. Send <b class="ui">Wrong</b> to a hint or other consequence. Connect <b class="ui">Cancelled</b> to what should happen if the player closes the box.</li>
+</ol>
+
+<figure>
+  <img src="img/howto-06-passphrase.png"
+       alt="Ask player with Mask typing on and Exactly this answer selected; Correct, Wrong and Cancelled each lead onward." />
+  <figcaption>Give a match, a miss and a closed question box separate follow-ups.</figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let capitalisation vary.</b> Leave <b class="ui">Case sensitive</b> off. That is the default.</li>
+  <li><b>Accept extra words.</b> Choose <b class="ui">Contains these words</b> if the player may include other text.</li>
+  <li><b>Use the answer later.</b> Fill <b class="ui">Save answer as</b> only if later messages or branches need the typed text.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>No Wrong output appears.</b> Change <b class="ui">Accept</b> from <b class="ui">Any submitted text</b> to <b class="ui">Exactly this answer</b>.</li>
+  <li><b>Every answer takes Wrong.</b> Check <b class="ui">Answer to accept</b>. An empty accepted answer cannot match, and the editor warns you.</li>
+  <li><b>The right word still fails.</b> Turn off <b class="ui">Case sensitive</b> unless capitals are part of the puzzle.</li>
+  <li><b>Closing runs the wrong reply.</b> Wire <b class="ui">Cancelled</b> separately. Closing does not use <b class="ui">Wrong</b>.</li>
+  <li><b>The dry run chooses the wrong route.</b> A dry run uses the node's default or a simulated answer. Test in-game with a correct answer, a wrong answer and a closed box.</li>
 </ul>
 </section>
 

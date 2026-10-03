@@ -1,3 +1,33 @@
+# Handoff — r268
+
+**The passphrase walkthrough is written and linked; G18 remains at zero.**
+
+Completed the next feasible manual item after r267. The new [passphrase walkthrough](../public/manual/how-do-i.html#howto-passphrase) covers **Ask player**, masked typing, an exact accepted answer, and distinct **Correct**, **Wrong**, and **Cancelled** routes. It explains the blank-answer warning and why a dry run does not verify a real passphrase. Ground-truth extraction came first; the schema, runtime, compiler tests, and simulator are recorded in the [r268 plan](plans/r268-passphrase-howto.md).
+
+The index now has **6 written walkthroughs and 11 still planned**. The next in the r265 order is the website walkthrough. No `src/**` files changed, so `EDITOR_BUILD` remains `2026-10-03.r267`.
+
+The new how-to references its already-declared `howto-06-passphrase.png` slot, but no image exists yet. The manual coverage gate now reports **78 screenshots still to capture**, one more than before because this new figure is now referenced. No browser binary or Playwright/Puppeteer package is available here, so no screenshot or visual review was attempted. No in-game test was performed.
+
+The README's **Done recently** table now holds r268–r264; its displaced r263 row is preserved in [`docs/archive/round-263.md`](archive/round-263.md). The r268 plan is indexed in [`docs/plans/README.md`](plans/README.md).
+
+## Verification
+
+- `npm run recover`: healthy; no recovery residue; dependencies present. The branch was clean and matched origin before this round.
+- `npm run gen:manual`: **41 node pages written**, zero awaiting prose; **285 search entries from 51 pages**.
+- `npx vitest run src/manual.coverage.test.ts`: **27 passed**; G18 remains zero; the how-to index covers all 17 planned walkthroughs; G8 reports **78** pending screenshots.
+- `npm test`: **1,834 passed across 89 files**. The first attempt hit the 180-second tool limit; the standalone retry passed in 313 seconds.
+- `npm run build`: passed, including `tsc --noEmit`.
+- `git diff --check`: passed after the final edits.
+- The branch was fetched and checked before commit; no remote-only changes were found. The r268 documentation changes are committed and pushed to `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
+
+## Next work
+
+1. Capture the **78** outstanding manual screenshots when a browser-capable capture environment is available.
+2. Write the **11** remaining how-tos; the website walkthrough is next.
+3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless editor source changes are explicitly approved.
+
+---
+
 # Handoff — r267
 
 **G18 is complete: the handbook has zero sentences over 20 words, and Pay and Charge now call the amounts dollars.**
