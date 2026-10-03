@@ -20,6 +20,12 @@ export default defineConfig({
     resolve: {
         alias: { "@": path.resolve(import.meta.dirname, "src") },
     },
+    define: {
+        // Library-mode builds do not automatically replace React's browser
+        // environment check. Without this, the standalone file:// bundle
+        // reaches an undefined Node `process` global before it can render.
+        "process.env.NODE_ENV": JSON.stringify("production"),
+    },
     build: {
         target: "es2022",
         outDir: path.resolve(import.meta.dirname, "public/figures/assets"),

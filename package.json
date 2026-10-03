@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gen:events": "node reference/generate-event-catalogue.mjs",
-    "gen:manual-figures": "vite build --config vite.manual-figures.config.ts && node scripts/manual-figures/clean-bundle.mjs",
+    "gen:manual-figures": "vite build --config vite.manual-figures.config.ts && node scripts/manual-figures/clean-bundle.mjs && node scripts/manual-figures/smoke-offline-renderer.mjs",
     "gen:manual": "node scripts/extract-manual-inventory.mjs && node scripts/build-node-pages.mjs && npm run gen:manual-figures && node scripts/build-manual-index.mjs",
     "recover": "node scripts/sandbox-recover.mjs"
   },

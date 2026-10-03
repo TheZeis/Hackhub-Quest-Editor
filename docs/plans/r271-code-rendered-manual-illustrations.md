@@ -1,9 +1,11 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: prototype built after Zeis approved the plan; awaiting visual review.**
+**Status: five-scene prototype built; offline boot fix shipped; awaiting user review.**
 The game-only tutorial figure has been removed by decision, its useful prose
-remains, and no editor figure has been replaced. Bulk conversion is still held
-until the five-scene prototype has been reviewed.
+remains, and no editor figure has been replaced. r272 fixes a browser-only
+`process.env.NODE_ENV` reference that stopped the renderer from booting from
+disk; all five scene entry points now pass the local-file smoke test. Bulk
+conversion is still held until the prototype has been reviewed.
 
 ## Approved direction
 
@@ -90,10 +92,19 @@ heading and parent description remain ordinary page prose. A temporary manual
 fixture confirmed the title, parent description and caption all reach the search
 index; the final index remains 285 entries from 51 manual pages. The builder
 walks only `public/manual/`, so the shared renderer and review page are not
-indexed. The prototype is meant to be opened in a browser both from the dev preview
-and from disk. This environment has no browser binary, so the local-file,
-visual-fidelity, keyboard and screen-reader checks remain unverified. No editor
-figures have been bulk-migrated; G8 should now report **88 current missing
+indexed.
+
+Zeis's first direct-from-disk test exposed a bundle boot failure. The generated
+IIFE retained `process.env.NODE_ENV`, which is not defined in browsers, so the
+renderer script threw before any scene replaced its HTML fallback. r272 defines
+that expression as production for the static renderer build and adds a local-file
+smoke test to `gen:manual-figures`. The smoke opens the real renderer document,
+CSS and script through `file://` for all five scene IDs; all five mount without
+runtime errors. JSDOM needs a no-op `ResizeObserver` because it has no browser
+layout engine. This verifies asset loading and scene startup, not pixels or the
+real browser's sandbox behavior. No browser binary is available here, so visual
+fidelity, keyboard, screen-reader and real-browser review remain open. No editor
+figures have been bulk-migrated; G8 should still report **88 current missing
 editor-image references** and no game-only figure.
 
 ## What can render the real editor
@@ -207,14 +218,14 @@ time; do not fall back to 88 hand-maintained mockups.
    the full workspace and a fixed mid-drag state. Compare them with the actual
    editor at its default Midnight theme and system font. Bulk migration remains
    stopped until Zeis reviews this prototype.
-3. **Test the offline and semantic path.** Open
-   `public/manual-figure-prototype.html` in a browser and directly from disk,
-   with the network unavailable. Confirm the local frame script and CSS load;
-   the frame has an accessible name; and no control is interactive. The page's
-   descriptions and captions must remain outside the frame for screen readers
-   and search. If direct-from-disk loading fails, stop and use the build-time
-   inline-renderer fallback before migrating pages. This environment has no
-   browser, so these checks are still open.
+3. **Test the offline and semantic path.** The r272 JSDOM smoke opens the real
+   renderer document, script and stylesheet over `file://` and confirms that all
+   five scenes start; it also rejects the undefined-`process` bundle regression.
+   This does not replace opening the prototype page in a real browser, with the
+   network unavailable. Confirm the iframe sandbox permits the local assets to
+   load, each frame has an accessible name, no control is interactive, and page
+   descriptions and captions remain available outside the frame. Keep visual,
+   keyboard and screen-reader checks open until that review.
 4. **After review, convert the 88 current editor figures** to scene references,
    preserving useful existing captions and descriptions. Do not render an editor
    lookalike for the game's mod list. Leave the five additional game-only and
@@ -267,6 +278,7 @@ The other significant finding changes the apparent scope. Not every pending
 figure is an editor screenshot: the tutorial's installation image showed the
 game's mod list. Zeis chose no game screenshot, so that figure is removed and
 its useful prose remains. The five unlinked game images and two editor panels
-stay dormant. The five-scene renderer is now built, but its visual and
-browser-only gates remain open; do not bulk-convert editor figures until Zeis
-reviews the prototype.
+stay dormant. r272 corrected the renderer's undefined `process.env.NODE_ENV`
+reference, and all five scenes now pass a JSDOM `file://` startup smoke. Real
+browser, visual and assistive-technology checks remain open; do not bulk-convert
+editor figures until Zeis reviews the prototype.

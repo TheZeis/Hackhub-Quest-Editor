@@ -119,8 +119,10 @@ archived once it has stayed fixed for a few rounds.
 
 ### In progress
 
-Nothing mid-flight at r255. The three rows this section carried are closed;
-what each left behind is recorded where it will be found again.
+The five-scene manual-illustration prototype is awaiting Zeis's review. r272
+fixed the local-file bundle boot failure and all five scenes pass the `file://`
+startup smoke; visual and real-browser checks still gate conversion of the 88
+editor figures.
 
 | Row | Disposition |
 |---|---|
@@ -135,7 +137,7 @@ what each left behind is recorded where it will be found again.
 | 1 | **Dead Air in-game playtest** | r232/r233 are code-verified (the shipping runtime read, the template invariants), but the template's novel parts have not been seen in game: the **converging wire** (the call's two outcomes into one drip), the **Timer day** on the game's clock, the phone's typed-answer terminal command, and the Kisscord player-typed send. The QA harness was retired in r253, so this one needs no harness: author the template in the editor, install its export, and play it. File the results under `docs/`. |
 | 2 | **App / PhoneApp surfaces** | 0.24's home-screen mod apps (an iframe plus a `HackhubSDK.Phone` bridge), and the phone app surface. Zeis (r235): bigger integrations — investigate the shape first, plan before building. Note: this is about mod apps on the home screen, not dialing (docs/03 §6). |
 | 3 | "Branching consequence" template | A choice that changes which ending the player gets. "Two Ways Out" is approved (may be morally grey) but not yet built. The official Cryptographer Hunt (a phone social-engineering scene with a fail route on the wrong choice) is the strongest argument for it — see [`docs/plans/r127-official-quest-comparison.md`](docs/plans/r127-official-quest-comparison.md). The shape now ships inside The Long Game (r136, act III: a typed verdict with two endings); whether a standalone template still adds anything is Zeis's call. (Dead Air's r233 rework moved its failed call from a second ending to a wait-and-retry route — see r233.) |
-| 4 | **Manual figures and follow-up** | r270 has all 17 how-tos linked and G18 remains zero. r271 audited the 89 original missing figures; Zeis chose no game screenshot, so the tutorial-only game figure is removed and G8 now reports 88 editor figures. The five other game-only names and two unlinked editor panels in r164 remain dormant. The shared renderer's five-scene prototype is ready at `public/manual-figure-prototype.html`; **get visual review before bulk conversion**. The remaining tidy-ups are Ctrl+G, group creation/nesting/ungrouping, frame colour, arrange behavior and the stale inspector note. |
+| 4 | **Manual figures and follow-up** | r270 has all 17 how-tos linked and G18 remains zero. r271 audited the 89 original missing figures; Zeis chose no game screenshot, so the tutorial-only game figure is removed and G8 now reports 88 editor figures. The five other game-only names and two unlinked editor panels in r164 remain dormant. r272 fixed the renderer's browser-only `process.env.NODE_ENV` boot failure; all five scenes pass a `file://` startup smoke. Review `public/manual-figure-prototype.html` in a real browser and from disk; **bulk conversion stays gated on review**. The remaining tidy-ups are Ctrl+G, group creation/nesting/ungrouping, frame colour, arrange behavior and the stale inspector note. |
 
 
 ### Parked
@@ -151,16 +153,16 @@ Deferred on Zeis's call, with the reason recorded so the work is not lost.
 
 | # | Item | Notes |
 |---|---|---|
-| r271 | **Five-scene manual-illustration prototype is ready for review** | Zeis approved one shared, offline-capable code renderer and chose no game screenshot. The tutorial's game-only figure is removed, with its useful prose retained; G8 now reports 88 missing editor figures. Built five scenes from the real editor components and a fixed First Contact fixture. No existing editor figure has been converted; visual, offline and assistive-technology review still gates bulk migration. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r271 plan](docs/plans/r271-code-rendered-manual-illustrations.md) and open `public/manual-figure-prototype.html`. |
+| r272 | **Direct-from-disk manual renderer now boots** | Zeis's downloaded-page test exposed an unresolved `process.env.NODE_ENV` in the standalone browser bundle; the renderer's Vite build now defines it as production. The generated `file://` smoke boots all five scenes. Real-browser visual and accessibility review still gates conversion; no existing editor figure has been replaced, G8 remains at 88 missing editor figures and G18 stays 0. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r272 record](docs/plans/r272-offline-manual-figure-renderer.md). |
+| r271 | **Five-scene manual-illustration prototype is ready for review** | Zeis approved one shared, offline-capable code renderer and chose no game screenshot. The tutorial's game-only figure is removed, with its useful prose retained; G8 now reports 88 missing editor figures. Built five scenes from the real editor components and a fixed First Contact fixture. No existing editor figure has been converted; the `file://` startup smoke passes, while real-browser visual and assistive-technology review still gates bulk migration. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r271 plan](docs/plans/r271-code-rendered-manual-illustrations.md) and open `public/manual-figure-prototype.html`. |
 | r270 | **All seventeen quest walkthroughs are complete** | Added and linked the ten remaining guides, bringing the index to 17/17. Clarified the hidden-page URL route, tool-pack warning limits, template replacement risk and exported-project update path. G18 remains **0**; G8 reports **89** uncaptured screenshots, including ten new declared slots. Corrected the template guidance in the feature guide and tutorial. Documentation only; `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r270 plan](docs/plans/r270-ten-howtos.md). |
 | r269 | **A public website walkthrough joins the manual** | Added and linked a source-grounded guide for a blank site, distinctive host, public home page, search listing and the clue that tells the player where to go. Optional visit-gating does not claim to detect reading. The how-to backlog is now **10**; screenshot coverage reports **79** pending captures. No screenshot or visual review was possible here. Documentation only; `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r269 plan](docs/plans/r269-website-howto.md). |
 | r268 | **One passphrase walkthrough joins the manual** | Added and linked the **Ask player** passphrase guide, with masked typing and separate Correct, Wrong, and Cancelled routes. The how-to backlog is now **11**; screenshot coverage reports **78** pending captures after this guide added its declared figure. No screenshot could be captured because this environment has no browser or automation package. Documentation only; `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r268 plan](docs/plans/r268-passphrase-howto.md). |
-| r267 | **The handbook's sentence gate reaches zero; Pay and Charge use dollars** | Continued r266 at `reply-input.html` and cleared every remaining G18 violation. The handbook now has zero sentences over 20 words; `LONG_SENTENCE_BUDGET` is 0. Changed both money hints from Credits to Dollars at Zeis's direction, and bumped the editor stamp to `2026-10-03.r267`. No runtime behavior changed. See [`docs/plans/r267-manual-sentence-ratchet.md`](docs/plans/r267-manual-sentence-ratchet.md). |
 
 
 
 
-The displaced r266, r265, r264 and r263 entries are preserved in [`docs/archive/round-266.md`](docs/archive/round-266.md), [`docs/archive/round-265.md`](docs/archive/round-265.md), [`docs/archive/round-264.md`](docs/archive/round-264.md) and [`docs/archive/round-263.md`](docs/archive/round-263.md).
+The displaced r267, r266, r265, r264 and r263 entries are preserved in [`docs/archive/round-267.md`](docs/archive/round-267.md), [`docs/archive/round-266.md`](docs/archive/round-266.md), [`docs/archive/round-265.md`](docs/archive/round-265.md), [`docs/archive/round-264.md`](docs/archive/round-264.md) and [`docs/archive/round-263.md`](docs/archive/round-263.md).
 ---
 
 ### Standing rule
