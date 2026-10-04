@@ -1,10 +1,15 @@
 # r274 — Manual figure accessibility contract and evidence audit
 
-**Status:** Structural checks are in place. Zeis checked the prototype from a
-local file in Firefox: Tab stayed in Firefox and never entered a scene, so the
-keyboard check passes. Zeis has no screen reader installed; that check remains
-untested and lower priority. None of the 88 current editor figure references
-has been converted.
+**Status:** Structural checks for the five-scene prototype are in place. Zeis
+confirmed from disk in Firefox that pressing Tab never focuses the page or any
+illustration; this closes the keyboard check. Screen-reader output was not
+checked. Zeis does not have a screen reader and has set that check below the
+manual's plain-language, number-clarity and colour-accessibility priorities. It
+is recorded as unverified, not as a migration blocker. None of the 88 current
+editor figure references has been converted.
+
+This is a gap report, not the complete cited Phase 1 inventory. No reader-facing
+handbook prose was authored; the 88 published figure references are unchanged.
 
 ## What changed
 
@@ -51,9 +56,27 @@ the renderer.
 | UI labels and controls | `src/manual.coverage.test.ts` header (G9), `src/editor/shell/TopBar.tsx`, `src/editor/palette/NodePalette.tsx`, editor dialogs and inspector components | The suite has no G9 check that quoted `<b class="ui">` labels still exist in the product. The complete control list has not yet been extracted into an inventory. |
 | Templates | `src/templates/index.ts#TEMPLATES`, `public/manual/guides.html#templates`, and `public/manual/tutorial.html#new-project` | The editor exposes 14 template cards. The manual gives the count and explains First Contact plus the two Reference sheets, but has no source-linked inventory of all 14 cards or drift gate. Confirm whether each card needs its own reader-facing description before changing the page. |
 | Export permissions and files | `src/compiler/compile.ts#computePermissions` and `compileProject`, `src/editor/shell/ExportDialog.tsx`, `public/manual/export.html#permissions`, and `public/manual/export.html#zip-contents` | The manual lists seven permissions and eight files. No gate compares either table with the compiler output, so their completeness is not machine-checked. |
-| Figures | `public/manual/` has 88 missing editor-image references; `public/manual-figure-prototype.html` has five scenes; `docs/plans/r271-code-rendered-manual-illustrations.md` records the no-game-image decision | The prototype is approved visually. Zeis checked it from disk in Firefox: Tab stayed in browser chrome and did not enter any scene. Record the keyboard check as passed for this prototype; do not infer a screen-reader result. Zeis has no screen reader and ranks that check below reading clarity, number guidance and color-independent cues. The other 88 slots remain unchanged. The five unlinked game-image names and two unlinked editor-panel names remain dormant. |
-| Dyslexia, dyscalculia and color vision | `src/manual.coverage.test.ts` G6/G18; `public/manual/manual.css`; `src/schema/edges.ts`; `public/manual/concepts.html` wire legend; generated node-reference pages | The manual already enforces banned jargon/fillers and a zero budget for sentences over 20 words. The audit must also check number ranges/units, information conveyed only by color, and contrast/readability in light of the editor's matching palette. No new claim should be made until those checks are complete. |
+| Figures | `public/manual/` has 88 missing editor-image references; `public/manual-figure-prototype.html` has five scenes; `docs/plans/r271-code-rendered-manual-illustrations.md` records the no-game-image decision | The five-scene prototype is approved visually, and Zeis's Firefox-from-disk check confirms Tab does not enter the page or focus a frame. Screen-reader output remains unverified, but is not a blocker under the user's stated priorities; keep the external title and caption. The other 88 slots remain unchanged. The five unlinked game-image names and two unlinked editor-panel names remain dormant. |
 | App entry and UI walkthrough | `public/manual.html`, `vite.config.ts`, `src/App.tsx`, and the editor shell components | The manual entry route serves and redirects in Vite. No app component currently links into a handbook anchor. Do not add an in-app link as part of this documentation-only work. |
+
+## Accessibility priorities and additional evidence
+
+Zeis's priority for this manual is clear reading, clear numbers and units, and
+colour cues that do not depend on hue alone. The existing handbook gate G18
+holds authored sentences to twenty words and currently reports **0** violations.
+The wire legend spells out Then, When, Unlocks and Data; Unlocks uses a dashed
+line and Data a dotted line. Warning levels are also written as Amber or Red.
+These are useful safeguards, not a substitute for reviewing each recipe and
+figure alternative.
+
+A simple contrast calculation from `public/manual/manual.css` found that
+`--ink-4` reaches about **3.02:1** on `--void` and **2.79:1** on `--surface`.
+That token colours small, secondary node identifiers in the 41 node-page
+headers and in `nodes.html`. The brighter `--ink-3` token measures **5.32:1**
+and **4.92:1** on those backgrounds. The palette mirrors the app; the manual
+could use the existing brighter token for those small labels without inventing
+a new colour. No CSS change is included in this checkpoint; verify the manual
+appearance before adjusting it.
 
 The counts above describe what is in the current source and manual. They do not
 prove that the prose is complete or that a reader can use a figure with a screen
@@ -87,31 +110,27 @@ This checkpoint proposes no new top-level page and no delivery-mechanism change.
   than 1 MB.
 - `git diff --check` and `node --check
   scripts/manual-figures/smoke-offline-renderer.mjs`: passed.
-- Zeis tested the local-file prototype in Firefox. He reports that Tab cycles
-  Firefox controls and never enters the page scenes; selecting text can move the
-  selection, but no illustration control receives keyboard focus. Record this
-  keyboard check as passed for the prototype, based on his report.
-- Zeis has no screen reader installed. No screen-reader result is available, and
-  none is claimed. He ranks that check below reading clarity, number guidance,
-  and color-independent cues; do not ask him to install a tool solely for this.
-- The editor preview is serving on port 5173. This workspace itself has no
-  browser binary or browser automation package, so we cannot independently
-  verify pixels or assistive-technology output.
+- The live preview serves on port 5173. Zeis opened the prototype from disk in
+  Firefox and reported that Tab cycled through Firefox controls without
+  focusing the page or any scene. This is the expected result. Screen-reader
+  output remains unverified; Zeis does not have a screen reader and has said it
+  is lower priority than plain-language, number-clarity and colour-accessibility
+  work. Keep the external title and caption, and do not claim assistive-technology
+  testing.
 
 ## Next steps
 
-1. Audit the manual for dyslexia-friendly reading, clear number ranges and
-   units, and information that might rely on color alone. The existing short-
-   sentence and jargon gates help but do not cover all of these.
-2. Finish the Phase 1 cited inventory and G7/G9 coverage gates for messages,
-   UI strings, templates, export files and permissions before changing their
+1. Finish the Phase 1 evidence inventory and G7/G9 coverage gates for messages,
+   UI strings, templates, export files and permissions before updating those
    reader-facing sections.
-3. Keep the screen-reader check explicitly unverified and lower priority. Do
-   not claim compatibility; revisit it if a suitable review tool becomes
-   available.
-4. After the higher-priority accessibility and inventory work, extend G8 for
-   scene IDs, descriptions, captions and search, then convert the 88 current
-   editor figure slots. Keep the seven dormant names out of the active total.
-5. Keep the existing TOC and source format unless the evidence audit gives a
-   concrete reason to propose a change; if either changes, request approval
-   before authoring under the new design.
+2. Once Phase 1 is complete, present the full information architecture and
+   table of contents for approval. Agree on the source format before any Phase
+   3/4 tooling or authoring; do not proceed without approval.
+3. Review reading accessibility: use short, ordered instructions, explain each
+   number with its unit, and ensure wire, category and severity meaning never
+   depends on colour alone. Audit the low-contrast `ink-4` labels before
+   changing manual CSS.
+4. Extend G8 for scene IDs, descriptions, captions and search, then convert the
+   88 current editor figure slots. Keep the seven dormant names out of the
+   active total. The user-confirmed keyboard pass closes that part of the gate;
+   screen-reader output remains explicitly unverified and is not a blocker.

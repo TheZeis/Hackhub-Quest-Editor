@@ -77,21 +77,20 @@ are replaced. Keep every scene fixed and read-only.
 
 For each rendered scene, keep its accessible description outside the frame:
 use a descriptive iframe `title`, point `aria-describedby` to a non-empty
-`<figcaption>` inside the same `<figure>`, and set `tabindex="-1"` so the frame
-does not add a keyboard tab stop. The renderer document's `<body inert>` keeps
+`<figcaption>` inside the same `<figure>`, and set `tabindex="-1"` so pressing
+Tab skips the frame. The renderer document's `<body inert>` keeps
 its drawn editor controls from acting as controls. Keep the frames sandboxed and
 all renderer files local; the file-only `allow-same-origin` exception is needed
 for local CSS and JavaScript to load from `file://`.
 
 `npm run gen:manual-figures` checks these markup rules and boots every scene in
 JSDOM. It does **not** verify pixels, browser focus behavior, or what a screen
-reader announces. Zeis reports that, in Firefox with the prototype opened from
-disk, Tab stayed in Firefox and did not enter any scene. Record that as the
-keyboard check for this prototype; it is not a screen-reader test. Zeis does not
-have a screen reader installed and ranks that check below reading clarity,
-number guidance, and color-independent cues. Do not claim screen-reader
-compatibility. Keep captions meaningful on their own; readers must not need to
-inspect the frame to understand the point.
+reader announces. Zeis checked the prototype from disk in Firefox and reported
+that Tab skips the page and all five scenes. The screen-reader output remains
+unverified; Zeis does not have a screen reader and has set that check below the
+manual's plain-language, number-clarity and colour-accessibility priorities.
+Keep the captions meaningful on their own, and do not claim an assistive-
+technology test that did not happen.
 
 ## Colour
 

@@ -1,21 +1,20 @@
 # Handoff — r274 figure semantics and manual evidence audit
 
 The five-scene prototype now uses `<figure>`/`<figcaption>`; each iframe has a
-unique descriptive `title`, links its caption with `aria-describedby`, and is
-removed from the Tab sequence with `tabindex="-1"`. The shared renderer page
+unique descriptive `title`, links its caption with `aria-describedby`, and uses
+`tabindex="-1"` so pressing Tab skips the frame. The shared renderer page
 keeps its `<body inert>`. JSDOM checks the markup relationships, inert state,
 both sandbox policies, lazy loading and five local scene starts. The caption
 stays above the image, so the already-approved visual layout is unchanged.
 
-Zeis checked the prototype from a local file in Firefox. He reports that Tab
-stayed in Firefox and never entered a scene; selecting text moved the selection,
-but no illustrated control received focus. Record this as the keyboard check
-passing for the prototype. Zeis has no screen reader installed; that output is
-untested and lower priority by his direction. Do not claim screen-reader
-compatibility or ask him to install a tool just for this. He prioritizes reading
-clarity, clear number guidance and color-independent cues. The live preview is
-still running on port 5173 at `/manual-figure-prototype.html`; this environment
-has no browser binary, automation or screen-reader tool.
+Zeis checked the downloaded prototype in Firefox. Pressing Tab cycled through
+Firefox's controls and did not focus the page or any of the five scenes; this
+closes the keyboard check. Selecting page text only highlights text; it does
+not mean Tab can reach a scene. Screen-reader output was not checked. Zeis does
+not have a screen reader and has set that check below clear reading, numbers
+with units, and colour cues that do not rely on hue alone. Keep the external
+title and caption; do not claim screen-reader testing. The live preview is still running on port 5173 at
+`/manual-figure-prototype.html`; its pixels were not reviewed in this turn.
 
 No figure references were converted. The 88 current editor-image references
 remain; the game-only installation figure stays removed, while five other
@@ -30,42 +29,58 @@ claims every diagnostic although additional analyzer/compiler message families
 have no entry; G9 UI-label drift coverage is absent; and template, permission
 and export-file tables are not compared against their source. The evidence and
 next steps are in the [r274 plan](plans/r274-manual-accessibility-and-evidence-audit.md).
-The existing node inventory remains at 41 obtainable nodes, 164 editable
-fields, 80 fixed sockets and 99 events.
+That plan is a gap report, not the complete cited Phase 1 inventory. No
+reader-facing handbook prose was authored; the 88 published figure references
+are unchanged. The existing node inventory remains at 41 obtainable nodes, 164
+editable fields, 80 fixed sockets and 99 events.
+
+Accessibility priorities from Zeis: keep instructions direct, make numbers and
+units easy to follow, and do not make wire or warning meaning depend on colour
+alone. The current legend names each wire kind and uses dashed/dotted patterns;
+G18 currently reports zero overlong sentences. A contrast calculation found
+that the manual's small `--ink-4` identifiers reach only **3.02:1** on `--void`
+and **2.79:1** on `--surface`. The existing, brighter `--ink-3` token is above
+4.9:1 on both. This merits a manual-specific style review; no CSS changed in
+r274.
 
 ## Verification
 
-- `npm run gen:manual`: passed before the accessibility markup change; 41 node
-  pages written, zero awaiting prose, 285 search entries from 51 manual pages,
-  and all five existing file-URL renderer smokes passed.
-- `npm run gen:manual-figures`: passed after the markup change; file/HTTP sandbox
-  checks, accessible-name/caption relationships, no-tabstop markup, inert body,
-  and all five file-URL scene starts passed.
+- After recovery, `npm run gen:manual` regenerated 41 node pages (zero awaiting
+  prose) and 285 search entries from 51 manual pages; its figure smoke passed.
+  A separate `npm run gen:manual-figures` passed both sandbox checks and all five
+  local scene starts.
+- `npx vitest run src/manual.coverage.test.ts`: **27/27 passed** during this
+  follow-up; G8 still reports 88 missing editor-image references.
 - The full `npm test` suite passed before the markup change: 89 files and 1,834
-  tests. `npx vitest run src/manual.coverage.test.ts` passed after the change:
-  27/27; G8 still reports 88 missing editor-image references.
-- `npm run typecheck`, `npm run build`, `git diff --check` and
-  `node --check scripts/manual-figures/smoke-offline-renderer.mjs` passed. The
-  production build copies the manual, prototype and renderer. Vite emits the
-  existing nonfatal warning that the main app chunk is larger than 1 MB.
+  tests. It was not rerun for this docs-only checkpoint; `src/**` is unchanged.
+- After recovery and this docs-only update, `npm run typecheck`, `npm run build`,
+  `git diff --check` and `node --check
+  scripts/manual-figures/smoke-offline-renderer.mjs` passed. The production build
+  copies the manual, prototype and renderer. Vite emits the existing nonfatal
+  warning that the main app chunk is larger than 1 MB.
 - The preview returns HTTP 200 for `/manual.html` and `/manual/index.html` and
-  serves five prototype frames with `tabindex="-1"`. Zeis reports that Tab did
-  not enter any scene in Firefox from disk. No screen-reader check was run; no
-  screenshot or game image was captured. G18 is unchanged at 0.
-- Commit `3c82ca7` (`docs: tighten manual figure accessibility contract`) was
-  pushed to `origin/arena/01a105b7-hackhub-quest-editor`. No pull request was
-  requested or opened.
+  serves five prototype frames with `tabindex="-1"`. Zeis's Firefox-from-disk
+  check confirms Tab does not focus the page or scenes. Screen-reader output was
+  not tested. No screenshot or game image was captured; G18 remains 0.
+- The branch's prior r274 checkpoints `3c82ca7`, `8aeee98` and `0b5108c` are on
+  `origin/arena/01a105b7-hackhub-quest-editor`. This follow-up records Zeis's
+  keyboard result and accessibility priorities. No pull request was requested
+  or opened.
 
 ## Next work
 
-1. Audit reading clarity, number ranges and units, and information conveyed by
-   color alone. Keep the screen-reader result explicitly untested and lower
-   priority; revisit it if a suitable review tool becomes available.
-2. Finish the cited Phase 1 inventory and G7/G9 gates for diagnostics, UI
+1. Finish the cited Phase 1 inventory and G7/G9 gates for diagnostics, UI
    labels, templates, export files and permissions before updating their prose.
-3. After those checks, extend G8 for scene IDs, captions and search; then migrate
-   the 88 current editor figures without inventing a game screenshot.
-4. Keep the `r267` editor build stamp unless product source changes.
+2. After the inventory, present the full information architecture and table of
+   contents for approval. Agree on the source format before any Phase 3/4
+   authoring or tooling; do not start those phases without approval.
+3. Review reading accessibility: short, ordered instructions; explicit numbers
+   and units; colour-independent labels and line styles; and the low-contrast
+   `ink-4` identifiers. Do not change editor behavior under this scope.
+4. Extend G8 for scene IDs, captions and search, then migrate the 88 current
+   editor figures without inventing a game screenshot. Keep screen-reader output
+   marked unverified; the user-confirmed keyboard pass is complete.
+5. Keep the `r267` editor build stamp unless product source changes.
 
 ---
 
