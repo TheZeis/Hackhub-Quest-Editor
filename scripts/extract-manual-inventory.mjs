@@ -20,6 +20,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { createJiti } from "jiti";
+import { fileURLToPath } from "node:url";
 
 const root = path.resolve(import.meta.dirname, "..");
 const jiti = createJiti(import.meta.url, {
@@ -29,6 +30,7 @@ const jiti = createJiti(import.meta.url, {
 
 const registry = await jiti.import(path.join(root, "src/schema/registry.ts"));
 const events = await jiti.import(path.join(root, "src/schema/events.ts"));
+const edges = await jiti.import(path.join(root, "src/schema/edges.ts"));
 const compile = await jiti.import(path.join(root, "src/compiler/compile.ts"));
 
 /*
@@ -47,12 +49,12 @@ export function nodeSlug(type) {
 }
 
 /** Flatten a field tree, keeping the nesting so list rows stay distinguishable. */
-function walkFields(fields, depth = 0, parentPath = "") {
+function walkFields(fields, depth = 0, parentPath = "", type = "") {
     return fields.flatMap((field) => {
         /* Layout, not documentation units (r176): a row and the clock are
            documented through their children, exactly as if stacked. */
-        if (field.kind === "row") return walkFields(field.fields, depth, parentPath);
-        if (field.kind === "clock") return walkFields([field.hour, field.minute], depth, parentPath);
+        if (field.kind === "row") return walkFields(field.fields, depth, parentPath, type);
+        if (field.kind === "clock") return walkFields([field.hour, field.minute], depth, parentPath, type);
         const key = field.key ?? null;
         const fieldPath = parentPath ? `${parentPath}.${key ?? field.kind}` : String(key ?? field.kind);
         const entry = {
@@ -62,6 +64,13 @@ function walkFields(fields, depth = 0, parentPath = "") {
             key,
             label: field.label ?? null,
             hint: field.hint ?? null,
+            source: {
+                path: "src/schema/registry.ts",
+                symbol: "NODE_TYPES_REGISTRY",
+                key: type,
+                member: "fields",
+                fieldPath,
+            },
         };
         if (field.min !== undefined) entry.min = field.min;
         if (field.max !== undefined) entry.max = field.max;
@@ -77,7 +86,7 @@ function walkFields(fields, depth = 0, parentPath = "") {
         if (field.options) entry.options = field.options;
         if (field.addLabel) entry.addLabel = field.addLabel;
         if (field.kind === "section" || field.kind === "list") {
-            entry.fields = walkFields(field.fields, depth + 1, fieldPath);
+            entry.fields = walkFields(field.fields, depth + 1, fieldPath, type);
         }
         return [entry];
     });
@@ -133,10 +142,22 @@ function stabilise(value) {
 
 const nodes = types.map((type) => {
     const def = registry.NODE_TYPES_REGISTRY[type];
-    const socket = (h) => ({ id: h.id, kind: h.kind, label: h.label });
+    const socket = (h, member, index) => ({
+        id: h.id,
+        kind: h.kind,
+        label: h.label,
+        source: {
+            path: "src/schema/registry.ts",
+            symbol: "NODE_TYPES_REGISTRY",
+            key: type,
+            member,
+            index,
+        },
+    });
     return {
         type,
         slug: nodeSlug(type),
+        source: { path: "src/schema/registry.ts", symbol: "NODE_TYPES_REGISTRY", key: type },
         label: def.label,
         blurb: def.blurb,
         icon: def.icon,
@@ -144,16 +165,26 @@ const nodes = types.map((type) => {
         hook: def.hook,
         /** Hidden from the palette and from node search: no way to create one in this build. */
         obtainable: !registry.PALETTE_HIDDEN_TYPES.has(type),
-        targets: def.targets.map(socket),
-        sources: def.sources.map(socket),
+        targets: def.targets.map((h, i) => socket(h, "targets", i)),
+        sources: def.sources.map((h, i) => socket(h, "sources", i)),
         hasDynamicSockets: Boolean(def.dynamicSources),
-        fields: walkFields(def.fields),
+        ...(def.dynamicSources
+            ? {
+                  dynamicSocketSource: {
+                      path: "src/schema/registry.ts",
+                      symbol: "NODE_TYPES_REGISTRY",
+                      key: type,
+                      member: "dynamicSources",
+                  },
+              }
+            : {}),
+        fields: walkFields(def.fields, 0, "", type),
         editableFieldCount: editableFields(def.fields).length,
         defaults: stabilise(def.create()),
     };
 });
 
-const inventory = {
+export const inventory = {
     generatedBy: "scripts/extract-manual-inventory.mjs",
     editorBuild: compile.EDITOR_BUILD,
     sdkVersion: events.SDK_VERSION,
@@ -173,21 +204,44 @@ const inventory = {
     },
     /** Node types with no manual page, by decision. See docs/plans/r164-manual-audit.md §3.4. */
     manualExclusions: [...registry.PALETTE_HIDDEN_TYPES],
-    categories: registry.CATEGORIES.map((c) => ({ id: c.id, label: c.label, hex: c.hex })),
-    edgeKinds: ["flow", "condition", "unlock", "data"],
-    eventGroups: events.EVENT_GROUPS,
+    categories: registry.CATEGORIES.map((c, index) => ({
+        id: c.id,
+        label: c.label,
+        hex: c.hex,
+        source: { path: "src/schema/registry.ts", symbol: "CATEGORIES", index, key: c.id },
+    })),
+    edgeKinds: edges.EDGE_KINDS.map((kind, index) => ({
+        kind,
+        source: { path: "src/schema/edges.ts", symbol: "EDGE_KINDS", index },
+    })),
+    eventGroups: events.EVENT_GROUPS.map((group, index) => ({
+        ...group,
+        source: { path: "src/schema/events.ts", symbol: "EVENT_GROUPS", index, key: group.id },
+        eventNames: events.EVENTS.filter((event) => event.group === group.id).map((event) => event.name),
+    })),
+    events: events.EVENTS.map((event, index) => ({
+        ...event,
+        source: {
+            path: "reference/hackhub-events.json",
+            symbol: "events",
+            index,
+            key: event.name,
+        },
+    })),
     nodes,
 };
 
-const out = path.join(root, "docs/manual");
-mkdirSync(out, { recursive: true });
-writeFileSync(path.join(out, "inventory.json"), JSON.stringify(inventory, null, 2) + "\n");
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    const out = path.join(root, "docs/manual");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(path.join(out, "inventory.json"), JSON.stringify(inventory, null, 2) + "\n");
 
-const c = inventory.counts;
-console.log(`docs/manual/inventory.json — editor build ${inventory.editorBuild}, SDK ${inventory.sdkVersion}`);
-console.log(
-    `  ${c.nodeTypes} node types (${c.obtainableNodeTypes} obtainable) · ${c.categories} categories · ` +
-        `${c.editableFields} editable fields · ${c.sockets} sockets`,
-);
-console.log(`  ${c.events} events in ${c.eventGroups} groups`);
-console.log(`  manual exclusions: ${inventory.manualExclusions.join(", ") || "(none)"}`);
+    const c = inventory.counts;
+    console.log(`docs/manual/inventory.json — editor build ${inventory.editorBuild}, SDK ${inventory.sdkVersion}`);
+    console.log(
+        `  ${c.nodeTypes} node types (${c.obtainableNodeTypes} obtainable) · ${c.categories} categories · ` +
+            `${c.editableFields} editable fields · ${c.sockets} sockets`,
+    );
+    console.log(`  ${c.events} events in ${c.eventGroups} groups`);
+    console.log(`  manual exclusions: ${inventory.manualExclusions.join(", ") || "(none)"}`);
+}
