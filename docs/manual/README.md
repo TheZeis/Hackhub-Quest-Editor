@@ -85,9 +85,12 @@ for local CSS and JavaScript to load from `file://`.
 
 `npm run gen:manual-figures` checks these markup rules and boots every scene in
 JSDOM. It does **not** verify pixels, browser focus behavior, or what a screen
-reader announces. A person must still review the live preview and the manual
-opened from disk with a keyboard and screen reader before any figures are
-migrated. Keep the captions meaningful on their own; readers must not need to
+reader announces. Zeis reports that, in Firefox with the prototype opened from
+disk, Tab stayed in Firefox and did not enter any scene. Record that as the
+keyboard check for this prototype; it is not a screen-reader test. Zeis does not
+have a screen reader installed and ranks that check below reading clarity,
+number guidance, and color-independent cues. Do not claim screen-reader
+compatibility. Keep captions meaningful on their own; readers must not need to
 inspect the frame to understand the point.
 
 ## Colour

@@ -7,12 +7,15 @@ keeps its `<body inert>`. JSDOM checks the markup relationships, inert state,
 both sandbox policies, lazy loading and five local scene starts. The caption
 stays above the image, so the already-approved visual layout is unchanged.
 
-The real keyboard and screen-reader review is **still open**. No browser binary
-or screen-reader tool is available in this workspace. The live preview is
-running on port 5173; open `/manual-figure-prototype.html`. The tests do not
-prove the actual Tab order, screen-reader announcement or visual pixels. Do not
-start migrating figures until a person checks those in a real browser and
-records the result.
+Zeis checked the prototype from a local file in Firefox. He reports that Tab
+stayed in Firefox and never entered a scene; selecting text moved the selection,
+but no illustrated control received focus. Record this as the keyboard check
+passing for the prototype. Zeis has no screen reader installed; that output is
+untested and lower priority by his direction. Do not claim screen-reader
+compatibility or ask him to install a tool just for this. He prioritizes reading
+clarity, clear number guidance and color-independent cues. The live preview is
+still running on port 5173 at `/manual-figure-prototype.html`; this environment
+has no browser binary, automation or screen-reader tool.
 
 No figure references were converted. The 88 current editor-image references
 remain; the game-only installation figure stays removed, while five other
@@ -46,17 +49,18 @@ fields, 80 fixed sockets and 99 events.
   production build copies the manual, prototype and renderer. Vite emits the
   existing nonfatal warning that the main app chunk is larger than 1 MB.
 - The preview returns HTTP 200 for `/manual.html` and `/manual/index.html` and
-  serves five prototype frames with `tabindex="-1"`. No real browser keyboard or
-  screen-reader check was run. No screenshot or game image was captured; G18 is
-  unchanged at 0.
+  serves five prototype frames with `tabindex="-1"`. Zeis reports that Tab did
+  not enter any scene in Firefox from disk. No screen-reader check was run; no
+  screenshot or game image was captured. G18 is unchanged at 0.
 - Commit `3c82ca7` (`docs: tighten manual figure accessibility contract`) was
   pushed to `origin/arena/01a105b7-hackhub-quest-editor`. No pull request was
   requested or opened.
 
 ## Next work
 
-1. Complete and record the real-browser Tab and screen-reader review of all five
-   scenes, both from the live preview and from a local copy of the manual.
+1. Audit reading clarity, number ranges and units, and information conveyed by
+   color alone. Keep the screen-reader result explicitly untested and lower
+   priority; revisit it if a suitable review tool becomes available.
 2. Finish the cited Phase 1 inventory and G7/G9 gates for diagnostics, UI
    labels, templates, export files and permissions before updating their prose.
 3. After those checks, extend G8 for scene IDs, captions and search; then migrate
