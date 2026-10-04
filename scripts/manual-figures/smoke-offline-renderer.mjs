@@ -28,12 +28,30 @@ for (const [mode, pageUrl, expectedSandbox] of [
     const dom = new JSDOM(prototypeHtml, { url: pageUrl, runScripts: "dangerously" });
     const frames = [...dom.window.document.querySelectorAll("iframe[data-renderer-src]")];
     const problems = [];
+    const frameTitles = new Set();
 
     if (frames.length !== scenes.length) problems.push(`expected ${scenes.length} frames, found ${frames.length}`);
     for (const [index, frame] of frames.entries()) {
         const frameUrl = new URL(frame.src);
         const scene = new URLSearchParams(frameUrl.search).get("scene");
+        const title = frame.getAttribute("title")?.trim() ?? "";
+        const describedBy = (frame.getAttribute("aria-describedby") ?? "").split(/\\s+/).filter(Boolean);
+        const descriptions = describedBy.map((id) => dom.window.document.getElementById(id)).filter(Boolean);
+        const figure = frame.closest("figure");
+
         if (scene !== scenes[index]) problems.push(`frame ${index + 1} points to scene ${scene}`);
+        if (!title) problems.push(`frame ${index + 1} has no accessible name`);
+        else if (frameTitles.has(title)) problems.push(`frame ${index + 1} repeats the title “${title}”`);
+        frameTitles.add(title);
+        if (!figure || !descriptions.some((node) => node.tagName === "FIGCAPTION" && figure.contains(node) && node.textContent.trim())) {
+            problems.push(`frame ${index + 1} has no non-empty figcaption linked by aria-describedby`);
+        }
+        if (frame.getAttribute("tabindex") !== "-1") {
+            problems.push(`frame ${index + 1} can enter the keyboard tab order`);
+        }
+        if (frame.getAttribute("loading") !== "lazy") {
+            problems.push(`frame ${index + 1} is not lazy-loaded`);
+        }
         if (frame.getAttribute("sandbox") !== expectedSandbox) {
             problems.push(`frame ${index + 1} has sandbox ${frame.getAttribute("sandbox")}`);
         }
@@ -88,6 +106,9 @@ for (const scene of scenes) {
     const root = dom.window.document.getElementById("root");
     const renderedScene = dom.window.document.documentElement.dataset.figureScene;
     const text = root?.textContent ?? "";
+    if (!dom.window.document.body.hasAttribute("inert")) {
+        runtimeErrors.push("the renderer document is not inert; its editor controls could be exposed as interactive");
+    }
     if (scene === "howto-wired-canvas") {
         for (const selector of [
             ".figure-canvas .react-flow__controls",

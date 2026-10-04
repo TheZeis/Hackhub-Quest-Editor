@@ -1,65 +1,66 @@
-# Handoff — r273 scene layout; prototype approved, mouse-cursor polish
+# Handoff — r274 figure semantics and manual evidence audit
 
-**Zeis approved the five-scene prototype on 2026-10-04.** His visual feedback
-led to simplifying and centering scene 2, making scene 5's nodes visible, and
-moving its loose wire end away from the Objective socket. After the left-facing
-cursor fix, Zeis suggested a regular mouse cursor instead of the white horizontal
-arrow; that optional shape refinement is now implemented.
+The five-scene prototype now uses `<figure>`/`<figcaption>`; each iframe has a
+unique descriptive `title`, links its caption with `aria-describedby`, and is
+removed from the Tab sequence with `tabindex="-1"`. The shared renderer page
+keeps its `<body inert>`. JSDOM checks the markup relationships, inert state,
+both sandbox policies, lazy loading and five local scene starts. The caption
+stays above the image, so the already-approved visual layout is unchanged.
 
-Scene 2 hides the editor toolbar, React Flow zoom controls and minimap. Its
-responsive frame spans the wide card and fits both nodes to the visible canvas.
-Scene 5 also has a responsive wide frame; React Flow fits the nodes, and its
-wire is in the same viewport transform, ending in the gap before the Objective.
-The regular mouse cursor points up-left toward the loose endpoint, overlaps it,
-and is painted in front. The other three scenes are unchanged.
+The real keyboard and screen-reader review is **still open**. No browser binary
+or screen-reader tool is available in this workspace. The live preview is
+running on port 5173; open `/manual-figure-prototype.html`. The tests do not
+prove the actual Tab order, screen-reader announcement or visual pixels. Do not
+start migrating figures until a person checks those in a real browser and
+records the result.
 
-The live preview server is running; open `/manual-figure-prototype.html` to see
-the updated cursor. JSDOM checks the responsive frame rules, hidden controls,
-detached-wire viewport, cursor shape/direction/layering, and all five renderer
-starts; it does not verify pixels. Zeis's Firefox check confirmed the
-offline-origin fix, and his visual approval covers the prototype; no separate
-pixel-level browser check was run after the optional cursor restyle.
-
-No editor figure has been replaced. The game-only installation image stays
-removed and its useful prose stays; no game screenshot was captured. The five
-other unlinked game-only names and two unlinked editor-panel names remain
-dormant. G8 reports **88** missing editor images; G18 remains **0**. Keyboard
-and screen-reader checks remain open before the separate figure-migration phase.
-
+No figure references were converted. The 88 current editor-image references
+remain; the game-only installation figure stays removed, while five other
+unlinked game names and two unlinked editor-panel names stay dormant. The
+existing multi-page handbook and `public/manual.html` redirect are unchanged.
 No `src/**` product code or product copy changed; `EDITOR_BUILD` remains
-`2026-10-03.r267`. The layout work and gates are recorded in the
-[r273 plan](plans/r273-manual-figure-scene-layout.md); the shared renderer's
-scope is in the [r271 plan](plans/r271-code-rendered-manual-illustrations.md).
+`2026-10-03.r267`.
+
+The orientation and source review also found acceptance gaps before any new
+reader-facing copy: G7 message-index coverage is still absent; `checking.html`
+claims every diagnostic although additional analyzer/compiler message families
+have no entry; G9 UI-label drift coverage is absent; and template, permission
+and export-file tables are not compared against their source. The evidence and
+next steps are in the [r274 plan](plans/r274-manual-accessibility-and-evidence-audit.md).
+The existing node inventory remains at 41 obtainable nodes, 164 editable
+fields, 80 fixed sockets and 99 events.
 
 ## Verification
 
-- `npm run gen:manual-figures`: passed; file and HTTP policy checks passed, as
-  did the responsive-frame/control assertions, the mouse-cursor silhouette,
-  direction, endpoint-overlap and paint-order checks, and all five file-URL scene
-  boot smokes.
-- `npm run build`: passed; the existing nonfatal warning that the main app
-  chunk exceeds 1 MB remains.
-- `npm test -- src/manual.coverage.test.ts`: **27/27 passed**; G8 remains at 88
-  missing editor-image references and G18 remains **0**.
-- `git diff --check` and `node --check
-  scripts/manual-figures/smoke-offline-renderer.mjs`: passed.
-- No real browser is installed in the workspace. Zeis approved the prototype
-  visually on 2026-10-04; JSDOM geometry checks cannot verify pixels. Keyboard
-  and screen-reader checks remain open before conversion.
-- No full suite ran because `src/**` and product behavior were unchanged. No
-  screenshot or game image was captured.
-- The r273 scene-layout and cursor updates are committed and pushed to
-  `arena/01a1013d-hackhub-quest-editor`. No pull request was requested or opened.
+- `npm run gen:manual`: passed before the accessibility markup change; 41 node
+  pages written, zero awaiting prose, 285 search entries from 51 manual pages,
+  and all five existing file-URL renderer smokes passed.
+- `npm run gen:manual-figures`: passed after the markup change; file/HTTP sandbox
+  checks, accessible-name/caption relationships, no-tabstop markup, inert body,
+  and all five file-URL scene starts passed.
+- The full `npm test` suite passed before the markup change: 89 files and 1,834
+  tests. `npx vitest run src/manual.coverage.test.ts` passed after the change:
+  27/27; G8 still reports 88 missing editor-image references.
+- `npm run typecheck`, `npm run build`, `git diff --check` and
+  `node --check scripts/manual-figures/smoke-offline-renderer.mjs` passed. The
+  production build copies the manual, prototype and renderer. Vite emits the
+  existing nonfatal warning that the main app chunk is larger than 1 MB.
+- The preview returns HTTP 200 for `/manual.html` and `/manual/index.html` and
+  serves five prototype frames with `tabindex="-1"`. No real browser keyboard or
+  screen-reader check was run. No screenshot or game image was captured; G18 is
+  unchanged at 0.
+- This checkpoint stays on the session's fixed branch,
+  `arena/01a105b7-hackhub-quest-editor`.
 
 ## Next work
 
-1. Close the remaining keyboard, screen-reader and semantic checks listed in
-   the r271 plan before starting the separate figure-migration phase.
-2. After those checks, convert the 88 current editor figures and extend G8 as
-   planned, keeping the five game-only names and two unlinked editor panels out
-   of scope.
-3. Keep G18 at **0** and leave `EDITOR_BUILD` at r267 unless editor source
-   changes.
+1. Complete and record the real-browser Tab and screen-reader review of all five
+   scenes, both from the live preview and from a local copy of the manual.
+2. Finish the cited Phase 1 inventory and G7/G9 gates for diagnostics, UI
+   labels, templates, export files and permissions before updating their prose.
+3. After those checks, extend G8 for scene IDs, captions and search; then migrate
+   the 88 current editor figures without inventing a game screenshot.
+4. Keep the `r267` editor build stamp unless product source changes.
 
 ---
 

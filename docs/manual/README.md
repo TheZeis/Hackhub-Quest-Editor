@@ -69,6 +69,27 @@ the tag name is what makes it correct — do not remove it.
 `blockquote.blurb` is excluded from the count. Those quote the editor's own
 field hints, which are the product's wording and not ours to reword.
 
+## Figures
+
+The five-scene prototype at `public/manual-figure-prototype.html` is not part of
+the handbook. It tests the shared renderer before any of the 88 editor figures
+are replaced. Keep every scene fixed and read-only.
+
+For each rendered scene, keep its accessible description outside the frame:
+use a descriptive iframe `title`, point `aria-describedby` to a non-empty
+`<figcaption>` inside the same `<figure>`, and set `tabindex="-1"` so the frame
+does not add a keyboard tab stop. The renderer document's `<body inert>` keeps
+its drawn editor controls from acting as controls. Keep the frames sandboxed and
+all renderer files local; the file-only `allow-same-origin` exception is needed
+for local CSS and JavaScript to load from `file://`.
+
+`npm run gen:manual-figures` checks these markup rules and boots every scene in
+JSDOM. It does **not** verify pixels, browser focus behavior, or what a screen
+reader announces. A person must still review the live preview and the manual
+opened from disk with a keyboard and screen reader before any figures are
+migrated. Keep the captions meaningful on their own; readers must not need to
+inspect the frame to understand the point.
+
 ## Colour
 
 Colours are never invented here. They come from the editor's own palette, via

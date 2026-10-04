@@ -23,7 +23,8 @@
       .scene-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 22px; }
       .scene { min-width: 0; overflow: hidden; border: 1px solid #d6dde6; border-radius: 10px; background: #fff; box-shadow: 0 4px 18px rgb(20 35 55 / 0.06); }
       .scene h2 { margin: 0; padding: 14px 16px 5px; font-size: 16px; line-height: 1.3; }
-      .scene p { margin: 0; padding: 0 16px 13px; color: #536171; font-size: 12.5px; line-height: 1.5; }
+      .scene figure { margin: 0; }
+      .scene figcaption { margin: 0; padding: 0 16px 13px; color: #536171; font-size: 12.5px; line-height: 1.5; }
       .frame-scroll { overflow: auto; border-top: 1px solid #e3e8ef; background: #dfe4ea; }
       iframe { display: block; border: 0; background: #0c0e13; }
       .inspector-frame iframe { width: 440px; height: 700px; }
@@ -52,87 +53,102 @@
       <div class="scene-list">
         <section class="scene inspector-frame">
           <h2>1. Objective inspector</h2>
-          <p id="alt-objective">The Objective node is selected. Its name, player-facing description, hint and suggested command appear in the inspector.</p>
-          <div class="frame-scroll">
-            <iframe
-              data-renderer-src="figures/renderer.html?scene=node-objective-inspector"
-              title="Objective node inspector scene"
-              aria-describedby="alt-objective"
-              loading="lazy"
-              sandbox="allow-scripts"
-              referrerpolicy="no-referrer"
-              width="440"
-              height="700"
-            ></iframe>
-          </div>
+          <figure>
+            <figcaption id="alt-objective">The Objective node is selected. Its name, player-facing description, hint and suggested command appear in the inspector.</figcaption>
+            <div class="frame-scroll">
+              <iframe
+                data-renderer-src="figures/renderer.html?scene=node-objective-inspector"
+                title="Objective node inspector scene"
+                aria-describedby="alt-objective"
+                tabindex="-1"
+                loading="lazy"
+                sandbox="allow-scripts"
+                referrerpolicy="no-referrer"
+                width="440"
+                height="700"
+              ></iframe>
+            </div>
+          </figure>
         </section>
 
         <section class="scene canvas-frame wide">
           <h2>2. How-to canvas with a typed wire</h2>
-          <p id="alt-howto">A When event with a search condition is wired to the Objective it completes. The wire and node cards come from the editor's canvas renderer.</p>
-          <div class="frame-scroll">
-            <iframe
-              data-renderer-src="figures/renderer.html?scene=howto-wired-canvas"
-              title="When event connected to an Objective on the quest canvas"
-              aria-describedby="alt-howto"
-              loading="lazy"
-              sandbox="allow-scripts"
-              referrerpolicy="no-referrer"
-              width="960"
-              height="520"
-            ></iframe>
-          </div>
+          <figure>
+            <figcaption id="alt-howto">A When event with a search condition is wired to the Objective it completes. The wire and node cards come from the editor's canvas renderer.</figcaption>
+            <div class="frame-scroll">
+              <iframe
+                data-renderer-src="figures/renderer.html?scene=howto-wired-canvas"
+                title="When event connected to an Objective on the quest canvas"
+                aria-describedby="alt-howto"
+                tabindex="-1"
+                loading="lazy"
+                sandbox="allow-scripts"
+                referrerpolicy="no-referrer"
+                width="960"
+                height="520"
+              ></iframe>
+            </div>
+          </figure>
         </section>
 
         <section class="scene settings-frame wide">
           <h2>3. Settings panel over the editor</h2>
-          <p id="alt-settings">The real Settings panel is open over the fixed First Contact workspace. It shows theme and typography choices, plus the canvas preferences below.</p>
-          <div class="frame-scroll">
-            <iframe
-              data-renderer-src="figures/renderer.html?scene=settings-panel"
-              title="Settings panel open over the First Contact editor workspace"
-              aria-describedby="alt-settings"
-              loading="lazy"
-              sandbox="allow-scripts"
-              referrerpolicy="no-referrer"
-              width="1360"
-              height="820"
-            ></iframe>
-          </div>
+          <figure>
+            <figcaption id="alt-settings">The real Settings panel is open over the fixed First Contact workspace. It shows theme and typography choices, plus the canvas preferences below.</figcaption>
+            <div class="frame-scroll">
+              <iframe
+                data-renderer-src="figures/renderer.html?scene=settings-panel"
+                title="Settings panel open over the First Contact editor workspace"
+                aria-describedby="alt-settings"
+                tabindex="-1"
+                loading="lazy"
+                sandbox="allow-scripts"
+                referrerpolicy="no-referrer"
+                width="1360"
+                height="820"
+              ></iframe>
+            </div>
+          </figure>
         </section>
 
         <section class="scene workspace-frame wide">
           <h2>4. Full editor workspace</h2>
-          <p id="alt-workspace">First Contact is open with the top bar, node library, connected quest canvas, selected Objective inspector and status bar visible.</p>
-          <div class="frame-scroll">
-            <iframe
-              data-renderer-src="figures/renderer.html?scene=tour-workspace"
-              title="First Contact in the full quest editor workspace"
-              aria-describedby="alt-workspace"
-              loading="lazy"
-              sandbox="allow-scripts"
-              referrerpolicy="no-referrer"
-              width="1360"
-              height="820"
-            ></iframe>
-          </div>
+          <figure>
+            <figcaption id="alt-workspace">First Contact is open with the top bar, node library, connected quest canvas, selected Objective inspector and status bar visible.</figcaption>
+            <div class="frame-scroll">
+              <iframe
+                data-renderer-src="figures/renderer.html?scene=tour-workspace"
+                title="First Contact in the full quest editor workspace"
+                aria-describedby="alt-workspace"
+                tabindex="-1"
+                loading="lazy"
+                sandbox="allow-scripts"
+                referrerpolicy="no-referrer"
+                width="1360"
+                height="820"
+              ></iframe>
+            </div>
+          </figure>
         </section>
 
         <section class="scene drag-frame wide">
           <h2>5. Transient mid-drag state</h2>
-          <p id="alt-drag">A still illustration shows a connection being pulled from the When event toward the Objective. The loose wire is drawn as a fixed snapshot, not an active drag.</p>
-          <div class="frame-scroll">
-            <iframe
-              data-renderer-src="figures/renderer.html?scene=tutorial-drag-wire"
-              title="Fixed illustration of a wire being dragged toward an Objective"
-              aria-describedby="alt-drag"
-              loading="lazy"
-              sandbox="allow-scripts"
-              referrerpolicy="no-referrer"
-              width="900"
-              height="520"
-            ></iframe>
-          </div>
+          <figure>
+            <figcaption id="alt-drag">A still illustration shows a connection being pulled from the When event toward the Objective. The loose wire is drawn as a fixed snapshot, not an active drag.</figcaption>
+            <div class="frame-scroll">
+              <iframe
+                data-renderer-src="figures/renderer.html?scene=tutorial-drag-wire"
+                title="Fixed illustration of a wire being dragged toward an Objective"
+                aria-describedby="alt-drag"
+                tabindex="-1"
+                loading="lazy"
+                sandbox="allow-scripts"
+                referrerpolicy="no-referrer"
+                width="900"
+                height="520"
+              ></iframe>
+            </div>
+          </figure>
         </section>
       </div>
     </main>
