@@ -1,86 +1,72 @@
-# Handoff — r274 figure semantics and manual evidence audit
+# Handoff — r276 handbook source review and generated coverage
 
-The five-scene prototype now uses `<figure>`/`<figcaption>`; each iframe has a
-unique descriptive `title`, links its caption with `aria-describedby`, and uses
-`tabindex="-1"` so pressing Tab skips the frame. The shared renderer page
-keeps its `<body inert>`. JSDOM checks the markup relationships, inert state,
-both sandbox policies, lazy loading and five local scene starts. The caption
-stays above the image, so the already-approved visual layout is unchanged.
+## Current status
 
-Zeis checked the downloaded prototype in Firefox. Pressing Tab cycled through
-Firefox's controls and did not focus the page or any of the five scenes; this
-closes the keyboard check. Selecting page text only highlights text; it does
-not mean Tab can reach a scene. Screen-reader output was not checked. Zeis does
-not have a screen reader and has set that check below clear reading, numbers
-with units, and colour cues that do not rely on hue alone. Keep the external
-title and caption; do not claim screen-reader testing. The live preview is still running on port 5173 at
-`/manual-figure-prototype.html`; its pixels were not reviewed in this turn.
+The handbook table of contents and static HTML source are approved. The r276
+handbook work, generated artifacts, audit notes and README roadmap are **local
+in the workspace; they are not yet committed or pushed**. Before checkpointing,
+fetch and compare the remote as required by [the sandbox reset guide](SANDBOX-RESETS.md).
 
-No figure references were converted. The 88 current editor-image references
-remain; the game-only installation figure stays removed, while five other
-unlinked game names and two unlinked editor-panel names stay dormant. The
-existing multi-page handbook and `public/manual.html` redirect are unchanged.
-No `src/**` product code or product copy changed; `EDITOR_BUILD` remains
-`2026-10-03.r267`.
+The current work updated reader instructions in `public/manual/` and
+maintainer checks in `scripts/`. It reviewed all 56 diagnostic sites and 10 curated panel
+messages against their cited source rows; all map to 63 explanation blocks.
+The 32 feature-guide sections have source-map rows. The refreshed source
+inventory covers 41 node types, 164 editable fields, 80 wire sockets and 99
+events. It records 607 quoted UI occurrences across 215 labels, with none
+unmatched; all 14 templates, seven permissions, eight fixed export files and
+four optional output families are accounted for. Two diagnostic sites have no
+lexical quote candidate, but both have mapped explanations.
 
-The orientation and source review also found acceptance gaps before any new
-reader-facing copy: G7 message-index coverage is still absent; `checking.html`
-claims every diagnostic although additional analyzer/compiler message families
-have no entry; G9 UI-label drift coverage is absent; and template, permission
-and export-file tables are not compared against their source. The evidence and
-next steps are in the [r274 plan](plans/r274-manual-accessibility-and-evidence-audit.md).
-That plan is a gap report, not the complete cited Phase 1 inventory. No
-reader-facing handbook prose was authored; the 88 published figure references
-are unchanged. The existing node inventory remains at 41 obtainable nodes, 164
-editable fields, 80 fixed sockets and 99 events.
+The node-page generator now renders its approved inline labels and links instead
+of showing markup as literal text. It uses the actual Branch options, keeps the
+Ask player choices separate, and styles `apt-get install` as a game command,
+not an editor control. The generator rejects markup outside its small allowed
+set. An evidence test guards those cases.
 
-Accessibility priorities from Zeis: keep instructions direct, make numbers and
-units easy to follow, and do not make wire or warning meaning depend on colour
-alone. The current legend names each wire kind and uses dashed/dotted patterns;
-G18 currently reports zero overlong sentences. A contrast calculation found
-that the manual's small `--ink-4` identifiers reach only **3.02:1** on `--void`
-and **2.79:1** on `--surface`. The existing, brighter `--ink-3` token is above
-4.9:1 on both. This merits a manual-specific style review; no CSS changed in
-r274.
+The reader copy clarifies limits around story-triggered objectives, router
+recovery checks, stock accounts, unlisted pages, addon-file errors and storage,
+and what “blocking” means. It also treats an unwired output according to the
+node using it rather than saying every dead end stops the whole quest.
+
+## Accessibility and images
+
+The five-scene prototype remains approved. Zeis confirmed from disk in Firefox
+that Tab skips the page and all five scenes. Keep the descriptive frame titles
+and captions. Screen-reader output remains unverified and is lower priority by
+user direction. No editor figure was converted and no screenshot was captured;
+G8 still reports 88 missing editor figures. Tests do not establish visual truth.
 
 ## Verification
 
-- After recovery, `npm run gen:manual` regenerated 41 node pages (zero awaiting
-  prose) and 285 search entries from 51 manual pages; its figure smoke passed.
-  A separate `npm run gen:manual-figures` passed both sandbox checks and all five
-  local scene starts.
-- `npx vitest run src/manual.coverage.test.ts`: **27/27 passed** during this
-  follow-up; G8 still reports 88 missing editor-image references.
-- The full `npm test` suite passed before the markup change: 89 files and 1,834
-  tests. It was not rerun for this docs-only checkpoint; `src/**` is unchanged.
-- After recovery and this docs-only update, `npm run typecheck`, `npm run build`,
-  `git diff --check` and `node --check
-  scripts/manual-figures/smoke-offline-renderer.mjs` passed. The production build
-  copies the manual, prototype and renderer. Vite emits the existing nonfatal
-  warning that the main app chunk is larger than 1 MB.
-- The preview returns HTTP 200 for `/manual.html` and `/manual/index.html` and
-  serves five prototype frames with `tabindex="-1"`. Zeis's Firefox-from-disk
-  check confirms Tab does not focus the page or scenes. Screen-reader output was
-  not tested. No screenshot or game image was captured; G18 remains 0.
-- The branch's prior r274 checkpoints `3c82ca7`, `8aeee98` and `0b5108c` are on
-  `origin/arena/01a105b7-hackhub-quest-editor`. This follow-up records Zeis's
-  keyboard result and accessibility priorities. No pull request was requested
-  or opened.
+- `npm run gen:manual` passed: 41 node pages written, zero awaiting prose; the offline
+  figure smoke rendered all five local scenes; the search index has 319 entries
+  from 51 pages; and the evidence inventory is current.
+- `npx vitest run scripts/manual-evidence/source-inventory.test.ts src/manual.coverage.test.ts`
+  passed **38 tests**: 11 evidence checks and 27 handbook checks. G18 remains at
+  zero; G8 reports 88 uncaptured editor figures.
+- `npm run typecheck` and `npm run build` passed. Vite emitted its existing, nonfatal warning
+  that the main editor chunk exceeds 1 MB. `git diff --check` passed.
+- The full application suite was not run because `src/**` and app behavior were not
+  changed. No browser or in-game test was performed for the manual text in this
+  checkpoint; claims are checked against source. No screenshot was taken.
+- The introductory G7/G9 comment in `src/manual.coverage.test.ts` remains stale. It
+  was not edited because `src/**` is out of scope. Current evidence checks live in
+  `scripts/manual-evidence/source-inventory.test.ts`.
 
-## Next work
+## Next
 
-1. Finish the cited Phase 1 inventory and G7/G9 gates for diagnostics, UI
-   labels, templates, export files and permissions before updating their prose.
-2. After the inventory, present the full information architecture and table of
-   contents for approval. Agree on the source format before any Phase 3/4
-   authoring or tooling; do not start those phases without approval.
-3. Review reading accessibility: short, ordered instructions; explicit numbers
-   and units; colour-independent labels and line styles; and the low-contrast
-   `ink-4` identifiers. Do not change editor behavior under this scope.
-4. Extend G8 for scene IDs, captions and search, then migrate the 88 current
-   editor figures without inventing a game screenshot. Keep screen-reader output
-   marked unverified; the user-confirmed keyboard pass is complete.
-5. Keep the `r267` editor build stamp unless product source changes.
+1. Run the sandbox recovery and remote-comparison workflow; then commit and push
+   the validated checkpoint only to `arena/01a105b7-hackhub-quest-editor`.
+2. Keep the 88 editor figures unconverted until their visual source and
+   meaningful alt text are ready. Do not infer a screenshot from a passing test.
+3. Keep the product-friction recommendations in
+   `docs/plans/r276-manual-source-review.md` separate from behavior changes. They cover
+   router-warning wording, stock-account checks and clearer addon file errors.
+4. Keep screen-reader output explicitly unverified and maintain the approved
+   caption alternatives.
+
+No pull request was requested or opened. The editor stamp remains
+`2026-10-03.r267`.
 
 ---
 

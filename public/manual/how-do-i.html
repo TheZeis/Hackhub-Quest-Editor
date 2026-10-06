@@ -490,7 +490,7 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Turn off <b class="ui">Listed in the in-game search</b>. The page leaves search but stays reachable by its address.</li>
   <li>Give the player the site's host. Include a clue about the site if they must search for its hidden path.</li>
   <li>To check a completed search, add a <b class="ui">When event</b>. Choose <code>Terminal.Dirhunter</code>.</li>
-  <li>Under <b class="ui">Only when</b>, set <b class="ui">Field</b> to <code>results</code>. Set <b class="ui">Rule</b> to <b class="ui">contains</b> and use the page path as <b class="ui">Value</b>.</li>
+  <li>Under <b class="ui">Only when</b>, add a condition. Type <code>results</code> as the event detail, choose <b class="ui">contains</b>, and enter the page path as the value.</li>
   <li>Connect the trigger's <b class="ui">When</b> wire to an objective's <b class="ui">Trigger</b> socket. This checks discovery, not whether the page was opened.</li>
   <li>To check a visit, choose <code>Browser.WebsiteOpened</code> instead. Match <code>Url</code> to the page path and connect its <b class="ui">When</b> wire.</li>
 </ol>
@@ -571,7 +571,7 @@ alarm both finish. Neither sees the other's version.</p>
 <ol class="plain">
   <li>Add an <b class="ui">Objective</b> that asks the player to scan the target.</li>
   <li>Add a <b class="ui">When event</b> node. Choose <code>Terminal.NmapScan</code> under <b class="ui">Game event</b>.</li>
-  <li>Under <b class="ui">Only when</b>, add a condition. Set <b class="ui">Field</b> to <code>ip</code>, <b class="ui">Rule</b> to <b class="ui">equals</b>, and <b class="ui">Value</b> to <code>{{data.targetIp}}</code>.</li>
+  <li>Under <b class="ui">Only when</b>, add a condition. Type <code>ip</code> as the event detail, choose <b class="ui">is exactly</b>, and enter <code>{{data.targetIp}}</code> as the value.</li>
   <li>Connect <b class="ui">When</b> from the trigger to the objective's <b class="ui">Trigger</b> socket. Do not connect it to the flow input.</li>
   <li>Connect the objective's <b class="ui">On complete</b> output to the next story node. That beat starts after the matching scan.</li>
 </ol>

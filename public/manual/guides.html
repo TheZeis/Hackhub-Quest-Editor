@@ -78,15 +78,15 @@ edge.</div>
   <dt>Quest identifier</dt><dd>Internal. Unique across your mod, and the thing
   other quests name when they start this one.</dd>
   <dt>Display title</dt><dd>What the player sees in their quest list.</dd>
-  <dt>Description</dt><dd>The pitch, shown before they accept. This is also the
-  only place to say which addons your quest needs.</dd>
+  <dt>Description</dt><dd>The pitch shown before the player accepts. Use it to
+  name any game mod the quest needs.</dd>
   <dt>Journal group</dt><dd>Folders the player's journal into groups. Two quests
   in the same group read as one story.</dd>
 </dl>
 <h3>Hackhub feed post</h3>
 <p>The toggle that puts the quest on the Hackhub feed as a job the player can
 accept on the spot. It is the organic way to be found. The scripted
-<b class="ui">Claim quest</b> node covers quests the story starts itself. Quests
+<b class="ui">Claim another quest</b> node covers quests the story starts itself. Quests
 accepted from the feed complete from the post itself, not the journal.</p>
 <dl class="facts-list">
   <dt>Post this quest to the Hackhub feed</dt><dd>Off (the default) ships no
@@ -132,9 +132,11 @@ are what the game pays for finishing the quest. That is separate from anything a
 <b class="ui">E-mail</b>. The person the quest is from. Worth filling in,
 because a job with no name behind it reads as a system message.</p>
 <h3>Health</h3>
-<p>Not a setting. This group reads your quest back to you. It says how many objectives
-it has, and how many of them nothing can ever complete. It is the fastest check
-in the editor.</p>
+<p>Not a setting. This group counts your objectives and flags those without a
+<b class="ui">When event</b> wire. It does not count story wires: a regular
+Objective can still tick when the story reaches it. Treat the count as a prompt
+to check the route, not proof that the objective cannot finish. See
+<a href="checking.html#msg-panel-objective-trigger">the Health message</a>.</p>
 <figure>
   <img src="img/guide-quest-settings.png"
        alt="The Quest tab scrolled to the Behaviour group, showing its six controls." />
@@ -174,9 +176,7 @@ what, in what order, and with what delay.</p>
        alt="The Dialogues window with one conversation open and its lines listed." />
   <figcaption>One conversation, line by line.</figcaption>
 </figure>
-<p>A conversation needs something to reach it. Nothing wiring into a
-<b class="ui">Dialogue</b> node is a problem the export report will raise. A conversation nobody triggers is a conversation the player never
-sees.</p>
+<p>If nothing leads there, the canvas can flag the node as unreachable. Do not rely on the export report to catch it.</p>
 
 <h2 id="websites">Websites</h2>
 <p>The <b class="ui">Websites</b> button opens the builder. Your sites are on the left, and the pages of whichever site you picked on the right. A site is a host;
@@ -193,10 +193,12 @@ player will see.</p>
        alt="A single page in the page editor, with its preview showing the rendered result." />
   <figcaption>Editing one page, preview alongside.</figcaption>
 </figure>
-<div class="note warn"><b>A host belongs to the whole game.</b> Two mods claiming
-one domain collide, and the export report says so. A page can also be unlisted,
-which means only a direct address or a brute-force tool finds it. That is
-deliberate when you want a page hidden, and a mistake when you do not.</div>
+<div class="note warn"><b>Web addresses can overlap.</b> Two sites in one mod
+that use the same host can compete over the same address. The export report
+checks for duplicates in this mod, but cannot inspect other installed mods. Give
+each site its own distinctive host. A page can also be unlisted. It stays out
+of game search. A player may still reach it by address, a link or a brute-force
+tool. Unlisted does not mean private.</div>
 
 <h2 id="templates">Templates</h2>
 <p>The picker has fourteen entries: twelve templates and two Reference sheets.
@@ -209,27 +211,65 @@ Each card shows difficulty and node count. The window also offers
 </figure>
 <p>Loading a template replaces the current project and clears undo history.
 Autosave is not a versioned backup, so save a project file before experimenting.</p>
-<p><b class="ui">First Contact</b> is a Beginner template with eight nodes.
-<b class="ui">Node Reference</b> and <b class="ui">Quest Cookbook</b> are the
-Reference sheets, for lookup rather than as starter quests.</p>
+<p>Here is every card in the picker. The summaries name the kind of work each one teaches, not its plot. The first twelve are starter quests; the last two are lookup sheets, not quests to edit.</p>
+<ul class="plain template-list">
+  <li><b class="ui">Blank quest</b> — Beginner · 4 nodes. Start with the basic quest entry points and build everything else yourself.</li>
+  <li><b class="ui">First Contact</b> — Beginner · 8 nodes. A short, straightforward quest with one objective and a clear finish.</li>
+  <li><b class="ui">The Byline</b> — Beginner · 11 nodes. Follow clues through a website and a writer lookup.</li>
+  <li><b class="ui">Cold Call</b> — Beginner · 10 nodes. Learn how conversation, hints and a typed answer can carry a quest.</li>
+  <li><b class="ui">The Harbour Manifest</b> — Advanced · 22 nodes. A compact reconnaissance and server-access route.</li>
+  <li><b class="ui">The Help Desk Leak</b> — Advanced · 23 nodes. Use public website clues to reach a hidden page.</li>
+  <li><b class="ui">Bad Attachment</b> — Advanced · 14 nodes. Build a mail-led story that depends on a player's reply.</li>
+  <li><b class="ui">Six Tries</b> — Advanced · 23 nodes. A terminal-focused route through scanning, login recovery and SSH.</li>
+  <li><b class="ui">Dead Air</b> — Advanced · 28 nodes. Mix phone, chat, timed waits and repeated choices.</li>
+  <li><b class="ui">Cold Storage</b> — Expert · 20 nodes. Follow a longer network route into a database.</li>
+  <li><b class="ui">The Ledger Contract</b> — Expert · 33 nodes. Trace a network route and use different access steps.</li>
+  <li><b class="ui">The Long Game</b> — Expert · 36 nodes. A three-part campaign with linked quests and different endings.</li>
+  <li><b class="ui">Node Reference</b> — Reference · 51 nodes. A read-only canvas showing the node types and example fields.</li>
+  <li><b class="ui">Quest Cookbook</b> — Reference · 16 nodes. A read-only guide to techniques used in the game's quests.</li>
+</ul>
+<p>Choose a template to learn from. Use <b class="ui">Export current quest</b> and <b class="ui">Import a quest file</b> to move work between projects.</p>
 
 <h2 id="dry-run">Dry run</h2>
 <p>The <b class="ui">Dry run</b> button walks through your quest the way the
 exported mod would run it, without installing anything. It is the closest thing
-to a test drive the editor has.</p>
+to a test drive the editor has. It runs the editor's emitted mod against a
+small recording version of the game's tools.</p>
 <figure>
   <img src="img/guide-dryrun.png"
        alt="The Dry run window part-way through a trace, showing which nodes have fired." />
   <figcaption>A trace in progress. Nodes light up as the run reaches
   them.</figcaption>
 </figure>
-<p>Watch the order rather than the outcome. If a node you expected never
-appears, nothing is wired to reach it. Drop a
-<a href="nodes/flow-debug.html">Debug probe</a> after it and run again. The probe prints what a node does when it fires, and whether it fires at all.</p>
-<div class="note"><b>Dry run is not the game.</b> It runs your logic, not the
-game's tools. A conversation, a scan or an exploit can still behave differently
-in the real thing, which is why the timed-conversation warning tells you to
-check in-game before you ship.</div>
+<p>Watch the order and which path the run takes. A missing node may have no wire, or this run may have taken another branch.</p>
+
+<h3>Read the results carefully</h3>
+<p>Opening <b class="ui">Dry run</b> starts a run. After you edit the quest,
+choose <b class="ui">Run again</b>. The dialog lists the story steps it reached,
+then shows how each objective completed or what its event check found.</p>
+<ul class="plain">
+  <li><code>would tick</code>. The listener matched a sample shaped from the condition you wrote. It does not prove that the game will send that event.</li>
+  <li><code>would never tick</code>. The simulator found no matching listener or the sample did not satisfy the condition. Read the note beside the objective and check its event, detail and value. If the note says the listener threw, copy that full message too.</li>
+  <li><code>unknown event</code>. The event is not in the simulator's built-in event list. A community addon's event can still be real; the dry run cannot test it.</li>
+  <li><code>internal beat</code>. The event belongs to the quest's own story flow, rather than a tool the player uses.</li>
+</ul>
+<p>The list at the top also includes export warnings. An error beside a quest
+means it did not register or its code threw while starting. An error above the
+quest list means the mod could not be prepared or failed while registering.
+Copy the full message and build stamp if you need help.</p>
+<h3>If the dry run itself reports an error</h3>
+<ul class="plain">
+  <li><blockquote class="blurb">the compiler produced no dist/mod.js — nothing to dry-run</blockquote> means the editor did not create the mod file. The dry run needs it. Copy the full message and build stamp if you ask for help.</li>
+  <li><code>the emitted mod threw while registering</code> means the mod failed while setting itself up. The rest of the report may be incomplete.</li>
+  <li><code>this quest did not register</code> means the simulator could not find that quest in the mod it loaded.</li>
+  <li><code>the quest's own code threw</code> means that quest failed while its opening steps ran. Keep the full text after the colon; it may name what failed.</li>
+</ul>
+<div class="note warn"><b>A dry run is a rehearsal, not a game test.</b> It uses sample
+event details, not events emitted by the real game. It collapses waits instead
+of waiting through in-game time, and it does not use the game's tools or show
+its screens. A random choice follows the simulator's sample path; other runs
+in game can take another path. Test timed conversations, scans, exploits,
+community events and other game-dependent steps in the actual game.</div>
 
 <h2 id="addons">Addons</h2>
 <p>Addons are packs made by other people that add events and tool actions to
@@ -242,12 +282,36 @@ your editor. The window's own description of them:</p>
   appear.</figcaption>
 </figure>
 <p>Once a pack is loaded, its events show up in the trigger picker under
-<b class="ui">Community addons</b>. Its tool actions appear in the palette
-under the same name. Nothing changes until you load one.</p>
-<div class="note warn"><b>Your players need the pack too.</b> A quest built on an
-addon does nothing for anyone without it, and the game will not tell them what
-is missing. Name the pack in your quest description — the editor warns you about
-this on the node, but it cannot write the description for you.</div>
+<b class="ui">Community addons</b>. Its actions appear in a palette group that
+starts with <code>Editor Mods</code> and ends with the pack name. Nothing changes
+until you load one.</p>
+<div class="note warn"><b>Your players need the related game mod too.</b> Features
+that depend on an addon may not work for players who have not installed the game
+mod it drives, and the game may not explain what is missing. Name that
+requirement in your quest description — the editor can remind you, but it cannot
+write the description for you.</div>
+
+<h3>If an addon will not load</h3>
+<p>Open <b class="ui">Addons</b>, then choose <b class="ui">Load a pack (<code>.json</code>)</b> or drop the file into the window. An addon file holds information. The editor reads that information; it does not run programs from the file.</p>
+<dl class="facts-list">
+  <dt>A typing mistake in the file</dt><dd><blockquote class="blurb">[file name]: this is not valid JSON — check for a trailing comma or a stray character.</blockquote> Get a fresh copy, or send the message to the addon author.</dd>
+  <dt>The file is not an addon</dt><dd>It may be a text file, but it does not contain one complete addon. Ask the author for the full <code>toolpack.json</code>.</dd>
+  <dt>The format number is wrong</dt><dd>This editor accepts version 2 of the addon file. The file uses another version. Ask the author for an updated <code>toolpack.json</code>; changing your quest will not fix this.</dd>
+  <dt>A short path and message are shown</dt><dd>The addon is missing a detail or has one the editor cannot use. The dotted path tells you where the problem is in the file. Send the whole message to the addon author instead of editing the file yourself.</dd>
+  <dt>The file could not be read</dt><dd>Try selecting it again from your computer. If it still fails, download or copy the file again.</dd>
+  <dt>No addon files were selected</dt><dd>The picker only accepts files ending in <code>.json</code>. Choose the addon file, often named <code>toolpack.json</code>.</dd>
+</dl>
+<p>The editor shows at most four problems at once. If the file still will not load, ask the addon author to check the rest.</p>
+<p>You can select several files at once. A good file can load even when another
+one fails; the result line reports both. Loading applies immediately. Choose
+<b class="ui">Save</b> to close the window; this does not save your quest project.</p>
+<div class="note warn"><b>Keep the original addon file.</b> Addons are saved in
+this browser, not in your project. The window gives each addon an ID, a label
+that identifies it. Loading another file with the same ID replaces the loaded
+addon. If browser storage fails, the addon lasts only for this session. An
+invalid saved addon can be skipped on the next visit
+without a separate warning. If an addon disappears, load its original
+<code>.json</code> file again.</div>
 
 <h2 id="settings">Settings</h2>
 <p>The <b class="ui">Settings</b> button holds editor preferences. None of them
@@ -302,9 +366,8 @@ reads <span class="mono">No issues</span> when the quest is clean.</p>
 
 
 <h2 id="pack-extras">Things outside your quests</h2>
-<p>Every other part of this handbook is about a quest. This section is about the
-four things a pack can put <em>outside</em> a quest. They are a start-menu entry, a small box on the desktop, and entries in a right-click menu. The fourth is the words your pack can speak in another language.</p>
-<p>They all live in one window, opened from <b class="ui">Pack extras</b> on the
+<p>This section covers three things a pack can add outside a quest. They are a start-menu entry, a small box on the desktop and right-click entries.</p>
+<p>They all live in one window, opened from <b class="ui">Extras</b> on the
 toolbar. Nothing there is required: a pack with none of it exports exactly as it
 always did.</p>
 
@@ -317,7 +380,8 @@ send the player a letter, or open the game's own handbook.</p>
   beside the game's own. Pick a picture from your machine. It travels inside the pack, so keep it small. The menu draws it the size of a letter in this
   sentence.</dd>
   <dt>The entry's own words</dt><dd>The label, and the sentence a "say
-  something" entry shows. Both take translated words (see below).</dd>
+  something" entry shows. They appear as you write them; the editor has no
+  screen for managing translated text yet.</dd>
   <dt>When it appears</dt><dd>As soon as the player's game loads your pack.
   Nothing has to be started for it to sit there.</dd>
 </dl>
@@ -345,39 +409,28 @@ desktop, on the taskbar, or on a window. Each entry carries a label, an optional
 picture, and one of the four jobs above.</p>
 <p>Use it for the thing a player reaches for while looking at something. Think "inspect this file", "send this to my notes", or "open the walkthrough".</p>
 
-<h3 id="translated-words">The same words in another language</h3>
-<p>The language table is a grid. One row per line of text, one column per
-language you have written it in. The game ships with the languages a player can
-choose, and this editor offers exactly those.</p>
-<p>A line you add is used with a token that looks like this:</p>
-<pre class="code">{{tr.name.of.your.line}}</pre>
-<p>Paste that token wherever a text field takes your words. That means a quest title, a
-mail's subject, a menu label, a notification. When the game shows it, it looks
-up the line in the player's language. It falls back to English when that language has no line yet. If the line is missing altogether, it shows the token itself.</p>
-<div class="note ok"><b>The game reads some words once, at load.</b> A quest's
-title, and the labels on a menu entry, are taken by the game while your pack
-loads. Whatever language the player had chosen for that save is the language
-those words stay in until the next load — which is also why changing the game's
-language mid-session does not change them, and why switching language and loading
-a save does.</div>
+<h3 id="translated-words">Translated text is not available yet</h3>
+<p>The game can show translated text, but this editor does not currently offer a
+screen for writing or checking translations. Text you enter in quests and pack
+extras is used as written; changing the game's language does not translate it.
+This handbook does not give steps for a feature the editor cannot currently
+manage.</p>
 
 <h3 id="extras-handbook">The handbook entry, honestly</h3>
-<p>One of the four jobs opens the game's handbook. In the game as it stands, it
-opens the handbook on that book's own front page. There is no way, yet, to send
-a player to a named page inside it. The entry is still worth having for "here is the book". The editor's log file records what was asked for. See
-<a href="troubleshooting.html">When something goes wrong</a> for reading the
-log.</p>
+<p>One of the four jobs opens the game's handbook. In HackHub 1.3.1, the book
+opens on its own landing page; it does not jump to the page you chose. The entry
+can still point players toward the handbook. The editor's log records which
+page was requested. See <a href="troubleshooting.html">When something goes
+wrong</a> for help finding the log.</p>
 
 <h2 id="generate-tags">Two buttons beside a text field</h2>
 <p>Some text fields carry one or two small buttons. They look alike and do
 opposite things, which is worth getting straight early.</p>
 <dl class="facts-list">
-  <dt>The dice</dt><dd>Fills the field with a realistic value it makes up — a
-  plausible address, a named contractor, an e-mail. The result is fixed forever,
-  because it is now text you typed.</dd>
-  <dt>The sparkle</dt><dd>Inserts a tag the game fills in when the quest runs,
-  like the address the game allocates to your network. The value is different
-  every playthrough, because it does not exist yet.</dd>
+  <dt>The dice</dt><dd>Fills the field with a sample value, such as an address,
+  a contractor's name or an e-mail. It becomes ordinary text in your project.
+  It stays until you edit it or generate another value.</dd>
+  <dt>The sparkle</dt><dd>It may stand for a saved answer, player detail or generated value. The tag tells the game which one.</dd>
 </dl>
 <p>Roll the dice when you want something concrete to look at while you build.
 Use the sparkle when the game is the only thing that knows the answer. A machine address is the common case, since the game allocates it.</p>

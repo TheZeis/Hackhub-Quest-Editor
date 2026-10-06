@@ -110,6 +110,16 @@ those. Delete the node and the permission goes with it.</p>
     <tr><td class="name"><code>tsconfig.json</code></td><td>Settings for the same rebuild.</td></tr>
   </tbody>
 </table>
+
+<h3 id="conditional-outputs">Files that appear only when used</h3>
+<p>The archive can also include extra pictures and widget pages. These are added only when your project contains the matching item. Their names are made for you; leave them where they are if you unzip the mod.</p>
+<ul class="plain">
+  <li data-output-family="mod-icon"><b>Mod icon.</b> A supported PNG or JPEG mod icon is copied to <code>assets/icon.png</code> or <code>assets/icon.jpg</code>.</li>
+  <li data-output-family="mod-cover"><b>Mod cover.</b> A supported PNG or JPEG cover image is copied to <code>assets/cover.png</code> or <code>assets/cover.jpg</code>.</li>
+  <li data-output-family="quest-images">Supported PNG or JPEG pictures go into <code>assets/</code> with generated names. This includes quest icons, employer pictures, feed posts and comments. The picture stays in your project too.</li>
+  <li data-output-family="desktop-widgets"><b>Desktop widgets.</b> Each widget adds its own <code>.html</code> page under <code>widgets/</code>. The editor links it to the widget for you.</li>
+</ul>
+<p>No matching image or widget means no extra file for that family. The eight files above remain the fixed core of every archive.</p>
 <div class="note ok"><b>You do not need any of this to ship a quest.</b> The
 editor builds the whole folder for you. It is listed here so the export window
 is not a list of unexplained filenames.</div>

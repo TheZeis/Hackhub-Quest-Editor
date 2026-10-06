@@ -1,7 +1,12 @@
 # Maintaining the handbook
 
-The pages under `public/manual/` are a build artifact in the same sense the
-schema is: they describe the editor, and they are checked against it.
+The shipped reader handbook is static HTML under `public/manual/`. Node pages,
+search data and evidence inventories are generated; reader-facing guides are
+written by hand and checked against the editor sources.
+
+The user approved the manual structure and static HTML source. Keep
+`public/manual.html` as the entry redirect. Preserve existing page names and
+anchors, local search, offline reading and print styles.
 
 ## Two inputs, and why they are separate
 
@@ -66,8 +71,9 @@ so the match swallows the page and table rows get counted as sentences. That
 reported 293 violations where there are 160. The lookahead `(?=[\s>])` after
 the tag name is what makes it correct — do not remove it.
 
-`blockquote.blurb` is excluded from the count. Those quote the editor's own
-field hints, which are the product's wording and not ours to reword.
+`blockquote.blurb` is excluded from the count. It quotes editor-owned wording,
+including field hints and addon file errors. Keep those quotations exact; the
+handbook explains them around the quote instead of rewriting product text.
 
 ## Figures
 
@@ -105,17 +111,29 @@ changes a hue, the manual follows by editing that one block.
 audit found it:
 
 | Source | Count | Extracted how |
-|---|---|---|
-| Canvas (`analysis/graph.ts`) | 5 | `label`/`detail`/`nextStep`/`severity` objects |
-| Inspector fields (`analysis/fields.ts`) | 5 | same shape |
-| Export (`compiler/compile.ts`) | 13 | `level:` + `text:` pairs |
-| **Panel editors (10 files)** | **10** | **none — hand-curated, gate G11** |
+|---|---:|---|
+| Canvas (`src/analysis/graph.ts`) | 7 | `label`/`detail`/`nextStep`/`severity` objects |
+| Inspector fields (`src/analysis/fields.ts`) | 9 | same shape |
+| Export and target matching (`src/compiler/compile.ts`, `src/compiler/targetWarnings.ts`) | 40 | emitted warning sites |
+| **Panel editors (10 files)** | **10** | **hand-curated examples, gate G11** |
 
 The first three share a machine-readable shape, which is why a regex finds
 them. The fourth does not: those messages are plain JSX text inside whichever
 editor is describing the thing in front of you — the quest's **Health**
 section, the device tree, a database's tables, an addon card, the website
 builder. They never reach a node badge or the export report.
+
+The 56 source sites and 10 curated panel messages map to 63 explanation blocks;
+several sites share one reader-facing explanation. The mapping lives in
+`docs/manual/diagnostic-coverage.json`. The evidence test compares it against
+the extracted source rows and checks every mapped anchor. This proves structural
+coverage, not that the wording is semantically correct. The quote matcher finds
+candidates for 54 of the 56 sites; the two without a quote candidate still have
+mapped explanations. Quote matching is a search aid, not a meaning check.
+
+The current scan also finds 607 quoted UI-label occurrences and 215 distinct
+labels, with none unmatched. All 14 templates, seven permissions, eight fixed
+archive files and four optional output families are accounted for.
 
 ### Why G11 is a curated list and not a scan
 
@@ -135,3 +153,30 @@ message.** When you add a warning to an inspector editor, add it to
 `StatusBar.tsx` still mentions no issues at all — the handbook once claimed the
 status bar carried the issue count, and the counter actually lives on the
 canvas.
+
+## Feature-to-source map
+
+`scripts/manual-evidence/feature-source-map.mjs` links each of the 32 curated
+feature-guide sections to the shipped source symbols that support it. The
+normalizer writes those rows into `docs/manual/evidence-inventory.json` and
+rejects missing or stale anchors. The test checks the source paths, symbols and
+listed error surfaces. A matching symbol does not prove that the prose is right;
+read the source and review the whole section before signing it off.
+
+## Regenerating and checking evidence
+
+Run `node scripts/build-manual-index.mjs` after editing manual prose. It rebuilds
+the local, offline search index. Run `npm run gen:manual-evidence` to refresh the
+source-cited registry, UI-label, diagnostic, template, permission, export-file
+and feature-map inventory. Then run:
+
+```sh
+npx vitest run scripts/manual-evidence/source-inventory.test.ts
+npx vitest run src/manual.coverage.test.ts
+```
+
+The first test checks the evidence snapshot and all 56 diagnostic sites, 10
+panel examples and 32 feature sections. The second checks node pages, field
+anchors, internal links, figure references, language rules and other handbook
+invariants. The screenshot gate still reports missing images; neither test can
+verify that an illustration matches the running editor.

@@ -552,8 +552,8 @@
     "game": "Nothing appears on screen. The player only notices that the next message differs from the one their friend got.",
     "fields": {
       "source": {
-        "put": "Pick what the condition is tested against. <b class=\"ui\">Event</b> tests the details carried by the event that fired. <b class=\"ui\">Data</b> tests values you stored with <a href=\"fx-setdata.html\">Set quest data</a>.",
-        "watch": "Pick <b class=\"ui\">Data</b> when the thing you are testing happened earlier in the quest. The event that woke this branch only carries its own details."
+        "put": "Choose based on where the information comes from. Pick <b class=\"ui\">Details from the event</b> for values sent with the game event. Pick <b class=\"ui\">Quest data</b> for values saved earlier using <a href=\"fx-setdata.html\">Set quest data</a>.",
+        "watch": "Pick <b class=\"ui\">Quest data</b> when the thing you are testing happened earlier in the quest. The event that woke this branch only carries its own details."
       },
       "conditions": {
         "put": "Add one clause per thing that has to be true.",
@@ -588,7 +588,7 @@
       ],
       [
         "The condition tests the wrong source.",
-        "Testing quest data while <b class=\"ui\">Test against</b> says <b class=\"ui\">Event</b> finds nothing to match, so the <b class=\"ui\">No</b> path always runs."
+        "Using <b class=\"ui\">Quest data</b> while <b class=\"ui\">Test against</b> says <b class=\"ui\">Details from the event</b> leaves nothing to match. The <b class=\"ui\">No</b> path then always runs."
       ]
     ],
     "messages": [
@@ -673,7 +673,7 @@
       ],
       [
         "Checking a terminal command such as lynx.",
-        "Terminal commands are installed with <b class=\"ui\">apt-get install</b>, but the game does not count them as apps. Even with lynx installed, the check reads <b class=\"ui\">Missing</b> — verified in game against a Kisscord control that read <b class=\"ui\">Installed</b>. The node can only route on desktop apps."
+        "Terminal commands are installed with <code>apt-get install</code>, but the game does not count them as apps. Even with lynx installed, the check reads <b class=\"ui\">Missing</b> — verified in game against a Kisscord control that read <b class=\"ui\">Installed</b>. The node can only route on desktop apps."
       ]
     ],
     "steps": [

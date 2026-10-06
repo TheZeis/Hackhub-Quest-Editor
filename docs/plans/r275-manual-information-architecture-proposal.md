@@ -1,6 +1,6 @@
-# Proposed manual information architecture — approval required
+# Manual information architecture — approved
 
-**Status:** Proposal only. This is not reader-facing copy. Do not begin Phase 3 authoring until the user approves or edits this structure. Confirm the source format before Phase 4.
+**Status:** Approved by the user on 2026-10-06. The table of contents and static HTML under `public/manual/` are approved for authoring. This file records the accepted structure; it is not reader-facing copy.
 
 ## Entry and reading paths
 
@@ -24,7 +24,7 @@ Keep the local search index, styles, scripts, offline behavior, and print styles
 - How to find a control, a node, or an exact warning.
 - Honest scope: what is covered, what is still a known limit, and where to start when something goes wrong.
 
-Correct the current count mismatch as part of later approved content work: this page says “Sixteen walkthroughs,” while `how-do-i.html` contains 17 and says all 17 are linked.
+The approved content work corrected the count: `index.html` now says seventeen walkthroughs, matching the 17 linked recipes in `how-do-i.html`.
 
 ### Learn the editor
 
@@ -144,7 +144,7 @@ Keep all existing field anchors. The checked inventory currently has 164 editabl
 4. Give every current message variant a stable anchor and a trace to its source-inventory row. Explain where it appears, what it means, and a concrete next action only when supported by the product.
 5. Include exact searchable wording where useful, but do not treat a similar sentence as proof that a different diagnostic is covered.
 
-The current source inventory has 56 diagnostic sites, 10 curated panel-message examples, and 31 existing manual message blocks. Review the source rows and deduplicate only after checking whether two sites really produce the same reader-visible message. Update the home page and this page's “every message” claims only after this review.
+The source inventory has 56 diagnostic sites and 10 curated panel-message examples, mapped to 63 unique message blocks. The 56 sites include 7 graph issues, 9 field warnings, and 40 export or target-matching warnings. `docs/manual/diagnostic-coverage.json` preserves the source-to-anchor mapping. Source citations and semantic review are recorded in the r276 follow-up; lexical matches alone do not prove a correct explanation.
 
 ### Exporting and installing — `export.html`
 
@@ -176,8 +176,8 @@ Keep the symptom-first decision trees for: nothing runs; an objective never tick
 - Keep editor screenshots/illustrations truthful to the running app. Any visual claim that cannot be checked in the app stays unillustrated or is labelled as unverified.
 - Keep screen-reader output explicitly unverified until it is actually tested; this is not a reason to block the work.
 
-## Proposed source structure for Phase 4
+## Approved authoring source and delivery
 
-**Recommendation:** keep the existing delivery mechanism and use the shipped static HTML under `public/manual/` as the authoring source for prose. Keep `public/manual.html` as the redirecting entry point. Continue generating registry-backed node pages and indexes from the checked source inventories. Keep CSS, search data, and scripts local so the manual remains offline-capable. Do not introduce Markdown conversion, a new site generator, or a new delivery framework in this round.
+Keep the existing delivery mechanism and use static HTML under `public/manual/` as the prose source. Keep `public/manual.html` as the redirecting entry point. Continue generating registry-backed node pages and indexes from the checked inventories. Keep CSS, search data and scripts local so the manual stays offline-capable. Do not add Markdown conversion, a new site generator or a new delivery framework in this work.
 
-This is the smallest change and preserves current URLs, stable anchors, printing, and offline search. **Approval is still required before Phase 4.** If a Markdown source tree is preferred, decide that separately before building any conversion pipeline.
+This preserves current URLs, stable anchors, printing and offline search. The user confirmed this source format together with the approved table of contents.

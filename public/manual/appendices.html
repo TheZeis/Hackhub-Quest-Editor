@@ -50,18 +50,19 @@ events. Nothing here needs reading in order.</p>
   <dt>Inspector</dt><dd>The panel on the right, with its
   <b class="ui">Node</b>, <b class="ui">Quest</b> and <b class="ui">Mod</b>
   tabs.</dd>
-  <dt>Field</dt><dd>One setting on a node. Every field is a dropdown, a switch,
-  a box to type in or a colour.</dd>
-  <dt>Hint</dt><dd>The grey sentence under a field. It is the editor's own
-  wording, and this handbook quotes it rather than paraphrasing.</dd>
-  <dt>Message</dt><dd>Something the editor has found wrong. Amber is unfinished,
-  red is broken. All of them are in
-  <a href="checking.html">checking your quest</a>.</dd>
-  <dt>Project file</dt><dd>Your editable work. Saved with
-  <b class="ui">Save</b>, reopened with <b class="ui">Load</b>. This is the only
-  thing you can carry on editing.</dd>
-  <dt>Mod, or the <code>.zip</code></dt><dd>Finished output for the game. Not
-  editable. Exporting makes a new one every time.</dd>
+  <dt>Field</dt><dd>One setting or control on a node. It might be a text box,
+  number, switch, list, colour or another kind of control.</dd>
+  <dt>Hint</dt><dd>A short explanation attached to a field. It may appear under
+  the control or when you hover. This handbook quotes the editor's wording.</dd>
+  <dt>Message</dt><dd>A note about a problem or something to check. Read its words,
+  not only its colour. Canvas and export messages are in
+  <a href="checking.html">checking your quest</a>. Addon and dry-run messages are
+  explained in the <a href="guides.html">feature guides</a>.</dd>
+  <dt>Project file</dt><dd>Your editable work. Save it with
+  <b class="ui">Save</b> and reopen it with <b class="ui">Load</b>. This is the
+  file to keep working on in the editor.</dd>
+  <dt>Mod, or the <code>.zip</code></dt><dd>Finished game output, not the
+  editable project. Exporting makes a new file each time.</dd>
   <dt>Export</dt><dd>Turning a project into a mod. The editor calls the button
   <b class="ui">Export mod</b>.</dd>
   <dt>Dry run</dt><dd>Walking through your quest the way the mod would run it,
@@ -69,23 +70,25 @@ events. Nothing here needs reading in order.</p>
   <dt>Debug probe</dt><dd>A node you drop on the canvas that prints what a node
   does when it fires. Not the same as the canvas
   <b class="ui">Debug</b> button.</dd>
-  <dt>Objective</dt><dd>A line in the player's quest panel. The only part of
-  your quest they are told about.</dd>
-  <dt>Event</dt><dd>Something the player does in the game, which your quest can
-  hear. There are 99.</dd>
-  <dt>Trigger</dt><dd>Only ever a socket: the cyan one on an objective. The node
-  that feeds it is a <b class="ui">When event</b>.</dd>
+  <dt>Objective</dt><dd>A task shown in the player's quest panel. It can finish
+  after a game event or when a story wire reaches it.</dd>
+  <dt>Event</dt><dd>Something that happens in the game that a quest can respond
+  to. The editor lists 99 built-in events; a loaded addon can add more.</dd>
+  <dt>Trigger</dt><dd>A socket that waits for a game event. Objectives and some
+  other nodes have one. Connect a <b class="ui">When event</b> node to it.</dd>
   <dt>Tag</dt><dd>Text in braces that the game fills in when the quest runs,
   like a machine address it allocates. The sparkle button inserts one.</dd>
-  <dt>Addon</dt><dd>A pack made by somebody else that adds events and tool
-  actions to your editor. Data only.</dd>
+  <dt>Addon</dt><dd>A pack from another creator. It adds events and tool actions
+  to the editor, but the editor does not run programs from it.</dd>
   <dt>Drawing aid</dt><dd>A node that does not run: a Sticky note, a Story Beat
   or a Group frame. A frame's name and comment still ship as comments.</dd>
 </dl>
 
 <h2 id="shortcuts">Keyboard and mouse</h2>
-<p>Keys work anywhere. Gestures are on the canvas. The editor shows this same
-list under <b class="ui">Shortcuts</b>.</p>
+<p>Most keyboard shortcuts work across the editor. Copy, cut, paste, duplicate
+and delete do not act while you are typing. <kbd>Shift</kbd>+<kbd>A</kbd> and
+<kbd>Ctrl</kbd>+<kbd>G</kbd> are canvas actions. Mouse gestures are also listed.
+Open <b class="ui">Shortcuts</b> in the editor to see its list.</p>
 <h3>Editing</h3>
 <table>
   <tbody>
@@ -114,6 +117,7 @@ list under <b class="ui">Shortcuts</b>.</p>
     <tr><td>Add to or toggle the selection</td><td><kbd>Shift</kbd> or <kbd>Ctrl</kbd> <i>+ click</i></td></tr>
     <tr><td>Box-select; any overlap counts</td><td><i>drag on empty canvas</i></td></tr>
     <tr><td>Add to or remove from a box selection</td><td><kbd>Shift</kbd> <i>+ drag a box</i></td></tr>
+    <tr><td>Group the selection; press again on a frame to ungroup</td><td><kbd>Ctrl</kbd><kbd>G</kbd></td></tr>
     <tr><td>Clear the selection</td><td><kbd>Esc</kbd></td></tr>
   </tbody>
 </table>
@@ -153,13 +157,13 @@ cross one.</p>
   name if you target one by BSSID in the current game build. Scanning, joining
   and cracking still work.</dd>
   <dt class="dt-warn">It cannot stop you exporting a broken quest</dt><dd>The
-  report describes consequences; it gates nothing. A <code>.zip</code> always
-  downloads. That is deliberate, but it means a downloaded file is not proof of
-  a working quest.</dd>
+  report describes problems but does not block the
+  <b class="ui">Download .zip</b> button. A downloaded file is not proof that
+  the quest will work in the game.</dd>
   <dt class="dt-warn">It cannot tell your players they need an addon</dt><dd>A
-  quest built on an addon does nothing for anyone without it, and the game says
-  nothing. The quest description is the only channel, and you have to write
-  it.</dd>
+  feature that relies on an addon may not work unless the player has installed
+  the related game mod. The game may not explain what is missing. Name that
+  requirement in your quest description; the editor cannot write it for you.</dd>
   <dt class="dt-warn">It cannot keep a live conversation interactive</dt><dd>Turning
   on <b class="ui">Play when the story reaches this node</b> removes the player's
   replies and uploads. The messages are never cleaned up.</dd>
@@ -174,24 +178,22 @@ cross one.</p>
   says so before it does it. Export or save first.</dd>
   <dt>It cannot tell you the puzzle is solvable</dt><dd>No check can. The editor
   verifies that your quest is consistent, not that it is fair.</dd>
-  <dt>It cannot put anything on the phone but a call or a message</dt><dd>The
-  game lets a mod install a <b>phone app</b> with its own screen, icon, title,
-  and back button. This editor cannot build one yet. A story may need a branded
-  app, such as a bank, delivery tracker or camera roll. That app has to be added
-  outside the editor.</dd>
-  <dt>It cannot add menu entries, desktop icons or themes</dt><dd>The game
-  supports menu entries, desktop widgets and apps, right-click actions, and
-  themes. This editor cannot build those features yet. A pack cannot announce
-  itself outside its own quests.</dd>
+  <dt>It cannot install a custom phone app</dt><dd>The editor can author calls
+  and messages, but it cannot build a new app with its own screen and icon.
+  Anything that needs a custom phone app must be added outside the editor.</dd>
+  <dt>It cannot set the game's theme</dt><dd>The <b class="ui">Settings</b>
+  window changes how the editor looks, not the game. Menu entries, desktop
+  widgets and right-click entries are available under
+  <b class="ui">Extras</b>; they do not change the game's theme.</dd>
   <dt>It cannot translate your text</dt><dd>Everything here is written in one
   language and shipped as written. The game can hold several translations of the
   same text; the editor does not manage them.</dd>
 </dl>
 
 <h2 id="events-list">The 99 events</h2>
-<p>This list groups every event a <b class="ui">When event</b> node can wait
-for. To find one, type part of its name into the node's
-<b class="ui">Game event</b> picker. The list shows what is available.</p>
+<p>This list groups the 99 built-in events a <b class="ui">When event</b> node
+can wait for. A loaded addon can add more. To find a built-in event, type part
+of its name into the node's <b class="ui">Game event</b> picker.</p>
 <h3 id="events-recon">Reconnaissance &amp; terminal <span class="mono">(18)</span></h3>
 <table class="compact">
 <tbody>

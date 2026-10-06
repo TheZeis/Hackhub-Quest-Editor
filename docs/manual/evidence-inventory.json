@@ -5117,7 +5117,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-no-trigger",
-            "line": 111
+            "line": 113
           },
           "matchedPhrase": "No trigger",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5194,7 +5194,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-dead-end",
-            "line": 124
+            "line": 122
           },
           "matchedPhrase": "Dead end",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5295,7 +5295,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-nothing-scheduled",
-            "line": 147
+            "line": 152
           },
           "matchedPhrase": "Nothing scheduled",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5354,7 +5354,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-timer-nothing-to-do",
-            "line": 162
+            "line": 164
           },
           "matchedPhrase": "The timer has nothing to do",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5413,7 +5413,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-unreachable",
-            "line": 98
+            "line": 100
           },
           "matchedPhrase": "Unreachable",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5472,7 +5472,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-only-runs-on-completion",
-            "line": 175
+            "line": 177
           },
           "matchedPhrase": "Only runs on completion",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5534,7 +5534,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-empty",
-            "line": 190
+            "line": 192
           },
           "matchedPhrase": "Empty",
           "method": "diagnostic label equals a manual message heading; content still needs review"
@@ -5595,7 +5595,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-no-machine",
-            "line": 217
+            "line": 219
           },
           "matchedPhrase": "no machine set this node does nothing until it points at one",
           "matchingWords": 12,
@@ -5655,7 +5655,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-no-network",
-            "line": 231
+            "line": 233
           },
           "matchedPhrase": "this is set to a machine but no network in this quest creates one for it to act on",
           "matchingWords": 19,
@@ -5711,10 +5711,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-field-prompt-answer",
+            "line": 285
+          },
+          "matchedPhrase": "this question is set to check the answer but no accepted answer is filled in yet",
+          "matchingWords": 16,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -5770,7 +5775,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-files-no-network",
-            "line": 245
+            "line": 247
           },
           "matchedPhrase": "this place files node puts files on a remote device but no network in this quest exists for that device to live on export would drop the files",
           "matchingWords": 28,
@@ -5834,7 +5839,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-files-no-device",
-            "line": 258
+            "line": 260
           },
           "matchedPhrase": "no device in this quest uses that address so these files would be dropped when you export",
           "matchingWords": 17,
@@ -5894,7 +5899,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-files-no-user",
-            "line": 272
+            "line": 274
           },
           "matchedPhrase": "that device has no user account and files mount under a user s home folder export would drop the files",
           "matchingWords": 20,
@@ -5954,7 +5959,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-field-app-no-name",
-            "line": 204
+            "line": 206
           },
           "matchedPhrase": "no app name so this check can never match anything",
           "matchingWords": 10,
@@ -6014,11 +6019,11 @@
           "status": "phrase-candidate",
           "manual": {
             "path": "public/manual/checking.html",
-            "anchor": "#msg-panel-timed-conversation",
-            "line": 380
+            "anchor": "#msg-field-app-command",
+            "line": 294
           },
-          "matchedPhrase": "the game does not",
-          "matchingWords": 4,
+          "matchedPhrase": "as an app so this check always reads missing even when it is installed",
+          "matchingWords": 14,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6114,10 +6119,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-feed-claim",
+            "line": 432
+          },
+          "matchedPhrase": "the player claims this one from its hackhub feed post nothing in it runs until they do",
+          "matchingWords": 17,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6151,10 +6161,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-no-start",
+            "line": 440
+          },
+          "matchedPhrase": "nothing can start this quest it does not start automatically and it is not advertised on the hackhub feed",
+          "matchingWords": 19,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6180,10 +6195,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-device-target",
+            "line": 448
+          },
+          "matchedPhrase": "node has no device ip so it has nothing to act on",
+          "matchingWords": 12,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6218,10 +6238,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-network-domain",
+            "line": 456
+          },
+          "matchedPhrase": "domain names are shared with the whole game",
+          "matchingWords": 8,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6260,10 +6285,10 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-network-shape",
-            "line": 409
+            "line": 464
           },
-          "matchedPhrase": "has machines behind it but only a router or a splitter can hold other machines",
-          "matchingWords": 15,
+          "matchedPhrase": "has machines behind it but only a router or a splitter can hold other machines those machines will not be built",
+          "matchingWords": 21,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6299,10 +6324,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-firewall-rules",
+            "line": 472
+          },
+          "matchedPhrase": "carries firewall rules but only a firewall device enforces them they will be ignored",
+          "matchingWords": 14,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6337,10 +6367,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-login-no-user",
+            "line": 480
+          },
+          "matchedPhrase": "has a login service open but no user accounts so the player cannot break in",
+          "matchingWords": 15,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6379,7 +6414,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-tool-version",
-            "line": 422
+            "line": 493
           },
           "matchedPhrase": "metasploit needs three numbers for example openssh 7 2 0 it rejects anything else",
           "matchingWords": 14,
@@ -6411,10 +6446,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-lynx-handle",
+            "line": 501
+          },
+          "matchedPhrase": "the lynx result advertises searching a social handle that has no profile behind it crashes the game and corrupts the player s save",
+          "matchingWords": 23,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6468,10 +6508,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-handbook-article",
+            "line": 509
+          },
+          "matchedPhrase": "an open handbook node has no article so it does nothing",
+          "matchingWords": 11,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6506,10 +6551,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-wifi",
+            "line": 517
+          },
+          "matchedPhrase": "create wi fi exports as a native access point in hackhub 1 3 0",
+          "matchingWords": 14,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6544,10 +6594,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-mail-no-from",
+            "line": 525
+          },
+          "matchedPhrase": "lets the player reply but its from address is empty a player s reply arrives addressed to your mail s from so with no from there is nothing a trigger can match",
+          "matchingWords": 32,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6583,10 +6638,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-mail-reply",
+            "line": 533
+          },
+          "matchedPhrase": "the mail goes out with its reply flag and the reply button draws",
+          "matchingWords": 13,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6620,10 +6680,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-phone-answer",
+            "line": 541
+          },
+          "matchedPhrase": "phone lines with typed answers also register a terminal command qe the player uses to answer",
+          "matchingWords": 16,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6661,10 +6726,10 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-conversation",
-            "line": 448
+            "line": 549
           },
-          "matchedPhrase": "a conversation is set to play when the story reaches this node but nothing is wired into it it",
-          "matchingWords": 19,
+          "matchedPhrase": "a conversation is set to play when the story reaches this node but nothing is wired into it it stays a normal quest conversation",
+          "matchingWords": 24,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6702,11 +6767,11 @@
           "status": "phrase-candidate",
           "manual": {
             "path": "public/manual/checking.html",
-            "anchor": "#msg-export-conversation",
-            "line": 448
+            "anchor": "#msg-export-live-conversation",
+            "line": 557
           },
-          "matchedPhrase": "set to play when the story reaches this node",
-          "matchingWords": 9,
+          "matchedPhrase": "a conversation set to play when the story reaches this node is sent live at that moment player replies uploads and unlocks after steps are skipped",
+          "matchingWords": 26,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6745,7 +6810,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-kisscord",
-            "line": 471
+            "line": 565
           },
           "matchedPhrase": "kisscord uploads compile to a uploaded file message",
           "matchingWords": 8,
@@ -6788,7 +6853,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-addon",
-            "line": 459
+            "line": 573
           },
           "matchedPhrase": "a give data to an addon node is not set up yet",
           "matchingWords": 12,
@@ -6830,11 +6895,11 @@
           "status": "phrase-candidate",
           "manual": {
             "path": "public/manual/checking.html",
-            "anchor": "#msg-export-addon",
-            "line": 459
+            "anchor": "#msg-export-addon-node",
+            "line": 581
           },
-          "matchedPhrase": "an addon node is not set up yet",
-          "matchingWords": 8,
+          "matchedPhrase": "an addon node is not set up yet add it again from the palette s editor mods group",
+          "matchingWords": 18,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6873,11 +6938,11 @@
           "status": "phrase-candidate",
           "manual": {
             "path": "public/manual/checking.html",
-            "anchor": "#msg-panel-addon-needs-mod",
-            "line": 358
+            "anchor": "#msg-export-addon-mod",
+            "line": 591
           },
-          "matchedPhrase": "say so in your quest description",
-          "matchingWords": 6,
+          "matchedPhrase": "community data is used in this quest it needs the game mod installed on the player s machine",
+          "matchingWords": 18,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -6919,10 +6984,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-unlisted-page",
+            "line": 599
+          },
+          "matchedPhrase": "and the in game search will not show",
+          "matchingWords": 8,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6958,10 +7028,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-duplicate-page-path",
+            "line": 612
+          },
+          "matchedPhrase": "has pages at the path they ship as two definitions of the same address",
+          "matchingWords": 14,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -6998,10 +7073,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-page-path",
+            "line": 620
+          },
+          "matchedPhrase": "the page has the path but paths start at the host root it should be",
+          "matchingWords": 15,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7040,10 +7120,10 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-domain-clash",
-            "line": 433
+            "line": 628
           },
-          "matchedPhrase": "is the host of websites in this mod domains are global two sites on one host will fight over",
-          "matchingWords": 19,
+          "matchedPhrase": "is the host of websites in this mod domains are global two sites on one host will fight over which one answers",
+          "matchingWords": 22,
           "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
@@ -7078,10 +7158,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-placeholder-domain",
+            "line": 639
+          },
+          "matchedPhrase": "is a placeholder domain but the export ships it as a real site any player can find",
+          "matchingWords": 17,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7116,10 +7201,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-handle",
+            "line": 647
+          },
+          "matchedPhrase": "cannot be a twotter handle use letters numbers and underscores 3 to 15 characters",
+          "matchingWords": 14,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7154,10 +7244,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-display",
+            "line": 655
+          },
+          "matchedPhrase": "has no display name the game shows the display name on the profile and falls back to something generic without it",
+          "matchingWords": 21,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7192,10 +7287,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-duplicate",
+            "line": 663
+          },
+          "matchedPhrase": "two twotter accounts share the handle handles are what players search for so only one of them can ever be found",
+          "matchingWords": 21,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7233,7 +7333,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-twotter-account",
-            "line": 485
+            "line": 671
           },
           "matchedPhrase": "has no account yet",
           "matchingWords": 4,
@@ -7271,10 +7371,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-account",
+            "line": 671
+          },
+          "matchedPhrase": "points at a twotter account that is not in this mod any more",
+          "matchingWords": 13,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7312,7 +7417,7 @@
           "manual": {
             "path": "public/manual/checking.html",
             "anchor": "#msg-export-twotter-empty",
-            "line": 497
+            "line": 679
           },
           "matchedPhrase": "posts nothing it has no tweet rows",
           "matchingWords": 7,
@@ -7350,10 +7455,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-empty",
+            "line": 679
+          },
+          "matchedPhrase": "has a tweet with no text and no picture",
+          "matchingWords": 9,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7387,10 +7497,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-image",
+            "line": 688
+          },
+          "matchedPhrase": "the picture stays in your project and in the editor s preview but players will not see it",
+          "matchingWords": 18,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7424,10 +7539,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-twotter-time",
+            "line": 696
+          },
+          "matchedPhrase": "came from an older draft whose tweet time could not be carried over exactly so it now says 1 month earlier",
+          "matchingWords": 21,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7461,10 +7581,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-export-files-unplaced",
+            "line": 704
+          },
+          "matchedPhrase": "a place files node could not be placed point it at a device this quest creates or target the player s pc instead",
+          "matchingWords": 23,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7492,10 +7617,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-target-service",
+            "line": 715
+          },
+          "matchedPhrase": "its tools only understand",
+          "matchingWords": 4,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7522,10 +7652,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-target-version",
+            "line": 722
+          },
+          "matchedPhrase": "matches targets by their version string so a blank version never lines up",
+          "matchingWords": 13,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7551,10 +7686,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-target-no-weakness",
+            "line": 729
+          },
+          "matchedPhrase": "looks for targets with one of these weaknesses none of this quest s targets names one",
+          "matchingWords": 16,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       },
       {
@@ -7581,10 +7721,15 @@
           }
         ],
         "manualQuoteEvidence": {
-          "status": "no-quote-candidate",
-          "manual": null,
-          "matchedPhrase": null,
-          "method": "no four-word phrase match in checking.html message quotations"
+          "status": "phrase-candidate",
+          "manual": {
+            "path": "public/manual/checking.html",
+            "anchor": "#msg-target-weakness-mismatch",
+            "line": 736
+          },
+          "matchedPhrase": "only looks for none of them lines up",
+          "matchingWords": 8,
+          "method": "four-or-more adjacent normalized words overlap; this is a search lead, not proof of coverage"
         }
       }
     ],
@@ -7599,7 +7744,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 289,
+          "line": 314,
           "snippet": "no trigger wired in, so the player can never complete"
         },
         "sourceTest": {
@@ -7619,7 +7764,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 303,
+          "line": 323,
           "snippet": "This router has no way in"
         },
         "sourceTest": {
@@ -7639,7 +7784,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 313,
+          "line": 333,
           "snippet": "The SSH exploit lands in a guest account"
         },
         "sourceTest": {
@@ -7659,7 +7804,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 326,
+          "line": 346,
           "snippet": "This table has no name, so the game will skip it."
         },
         "sourceTest": {
@@ -7679,7 +7824,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 336,
+          "line": 356,
           "snippet": "Not one of this event's known details"
         },
         "sourceTest": {
@@ -7699,7 +7844,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 349,
+          "line": 370,
           "snippet": "know which tool action it runs"
         },
         "sourceTest": {
@@ -7719,7 +7864,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 359,
+          "line": 382,
           "snippet": "game mod installed for this to work"
         },
         "sourceTest": {
@@ -7739,7 +7884,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 371,
+          "line": 394,
           "snippet": "pack isn't loaded on this machine"
         },
         "sourceTest": {
@@ -7759,7 +7904,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 381,
+          "line": 406,
           "snippet": "Timed conversations are sent through"
         },
         "sourceTest": {
@@ -7779,7 +7924,7 @@
         },
         "manual": {
           "path": "public/manual/checking.html",
-          "line": 392,
+          "line": 417,
           "snippet": "Not in search results"
         },
         "sourceTest": {
@@ -7798,7 +7943,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-unreachable",
-          "line": 98
+          "line": 100
         }
       },
       {
@@ -7808,17 +7953,17 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-no-trigger",
-          "line": 111
+          "line": 113
         }
       },
       {
         "id": "msg-dead-end",
         "title": "Dead end",
-        "quote": "The “…” outcome goes nowhere, so the quest stalls if the player takes it.",
+        "quote": "One output or step has no wire. What happens next depends on the node.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-dead-end",
-          "line": 124
+          "line": 122
         }
       },
       {
@@ -7828,7 +7973,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-nothing-scheduled",
-          "line": 147
+          "line": 152
         }
       },
       {
@@ -7838,7 +7983,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-timer-nothing-to-do",
-          "line": 162
+          "line": 164
         }
       },
       {
@@ -7848,7 +7993,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-only-runs-on-completion",
-          "line": 175
+          "line": 177
         }
       },
       {
@@ -7858,7 +8003,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-empty",
-          "line": 190
+          "line": 192
         }
       },
       {
@@ -7868,7 +8013,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-app-no-name",
-          "line": 204
+          "line": 206
         }
       },
       {
@@ -7878,7 +8023,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-no-machine",
-          "line": 217
+          "line": 219
         }
       },
       {
@@ -7888,7 +8033,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-no-network",
-          "line": 231
+          "line": 233
         }
       },
       {
@@ -7898,7 +8043,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-files-no-network",
-          "line": 245
+          "line": 247
         }
       },
       {
@@ -7908,7 +8053,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-files-no-device",
-          "line": 258
+          "line": 260
         }
       },
       {
@@ -7918,27 +8063,57 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-field-files-no-user",
-          "line": 272
+          "line": 274
+        }
+      },
+      {
+        "id": "msg-field-prompt-answer",
+        "title": "A question has no accepted answer",
+        "quote": "This question is set to check the answer, but no accepted answer is filled in yet.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-field-prompt-answer",
+          "line": 285
+        }
+      },
+      {
+        "id": "msg-field-app-command",
+        "title": "A terminal command is not a desktop app",
+        "quote": "The game does not count lynx as an app, so this check always reads Missing even when it is installed.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-field-app-command",
+          "line": 294
+        }
+      },
+      {
+        "id": "msg-field-timer-invalid-date",
+        "title": "A calendar date that never comes",
+        "quote": "“31 June” never arrives — June has 30 days.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-field-timer-invalid-date",
+          "line": 302
         }
       },
       {
         "id": "msg-panel-objective-trigger",
-        "title": "An objective the player can never complete",
+        "title": "Health flags an Objective with no event trigger",
         "quote": "1 objective has no trigger wired in, so the player can never complete it.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-objective-trigger",
-          "line": 288
+          "line": 313
         }
       },
       {
         "id": "msg-panel-router-no-way-in",
-        "title": "A router the player cannot reach",
+        "title": "A router with no recognized recovery route",
         "quote": "This router has no way in: set a model for `fern`, or enable support-mail recovery.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-router-no-way-in",
-          "line": 302
+          "line": 322
         }
       },
       {
@@ -7948,7 +8123,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-ssh-guest",
-          "line": 312
+          "line": 332
         }
       },
       {
@@ -7958,17 +8133,17 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-table-no-name",
-          "line": 325
+          "line": 345
         }
       },
       {
         "id": "msg-panel-event-detail",
-        "title": "A condition that tests a detail the event does not have",
+        "title": "A detail missing from the editor's event list",
         "quote": "Not one of this event's known details",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-event-detail",
-          "line": 335
+          "line": 355
         }
       },
       {
@@ -7978,17 +8153,17 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-addon-not-set-up",
-          "line": 348
+          "line": 369
         }
       },
       {
         "id": "msg-panel-addon-needs-mod",
-        "title": "An addon the player does not have",
+        "title": "A required game mod may be missing",
         "quote": "Players need the Example Pack game mod installed for this to work — say so in your quest description.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-addon-needs-mod",
-          "line": 358
+          "line": 381
         }
       },
       {
@@ -7998,7 +8173,7 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-pack-not-loaded",
-          "line": 370
+          "line": 393
         }
       },
       {
@@ -8008,97 +8183,387 @@
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-timed-conversation",
-          "line": 380
+          "line": 405
         }
       },
       {
         "id": "msg-panel-page-unlisted",
-        "title": "A page nobody can find",
+        "title": "An unlisted page is missing from search",
         "quote": "Not in search results — only a direct URL (or dirhunter) leads here.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-panel-page-unlisted",
-          "line": 391
+          "line": 416
+        }
+      },
+      {
+        "id": "msg-export-feed-claim",
+        "title": "A quest waits for the player to claim it",
+        "quote": "The player claims this one from its Hackhub feed post — nothing in it runs until they do.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-feed-claim",
+          "line": 432
+        }
+      },
+      {
+        "id": "msg-export-no-start",
+        "title": "A quest has no way to start",
+        "quote": "Nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-no-start",
+          "line": 440
+        }
+      },
+      {
+        "id": "msg-export-device-target",
+        "title": "A port or firewall rule has no target",
+        "quote": "A “Change port” or “Add firewall rule” node has no device IP, so it has nothing to act on.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-device-target",
+          "line": 448
+        }
+      },
+      {
+        "id": "msg-export-network-domain",
+        "title": "A network claims a domain another server may use",
+        "quote": "This network claims the domain … Domain names are shared with the whole game.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-network-domain",
+          "line": 456
         }
       },
       {
         "id": "msg-export-network-shape",
         "title": "A network the game cannot build",
-        "quote": "… has machines behind it, but only a router or a splitter can hold other machines.",
+        "quote": "… has machines behind it, but only a router or a splitter can hold other machines — those machines will not be built.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-export-network-shape",
-          "line": 409
+          "line": 464
+        }
+      },
+      {
+        "id": "msg-export-firewall-rules",
+        "title": "Firewall rules are on the wrong device",
+        "quote": "… carries firewall rules, but only a firewall device enforces them — they will be ignored.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-firewall-rules",
+          "line": 472
+        }
+      },
+      {
+        "id": "msg-export-login-no-user",
+        "title": "A login service has no account to log in as",
+        "quote": "… has a login service open but no user accounts, so the player cannot break in.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-login-no-user",
+          "line": 480
         }
       },
       {
         "id": "msg-export-tool-version",
         "title": "A version a tool will not read",
-        "quote": "… metasploit needs three numbers (for example “OpenSSH 7.2.0”) — it rejects anything else.",
+        "quote": "… Metasploit needs three numbers (for example “OpenSSH 7.2.0”) — it rejects anything else.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-export-tool-version",
-          "line": 422
+          "line": 493
+        }
+      },
+      {
+        "id": "msg-export-lynx-handle",
+        "title": "A Lynx result points to a social profile the game cannot open",
+        "quote": "The lynx result advertises @… Searching a social handle that has no profile behind it crashes the game and corrupts the player's save.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-lynx-handle",
+          "line": 501
+        }
+      },
+      {
+        "id": "msg-export-handbook-article",
+        "title": "An Open handbook node has no article",
+        "quote": "An “Open handbook” node has no article, so it does nothing.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-handbook-article",
+          "line": 509
+        }
+      },
+      {
+        "id": "msg-export-wifi",
+        "title": "A note about Create Wi-Fi",
+        "quote": "“Create Wi-Fi” exports as a native access point in HackHub 1.3.0+.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-wifi",
+          "line": 517
+        }
+      },
+      {
+        "id": "msg-export-mail-no-from",
+        "title": "A replyable e-mail has no From address",
+        "quote": "… lets the player reply, but its From address is empty — a player's reply arrives addressed to your mail's From, so with no From there is nothing a trigger can match.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-mail-no-from",
+          "line": 525
+        }
+      },
+      {
+        "id": "msg-export-mail-reply",
+        "title": "A reply button works, but the reply does not point back to its e-mail",
+        "quote": "The mail goes out with its reply flag and the Reply button draws. The player's reply arrives addressed to your From address.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-mail-reply",
+          "line": 533
+        }
+      },
+      {
+        "id": "msg-export-phone-answer",
+        "title": "A phone answer also registers a terminal command",
+        "quote": "Phone lines with typed answers also register a terminal command (qe-…) the player uses to answer.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-phone-answer",
+          "line": 541
+        }
+      },
+      {
+        "id": "msg-export-conversation",
+        "title": "A conversation set to play live has no wire",
+        "quote": "… a conversation is set to “play when the story reaches this node” but nothing is wired into it — it stays a normal quest conversation.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-conversation",
+          "line": 549
+        }
+      },
+      {
+        "id": "msg-export-live-conversation",
+        "title": "A live conversation skips normal reply features",
+        "quote": "A conversation set to “play when the story reaches this node” is sent live at that moment. Player replies, uploads and “unlocks after” steps are skipped.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-live-conversation",
+          "line": 557
+        }
+      },
+      {
+        "id": "msg-export-kisscord",
+        "title": "An upload becomes a text message",
+        "quote": "Kisscord uploads compile to a “[uploaded file …]” message.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-kisscord",
+          "line": 565
+        }
+      },
+      {
+        "id": "msg-export-addon",
+        "title": "Give data to an addon is not set up",
+        "quote": "A “Give data to an addon” node is not set up yet — as it stands it does nothing.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-addon",
+          "line": 573
+        }
+      },
+      {
+        "id": "msg-export-addon-node",
+        "title": "An addon action node is not set up",
+        "quote": "An addon node is not set up yet — add it again from the palette's Editor Mods group.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-addon-node",
+          "line": 581
+        }
+      },
+      {
+        "id": "msg-export-addon-mod",
+        "title": "A quest needs a game mod for its addon data",
+        "quote": "Community data is used in this quest. It needs the game mod installed on the player's machine.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-addon-mod",
+          "line": 591
+        }
+      },
+      {
+        "id": "msg-export-unlisted-page",
+        "title": "An unlisted page will not appear in search",
+        "quote": "Nothing links to it and the in-game search will not show it.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-unlisted-page",
+          "line": 599
+        }
+      },
+      {
+        "id": "msg-export-duplicate-page-path",
+        "title": "Two pages have the same address",
+        "quote": "… has pages at the path … They ship as two definitions of the same address.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-duplicate-page-path",
+          "line": 612
+        }
+      },
+      {
+        "id": "msg-export-page-path",
+        "title": "A page path does not start at the website root",
+        "quote": "The page … has the path …, but paths start at the host root — it should be /….",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-page-path",
+          "line": 620
         }
       },
       {
         "id": "msg-export-domain-clash",
         "title": "Two websites on one domain",
-        "quote": "… is the host of … websites in this mod. Domains are global — two sites on one host will fight over it.",
+        "quote": "… is the host of … websites in this mod. Domains are global — two sites on one host will fight over which one answers.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-export-domain-clash",
-          "line": 433
+          "line": 628
         }
       },
       {
-        "id": "msg-export-conversation",
-        "title": "A conversation nobody reaches",
-        "quote": "… a conversation is set to “play when the story reaches this node” but nothing is wired into it — it never plays.",
+        "id": "msg-export-placeholder-domain",
+        "title": "A placeholder domain ships as a real website",
+        "quote": "… is a placeholder domain, but the export ships it as a real site any player can find.",
         "manual": {
           "path": "public/manual/checking.html",
-          "anchor": "#msg-export-conversation",
-          "line": 448
+          "anchor": "#msg-export-placeholder-domain",
+          "line": 639
         }
       },
       {
-        "id": "msg-export-addon",
-        "title": "An addon node that is not set up",
-        "quote": "… a “Give data to an addon” node is not set up yet.",
+        "id": "msg-export-twotter-handle",
+        "title": "A Twotter handle the game will not accept",
+        "quote": "“@…” cannot be a Twotter handle: use letters, numbers and underscores, 3 to 15 characters.",
         "manual": {
           "path": "public/manual/checking.html",
-          "anchor": "#msg-export-addon",
-          "line": 459
+          "anchor": "#msg-export-twotter-handle",
+          "line": 647
         }
       },
       {
-        "id": "msg-export-kisscord",
-        "title": "An upload that becomes a message",
-        "quote": "… Kisscord uploads compile to a “[uploaded file …]” message.",
+        "id": "msg-export-twotter-display",
+        "title": "A Twotter account has no display name",
+        "quote": "@… has no display name. The game shows the display name on the profile and falls back to something generic without it.",
         "manual": {
           "path": "public/manual/checking.html",
-          "anchor": "#msg-export-kisscord",
-          "line": 471
+          "anchor": "#msg-export-twotter-display",
+          "line": 655
+        }
+      },
+      {
+        "id": "msg-export-twotter-duplicate",
+        "title": "Two Twotter accounts share a handle",
+        "quote": "Two Twotter accounts share the handle @… Handles are what players search for, so only one of them can ever be found.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-twotter-duplicate",
+          "line": 663
         }
       },
       {
         "id": "msg-export-twotter-account",
-        "title": "A Twotter node with nobody to post as",
-        "quote": "… the Twotter node has no account yet.",
+        "title": "A Twotter node has no account to post as",
+        "quote": "… the Twotter node has no account yet. / … points at a Twotter account that is not in this mod any more.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-export-twotter-account",
-          "line": 485
+          "line": 671
         }
       },
       {
         "id": "msg-export-twotter-empty",
-        "title": "A Twotter node that posts nothing",
-        "quote": "… the Twotter node posts nothing — it has no tweet rows.",
+        "title": "A Twotter node has nothing to post",
+        "quote": "… posts nothing — it has no tweet rows. / … has a tweet with no text and no picture.",
         "manual": {
           "path": "public/manual/checking.html",
           "anchor": "#msg-export-twotter-empty",
-          "line": 497
+          "line": 679
+        }
+      },
+      {
+        "id": "msg-export-twotter-image",
+        "title": "A Twotter post picture will not appear in game",
+        "quote": "The game's posting record has no picture field — the picture stays in your project and in the editor's preview, but players will not see it.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-twotter-image",
+          "line": 688
+        }
+      },
+      {
+        "id": "msg-export-twotter-time",
+        "title": "An older post's time changed when it was opened",
+        "quote": "… came from an older draft whose tweet time could not be carried over exactly, so it now says “1 month earlier”.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-twotter-time",
+          "line": 696
+        }
+      },
+      {
+        "id": "msg-export-files-unplaced",
+        "title": "Place files could not put its files on a device",
+        "quote": "A “Place files” node could not be placed — … Point it at a device this quest creates, or target the player's PC instead.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-export-files-unplaced",
+          "line": 704
+        }
+      },
+      {
+        "id": "msg-target-service",
+        "title": "An addon does not recognise a service",
+        "quote": "“…” on this target means nothing to this addon — its tools only understand ….",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-target-service",
+          "line": 715
+        }
+      },
+      {
+        "id": "msg-target-version",
+        "title": "An addon needs a service version",
+        "quote": "This target has a service but no version — the addon matches targets by their version string, so a blank version never lines up.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-target-version",
+          "line": 722
+        }
+      },
+      {
+        "id": "msg-target-no-weakness",
+        "title": "An addon is looking for a weakness the quest has not marked",
+        "quote": "This addon looks for targets with one of these weaknesses. None of this quest's targets names one.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-target-no-weakness",
+          "line": 729
+        }
+      },
+      {
+        "id": "msg-target-weakness-mismatch",
+        "title": "An addon does not recognise the marked weakness",
+        "quote": "This quest's targets are marked …, but this addon only looks for … — none of them lines up.",
+        "manual": {
+          "path": "public/manual/checking.html",
+          "anchor": "#msg-target-weakness-mismatch",
+          "line": 736
         }
       }
     ],
@@ -8108,71 +8573,25 @@
       "fieldWarnings": 9,
       "exportWarnings": 40,
       "panelMessages": 10,
-      "manualMessageBlocks": 31,
-      "sourceSitesWithQuoteCandidate": 25,
-      "sourceSitesWithoutQuoteCandidate": 31
+      "manualMessageBlocks": 63,
+      "sourceSitesWithQuoteCandidate": 54,
+      "sourceSitesWithoutQuoteCandidate": 2
     },
     "noQuoteCandidateSites": [
-      "src/analysis/fields.ts#fieldWarnings/question-is-set-to-check",
       "src/analysis/fields.ts#fieldWarnings/never-arrives-day",
-      "src/compiler/compile.ts#warnUnstartableQuests/player-claims-hackhub-feed-post",
-      "src/compiler/compile.ts#warnUnstartableQuests/nothing-start-quest-it-start",
-      "src/compiler/compile.ts#warnFirewallAndPort/a-node-no-device-ip",
-      "src/compiler/compile.ts#warnNetworkStructure/network-claims-domain-join-domain",
-      "src/compiler/compile.ts#warnNetworkStructure/carries-firewall-rules-a-firewall",
-      "src/compiler/compile.ts#warnNetworkStructure/a-login-service-open-no",
-      "src/compiler/compile.ts#warnToolResponse/lynx-result-advertises-searching-a",
-      "src/compiler/compile.ts#warnPrompt/an-ask-player-node-checks",
-      "src/compiler/compile.ts#warnHandbook/an-open-handbook-node-no",
-      "src/compiler/compile.ts#warnWifi/create-wi-fi-exports-as",
-      "src/compiler/compile.ts#warnDialogue/lets-player-reply-address-is",
-      "src/compiler/compile.ts#warnDialogue/lets-player-reply-mail-goes",
-      "src/compiler/compile.ts#warnDialogue/phone-lines-typed-answers-also",
-      "src/compiler/compile.ts#warnWebsites/unlisted-page-nothing-links-to",
-      "src/compiler/compile.ts#warnWebsites/pages-at-path-ship-as",
-      "src/compiler/compile.ts#warnWebsites/page-path-paths-start-at",
-      "src/compiler/compile.ts#warnWebsites/is-a-placeholder-domain-export",
-      "src/compiler/compile.ts#warnTwotter/cannot-be-a-twotter-handle",
-      "src/compiler/compile.ts#warnTwotter/no-display-name-game-shows",
-      "src/compiler/compile.ts#warnTwotter/two-twotter-accounts-share-handle",
-      "src/compiler/compile.ts#warnTwotter/points-at-a-twotter-account",
-      "src/compiler/compile.ts#warnTwotter/a-tweet-no-text-no",
-      "src/compiler/compile.ts#warnTwotter/a-tweet-a-picture-game",
-      "src/compiler/compile.ts#warnTwotter/came-an-older-draft-whose",
-      "src/compiler/compile.ts#compileProject/a-place-files-node-could",
-      "src/compiler/targetWarnings.ts#warnServices/on-means-nothing-to-tools",
-      "src/compiler/targetWarnings.ts#warnVersions/matches-targets-by-version-string",
-      "src/compiler/targetWarnings.ts#warnVulns/looks-targets-of-these-weaknesses",
-      "src/compiler/targetWarnings.ts#warnVulns/quest-s-targets-marked-looks"
+      "src/compiler/compile.ts#warnPrompt/an-ask-player-node-checks"
     ],
     "quoteMatchingNote": "Lexical matching against checking.html blockquotes is a search aid only; it does not establish semantic or complete coverage."
   },
   "uiLabels": {
     "manualPageSet": "public/manual/**/*.html",
-    "occurrences": 546,
-    "uniqueLabels": 199,
-    "exactSourceMatches": 190,
+    "occurrences": 607,
+    "uniqueLabels": 215,
+    "exactSourceMatches": 214,
     "dynamicSourceMatches": 1,
-    "unmatchedLabels": [
-      "apt-get install",
-      "Claim quest",
-      "equals",
-      "Event",
-      "Exactly this answer, Contains these words or Matches a pattern",
-      "Field",
-      "Save the list of installed apps",
-      "What to do"
-    ],
+    "unmatchedLabels": [],
     "reviewCandidates": [
-      "Browse 14 templates",
-      "Claim quest",
-      "Exactly this answer, Contains these words or Matches a pattern",
-      "Event",
-      "equals",
-      "Field",
-      "Save the list of installed apps",
-      "What to do",
-      "apt-get install"
+      "Browse 14 templates"
     ],
     "rows": [
       {
@@ -8195,8 +8614,9 @@
       },
       {
         "label": "Accept",
-        "occurrences": 5,
+        "occurrences": 6,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/fx-prompt.html"
         ],
@@ -8425,6 +8845,31 @@
         ]
       },
       {
+        "label": "Add stock root and guest accounts",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/editor/inspector/DeviceTree.tsx",
+            "symbol": "DeviceEditor",
+            "line": 172,
+            "kind": "jsx-attribute",
+            "text": "Add stock root and guest accounts"
+          },
+          {
+            "path": "src/editor/inspector/DeviceTree.tsx",
+            "symbol": "DeviceEditor",
+            "line": 172,
+            "kind": "string-literal",
+            "text": "Add stock root and guest accounts"
+          }
+        ]
+      },
+      {
         "label": "Add vulnerability",
         "occurrences": 1,
         "manualReferences": [
@@ -8476,8 +8921,9 @@
       },
       {
         "label": "Addons",
-        "occurrences": 2,
+        "occurrences": 3,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/how-do-i.html",
           "public/manual/tutorial.html"
         ],
@@ -8564,7 +9010,7 @@
       },
       {
         "label": "Amount",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
           "public/manual/how-do-i.html",
           "public/manual/nodes/fx-pay.html",
@@ -8642,8 +9088,9 @@
       },
       {
         "label": "Answer to accept",
-        "occurrences": 3,
+        "occurrences": 5,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/fx-prompt.html"
         ],
@@ -8661,8 +9108,9 @@
       },
       {
         "label": "Any submitted text",
-        "occurrences": 1,
+        "occurrences": 2,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -8698,7 +9146,7 @@
       },
       {
         "label": "App name",
-        "occurrences": 3,
+        "occurrences": 4,
         "manualReferences": [
           "public/manual/checking.html",
           "public/manual/how-do-i.html",
@@ -8717,17 +9165,6 @@
         ]
       },
       {
-        "label": "apt-get install",
-        "occurrences": 1,
-        "manualReferences": [
-          "public/manual/nodes/flow-appcheck.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": []
-      },
-      {
         "label": "Ask player",
         "occurrences": 2,
         "manualReferences": [
@@ -8743,6 +9180,31 @@
             "line": 1165,
             "kind": "string-literal",
             "text": "Ask player"
+          }
+        ]
+      },
+      {
+        "label": "Bad Attachment",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/badAttachment.ts",
+            "symbol": "buildBadAttachment",
+            "line": 28,
+            "kind": "string-literal",
+            "text": "Bad Attachment"
+          },
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 87,
+            "kind": "string-literal",
+            "text": "Bad Attachment"
           }
         ]
       },
@@ -8768,6 +9230,24 @@
             "line": 309,
             "kind": "jsx-text",
             "text": "Behaviour"
+          }
+        ]
+      },
+      {
+        "label": "Blank quest",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 34,
+            "kind": "string-literal",
+            "text": "Blank quest"
           }
         ]
       },
@@ -8916,8 +9396,9 @@
       },
       {
         "label": "Cancelled",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/fx-prompt.html"
         ],
@@ -8992,42 +9473,20 @@
         ]
       },
       {
-        "label": "Claim quest",
+        "label": "Claim another quest",
         "occurrences": 1,
         "manualReferences": [
           "public/manual/guides.html"
         ],
         "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
+        "matchStatus": "source-match",
+        "sourceMatches": [
           {
             "path": "src/schema/registry.ts",
             "symbol": "NODE_TYPES_REGISTRY",
             "line": 1226,
-            "text": "Claim another quest",
-            "similarity": 0.67
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "ActionFields",
-            "line": 133,
-            "text": "Quest",
-            "similarity": 0.5
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "ActionFields",
-            "line": 133,
-            "text": "Quest",
-            "similarity": 0.5
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "ActionFields",
-            "line": 135,
-            "text": "Quest",
-            "similarity": 0.5
+            "kind": "string-literal",
+            "text": "Claim another quest"
           }
         ]
       },
@@ -9058,8 +9517,9 @@
       },
       {
         "label": "Cold Call",
-        "occurrences": 1,
+        "occurrences": 2,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/tutorial.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -9078,6 +9538,31 @@
             "line": 60,
             "kind": "string-literal",
             "text": "Cold Call"
+          }
+        ]
+      },
+      {
+        "label": "Cold Storage",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/coldStorage.ts",
+            "symbol": "buildColdStorage",
+            "line": 32,
+            "kind": "string-literal",
+            "text": "Cold Storage"
+          },
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 114,
+            "kind": "string-literal",
+            "text": "Cold Storage"
           }
         ]
       },
@@ -9178,9 +9663,10 @@
       },
       {
         "label": "Contains these words",
-        "occurrences": 1,
+        "occurrences": 3,
         "manualReferences": [
-          "public/manual/how-do-i.html"
+          "public/manual/how-do-i.html",
+          "public/manual/nodes/fx-prompt.html"
         ],
         "nestedCodeOccurrences": 0,
         "matchStatus": "source-match",
@@ -9268,8 +9754,9 @@
       },
       {
         "label": "Correct",
-        "occurrences": 3,
+        "occurrences": 5,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/reply-input.html"
         ],
@@ -9384,6 +9871,31 @@
         ]
       },
       {
+        "label": "Dead Air",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/deadAir.ts",
+            "symbol": "buildDeadAir",
+            "line": 40,
+            "kind": "string-literal",
+            "text": "Dead Air"
+          },
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 105,
+            "kind": "string-literal",
+            "text": "Dead Air"
+          }
+        ]
+      },
+      {
         "label": "Debug",
         "occurrences": 3,
         "manualReferences": [
@@ -9468,11 +9980,30 @@
         ]
       },
       {
+        "label": "Details from the event",
+        "occurrences": 2,
+        "manualReferences": [
+          "public/manual/nodes/flow-branch.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1325,
+            "kind": "string-literal",
+            "text": "Details from the event"
+          }
+        ]
+      },
+      {
         "label": "Device IP",
-        "occurrences": 6,
+        "occurrences": 7,
         "manualReferences": [
           "public/manual/checking.html",
-          "public/manual/how-do-i.html"
+          "public/manual/how-do-i.html",
+          "public/manual/nodes/world-files.html"
         ],
         "nestedCodeOccurrences": 0,
         "matchStatus": "source-match",
@@ -9531,9 +10062,8 @@
       },
       {
         "label": "Dialogue",
-        "occurrences": 4,
+        "occurrences": 3,
         "manualReferences": [
-          "public/manual/guides.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/comms-dialogue.html",
           "public/manual/tutorial.html"
@@ -9571,8 +10101,9 @@
       },
       {
         "label": "Download .zip",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
+          "public/manual/appendices.html",
           "public/manual/export.html",
           "public/manual/how-do-i.html",
           "public/manual/troubleshooting.html",
@@ -9592,7 +10123,7 @@
       },
       {
         "label": "Dry run",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
           "public/manual/guides.html",
           "public/manual/how-do-i.html",
@@ -9664,69 +10195,11 @@
         ]
       },
       {
-        "label": "equals",
-        "occurrences": 1,
-        "manualReferences": [
-          "public/manual/how-do-i.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1061,
-            "text": "Exactly equals",
-            "similarity": 0.5
-          }
-        ]
-      },
-      {
-        "label": "Event",
-        "occurrences": 1,
-        "manualReferences": [
-          "public/manual/nodes/flow-branch.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
-          {
-            "path": "src/editor/inspector/ConditionsEditor.tsx",
-            "symbol": "FieldCombobox",
-            "line": 180,
-            "text": "Event detail",
-            "similarity": 0.5
-          },
-          {
-            "path": "src/editor/inspector/ConditionsEditor.tsx",
-            "symbol": "FieldCombobox",
-            "line": 180,
-            "text": "Event detail",
-            "similarity": 0.5
-          },
-          {
-            "path": "src/editor/simulator/SimulatorDialog.tsx",
-            "symbol": "PROBE_BADGE",
-            "line": 24,
-            "text": "unknown event",
-            "similarity": 0.5
-          },
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 582,
-            "text": "When event",
-            "similarity": 0.5
-          }
-        ]
-      },
-      {
         "label": "Exactly this answer",
-        "occurrences": 2,
+        "occurrences": 4,
         "manualReferences": [
-          "public/manual/how-do-i.html"
+          "public/manual/how-do-i.html",
+          "public/manual/nodes/fx-prompt.html"
         ],
         "nestedCodeOccurrences": 0,
         "matchStatus": "source-match",
@@ -9741,48 +10214,8 @@
         ]
       },
       {
-        "label": "Exactly this answer, Contains these words or Matches a pattern",
-        "occurrences": 2,
-        "manualReferences": [
-          "public/manual/nodes/fx-prompt.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1191,
-            "text": "Exactly this answer",
-            "similarity": 0.3
-          },
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1192,
-            "text": "Contains these words",
-            "similarity": 0.3
-          },
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1193,
-            "text": "Matches a pattern",
-            "similarity": 0.3
-          },
-          {
-            "path": "src/editor/inspector/sims/DialogScript.tsx",
-            "symbol": "LineCard",
-            "line": 296,
-            "text": "Contains",
-            "similarity": 0.1
-          }
-        ]
-      },
-      {
         "label": "Export current quest",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
           "public/manual/guides.html",
           "public/manual/how-do-i.html",
@@ -9888,42 +10321,21 @@
         ]
       },
       {
-        "label": "Field",
+        "label": "Extras",
         "occurrences": 2,
         "manualReferences": [
-          "public/manual/how-do-i.html"
+          "public/manual/appendices.html",
+          "public/manual/guides.html"
         ],
         "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
+        "matchStatus": "source-match",
+        "sourceMatches": [
           {
-            "path": "src/editor/inspector/ConditionsEditor.tsx",
-            "symbol": "FieldCombobox",
-            "line": 201,
-            "text": "{field}",
-            "similarity": 1
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "TextPanel",
-            "line": 426,
-            "text": "Copy the token to paste into a text field",
-            "similarity": 0.11
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "TextPanel",
-            "line": 426,
-            "text": "Copy the token to paste into a text field",
-            "similarity": 0.11
-          },
-          {
-            "path": "src/editor/inspector/EventPicker.tsx",
-            "symbol": "EventPicker",
-            "line": 108,
-            "text": "Search events and payload fields",
-            "similarity": 0
+            "path": "src/editor/shell/TopBar.tsx",
+            "symbol": "TopBar",
+            "line": 260,
+            "kind": "jsx-composed",
+            "text": "Extras"
           }
         ]
       },
@@ -10026,6 +10438,24 @@
         ]
       },
       {
+        "label": "Fixed amount",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/nodes/fx-withdraw.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1117,
+            "kind": "string-literal",
+            "text": "Fixed amount"
+          }
+        ]
+      },
+      {
         "label": "Follow the editor theme",
         "occurrences": 1,
         "manualReferences": [
@@ -10047,6 +10477,45 @@
             "line": 503,
             "kind": "string-literal",
             "text": "Follow the editor theme"
+          }
+        ]
+      },
+      {
+        "label": "From",
+        "occurrences": 2,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/editor/extras/ExtrasDialog.tsx",
+            "symbol": "ActionFields",
+            "line": 148,
+            "kind": "jsx-attribute",
+            "text": "From"
+          },
+          {
+            "path": "src/editor/extras/ExtrasDialog.tsx",
+            "symbol": "ActionFields",
+            "line": 148,
+            "kind": "string-literal",
+            "text": "From"
+          },
+          {
+            "path": "src/editor/extras/ExtrasDialog.tsx",
+            "symbol": "ActionFields",
+            "line": 150,
+            "kind": "jsx-attribute",
+            "text": "From"
+          },
+          {
+            "path": "src/editor/extras/ExtrasDialog.tsx",
+            "symbol": "ActionFields",
+            "line": 150,
+            "kind": "string-literal",
+            "text": "From"
           }
         ]
       },
@@ -10103,6 +10572,24 @@
             "line": 589,
             "kind": "string-literal",
             "text": "Game event"
+          }
+        ]
+      },
+      {
+        "label": "Good to know",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/editor/shell/ExportDialog.tsx",
+            "symbol": "ExportDialog",
+            "line": 121,
+            "kind": "string-literal",
+            "text": "Good to know"
           }
         ]
       },
@@ -10314,7 +10801,7 @@
       },
       {
         "label": "Import a quest file",
-        "occurrences": 3,
+        "occurrences": 4,
         "manualReferences": [
           "public/manual/guides.html",
           "public/manual/how-do-i.html",
@@ -10341,9 +10828,8 @@
       },
       {
         "label": "In",
-        "occurrences": 25,
+        "occurrences": 24,
         "manualReferences": [
-          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/flow-appcheck.html",
           "public/manual/nodes/flow-branch.html",
@@ -10388,8 +10874,9 @@
       },
       {
         "label": "Installed",
-        "occurrences": 8,
+        "occurrences": 9,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/flow-appcheck.html"
         ],
@@ -10427,6 +10914,24 @@
             "line": 200,
             "kind": "string-literal",
             "text": "Interface font"
+          }
+        ]
+      },
+      {
+        "label": "is exactly",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/how-do-i.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/nodes.ts",
+            "symbol": "CONDITION_OP_LABELS",
+            "line": 46,
+            "kind": "string-literal",
+            "text": "is exactly"
           }
         ]
       },
@@ -10525,8 +11030,9 @@
       },
       {
         "label": "Listed in the in-game search",
-        "occurrences": 4,
+        "occurrences": 6,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -10570,11 +11076,12 @@
       },
       {
         "label": "Load a pack (.json)",
-        "occurrences": 1,
+        "occurrences": 2,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/how-do-i.html"
         ],
-        "nestedCodeOccurrences": 1,
+        "nestedCodeOccurrences": 2,
         "matchStatus": "source-match",
         "sourceMatches": [
           {
@@ -10699,6 +11206,24 @@
         ]
       },
       {
+        "label": "Matches a pattern",
+        "occurrences": 2,
+        "manualReferences": [
+          "public/manual/nodes/fx-prompt.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1193,
+            "kind": "string-literal",
+            "text": "Matches a pattern"
+          }
+        ]
+      },
+      {
         "label": "Minutes",
         "occurrences": 1,
         "manualReferences": [
@@ -10718,7 +11243,7 @@
       },
       {
         "label": "Missing",
-        "occurrences": 11,
+        "occurrences": 14,
         "manualReferences": [
           "public/manual/checking.html",
           "public/manual/how-do-i.html",
@@ -10841,6 +11366,31 @@
         ]
       },
       {
+        "label": "Months",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1408,
+            "kind": "string-literal",
+            "text": "Months"
+          },
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1427,
+            "kind": "string-literal",
+            "text": "Months"
+          }
+        ]
+      },
+      {
         "label": "Name",
         "occurrences": 1,
         "manualReferences": [
@@ -10881,8 +11431,9 @@
       },
       {
         "label": "Needs attention",
-        "occurrences": 1,
+        "occurrences": 2,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/troubleshooting.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -10968,7 +11519,7 @@
       },
       {
         "label": "No",
-        "occurrences": 11,
+        "occurrences": 12,
         "manualReferences": [
           "public/manual/checking.html",
           "public/manual/how-do-i.html",
@@ -11333,31 +11884,6 @@
         ]
       },
       {
-        "label": "Pack extras",
-        "occurrences": 1,
-        "manualReferences": [
-          "public/manual/guides.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "source-match",
-        "sourceMatches": [
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "ExtrasDialog",
-            "line": 578,
-            "kind": "jsx-composed",
-            "text": "Pack extras"
-          },
-          {
-            "path": "src/editor/extras/ExtrasDialog.tsx",
-            "symbol": "ExtrasDialog",
-            "line": 579,
-            "kind": "jsx-text",
-            "text": "Pack extras"
-          }
-        ]
-      },
-      {
         "label": "Packing…",
         "occurrences": 1,
         "manualReferences": [
@@ -11440,8 +11966,26 @@
         ]
       },
       {
-        "label": "Percentage of balance",
+        "label": "Percent",
         "occurrences": 1,
+        "manualReferences": [
+          "public/manual/nodes/fx-withdraw.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1122,
+            "kind": "string-literal",
+            "text": "Percent"
+          }
+        ]
+      },
+      {
+        "label": "Percentage of balance",
+        "occurrences": 2,
         "manualReferences": [
           "public/manual/nodes/fx-withdraw.html"
         ],
@@ -11560,7 +12104,7 @@
       },
       {
         "label": "Quest",
-        "occurrences": 5,
+        "occurrences": 6,
         "manualReferences": [
           "public/manual/appendices.html",
           "public/manual/checking.html",
@@ -11624,6 +12168,63 @@
             "line": 150,
             "kind": "string-literal",
             "text": "Quest Cookbook"
+          }
+        ]
+      },
+      {
+        "label": "Quest data",
+        "occurrences": 3,
+        "manualReferences": [
+          "public/manual/nodes/flow-branch.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1326,
+            "kind": "string-literal",
+            "text": "Quest data"
+          }
+        ]
+      },
+      {
+        "label": "Quest identifier",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/editor/inspector/InspectorPanel.tsx",
+            "symbol": "QuestInspector",
+            "line": 221,
+            "kind": "jsx-attribute",
+            "text": "Quest identifier"
+          },
+          {
+            "path": "src/editor/inspector/InspectorPanel.tsx",
+            "symbol": "QuestInspector",
+            "line": 221,
+            "kind": "string-literal",
+            "text": "Quest identifier"
+          },
+          {
+            "path": "src/editor/inspector/InspectorPanel.tsx",
+            "symbol": "QuestInspector",
+            "line": 225,
+            "kind": "jsx-attribute",
+            "text": "Quest identifier"
+          },
+          {
+            "path": "src/editor/inspector/InspectorPanel.tsx",
+            "symbol": "QuestInspector",
+            "line": 225,
+            "kind": "string-literal",
+            "text": "Quest identifier"
           }
         ]
       },
@@ -11845,20 +12446,20 @@
         ]
       },
       {
-        "label": "Rule",
-        "occurrences": 2,
+        "label": "Run again",
+        "occurrences": 1,
         "manualReferences": [
-          "public/manual/how-do-i.html"
+          "public/manual/guides.html"
         ],
         "nestedCodeOccurrences": 0,
         "matchStatus": "source-match",
         "sourceMatches": [
           {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 703,
+            "path": "src/editor/simulator/SimulatorDialog.tsx",
+            "symbol": "SimulatorDialog",
+            "line": 82,
             "kind": "string-literal",
-            "text": "Rule"
+            "text": "Run again"
           }
         ]
       },
@@ -11882,9 +12483,10 @@
       },
       {
         "label": "Save",
-        "occurrences": 4,
+        "occurrences": 5,
         "manualReferences": [
           "public/manual/appendices.html",
+          "public/manual/guides.html",
           "public/manual/how-do-i.html",
           "public/manual/tutorial.html"
         ],
@@ -11984,39 +12586,6 @@
         ]
       },
       {
-        "label": "Save the list of installed apps",
-        "occurrences": 1,
-        "manualReferences": [
-          "public/manual/checking.html"
-        ],
-        "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1356,
-            "text": "Also save the list of installed apps",
-            "similarity": 0.86
-          },
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "NODE_TYPES_REGISTRY",
-            "line": 1359,
-            "text": "Save the list as",
-            "similarity": 0.43
-          },
-          {
-            "path": "src/schema/registry.ts",
-            "symbol": "appInstalledOut",
-            "line": 338,
-            "text": "Installed",
-            "similarity": 0.17
-          }
-        ]
-      },
-      {
         "label": "Set quest data",
         "occurrences": 1,
         "manualReferences": [
@@ -12036,8 +12605,9 @@
       },
       {
         "label": "Settings",
-        "occurrences": 2,
+        "occurrences": 3,
         "manualReferences": [
+          "public/manual/appendices.html",
           "public/manual/guides.html",
           "public/manual/tutorial.html"
         ],
@@ -12148,6 +12718,31 @@
         ]
       },
       {
+        "label": "Six Tries",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 96,
+            "kind": "string-literal",
+            "text": "Six Tries"
+          },
+          {
+            "path": "src/templates/sixTries.ts",
+            "symbol": "buildSixTries",
+            "line": 29,
+            "kind": "string-literal",
+            "text": "Six Tries"
+          }
+        ]
+      },
+      {
         "label": "Snap to grid",
         "occurrences": 1,
         "manualReferences": [
@@ -12199,8 +12794,9 @@
       },
       {
         "label": "Start automatically",
-        "occurrences": 1,
+        "occurrences": 3,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/troubleshooting.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -12262,6 +12858,24 @@
             "line": 1141,
             "kind": "string-literal",
             "text": "Style"
+          }
+        ]
+      },
+      {
+        "label": "Submitted",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "submittedOut",
+            "line": 284,
+            "kind": "string-literal",
+            "text": "Submitted"
           }
         ]
       },
@@ -12331,8 +12945,9 @@
       },
       {
         "label": "The Byline",
-        "occurrences": 1,
+        "occurrences": 2,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/tutorial.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -12351,6 +12966,85 @@
             "line": 51,
             "kind": "string-literal",
             "text": "The Byline"
+          }
+        ]
+      },
+      {
+        "label": "The Harbour Manifest",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 69,
+            "kind": "string-literal",
+            "text": "The Harbour Manifest"
+          }
+        ]
+      },
+      {
+        "label": "The Help Desk Leak",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/helpDeskLeak.ts",
+            "symbol": "buildHelpDeskLeak",
+            "line": 28,
+            "kind": "string-literal",
+            "text": "The Help Desk Leak"
+          },
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 78,
+            "kind": "string-literal",
+            "text": "The Help Desk Leak"
+          }
+        ]
+      },
+      {
+        "label": "The Ledger Contract",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 123,
+            "kind": "string-literal",
+            "text": "The Ledger Contract"
+          }
+        ]
+      },
+      {
+        "label": "The Long Game",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/templates/index.ts",
+            "symbol": "TEMPLATES",
+            "line": 132,
+            "kind": "string-literal",
+            "text": "The Long Game"
           }
         ]
       },
@@ -12576,9 +13270,8 @@
       },
       {
         "label": "Value",
-        "occurrences": 3,
+        "occurrences": 1,
         "manualReferences": [
-          "public/manual/how-do-i.html",
           "public/manual/nodes/fx-setdata.html"
         ],
         "nestedCodeOccurrences": 0,
@@ -12713,35 +13406,27 @@
         ]
       },
       {
-        "label": "What to do",
+        "label": "Weeks",
         "occurrences": 1,
         "manualReferences": [
           "public/manual/checking.html"
         ],
         "nestedCodeOccurrences": 0,
-        "matchStatus": "unmatched",
-        "sourceMatches": [],
-        "candidateSources": [
+        "matchStatus": "source-match",
+        "sourceMatches": [
           {
-            "path": "src/editor/inspector/primitives.tsx",
-            "symbol": "HintBadge",
-            "line": 73,
-            "text": "What does \"{label}\" do?",
-            "similarity": 0.4
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1409,
+            "kind": "string-literal",
+            "text": "Weeks"
           },
           {
-            "path": "src/editor/inspector/sims/PackDataEditor.tsx",
-            "symbol": "PackDataEditor",
-            "line": 91,
-            "text": "What to hand over",
-            "similarity": 0.4
-          },
-          {
-            "path": "src/editor/inspector/sims/PackDataEditor.tsx",
-            "symbol": "PackDataEditor",
-            "line": 91,
-            "text": "What to hand over",
-            "similarity": 0.4
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1428,
+            "kind": "string-literal",
+            "text": "Weeks"
           }
         ]
       },
@@ -12791,11 +13476,12 @@
       },
       {
         "label": "When event",
-        "occurrences": 11,
+        "occurrences": 16,
         "manualReferences": [
           "public/manual/appendices.html",
           "public/manual/checking.html",
           "public/manual/concepts.html",
+          "public/manual/guides.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/trigger-event.html",
           "public/manual/tutorial.html"
@@ -12857,7 +13543,7 @@
       },
       {
         "label": "Where",
-        "occurrences": 3,
+        "occurrences": 4,
         "manualReferences": [
           "public/manual/how-do-i.html",
           "public/manual/nodes/world-files.html"
@@ -12876,8 +13562,9 @@
       },
       {
         "label": "Wrong",
-        "occurrences": 11,
+        "occurrences": 14,
         "manualReferences": [
+          "public/manual/checking.html",
           "public/manual/how-do-i.html",
           "public/manual/nodes/reply-input.html"
         ],
@@ -12938,8 +13625,33 @@
         ]
       },
       {
+        "label": "Years",
+        "occurrences": 1,
+        "manualReferences": [
+          "public/manual/checking.html"
+        ],
+        "nestedCodeOccurrences": 0,
+        "matchStatus": "source-match",
+        "sourceMatches": [
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1407,
+            "kind": "string-literal",
+            "text": "Years"
+          },
+          {
+            "path": "src/schema/registry.ts",
+            "symbol": "NODE_TYPES_REGISTRY",
+            "line": 1426,
+            "kind": "string-literal",
+            "text": "Years"
+          }
+        ]
+      },
+      {
         "label": "Yes",
-        "occurrences": 8,
+        "occurrences": 9,
         "manualReferences": [
           "public/manual/checking.html",
           "public/manual/how-do-i.html",
@@ -12996,7 +13708,9 @@
         "description": "The lifecycle entry points that can actually run, and an explanatory note. Start from scratch.",
         "difficulty": "Beginner",
         "nodeCount": 4,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"blank\"]",
@@ -13027,6 +13741,7 @@
         "difficulty": "Beginner",
         "nodeCount": 11,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/tutorial.html"
         ],
         "source": {
@@ -13042,6 +13757,7 @@
         "difficulty": "Beginner",
         "nodeCount": 10,
         "manualReferences": [
+          "public/manual/guides.html",
           "public/manual/tutorial.html"
         ],
         "source": {
@@ -13056,7 +13772,9 @@
         "description": "The job the game hands out constantly: a name in an e-mail, an OSINT lookup, whois, a scan, one exploit on port 22, and a file the client wants a copy of. One admin account on the server, so no password cracking — the short route, start to finish.",
         "difficulty": "Advanced",
         "nodeCount": 22,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"data-grab\"]",
@@ -13069,7 +13787,9 @@
         "description": "A public agency site, a portal that refuses you, and an unlisted page dirhunter can find. The password is assembled from two pages the agency published itself — the classic web-recon loop, with a real website in the box.",
         "difficulty": "Advanced",
         "nodeCount": 23,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"the-help-desk-leak\"]",
@@ -13082,7 +13802,9 @@
         "description": "A phishing trip with no break-in: write a convincing lure, send it (Mail.Sent), and the target's reply lands in your inbox and is read (Mail.Read) carrying a credential a client will pay for. All mail, no shell — the words are the weapon.",
         "difficulty": "Advanced",
         "nodeCount": 14,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"bad-attachment\"]",
@@ -13095,7 +13817,9 @@
         "description": "The official quests' favourite route, and the step no other template teaches: hydra. Recon finds the box, hydra cracks the login, an objective reads the cracked credential out of Terminal.Hydra, and ssh -h walks it in. Scan, crack, connect, read, report.",
         "difficulty": "Advanced",
         "nodeCount": 23,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"six-tries\"]",
@@ -13108,7 +13832,9 @@
         "description": "A quest told through its communication modes: a phone brief, drips released as each job is verified, a phreak loop, a Kisscord market where information is the currency, and a social-engineering call whose wrong word costs a day — the line goes dark, a Timer waits an in-game day, the retry call re-checks the word, and both paths converge into the same next drip.",
         "difficulty": "Advanced",
         "nodeCount": 28,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"dead-air\"]",
@@ -13121,7 +13847,9 @@
         "description": "The long route into one company: scan the box, recover the edge passphrase, land a session on the storage server, and read the ledger straight out of the database. Every objective waits on a real game event the runtime actually emits.",
         "difficulty": "Expert",
         "nodeCount": 20,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"cold-storage\"]",
@@ -13134,7 +13862,9 @@
         "description": "A file on one man's personal PC, and everything between: OSINT, whois, a scan, mapping the network behind the router, an exploit that lands you as guest, cracking his password out of /etc/passwd, and a client who checks before she pays.",
         "difficulty": "Expert",
         "nodeCount": 33,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"contract-hack\"]",
@@ -13147,7 +13877,9 @@
         "description": "A three-act campaign in one mod: a public trail (act I) earns the break-in (act II), and act III ends in a typed verdict with two different endings. Teaches the 'Claim another quest' chain, per-act stages, and the choice shape.",
         "difficulty": "Expert",
         "nodeCount": 36,
-        "manualReferences": [],
+        "manualReferences": [
+          "public/manual/guides.html"
+        ],
         "source": {
           "path": "src/templates/index.ts",
           "symbol": "TEMPLATES[\"long-game\"]",
@@ -13187,17 +13919,7 @@
         }
       }
     ],
-    "namesNotMentionedInManual": [
-      "blank",
-      "data-grab",
-      "the-help-desk-leak",
-      "bad-attachment",
-      "six-tries",
-      "dead-air",
-      "cold-storage",
-      "contract-hack",
-      "long-game"
-    ]
+    "namesNotMentionedInManual": []
   },
   "permissions": {
     "source": {
@@ -13797,12 +14519,14 @@
       ],
       "missingFixed": [],
       "staleFixed": [],
-      "undocumentedOptionalFamilies": [
+      "documentedOptionalFamilies": [
         "mod-icon",
         "mod-cover",
         "quest-images",
         "desktop-widgets"
-      ]
+      ],
+      "undocumentedOptionalFamilies": [],
+      "staleOptionalFamilies": []
     }
   },
   "featureReference": {
@@ -14011,7 +14735,7 @@
         }
       },
       {
-        "title": "The same words in another language",
+        "title": "Translated text is not available yet",
         "manual": {
           "path": "public/manual/guides.html",
           "anchor": "#translated-words"
@@ -14032,6 +14756,1178 @@
         }
       }
     ],
-    "sourceMapping": "not yet normalized: feature surfaces are spread across editor panels, schema and compiler modules"
+    "sourceMapping": {
+      "schemaVersion": 1,
+      "manualSectionCount": 32,
+      "rows": [
+        {
+          "title": "Glossary",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#glossary"
+          },
+          "sources": [
+            {
+              "path": "src/schema/nodes.ts",
+              "symbols": [
+                "NodeDoc",
+                "NODE_TYPES"
+              ],
+              "role": "Node and objective records."
+            },
+            {
+              "path": "src/schema/edges.ts",
+              "symbols": [
+                "EdgeKind",
+                "HANDLE_STYLE"
+              ],
+              "role": "Wire kinds and socket rules."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "ProjectDocument",
+                "ProjectSchema"
+              ],
+              "role": "The saved project shape."
+            },
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "CatalogueEvent",
+                "EVENT_COUNT"
+              ],
+              "role": "Game event records."
+            },
+            {
+              "path": "src/toolpacks/schema.ts",
+              "symbols": [
+                "ToolPack",
+                "ToolPackSchema"
+              ],
+              "role": "Community addon data."
+            },
+            {
+              "path": "src/components/WarningList.tsx",
+              "symbols": [
+                "WarningList"
+              ],
+              "role": "Warning and error display."
+            }
+          ]
+        },
+        {
+          "title": "Keyboard and mouse",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#shortcuts"
+          },
+          "sources": [
+            {
+              "path": "src/editor/shell/Overlays.tsx",
+              "symbols": [
+                "SHORTCUT_GROUPS"
+              ],
+              "role": "The visible shortcut and gesture list."
+            },
+            {
+              "path": "src/hooks/useKeyboardShortcuts.ts",
+              "symbols": [
+                "useKeyboardShortcuts",
+                "isTypingTarget"
+              ],
+              "role": "Keyboard shortcut behavior."
+            },
+            {
+              "path": "src/editor/canvas/QuestCanvas.tsx",
+              "symbols": [
+                "QuestCanvas",
+                "WIRE_HELP"
+              ],
+              "role": "Canvas mouse gestures and wiring."
+            },
+            {
+              "path": "src/editor/canvas/wiring.ts",
+              "symbols": [
+                "decideHeldDrop",
+                "soleMatchingInput"
+              ],
+              "role": "Wire-drop behavior."
+            }
+          ]
+        },
+        {
+          "title": "What this editor cannot do yet",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#limits"
+          },
+          "sources": [
+            {
+              "path": "src/analysis/graph.ts",
+              "symbols": [
+                "analyseGraph"
+              ],
+              "role": "Graph checks and their limits."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "warnUnstartableQuests",
+                "warnWifi",
+                "warnDialogue",
+                "warnCommunityNodes",
+                "warnHandbook",
+                "computeWarningDetails",
+                "compileProject"
+              ],
+              "role": "Export checks and emitted project data."
+            },
+            {
+              "path": "src/compiler/targetWarnings.ts",
+              "symbols": [
+                "warnTargetMatching"
+              ],
+              "role": "Target-matching warnings."
+            },
+            {
+              "path": "src/compiler/simulate.ts",
+              "symbols": [
+                "simulateProject",
+                "recordingSdk",
+                "buildProbes"
+              ],
+              "role": "What the dry run can and cannot check."
+            },
+            {
+              "path": "src/compiler/runtimeSource.ts",
+              "symbols": [
+                "__qeRegisterProject",
+                "Handbook.open"
+              ],
+              "role": "Quest runtime behavior and game-facing calls."
+            },
+            {
+              "path": "src/editor/shell/ExportDialog.tsx",
+              "symbols": [
+                "ExportDialog",
+                "Download .zip"
+              ],
+              "role": "Export remains available with warnings."
+            },
+            {
+              "path": "src/editor/shell/Overlays.tsx",
+              "symbols": [
+                "NewProjectDialog"
+              ],
+              "role": "Starting over clears the current project."
+            },
+            {
+              "path": "src/store/autosave.ts",
+              "symbols": [
+                "loadDraft",
+                "clearDraft"
+              ],
+              "role": "Browser-local draft storage."
+            },
+            {
+              "path": "src/editor/shell/SettingsDialog.tsx",
+              "symbols": [
+                "SettingsDialog"
+              ],
+              "role": "Settings are editor preferences."
+            },
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "TABS",
+                "Localization is PARKED"
+              ],
+              "role": "The translation screen is not exposed; active extras are listed separately."
+            },
+            {
+              "path": "src/editor/shell/DialoguesDialog.tsx",
+              "symbols": [
+                "DialoguesDialog"
+              ],
+              "role": "Supported dialogue previews, not installable phone apps."
+            }
+          ],
+          "reviewNote": "This page records limitations; it must not imply that an unsupported game feature is available in the editor."
+        },
+        {
+          "title": "The 99 events",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-list"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENTS",
+                "EVENT_COUNT",
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The built-in game-event catalogue and picker groups."
+            },
+            {
+              "path": "reference/hackhub-events.json",
+              "symbols": [
+                "generatedFrom",
+                "events"
+              ],
+              "role": "The SDK-derived event names and payloads."
+            }
+          ]
+        },
+        {
+          "title": "Reconnaissance & terminal (18)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-recon"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The reconnaissance and terminal group."
+            }
+          ]
+        },
+        {
+          "title": "Directory brute-force, browser & HTTP (7)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-web"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The browser and HTTP group."
+            }
+          ]
+        },
+        {
+          "title": "Access & exploitation (19)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-access"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The access and exploitation group."
+            }
+          ]
+        },
+        {
+          "title": "Cracking & vuln scanning (9)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-cracking"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The cracking and vulnerability-scanning group."
+            }
+          ]
+        },
+        {
+          "title": "Bettercap & Wi-Fi (8)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-wifi"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The Bettercap and Wi-Fi group."
+            }
+          ]
+        },
+        {
+          "title": "Network & infrastructure (7)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-network"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The network and infrastructure group."
+            }
+          ]
+        },
+        {
+          "title": "Files (4)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-files"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The files group."
+            }
+          ]
+        },
+        {
+          "title": "E-mail (6)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-mail"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The e-mail group."
+            }
+          ]
+        },
+        {
+          "title": "Social & chat (11)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-social"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The social and chat group."
+            }
+          ]
+        },
+        {
+          "title": "Bank, quest & misc (10)",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#events-world"
+          },
+          "sources": [
+            {
+              "path": "src/schema/events.ts",
+              "symbols": [
+                "EVENT_GROUPS",
+                "groupedEvents"
+              ],
+              "role": "The bank, quest and miscellaneous group."
+            }
+          ]
+        },
+        {
+          "title": "Which handbook version is this",
+          "manual": {
+            "path": "public/manual/appendices.html",
+            "anchor": "#version"
+          },
+          "sources": [
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "EDITOR_BUILD"
+              ],
+              "role": "The editor build stamp included in export."
+            },
+            {
+              "path": "src/editor/canvas/DebugPanel.tsx",
+              "symbols": [
+                "DebugPanel",
+                "EDITOR_BUILD"
+              ],
+              "role": "The stamp shown in the editor's Debug panel."
+            },
+            {
+              "path": "src/editor/shell/StatusBar.tsx",
+              "symbols": [
+                "StatusBar",
+                "SDK_VERSION"
+              ],
+              "role": "The editor status bar."
+            }
+          ]
+        },
+        {
+          "title": "The inspector's three tabs",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#inspector-tabs"
+          },
+          "sources": [
+            {
+              "path": "src/editor/inspector/InspectorPanel.tsx",
+              "symbols": [
+                "InspectorPanel",
+                "NodeInspector",
+                "QuestInspector",
+                "ModInspector"
+              ],
+              "role": "The inspector's tabs and panels."
+            },
+            {
+              "path": "src/schema/registry.ts",
+              "symbols": [
+                "NODE_TYPES_REGISTRY",
+                "FIELD_GROUPS"
+              ],
+              "role": "Node labels and editable fields."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "QuestSchema",
+                "ModSchema"
+              ],
+              "role": "Quest and mod settings stored in the project."
+            }
+          ]
+        },
+        {
+          "title": "Quest settings",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#quest-settings"
+          },
+          "sources": [
+            {
+              "path": "src/editor/inspector/InspectorPanel.tsx",
+              "symbols": [
+                "QuestInspector"
+              ],
+              "role": "Quest-level fields and controls."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "QuestSchema",
+                "createQuest"
+              ],
+              "role": "Quest fields and defaults."
+            }
+          ]
+        },
+        {
+          "title": "Mod settings",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#mod-settings"
+          },
+          "sources": [
+            {
+              "path": "src/editor/inspector/InspectorPanel.tsx",
+              "symbols": [
+                "ModInspector"
+              ],
+              "role": "Mod-level fields and controls."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "ModSchema"
+              ],
+              "role": "Saved mod settings."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "computePermissions",
+                "buildManifest"
+              ],
+              "role": "Permissions and exported manifest values."
+            }
+          ]
+        },
+        {
+          "title": "Dialogues",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#dialogues"
+          },
+          "sources": [
+            {
+              "path": "src/editor/shell/DialoguesDialog.tsx",
+              "symbols": [
+                "DialoguesDialog",
+                "PhoneCore"
+              ],
+              "role": "The dialogue preview window."
+            },
+            {
+              "path": "src/editor/inspector/sims/DialogueNodeEditor.tsx",
+              "symbols": [
+                "DialogueNodeEditor"
+              ],
+              "role": "Dialogue node editing."
+            },
+            {
+              "path": "src/editor/inspector/sims/index.tsx",
+              "symbols": [
+                "NODE_SIM_EDITORS"
+              ],
+              "role": "Specialized dialogue and message editors."
+            },
+            {
+              "path": "src/schema/nodes.ts",
+              "symbols": [
+                "DialogueNodeDataSchema",
+                "DialogueKindSchema"
+              ],
+              "role": "Saved dialogue choices and messages."
+            }
+          ]
+        },
+        {
+          "title": "Websites",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#websites"
+          },
+          "sources": [
+            {
+              "path": "src/editor/websites/WebsiteBuilder.tsx",
+              "symbols": [
+                "WebsiteBuilderDialog",
+                "BrowserPreview"
+              ],
+              "role": "The website builder and its preview."
+            },
+            {
+              "path": "src/editor/websites/pageEditor.tsx",
+              "symbols": [
+                "VisualPageEditor",
+                "CodePageEditor"
+              ],
+              "role": "Page editing controls."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "WebsiteSchema",
+                "WebPageSchema"
+              ],
+              "role": "Saved website and page fields."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "compileProject"
+              ],
+              "role": "Website export."
+            }
+          ]
+        },
+        {
+          "title": "Templates",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#templates"
+          },
+          "sources": [
+            {
+              "path": "src/templates/index.ts",
+              "symbols": [
+                "TEMPLATES",
+                "getTemplate"
+              ],
+              "role": "Template names and contents."
+            },
+            {
+              "path": "src/editor/shell/Overlays.tsx",
+              "symbols": [
+                "TemplatesDialog"
+              ],
+              "role": "The visible template picker."
+            },
+            {
+              "path": "src/schema/project.ts",
+              "symbols": [
+                "createProject"
+              ],
+              "role": "A new project from a selected template."
+            }
+          ]
+        },
+        {
+          "title": "Dry run",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#dry-run"
+          },
+          "sources": [
+            {
+              "path": "src/editor/simulator/SimulatorDialog.tsx",
+              "symbols": [
+                "SimulatorDialog",
+                "PROBE_BADGE",
+                "Run again"
+              ],
+              "role": "Visible dry-run labels, result placement and automatic run."
+            },
+            {
+              "path": "src/compiler/simulate.ts",
+              "symbols": [
+                "recordingSdk",
+                "buildProbes",
+                "simulateProject",
+                "unknown-event",
+                "no-match",
+                "internal"
+              ],
+              "role": "The rehearsal, sample event details, waits and reported outcomes."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "compileProject"
+              ],
+              "role": "The compiled mod the rehearsal uses."
+            }
+          ],
+          "reviewNote": "A positive result only means the recording simulator matched its sample; it does not prove that the game sends or displays the event as expected.",
+          "errorSurfaces": [
+            {
+              "id": "simulator.no-mod-file",
+              "sourceText": "the compiler produced no dist/mod.js — nothing to dry-run",
+              "manualText": "the compiler produced no dist/mod.js — nothing to dry-run"
+            },
+            {
+              "id": "simulator.registration-threw",
+              "sourceText": "the emitted mod threw while registering",
+              "manualText": "the emitted mod threw while registering"
+            },
+            {
+              "id": "simulator.quest-did-not-register",
+              "sourceText": "this quest did not register (no class was emitted for it)",
+              "manualText": "this quest did not register"
+            },
+            {
+              "id": "simulator.quest-threw",
+              "sourceText": "the quest's own code threw",
+              "manualText": "the quest's own code threw"
+            },
+            {
+              "id": "simulator.listener-threw",
+              "sourceText": "the listener threw:",
+              "manualText": "the listener threw"
+            },
+            {
+              "id": "simulator.conditions-did-not-match",
+              "sourceText": "the conditions did not match an event shaped the way this trigger expects",
+              "manualText": "the sample did not satisfy the condition"
+            },
+            {
+              "id": "simulator.unknown-event",
+              "sourceText": "this event is not in the game's catalogue",
+              "manualText": "community addon's event can still be real"
+            },
+            {
+              "id": "simulator.no-listener",
+              "sourceText": "the runtime registered no listener for this event",
+              "manualText": "no matching listener"
+            }
+          ]
+        },
+        {
+          "title": "Addons",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#addons"
+          },
+          "sources": [
+            {
+              "path": "src/editor/shell/TopBar.tsx",
+              "symbols": [
+                "Addons",
+                "toolpacks"
+              ],
+              "role": "The Addons entry in the toolbar."
+            },
+            {
+              "path": "src/toolpacks/ToolPackManagerDialog.tsx",
+              "symbols": [
+                "ToolPackManagerDialog",
+                "readAsText",
+                "No .json files in that selection",
+                "not valid JSON",
+                "file could not be read"
+              ],
+              "role": "File selection, loading results and user-facing file errors."
+            },
+            {
+              "path": "src/toolpacks/schema.ts",
+              "symbols": [
+                "TOOLPACK_FORMAT",
+                "parseToolPack",
+                "describePackError"
+              ],
+              "role": "Addon format and field validation."
+            },
+            {
+              "path": "src/store/packs.ts",
+              "symbols": [
+                "loadStored",
+                "persist",
+                "loadPack",
+                "localStorage"
+              ],
+              "role": "Replacement, browser storage and reload behavior."
+            },
+            {
+              "path": "src/toolpacks/palette.ts",
+              "symbols": [
+                "packEvents",
+                "packNodeDefs"
+              ],
+              "role": "Where loaded addon events and nodes appear."
+            }
+          ],
+          "reviewNote": "Addons are JSON data, stored per browser rather than in the project. A dry run cannot verify that a related game mod is installed or emits the expected events.",
+          "errorSurfaces": [
+            {
+              "id": "addon.invalid-json",
+              "sourceText": "this is not valid JSON",
+              "manualText": "this is not valid JSON"
+            },
+            {
+              "id": "addon.not-an-addon",
+              "sourceText": "This file is not an addon",
+              "manualText": "The file is not an addon"
+            },
+            {
+              "id": "addon.format-mismatch",
+              "sourceText": "this editor speaks format",
+              "manualText": "The format number is wrong"
+            },
+            {
+              "id": "addon.schema-field",
+              "sourceText": "describePackError",
+              "manualText": "A short path and message are shown"
+            },
+            {
+              "id": "addon.file-read",
+              "sourceText": "the file could not be read",
+              "manualText": "The file could not be read"
+            },
+            {
+              "id": "addon.no-json-file",
+              "sourceText": "No .json files in that selection",
+              "manualText": "No addon files were selected"
+            },
+            {
+              "id": "addon.multiple-files",
+              "sourceText": "for (const file of Array.from(files))",
+              "manualText": "You can select several files at once"
+            },
+            {
+              "id": "addon.local-storage",
+              "sourceText": "packs stay for this session only",
+              "manualText": "storage fails"
+            },
+            {
+              "id": "addon.invalid-saved-pack",
+              "sourceText": "Broken entries are skipped, not fatal",
+              "manualText": "saved addon can be skipped"
+            }
+          ]
+        },
+        {
+          "title": "Settings",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#settings"
+          },
+          "sources": [
+            {
+              "path": "src/editor/shell/SettingsDialog.tsx",
+              "symbols": [
+                "SettingsDialog",
+                "ThemeCard",
+                "DangerAction"
+              ],
+              "role": "Visible settings and reset controls."
+            },
+            {
+              "path": "src/editor/settings/theme.ts",
+              "symbols": [
+                "THEMES",
+                "setTheme"
+              ],
+              "role": "Editor theme choices."
+            },
+            {
+              "path": "src/editor/settings/uiFont.ts",
+              "symbols": [
+                "UI_FONTS",
+                "setUiFont"
+              ],
+              "role": "Interface font choices."
+            },
+            {
+              "path": "src/editor/canvas/CanvasGridBackground.tsx",
+              "symbols": [
+                "CanvasGridBackground"
+              ],
+              "role": "Canvas grid appearance."
+            },
+            {
+              "path": "src/editor/canvas/wirePhysicsPref.ts",
+              "symbols": [
+                "wirePhysicsEnabled"
+              ],
+              "role": "Springy-wire setting."
+            },
+            {
+              "path": "src/editor/canvas/wireMotion.ts",
+              "symbols": [
+                "wireMotionEnabled"
+              ],
+              "role": "Animated-wire setting."
+            }
+          ]
+        },
+        {
+          "title": "Canvas tools",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#canvas-tools"
+          },
+          "sources": [
+            {
+              "path": "src/editor/canvas/QuestCanvas.tsx",
+              "symbols": [
+                "QuestCanvas",
+                "analyseGraph"
+              ],
+              "role": "Canvas toolbar, issue count and graph surface."
+            },
+            {
+              "path": "src/editor/canvas/arrange.ts",
+              "symbols": [
+                "alignPositions",
+                "distributePositions",
+                "snapPositions"
+              ],
+              "role": "Alignment, spacing and snap calculations."
+            },
+            {
+              "path": "src/editor/canvas/DebugPanel.tsx",
+              "symbols": [
+                "DebugPanel"
+              ],
+              "role": "The editor's diagnostic panel."
+            },
+            {
+              "path": "src/editor/shell/StatusBar.tsx",
+              "symbols": [
+                "StatusBar"
+              ],
+              "role": "Selection, graph size and save status."
+            },
+            {
+              "path": "src/analysis/graph.ts",
+              "symbols": [
+                "analyseGraph",
+                "summariseIssues"
+              ],
+              "role": "Canvas issue checks."
+            }
+          ]
+        },
+        {
+          "title": "Things outside your quests",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#pack-extras"
+          },
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "ExtrasDialog",
+                "TABS"
+              ],
+              "role": "The three active Extras sections."
+            },
+            {
+              "path": "src/schema/extras.ts",
+              "symbols": [
+                "ExtrasSchema",
+                "MenuItemSchema",
+                "DesktopWidgetSchema",
+                "ContextItemSchema"
+              ],
+              "role": "The three saved pack-extra types."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "extrasPayload",
+                "extrasAreEmpty"
+              ],
+              "role": "Pack-extra export and empty-project behavior."
+            }
+          ]
+        },
+        {
+          "title": "A start-menu entry",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#menu-entry"
+          },
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "ActionFields",
+                "Start menu",
+                "New menu entry"
+              ],
+              "role": "Start-menu entry controls."
+            },
+            {
+              "path": "src/schema/extras.ts",
+              "symbols": [
+                "MenuItemSchema",
+                "ExtraActionSchema"
+              ],
+              "role": "Entry fields and available actions."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "extrasPayload"
+              ],
+              "role": "Exported start-menu entry."
+            }
+          ]
+        },
+        {
+          "title": "A box on the desktop",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#desktop-widget"
+          },
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "WidgetEditorDialog",
+                "Edit what it looks like"
+              ],
+              "role": "Widget dimensions, position, opacity and page editor."
+            },
+            {
+              "path": "src/schema/extras.ts",
+              "symbols": [
+                "DesktopWidgetSchema"
+              ],
+              "role": "Saved widget fields."
+            },
+            {
+              "path": "src/compiler/widgetHtml.ts",
+              "symbols": [
+                "widgetPayload",
+                "widgetHtml",
+                "widgetPath"
+              ],
+              "role": "Widget registration and exported page."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "widgetHtml",
+                "desktop widget"
+              ],
+              "role": "Widget files included in export."
+            }
+          ]
+        },
+        {
+          "title": "An entry in a right-click menu",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#right-click-entry"
+          },
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "TARGET_LABELS",
+                "Right-click"
+              ],
+              "role": "Right-click entry controls and target choices."
+            },
+            {
+              "path": "src/schema/extras.ts",
+              "symbols": [
+                "ContextItemSchema",
+                "CONTEXT_TARGETS"
+              ],
+              "role": "Supported right-click locations."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "extrasPayload"
+              ],
+              "role": "Exported right-click entries."
+            }
+          ]
+        },
+        {
+          "title": "Translated text is not available yet",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#translated-words"
+          },
+          "status": "limitation",
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "Localization is PARKED",
+                "// { id: \"text\", label: \"Text & languages\" }"
+              ],
+              "role": "The language-editing tab is deliberately not available in the UI."
+            },
+            {
+              "path": "src/schema/extras.ts",
+              "symbols": [
+                "TranslationsSchema",
+                "GAME_LANGUAGES"
+              ],
+              "role": "Translation data types exist, but are not a supported authoring screen."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "translationsAreEmpty",
+                "translations"
+              ],
+              "role": "The compiler can carry translation data that is already present."
+            }
+          ],
+          "reviewNote": "The section documents a missing editor workflow. Do not describe the translation table or tell readers to enter translation tokens as a shipped feature."
+        },
+        {
+          "title": "The handbook entry, honestly",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#extras-handbook"
+          },
+          "sources": [
+            {
+              "path": "src/editor/extras/ExtrasDialog.tsx",
+              "symbols": [
+                "ActionFields",
+                "HANDBOOK_ARTICLES",
+                "handbookCategory"
+              ],
+              "role": "The handbook action's page and category controls."
+            },
+            {
+              "path": "src/compiler/runtimeSource.ts",
+              "symbols": [
+                "Handbook.open",
+                "the game lands on its own landing page"
+              ],
+              "role": "The current game-facing result and log message."
+            },
+            {
+              "path": "src/compiler/compile.ts",
+              "symbols": [
+                "warnHandbook"
+              ],
+              "role": "Warnings for a blank handbook article."
+            }
+          ],
+          "reviewNote": "The game behavior was checked separately; the page field does not guarantee deep-link navigation in the current game build."
+        },
+        {
+          "title": "Two buttons beside a text field",
+          "manual": {
+            "path": "public/manual/guides.html",
+            "anchor": "#generate-tags"
+          },
+          "sources": [
+            {
+              "path": "src/editor/inspector/GenerateButton.tsx",
+              "symbols": [
+                "GenerateButton",
+                "Generate a"
+              ],
+              "role": "The dice button."
+            },
+            {
+              "path": "src/editor/inspector/Field.tsx",
+              "symbols": [
+                "generateField",
+                "listTokenSuggestions"
+              ],
+              "role": "Generated field values and tag suggestions."
+            },
+            {
+              "path": "src/lib/generate/index.ts",
+              "symbols": [
+                "generateField"
+              ],
+              "role": "Generated sample values."
+            },
+            {
+              "path": "src/schema/common.ts",
+              "symbols": [
+                "RUNTIME_TOKENS",
+                "TARGET_IP_TOKEN"
+              ],
+              "role": "Runtime-filled tags."
+            },
+            {
+              "path": "src/editor/inspector/TokenInsert.tsx",
+              "symbols": [
+                "TokenTextInput"
+              ],
+              "role": "The sparkle button that inserts a tag."
+            }
+          ]
+        }
+      ]
+    }
   }
 }

@@ -1,5 +1,9 @@
 # r275 — Phase 1 manual evidence inventory
 
+> Historical snapshot taken at r275. The approval, semantic review and current
+> coverage status are recorded in the [r276 follow-up](r276-manual-source-review.md).
+> Do not use the open-gates list below as the current roadmap.
+
 ## Purpose and boundary
 
 This is a source-audit record, not reader-facing manual text. Phase 1 now has a generated, source-cited inventory and a drift test, but semantic coverage review is still open. No new manual instructions or claims have been written. The proposed tree is in [the r275 information-architecture proposal](r275-manual-information-architecture-proposal.md); it must be approved before Phase 3, and the source-format choice must be confirmed before Phase 4.

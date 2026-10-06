@@ -199,6 +199,24 @@ function restatesHint(hint, guidance) {
 
 const RESTATE_CEILING = 0.7;
 
+/* Field guidance is authored in node-voice.json and may quote real UI labels,
+   show short code values, or link to another manual page. Preserve only that
+   small, explicit markup vocabulary; reject everything else at generation
+   time instead of printing literal tags or trusting arbitrary HTML. */
+function voiceMarkup(value) {
+    const text = String(value);
+    const tags = text.match(/<[^>]*>/g) ?? [];
+    for (const tag of tags) {
+        const allowed =
+            /^<\/?(?:b|code)>$/i.test(tag) ||
+            /^<b class="ui">$/i.test(tag) ||
+            /^<a href="[A-Za-z0-9_./#-]+">$/i.test(tag) ||
+            /^<\/a>$/i.test(tag);
+        if (!allowed) throw new Error(`Unsupported inline markup in node voice: ${tag}`);
+    }
+    return text;
+}
+
 function fieldBlock(node, f, vfield, depth = 0) {
     const slug = slugOf(node.type);
     const anchor = `node-${slug}-field-${f.key}`;
@@ -214,7 +232,7 @@ function fieldBlock(node, f, vfield, depth = 0) {
                     `or drop the row — the hint is already quoted directly above it.`,
             );
         }
-        rows.push(["What to put here", esc(fv.put)]);
+        rows.push(["What to put here", voiceMarkup(fv.put)]);
     }
     if (fv.example) rows.push(["Example", `<code>${esc(fv.example)}</code>`]);
 
@@ -234,9 +252,9 @@ function fieldBlock(node, f, vfield, depth = 0) {
             "dt-mute",
         ]);
     }
-    if (fv.empty) rows.push(["If you leave it empty", esc(fv.empty), "dt-danger"]);
-    if (fv.emptySafe) rows.push(["If you leave it empty", esc(fv.emptySafe), "dt-mute"]);
-    if (fv.watch) rows.push(["Watch out", esc(fv.watch), "dt-warn"]);
+    if (fv.empty) rows.push(["If you leave it empty", voiceMarkup(fv.empty), "dt-danger"]);
+    if (fv.emptySafe) rows.push(["If you leave it empty", voiceMarkup(fv.emptySafe), "dt-mute"]);
+    if (fv.watch) rows.push(["Watch out", voiceMarkup(fv.watch), "dt-warn"]);
 
     const dl = rows
         .map(([dt, dd, cls]) => `  <dt${cls ? ` class="${cls}"` : ""}>${dt}</dt><dd>${dd}</dd>`)
@@ -302,15 +320,15 @@ function showWhenSentence(node, cond) {
            sentence is the honest fallback. */
         return `Shown only once <b class="ui">${gateLabel}</b> is set. Until then the field is hidden.`;
     }
-    const labels = wanted.map((value) => {
+    const choices = wanted.map((value) => {
         const option = gate?.options?.find((o) => o.value === value);
-        return esc(option?.label ?? String(value));
+        return `<b class="ui">${esc(option?.label ?? String(value))}</b>`;
     });
-    const list = labels.length > 1 ? `${labels.slice(0, -1).join(", ")} or ${labels.at(-1)}` : labels[0];
+    const list = choices.length > 1 ? `${choices.slice(0, -1).join(", ")} or ${choices.at(-1)}` : choices[0];
     if (wanted.includes(rawDefault(node, gate))) {
-        return `Shown while <b class="ui">${gateLabel}</b> is <b class="ui">${list}</b> — the option it starts on. The other options hide it.`;
+        return `Shown while <b class="ui">${gateLabel}</b> is ${list} — the option it starts on. The other options hide it.`;
     }
-    return `Shown only when <b class="ui">${gateLabel}</b> is <b class="ui">${list}</b>. Until then the field is hidden.`;
+    return `Shown only when <b class="ui">${gateLabel}</b> is ${list}. Until then the field is hidden.`;
 }
 
 /* ── Sockets ────────────────────────────────────────────────────────────── */

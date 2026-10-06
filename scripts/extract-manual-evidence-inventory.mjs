@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import path from "node:path";
 import ts from "typescript";
 import { JSDOM } from "jsdom";
+import { FEATURE_SOURCE_MAP } from "./manual-evidence/feature-source-map.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const evidencePath = path.join(root, "docs/manual/evidence-inventory.json");
@@ -23,14 +24,6 @@ const PERMISSION_FUNCTIONS = new Set([
 const DYNAMIC_TEMPLATE_LABEL = "Browse {TEMPLATES.length} templates";
 const UI_REVIEW_CANDIDATES = [
     "Browse 14 templates",
-    "Claim quest",
-    "Exactly this answer, Contains these words or Matches a pattern",
-    "Event",
-    "equals",
-    "Field",
-    "Save the list of installed apps",
-    "What to do",
-    "apt-get install",
 ];
 
 function slash(value) {
@@ -885,6 +878,10 @@ function collectExportOutputs(pages) {
     ];
     const exportPage = pages.find((page) => page.path === "public/manual/export.html");
     const manualFiles = manualTableRows(exportPage, "zip-contents").map((cells) => cells[0]).filter(Boolean);
+    const documentedOptionalFamilies = [...(exportPage?.document.querySelectorAll("[data-output-family]") ?? [])]
+        .map((element) => element.getAttribute("data-output-family"))
+        .filter(Boolean);
+    const sourceOptionalIds = optionalFamilies.map((family) => family.id);
     return {
         fixed,
         optionalFamilies,
@@ -894,7 +891,9 @@ function collectExportOutputs(pages) {
             fixedPaths: manualFiles,
             missingFixed: fixed.map((row) => row.path).filter((file) => !manualFiles.includes(file)),
             staleFixed: manualFiles.filter((file) => !fixed.some((row) => row.path === file)),
-            undocumentedOptionalFamilies: optionalFamilies.map((family) => family.id),
+            documentedOptionalFamilies,
+            undocumentedOptionalFamilies: sourceOptionalIds.filter((id) => !documentedOptionalFamilies.includes(id)),
+            staleOptionalFamilies: documentedOptionalFamilies.filter((id) => !sourceOptionalIds.includes(id)),
         },
     };
 }
@@ -912,6 +911,22 @@ function collectGuideSections(pages) {
         title: heading.textContent.replace(/\s+/g, " ").trim(),
         manual: { path: page.path, anchor: `#${heading.id}` },
     })));
+}
+
+function normalizeFeatureSourceMapping(manualSections) {
+    const keyOf = (section) => `${section.manual.path}${section.manual.anchor}`;
+    const sectionKeys = manualSections.map(keyOf);
+    const configuredKeys = Object.keys(FEATURE_SOURCE_MAP);
+    const missing = sectionKeys.filter((key) => !Object.hasOwn(FEATURE_SOURCE_MAP, key));
+    const stale = configuredKeys.filter((key) => !sectionKeys.includes(key));
+    if (missing.length || stale.length) {
+        throw new Error(`Feature-source map drift. Missing: ${missing.join(", ") || "none"}; stale: ${stale.join(", ") || "none"}`);
+    }
+    return {
+        schemaVersion: 1,
+        manualSectionCount: manualSections.length,
+        rows: manualSections.map((section) => ({ ...section, ...FEATURE_SOURCE_MAP[keyOf(section)] })),
+    };
 }
 
 export function collectEvidenceInventory() {
@@ -993,7 +1008,7 @@ export function collectEvidenceInventory() {
         exportOutputs,
         featureReference: {
             manualSections: collectGuideSections(pages),
-            sourceMapping: "not yet normalized: feature surfaces are spread across editor panels, schema and compiler modules",
+            sourceMapping: normalizeFeatureSourceMapping(collectGuideSections(pages)),
         },
     };
 }

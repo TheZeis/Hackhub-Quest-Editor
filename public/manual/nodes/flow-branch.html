@@ -69,10 +69,10 @@
 <h3 id="node-flow-branch-field-source">Test against</h3>
 <blockquote class="blurb">Test against details from the event that fired, or against quest data you stored earlier with a “Set quest data” node.</blockquote>
 <dl class="facts-list">
-  <dt>What to put here</dt><dd>Pick what the condition is tested against. &lt;b class="ui"&gt;Event&lt;/b&gt; tests the details carried by the event that fired. &lt;b class="ui"&gt;Data&lt;/b&gt; tests values you stored with &lt;a href="fx-setdata.html"&gt;Set quest data&lt;/a&gt;.</dd>
+  <dt>What to put here</dt><dd>Choose based on where the information comes from. Pick <b class="ui">Details from the event</b> for values sent with the game event. Pick <b class="ui">Quest data</b> for values saved earlier using <a href="fx-setdata.html">Set quest data</a>.</dd>
   <dt class="dt-mute">Default</dt><dd><code>"event"</code></dd>
   <dt>Limits</dt><dd>One of the 2 listed below.</dd>
-  <dt class="dt-warn">Watch out</dt><dd>Pick &lt;b class="ui"&gt;Data&lt;/b&gt; when the thing you are testing happened earlier in the quest. The event that woke this branch only carries its own details.</dd>
+  <dt class="dt-warn">Watch out</dt><dd>Pick <b class="ui">Quest data</b> when the thing you are testing happened earlier in the quest. The event that woke this branch only carries its own details.</dd>
 </dl>
 <table>
   <thead><tr><th>Choice</th><th>What it is stored as</th></tr></thead>
@@ -87,7 +87,7 @@
 <dl class="facts-list">
   <dt>What to put here</dt><dd>Add one clause per thing that has to be true.</dd>
   <dt class="dt-mute">Default</dt><dd>an empty list</dd>
-  <dt class="dt-danger">If you leave it empty</dt><dd>With no clauses, there is nothing to fail. The &lt;b class="ui"&gt;Yes&lt;/b&gt; path always runs, and the &lt;b class="ui"&gt;No&lt;/b&gt; path never does.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>With no clauses, there is nothing to fail. The <b class="ui">Yes</b> path always runs, and the <b class="ui">No</b> path never does.</dd>
 </dl>
 
 
@@ -142,7 +142,7 @@ the connection takes, mismatch them and it will not.</p>
 <h2>Common mistakes</h2>
 <ul class="plain">
   <li><b>One path is left unwired.</b> The player reaches a branch that goes nowhere and the quest stalls. The editor flags it as <b>Dead end</b>.</li>
-  <li><b>The condition tests the wrong source.</b> Testing quest data while <b class="ui">Test against</b> says <b class="ui">Event</b> finds nothing to match, so the <b class="ui">No</b> path always runs.</li>
+  <li><b>The condition tests the wrong source.</b> Using <b class="ui">Quest data</b> while <b class="ui">Test against</b> says <b class="ui">Details from the event</b> leaves nothing to match. The <b class="ui">No</b> path then always runs.</li>
 </ul>
 
 <h2>Messages you might see</h2>

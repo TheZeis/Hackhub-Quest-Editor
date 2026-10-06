@@ -44,17 +44,17 @@
 <main>
 <header class="hero">
   <h1>Checking your quest</h1>
-  <p class="tag">Every diagnostic message the editor can show you, quoted exactly as it writes it. That covers the canvas, the inspector, every panel and the export report. Paste the wording into the search box to find the one you are looking at.</p>
+  <p class="tag">Find the message that matches yours. The quest, node, address, count or date may change. This page quotes the words that stay the same and explains what to try next.</p>
 </header>
 
 <section id="checking">
-<p>The editor reads your quest as you build it and tells you what looks wrong.
-Nothing here is a guess on your part: if the editor is quiet, the shapes it
-checks are sound. If it is not, this page has the message you are seeing and
-what to do about it.</p>
-<p>Messages fall into two groups. The first group watches the shape of your
-quest while you edit. It catches a node nothing points at, or an objective that can never finish. The second group only appears when you export, because it needs the
-whole mod in front of it. It catches two websites fighting over one domain, or a machine with a login and no accounts.</p>
+<p>The editor checks for specific problems while you build, in some panels and
+when you export. These checks can catch common mistakes; a quiet editor does
+not prove that a quest will play well. Use a dry run and test the exported mod
+in the game before you share it.</p>
+<p>Some messages appear on the canvas or under a field. Others appear beside the
+thing you are editing, or in the export report. The sections below explain where
+to find them, what they mean and what to try next.</p>
 
 <h2 id="where-messages-appear">Where messages appear</h2>
 <dl class="facts-list">
@@ -63,11 +63,13 @@ whole mod in front of it. It catches two websites fighting over one domain, or a
   node.</dd>
   <dt>In the inspector</dt><dd>Under the field the message is about, when you
   have that node selected. Field messages only show while the node is selected. They cannot nag at you from the other side of the canvas.</dd>
-  <dt>On the canvas, as a chip</dt><dd>A counter beside the canvas tools. It
-  reads <span class="mono">No issues</span> when the quest is clean. Otherwise it reads
-  <span class="mono">1 blocking, 3 to review</span> — blocking first, and only
-  the counts that are not zero. Hover it for every message in full, each with
-  its next step. Red means at least one blocking problem; amber means none.</dd>
+  <dt>On the canvas, as a chip</dt><dd>A small counter beside the canvas
+  tools. It reads <span class="mono">No issues</span> or shows how many problems are
+  <span class="mono">blocking</span> and how many are <span class="mono">to review</span>.
+  Move your mouse over the counter to read the full messages and next steps.
+  Red marks an item the editor counts as blocking; amber marks something to
+  review. “Blocking” means the editor sees a serious risk, but it does not stop
+  you from exporting.</dd>
   <dt>Inside a panel</dt><dd>Ten further messages live in the editors themselves. They sit in the quest's <b class="ui">Health</b> section, the device tree, a
   database's tables, an addon card and the website builder. They describe the thing
   you are looking at, so they appear beside it rather than on the node. See
@@ -77,29 +79,29 @@ whole mod in front of it. It catches two websites fighting over one domain, or a
   <a href="#pre-export">the report</a>.</dd>
 </dl>
 
-<h2 id="levels">What the two colours mean</h2>
-<dl class="facts-list">
-  <dt class="dt-warn">Amber</dt><dd>Unfinished, or fragile. Exporting still
-  works, and the player may never notice. Fix it before you ship, but nothing is
-  broken right now.</dd>
-  <dt class="dt-danger">Red</dt><dd>The player will hit this. Either the quest
-  cannot be finished, or something you built will not survive the trip into the
-  game. Fix it before you export.</dd>
-</dl>
-<p>There is no third level. A quest with no messages has nothing the editor can
-find fault with. That is not the same as a quest that plays well. Only playing it tells you that. See <a href="guides.html#dry-run">Dry run</a> for the closest
-thing to a test drive.</p>
+<h2 id="levels">How to read the colours and labels</h2>
+<p>On the canvas and in the inspector, amber means <b>review this</b>; red means
+the editor sees a serious risk. In the export report, blue marks a note, amber a
+warning and red an error. If any report item is an error, the heading says
+<b class="ui">Needs attention</b>; otherwise it says <b class="ui">Good to know</b>.
+Those headings do not lock the download button.</p>
+<p>Read the full sentence; do not rely on colour alone. These checks have limits: for
+example, the red <a href="#msg-no-trigger">No trigger</a> warning checks for a
+game event, not a story wire. Some amber export notes also matter; one can say
+that files will be dropped. A clean report cannot prove that the quest plays
+well. See <a href="guides.html#dry-run">Dry run</a> for a first check, then test
+in game.</p>
 
 <h2 id="msg-index">Messages on the canvas and in the inspector</h2>
-<p>Each entry below quotes the editor's own wording. The exact text is what the
-search box matches, so copy it from the status bar rather than paraphrasing
-it.</p>
+<p>Names and values in these examples can vary from quest to quest. Search for
+the stable words from the message you see; use the explanation below to decide
+what to do.</p>
 
 <h3 id="msg-unreachable">Unreachable</h3>
 <blockquote class="blurb">Nothing leads to this node. Wire it to the chain that should run it — nodes do nothing until something points at them.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the node, and in the status bar.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the node, and in the canvas issue chip.</dd>
   <dt>What it means</dt><dd>The node is on the canvas and is never run. A node
   only does something when another node points at it. The exception is a lifecycle node, which starts a chain by itself.</dd>
   <dt class="dt-ok">What to do</dt><dd>Drag a wire from the node that should run
@@ -112,58 +114,58 @@ it.</p>
 <blockquote class="blurb">Nothing completes this objective. Wire a “When event” node into its trigger socket, or the player can never finish the quest.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the objective, and in the status bar.</dd>
-  <dt>What it means</dt><dd>The player receives the objective and can never tick
-  it over. There is no condition attached to it, so nothing in the game can
-  complete it. A quest with an objective like this cannot be finished.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Add a
-  <a href="nodes/trigger-event.html">When event</a> node and pick the game event that means the player did the thing. Then wire its <b class="ui">When</b>
-  socket into the objective's <b class="ui">Trigger</b> socket.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the objective, and in the canvas issue chip.</dd>
+  <dt>What it means</dt><dd>This check looks for a <b class="ui">When event</b> wire. It misses story wires. The game can also tick a plain objective when the story reaches it. So this warning may appear even when that route works.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Should an in-game event complete this objective? Add a <a href="nodes/trigger-event.html">When event</a> node. Connect its <b class="ui">When</b> socket to the objective's <b class="ui">Trigger</b> socket. If a story wire should tick it, check that route in the <a href="guides.html#dry-run">Dry run</a>. The warning may be a false alarm.</dd>
 </dl>
 
 <h3 id="msg-dead-end">Dead end</h3>
-<blockquote class="blurb">The “…” outcome goes nowhere, so the quest stalls if the player takes it.</blockquote>
+<blockquote class="blurb">One output or step has no wire. What happens next depends on the node.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the node, and in the status bar.</dd>
-  <dt>What it means</dt><dd>The node offers more than one way out and at least
-  one of them is unwired. The wording names the outcome, so
-  <b class="ui">Yes</b> or <b class="ui">No</b> tells you which side is missing.
-  The editor writes a different version for two node types, because the same
-  shape means something different in each.</dd>
-  <dt class="dt-mute">On a Sequence</dt><dd>It reads
-  <em>The "…" output goes nowhere, so that step of the sequence does
-  nothing.</em> A step with no wire is a beat that never lands.</dd>
-  <dt class="dt-mute">On Manual input</dt><dd>It reads
-  <em>The "…" outcome goes nowhere, so a wrong answer shows the failure message
-  and the player tries again.</em> That is the usual design for a passphrase, so
-  this one is often correct as it stands.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Wire the named outcome to the node that
-  should run down that path. Otherwise remove the outcome, if that path should not exist.
-  On a <a href="nodes/reply-input.html">Manual input</a>, leaving it unwired is
-  fine when retrying is the design.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the node, and in the canvas issue chip.</dd>
+  <dt>What it means</dt><dd>One route or step has no next wire. The message
+  names the missing outcome or step. It may say <b class="ui">Yes</b>,
+  <b class="ui">No</b>, <b class="ui">Installed</b>, <b class="ui">Missing</b>,
+  <b class="ui">Correct</b>, <b class="ui">Wrong</b> or a step name you chose.</dd>
+  <dt class="dt-mute">On App Install Check</dt><dd>The player stalls if the
+  desktop check takes the unwired route. Connect that route, or send both routes
+  to the same next step if the result does not matter.</dd>
+  <dt class="dt-mute">On Ask player</dt><dd>An unwired
+  <b class="ui">Submitted</b>, <b class="ui">Correct</b>, <b class="ui">Wrong</b>
+  or <b class="ui">Cancelled</b> route has no follow-up. That is fine if the
+  story should stop there; otherwise wire that route onward.</dd>
+  <dt class="dt-mute">On a Sequence</dt><dd>The named step has no wire, so that
+  step of the sequence does nothing.</dd>
+  <dt class="dt-mute">On Manual input</dt><dd>An unwired
+  <b class="ui">Wrong</b> route shows the failure message and lets the player
+  try again. That is often the intended design for a passphrase.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Wire the named route or step if another
+  node should follow. A <a href="nodes/flow-sequence.html">Sequence</a> still
+  fires its other outputs; an unwired step has no follow-up. Connect that step or
+  remove its output if you do not need it. Leave other outcomes empty only when
+  no follow-up is intended. On <a href="nodes/reply-input.html">Manual input</a>,
+  leaving the wrong-answer
+  route empty is fine when retrying is the design.</dd>
 </dl>
 
 <h3 id="msg-nothing-scheduled">Nothing scheduled</h3>
 <blockquote class="blurb">No time (or no full date) is set, so the timer fires the moment the story reaches it — nothing waits.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the node, and in the status bar.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the node, and in the canvas issue chip.</dd>
   <dt>What it means</dt><dd>The
   <a href="nodes/flow-timer.html">Timer</a> has no time set, so it
   does not actually wait: the story carries straight on through it. That is
   probably not the timer you meant to build.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Set a time in the node's
-  <b class="ui">Days</b>, <b class="ui">Hours</b> or <b class="ui">Minutes</b>
-  fields, or a full date in <b class="ui">Year</b>, <b class="ui">Month</b>
-  and <b class="ui">Day</b>. Otherwise remove the node, if the story should carry on.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Set a wait in <b class="ui">Years</b>, <b class="ui">Months</b>, <b class="ui">Weeks</b>, <b class="ui">Days</b>, <b class="ui">Hours</b> or <b class="ui">Minutes</b>. Or set a full date using <b class="ui">Year</b>, <b class="ui">Month</b> and <b class="ui">Day</b>. Remove the node if you do not need it.</dd>
 </dl>
 
 <h3 id="msg-timer-nothing-to-do">The timer has nothing to do</h3>
 <blockquote class="blurb">When the time comes, the timer has nowhere to go — the story stops there.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the node, and in the status bar.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the node, and in the canvas issue chip.</dd>
   <dt>What it means</dt><dd>The <a href="nodes/flow-timer.html">Timer</a>
   has a time, but nothing is wired to its <b class="ui">Out</b>
   socket. When the time comes, the timer fires and the story has no
@@ -191,7 +193,7 @@ it.</p>
 <blockquote class="blurb">Nothing is wired to “…” That is fine if you do not need it — delete the node to clear this.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt class="dt-mute">Where</dt><dd>On the node, and in the status bar.</dd>
+  <dt class="dt-mute">Where</dt><dd>On the node, and in the canvas issue chip.</dd>
   <dt>What it means</dt><dd>One of the four lifecycle nodes is on the canvas
   with nothing after it, so it runs and changes nothing. The message names the
   node in the quotes.</dd>
@@ -207,11 +209,11 @@ it.</p>
   <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
   <dt class="dt-mute">Where</dt><dd>In the inspector, under <b class="ui">App name</b>.</dd>
   <dt>What it means</dt><dd>An <a href="nodes/flow-appcheck.html">App Install Check</a>
-  set to check one app has no name to look for. The game can never answer yes,
-  so the <b class="ui">Missing</b> path runs every time. The story then quietly takes the wrong branch.</dd>
-  <dt>What to do</dt><dd>Type the app's name exactly as the player's desktop
-  spells it. Or switch <b class="ui">What to do</b> to <b class="ui">Save the
-  list of installed apps</b>, which ignores the name.</dd>
+  set to check one app has no name to look for. The game cannot report an app
+  as installed without a name, so the <b class="ui">Missing</b> path runs every
+  time. Whether that is a problem depends on the route you intended.</dd>
+  <dt>What to do</dt><dd>Type the app's name exactly as the desktop
+  spells it. The list-saving option is separate; it does not replace this check's app name.</dd>
 </dl>
 
 <h3 id="msg-field-no-machine">No machine set</h3>
@@ -221,8 +223,8 @@ it.</p>
   <dt class="dt-mute">Where</dt><dd>In the inspector, under <b class="ui">Device IP</b> or <b class="ui">Protected IP</b>.</dd>
   <dt>What it means</dt><dd>A <a href="nodes/world-port.html">Change port</a> or
   <a href="nodes/world-firewall.html">Firewall rule</a> node has no machine to
-  act on. The field is blank, which usually means you have not got to it yet
-  rather than that something is broken.</dd>
+  act on. The target field is blank. The editor cannot tell whether you left it empty on
+  purpose. This node has no machine to act on until you choose one.</dd>
   <dt class="dt-ok">What to do</dt><dd>Type the target address token to aim it at
   the machine your network created. On a firewall rule, pick
   <b class="ui">Random — the quest's network</b> instead.</dd>
@@ -247,9 +249,9 @@ it.</p>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
   <dt class="dt-mute">Where</dt><dd>In the inspector, under <b class="ui">Device IP</b>.</dd>
-  <dt>What it means</dt><dd>The files have nowhere to land. Exporting drops them
-  rather than failing, so the player gets a quest with the clue missing and no
-  error anywhere.</dd>
+  <dt>What it means</dt><dd>The files have nowhere to land. The project can
+  still export, but the exported mod will not include those files at that
+  address. The player may be missing a clue.</dd>
   <dt class="dt-ok">What to do</dt><dd>Add a
   <a href="nodes/world-network.html">Create network</a> node and give it the
   device this node is aimed at.</dd>
@@ -264,9 +266,9 @@ it.</p>
   network creates. With no address at all, the editor writes
   <em>No address set, so the files have nowhere to land</em> instead. Either
   way, export drops the files.</dd>
-  <dt class="dt-ok">What to do</dt><dd>The message lists the addresses your
-  quest does create. Point this node at one of them, or at the same token you
-  gave the network.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Follow the message's next step. It may
+  list addresses your quest creates, or tell you to use the same address token
+  you gave the network.</dd>
 </dl>
 
 <h3 id="msg-field-files-no-user">Files aimed at a device with no account</h3>
@@ -274,39 +276,57 @@ it.</p>
 <dl class="facts-list">
   <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
   <dt class="dt-mute">Where</dt><dd>In the inspector, under <b class="ui">Device IP</b>.</dd>
-  <dt>What it means</dt><dd>The device exists, but there is nobody logged into
-  it, and files land in a user's home folder. Export drops them.</dd>
+  <dt>What it means</dt><dd>The device exists, but it has no user account
+  with a home folder for the files. Export drops them.</dd>
   <dt class="dt-ok">What to do</dt><dd>Add a user account to that device in your
   <a href="nodes/world-network.html">Create network</a> node.</dd>
 </dl>
 
-<h2 id="panel-messages">Messages inside a panel</h2>
-<p>These ten do not come from the canvas analysis. Each one is written by the
-editor you are working in, about the thing in front of you. They never appear on
-a node badge and never reach the export report. That makes them the kind of problem that goes unnoticed. They are listed here in full.</p>
+<h3 id="msg-field-prompt-answer">A question has no accepted answer</h3>
+<blockquote class="blurb">This question is set to check the answer, but no accepted answer is filled in yet.</blockquote>
+<blockquote class="blurb">An “Ask player” node checks the answer, but “Answer to accept” is blank.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Where</dt><dd>Under <b class="ui">Answer to accept</b> on the selected Ask player node. The export report also repeats this warning.</dd>
+  <dt>What it means</dt><dd>The node is set to compare what the player types, but there is no answer to compare it with. Every answer misses.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Fill in <b class="ui">Answer to accept</b>, or change <b class="ui">Accept</b> to <b class="ui">Any submitted text</b> if any answer should continue the story.</dd>
+</dl>
 
-<h3 id="msg-panel-objective-trigger">An objective the player can never complete</h3>
+<h3 id="msg-field-app-command">A terminal command is not a desktop app</h3>
+<blockquote class="blurb">The game does not count lynx as an app, so this check always reads Missing even when it is installed.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Where</dt><dd>Under <b class="ui">App name</b> on the selected App Install Check node.</dd>
+  <dt>What it means</dt><dd>The node checks apps on the player's desktop, not commands. The game does not count <code>lynx</code> as a desktop app, even when installed.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Check a desktop app instead, such as Kisscord. The game always takes the <b class="ui">Missing</b> path for a terminal command, even when it is installed.</dd>
+</dl>
+
+<h3 id="msg-field-timer-invalid-date">A calendar date that never comes</h3>
+<blockquote class="blurb">“31 June” never arrives — June has 30 days.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Where</dt><dd>On the day field of a Timer set to wait for a fixed date, while that node is selected.</dd>
+  <dt>What it means</dt><dd>The full date is filled in, but that month does not have the chosen day. The timer cannot reach it.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Choose a day that exists in that month, or change the month to one that has the day you want.</dd>
+</dl>
+
+<h2 id="panel-messages">Messages inside a panel</h2>
+<p>These ten messages come from panels, not canvas checks. They appear beside the item they describe. Check the nearby item in your project. Message values may name specific items.</p>
+
+<h3 id="msg-panel-objective-trigger">Health flags an Objective with no event trigger</h3>
 <blockquote class="blurb">1 objective has no trigger wired in, so the player can never complete it.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>The <b class="ui">Quest</b> tab, in
   <b class="ui">Health</b> at the bottom.</dd>
-  <dt>What it means</dt><dd>Nothing can tick that objective off. Not the story
-  flow, because nothing reaches it, and no event, because none is wired to its
-  trigger. The quest cannot be finished.</dd>
-  <dt class="dt-danger">What to do</dt><dd>Wire a <b class="ui">When event</b>
-  into its <b class="ui">Trigger</b> socket, or run a flow wire into its
-  <b class="ui">In</b> socket. <a href="concepts.html#objectives">Objectives</a>
-  explains the difference.</dd>
+  <dt>What it means</dt><dd>The panel counts objectives without a <b class="ui">When event</b> wire. It does not check story wires. A plain objective can still tick when the story reaches it. This count may include an objective that works by story flow.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Should an in-game event complete this objective? Connect a <b class="ui">When event</b> to its <b class="ui">Trigger</b> socket. If a story wire should tick it, check the route in the <a href="guides.html#dry-run">Dry run</a>. This panel may be counting a false alarm. See <a href="concepts.html#objectives">Objectives</a> for both routes.</dd>
 </dl>
 
-<h3 id="msg-panel-router-no-way-in">A router the player cannot reach</h3>
+<h3 id="msg-panel-router-no-way-in">A router with no recognized recovery route</h3>
 <blockquote class="blurb">This router has no way in: set a model for `fern`, or enable support-mail recovery.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>In the device tree, under the router.</dd>
-  <dt>What it means</dt><dd>Every route into that router is closed. The player
-  can see it exists and can do nothing with it. That usually stalls the quest, with no message telling them why.</dd>
-  <dt class="dt-danger">What to do</dt><dd>Give <code>fern</code> a model, or
-  switch on support-mail recovery. Either one opens a door.</dd>
+  <dt>What it means</dt><dd>The editor checks for a router model that supports <code>fern</code> recovery or support-mail recovery. It cannot check every route. Review the ones you planned.</dd>
+  <dt class="dt-danger">What to do</dt><dd>If the player should use
+  <code>fern</code>, give the router a model. If they should get credentials by
+  e-mail, switch on support-mail recovery. Test any other route in game.</dd>
 </dl>
 
 <h3 id="msg-panel-ssh-guest">An exploit that lands in the wrong account</h3>
@@ -314,9 +334,9 @@ a node badge and never reach the export report. That makes them the kind of prob
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>In the device tree, under a machine with the
   exploit enabled.</dd>
-  <dt>What it means</dt><dd>This one is a reminder rather than a fault. The
-  player gets in, but not necessarily as the account you wrote your files into.
-  A quest that reads as broken is often this.</dd>
+  <dt>What it means</dt><dd>This is a reminder, not a fault. The player may
+  enter as the guest account instead of the account that holds your files.
+  They may need to switch accounts or find another way in.</dd>
   <dt class="dt-ok">What to do</dt><dd>Leave it on if switching user is part of
   the puzzle. Turn it off if the machine should hold only the accounts you
   listed.</dd>
@@ -332,49 +352,54 @@ a node badge and never reach the export report. That makes them the kind of prob
   soon as it has one.</dd>
 </dl>
 
-<h3 id="msg-panel-event-detail">A condition that tests a detail the event does not have</h3>
+<h3 id="msg-panel-event-detail">A detail missing from the editor's event list</h3>
 <blockquote class="blurb">Not one of this event's known details</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>A small amber warning icon beside a
   condition's value field. Hover it for this text.</dd>
-  <dt>What it means</dt><dd>You are comparing against a detail name this event
-  does not carry. The comparison will never be true, so the branch never
-  fires.</dd>
+  <dt>What it means</dt><dd>The detail you typed is not in the editor's list
+  for this event. The condition may never match if the game does not send that
+  detail.</dd>
   <dt class="dt-danger">What to do</dt><dd>Pick a detail from the list the
-  editor offers for that event. If the one you want is absent, this event cannot
-  answer the question you are asking.</dd>
+  editor offers. If the detail you need is absent, check the game's event
+  information or choose another event. This warning compares against the
+  editor's known details; it cannot inspect a live game event.</dd>
 </dl>
 
 <h3 id="msg-panel-addon-not-set-up">An addon card that runs nothing</h3>
 <blockquote class="blurb">Not set up yet — this card doesn't know which tool action it runs. Delete it and drag the action in again from the palette's “Editor Mods” group. As it stands it does nothing.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>On an addon card in the inspector.</dd>
-  <dt>What it means</dt><dd>The card was made without the addon it belongs to
-  loaded. It has a shape but no action behind it.</dd>
-  <dt class="dt-danger">What to do</dt><dd>Delete the card and drag the action in
-  again, with the addon loaded. Editing the existing card will not fix it.</dd>
+  <dt>What it means</dt><dd>The card has no tool action selected. This can
+  happen with an incomplete or older card; it does not prove that the addon
+  failed to load.</dd>
+  <dt class="dt-danger">What to do</dt><dd>If the addon is not loaded, load it
+  first. Then remove this card and drag the action in again from the palette.
+  The existing card has no action to edit.</dd>
 </dl>
 
-<h3 id="msg-panel-addon-needs-mod">An addon the player does not have</h3>
+<h3 id="msg-panel-addon-needs-mod">A required game mod may be missing</h3>
 <blockquote class="blurb">Players need the Example Pack game mod installed for this to work — say so in your quest description.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>On an addon card, in both the tool-response
   and pack-data editors.</dd>
-  <dt>What it means</dt><dd>The node works for you because you have the addon. A
-  player without it gets a quest that quietly does nothing, and no message tells
-  them what is missing.</dd>
-  <dt class="dt-warn">What to do</dt><dd>Name the addon in your quest
-  description. Nothing in the editor can say it for you.</dd>
+  <dt>What it means</dt><dd>This action depends on the named game mod. A
+  player without that mod may not get the intended result, and the game may not
+  explain what is missing.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Name the required game mod in your
+  quest description. The editor cannot install it for the player.</dd>
 </dl>
 
 <h3 id="msg-panel-pack-not-loaded">A pack you cannot re-pick from</h3>
 <blockquote class="blurb">The Example Pack pack isn't loaded on this machine. Everything you chose here is saved in the project, so the node keeps working — load the pack again to pick a different data shape.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>In the pack-data editor.</dd>
-  <dt>What it means</dt><dd>Your choice is safe and the node still works. You cannot change the data shape until the
-  pack is loaded again.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Nothing, unless you want a different
-  shape. Load the addon to change it.</dd>
+  <dt>What it means</dt><dd>Your chosen data and values stay in the project.
+  You can still export them, but the editor cannot offer another data shape
+  until the addon is loaded again. The player's game still needs the related
+  game mod, when the addon requires one.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Nothing, unless you want to choose a
+  different shape. Load the addon to change it.</dd>
 </dl>
 
 <h3 id="msg-panel-timed-conversation">A conversation that plays live</h3>
@@ -388,128 +413,339 @@ a node badge and never reach the export report. That makes them the kind of prob
   game.</dd>
 </dl>
 
-<h3 id="msg-panel-page-unlisted">A page nobody can find</h3>
+<h3 id="msg-panel-page-unlisted">An unlisted page is missing from search</h3>
 <blockquote class="blurb">Not in search results — only a direct URL (or dirhunter) leads here.</blockquote>
 <dl class="facts-list">
   <dt class="dt-mute">Where</dt><dd>In the website builder, above the preview of
   an unlisted page.</dd>
-  <dt>What it means</dt><dd>Deliberate, and often what you want: the player has
-  to be told the address or find it by brute force. It is a problem only if you
-  expected the page to be searchable.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Nothing, if hiding the page is the point.
-  Otherwise list it, and hand the player a way to reach it.</dd>
+  <dt>What it means</dt><dd>The page is not in in-game search. A direct address,
+  a link or <code>dirhunter</code> can still lead to it; unlisted does not mean
+  private. The editor does not check whether another page links here.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Keep it unlisted if that fits your clue,
+  and give the player a way to reach it. If the page should appear in search,
+  turn on <b class="ui">Listed in the in-game search</b>.</dd>
 </dl>
 
 <h2 id="pre-export">The report before you export</h2>
-<p>Exporting runs a second set of checks that need the whole mod in front of them. They ask what your websites do to each other, and whether a machine can actually be broken into. The report lists everything it found before the
-<code>.zip</code> is written, so you can go back and fix it.</p>
-<p>Red entries mean the export dropped or changed something. Amber entries mean
-it shipped what you built, and what you built is probably not what you meant.</p>
+<p>Quest or website names can change. Match the rest of the sentence.</p>
+
+<h3 id="msg-export-feed-claim">A quest waits for the player to claim it</h3>
+<blockquote class="blurb">The player claims this one from its Hackhub feed post — nothing in it runs until they do.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Good to know — this can be an intentional way to start a quest.</dd>
+  <dt>What it means</dt><dd>The quest does not start on its own. The player must find and claim its feed post first.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Leave it this way if the player should claim the job. Turn on <b class="ui">Start automatically</b> if it should begin when the mod loads. The only feed post tested in game had text only. It had no poster, employer or comments. If it still fails, open the <b class="ui">Quest</b> tab and change <b class="ui">Quest identifier</b>. Use one this save has not seen.</dd>
+</dl>
+
+<h3 id="msg-export-no-start">A quest has no way to start</h3>
+<blockquote class="blurb">Nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The player has no route to claim this quest, and it does not start by itself.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Turn on <b class="ui">Start automatically</b>, or add a feed post so the player can claim it.</dd>
+</dl>
+
+<h3 id="msg-export-device-target">A port or firewall rule has no target</h3>
+<blockquote class="blurb">A “Change port” or “Add firewall rule” node has no device IP, so it has nothing to act on.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning. The selected node also shows a field message; see <a href="#msg-field-no-machine">No machine set</a>.</dd>
+  <dt>What it means</dt><dd>The node has no machine to change or protect, so this instruction does nothing.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Point it at a machine created by a <a href="nodes/world-network.html">Create network</a> node. The field message gives the specific choice for that node.</dd>
+</dl>
+
+<h3 id="msg-export-network-domain">A network claims a domain another server may use</h3>
+<blockquote class="blurb">This network claims the domain … Domain names are shared with the whole game.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The domain is shared by the whole game. Another mod or the base game may already use it. Then its server can answer instead of yours.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Choose a distinctive domain connected to your story, rather than a common or placeholder name.</dd>
+</dl>
 
 <h3 id="msg-export-network-shape">A network the game cannot build</h3>
-<blockquote class="blurb">… has machines behind it, but only a router or a splitter can hold other machines.</blockquote>
+<blockquote class="blurb">… has machines behind it, but only a router or a splitter can hold other machines — those machines will not be built.</blockquote>
 <dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
-  <dt>What it means</dt><dd>You have hung a device behind something that cannot
-  host one. The game has no way to build the shape.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Put a router or a splitter between them in
-  your <a href="nodes/world-network.html">Create network</a> node.</dd>
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>A device that cannot contain other devices has one or more machines placed behind it. Those machines will not exist in the exported game.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Change the parent device to a router or splitter, or move the child machines under one that can hold them.</dd>
 </dl>
-<p>Two more red entries come from the same place. One names a machine carrying
-firewall rules when only a firewall device enforces them, so the rules are
-ignored. The other names a machine with a login service open and no user accounts. The player cannot break in, because there is nothing to log in as.</p>
+
+<h3 id="msg-export-firewall-rules">Firewall rules are on the wrong device</h3>
+<blockquote class="blurb">… carries firewall rules, but only a firewall device enforces them — they will be ignored.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The rules are saved on a device that is not a firewall, so the game ignores them.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Put the rules on a Firewall device between the router and the machine you want to protect.</dd>
+</dl>
+
+<h3 id="msg-export-login-no-user">A login service has no account to log in as</h3>
+<blockquote class="blurb">… has a login service open but no user accounts, so the player cannot break in.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The report sees no account you added to this device. It ignores the game's built-in root and guest accounts. The warning may be wrong when those accounts are on.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Open the network's
+  <a href="nodes/world-network.html#node-world-network-field-device">Devices</a>.
+  On a Device, check <b class="ui">Add stock root and guest accounts</b>; it is
+  on by default. If it is off, add an account or close the port. This toggle is
+  not on Routers, so add an account there. Test the route in game when stock
+  accounts are on.</dd>
+</dl>
 
 <h3 id="msg-export-tool-version">A version a tool will not read</h3>
-<blockquote class="blurb">… metasploit needs three numbers (for example “OpenSSH 7.2.0”) — it rejects anything else.</blockquote>
+<blockquote class="blurb">… Metasploit needs three numbers (for example “OpenSSH 7.2.0”) — it rejects anything else.</blockquote>
 <dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
-  <dt>What it means</dt><dd>A vulnerability's version is written in a form the
-  game's attack tool refuses to read. The player cannot exploit it. The
-  weakness is on the list and does nothing.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Write the version as three numbers, the
-  way the tool expects.</dd>
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The service version number is incomplete or contains a letter. Metasploit expects a three-part number, such as <code>OpenSSH 7.2.0</code>. The player cannot use that exploit with a different format.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Use the version reported by the machine, written as three number parts, such as <code>OpenSSH 7.2.0</code>.</dd>
+</dl>
+
+<h3 id="msg-export-lynx-handle">A Lynx result points to a social profile the game cannot open</h3>
+<blockquote class="blurb">The lynx result advertises @… Searching a social handle that has no profile behind it crashes the game and corrupts the player's save.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>A <a href="nodes/world-toolresponse.html">Tool response</a> for Lynx can contain an @name. The editor cannot create the social profile the game needs to search for it. The warning says that search may crash the game and damage the player's save.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Remove the @name from the Lynx result. Or point the player to a website, e-mail address or IP address instead.</dd>
+</dl>
+
+<h3 id="msg-export-handbook-article">An Open handbook node has no article</h3>
+<blockquote class="blurb">An “Open handbook” node has no article, so it does nothing.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The node has nowhere to take the player.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Pick an article only if the node needs to make a handbook call. In HackHub 1.3.1, the game opens the landing page, not your chosen page. See <a href="guides.html#extras-handbook">the handbook-entry note</a> and test this in game. Delete the node if you do not need it.</dd>
+</dl>
+
+<h3 id="msg-export-wifi">A note about Create Wi-Fi</h3>
+<blockquote class="blurb">“Create Wi-Fi” exports as a native access point in HackHub 1.3.0+.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note — not an error.</dd>
+  <dt>What it means</dt><dd>Wi-Fi created here works as a native access point in HackHub 1.3.0 and later. Bettercap may show no network name if you target the access point by its hardware address. Scanning, joining and cracking still worked in that test.</dd>
+  <dt class="dt-ok">What to do</dt><dd>No change is needed because of this note. If the displayed name matters to your quest, test that step in the game.</dd>
+</dl>
+
+<h3 id="msg-export-mail-no-from">A replyable e-mail has no From address</h3>
+<blockquote class="blurb">… lets the player reply, but its From address is empty — a player's reply arrives addressed to your mail's From, so with no From there is nothing a trigger can match.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>The player can reply, but the reply has no destination address that your quest can check.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Give the e-mail a <b class="ui">From</b> address. To react to a reply, add a <b class="ui">When event</b> for <code>Mail.Sent</code>. Check that its <code>to</code> field has your address.</dd>
+</dl>
+
+<h3 id="msg-export-mail-reply">A reply button works, but the reply does not point back to its e-mail</h3>
+<blockquote class="blurb">The mail goes out with its reply flag and the Reply button draws. The player's reply arrives addressed to your From address.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>The game shows a Reply button, but the reply contains no reference to the message it answers. The destination is the original e-mail's <b class="ui">From</b> address.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Use a <b class="ui">When event</b> for <code>Mail.Sent</code> to react to a reply. Check whether its <code>to</code> field matches the <code>From</code> address. The event does not identify which e-mail the player answered.</dd>
+</dl>
+
+<h3 id="msg-export-phone-answer">A phone answer also registers a terminal command</h3>
+<blockquote class="blurb">Phone lines with typed answers also register a terminal command (qe-…) the player uses to answer.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>A typed answer in a phone conversation has a command beginning <code>qe-</code> for the player to use.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Tell players where to find the command if the phone's answer is part of your quest. Test the call in game before relying on it.</dd>
+</dl>
+
+<h3 id="msg-export-conversation">A conversation set to play live has no wire</h3>
+<blockquote class="blurb">… a conversation is set to “play when the story reaches this node” but nothing is wired into it — it stays a normal quest conversation.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The conversation is set to play at a story beat, but no wire leads into its node. It stays a normal quest conversation instead of playing at that point.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Wire the node into the story if it should play at a specific moment. Otherwise change the live-play setting back to a normal quest conversation.</dd>
+</dl>
+
+<h3 id="msg-export-live-conversation">A live conversation skips normal reply features</h3>
+<blockquote class="blurb">A conversation set to “play when the story reaches this node” is sent live at that moment. Player replies, uploads and “unlocks after” steps are skipped.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>Once the story reaches the wired node, the editor sends the conversation live. Replies, file uploads and steps that wait for an earlier message are skipped. The game also does not remove these live messages when the quest ends.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Use live playback only if you need the conversation at that exact story moment. Test it in game, especially if you expect replies or uploads.</dd>
+</dl>
+
+<h3 id="msg-export-kisscord">An upload becomes a text message</h3>
+<blockquote class="blurb">Kisscord uploads compile to a “[uploaded file …]” message.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>A Kisscord attachment appears as a line of text, not as a file the player can open.</dd>
+  <dt class="dt-ok">What to do</dt><dd>If the player needs the actual file, use <a href="nodes/world-files.html">Place files</a> and tell them where to find it.</dd>
+</dl>
+
+<h3 id="msg-export-addon">Give data to an addon is not set up</h3>
+<blockquote class="blurb">A “Give data to an addon” node is not set up yet — as it stands it does nothing.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The node has no addon or data shape selected, so it cannot send anything.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Open the node and choose its addon pack and data shape. Delete it if you do not need it.</dd>
+</dl>
+
+<h3 id="msg-export-addon-node">An addon action node is not set up</h3>
+<blockquote class="blurb">An addon node is not set up yet — add it again from the palette's Editor Mods group.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The node has no action selected. It will do nothing as it is.</dd>
+  <dt class="dt-ok">What to do</dt><dd>If needed, load the pack first. Then remove
+  this card and drag the action into the quest again from the palette's Editor
+  Mods group. Or delete the card if you do not need it.</dd>
+</dl>
+
+<h3 id="msg-export-addon-mod">A quest needs a game mod for its addon data</h3>
+<blockquote class="blurb">Community data is used in this quest. It needs the game mod installed on the player's machine.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>This quest uses community data that depends on a separate game mod. A player without that mod will not get the intended result.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Name the required game mod in your quest description so players know they need it. The editor cannot install it for them.</dd>
+</dl>
+
+<h3 id="msg-export-unlisted-page">An unlisted page will not appear in search</h3>
+<blockquote class="blurb">Nothing links to it and the in-game search will not show it.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>The page stays out of in-game search. The note
+  assumes no page links to it, but the editor does not check links. A link, direct
+  address or search with <code>dirhunter</code> can still reach it. Unlisted does
+  not mean private.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Leave it unlisted when that fits your
+  clue. Add a link or another way to find it. If the player should find it in
+  search, turn on <b class="ui">Listed in the in-game search</b>.</dd>
+</dl>
+
+<h3 id="msg-export-duplicate-page-path">Two pages have the same address</h3>
+<blockquote class="blurb">… has pages at the path … They ship as two definitions of the same address.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>Two pages on one website use the same path, so both claim the same address.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Give one page a different path. Each page on the site needs its own address.</dd>
+</dl>
+
+<h3 id="msg-export-page-path">A page path does not start at the website root</h3>
+<blockquote class="blurb">The page … has the path …, but paths start at the host root — it should be /….</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The in-game browser and dirhunter look for pages from the start of the website address.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Start the page path with <code>/</code>, then check the full address in the website preview.</dd>
 </dl>
 
 <h3 id="msg-export-domain-clash">Two websites on one domain</h3>
-<blockquote class="blurb">… is the host of … websites in this mod. Domains are global — two sites on one host will fight over it.</blockquote>
+<blockquote class="blurb">… is the host of … websites in this mod. Domains are global — two sites on one host will fight over which one answers.</blockquote>
 <dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev danger">Red</span></dd>
-  <dt>What it means</dt><dd>Domains belong to the whole game, not to your quest.
-  Two sites claiming one host means whichever loads last wins, and the other
-  disappears.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Give one of them its own hostname. Two
-  related sites read better as subdomains of one host anyway.</dd>
-</dl>
-<p>Three more entries come from the same checks. A red one names a host with two
-pages at the same path. Those ship as two definitions of one address. Another
-names a page whose path does not start at the host root. An amber one warns that
-a placeholder domain ships as a real site any player can find. Another mod may already be using it.</p>
-
-<h3 id="msg-export-conversation">A conversation nobody reaches</h3>
-<blockquote class="blurb">… a conversation is set to “play when the story reaches this node” but nothing is wired into it — it never plays.</blockquote>
-<dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt>What it means</dt><dd>A <a href="nodes/comms-dialogue.html">Dialogue</a>
-  node waits for the story to arrive and the story never does. The player never
-  has the conversation.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Wire the node into the chain, or set the
-  conversation to start some other way.</dd>
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>Two websites in this mod claim the same host. The
+  report does not inspect other installed mods, so it cannot find every possible
+  conflict. The game may not serve the site you intended.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Give each website its own distinctive
+  host name.</dd>
 </dl>
 
-<h3 id="msg-export-addon">An addon node that is not set up</h3>
-<blockquote class="blurb">… a “Give data to an addon” node is not set up yet.</blockquote>
+<h3 id="msg-export-placeholder-domain">A placeholder domain ships as a real website</h3>
+<blockquote class="blurb">… is a placeholder domain, but the export ships it as a real site any player can find.</blockquote>
 <dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt>What it means</dt><dd>A node that depends on a community addon has no pack
-  or node chosen. It exports as something that does nothing. The same check
-  covers <a href="nodes/pack-node.html">Addon node</a>.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Open the node and pick the pack and the
-  shape or node it should use. If the addon is not installed, install it
-  first.</dd>
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>A sample name such as <code>example.com</code> or <code>localhost</code> will be exported as the actual website address. Another mod may already use it.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Choose a distinctive domain name that fits your story.</dd>
 </dl>
 
-<h3 id="msg-export-kisscord">An upload that becomes a message</h3>
-<blockquote class="blurb">… Kisscord uploads compile to a “[uploaded file …]” message.</blockquote>
+<h3 id="msg-export-twotter-handle">A Twotter handle the game will not accept</h3>
+<blockquote class="blurb">“@…” cannot be a Twotter handle: use letters, numbers and underscores, 3 to 15 characters.</blockquote>
 <dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt>What it means</dt><dd>A file attached to a Kisscord conversation does not
-  reach the player as a file. It arrives as a line of text standing in for it.
-  Nothing is lost; the player does not get the attachment itself.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Nothing, if a line of text is enough. If
-  the player needs the actual file, put it somewhere with
-  <a href="nodes/world-files.html">Place files</a> and have the conversation
-  point at it.</dd>
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The handle contains a character the game does not accept, or is too short or long. Players search for this handle, so they may never find the profile or clue.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Use 3 to 15 letters, numbers or underscores in the handle.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-display">A Twotter account has no display name</h3>
+<blockquote class="blurb">@… has no display name. The game shows the display name on the profile and falls back to something generic without it.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>The account still has a handle, but its profile uses a generic name instead of the name you intended.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Add a display name if players need to recognise this character. The account can still export without one.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-duplicate">Two Twotter accounts share a handle</h3>
+<blockquote class="blurb">Two Twotter accounts share the handle @… Handles are what players search for, so only one of them can ever be found.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The game cannot tell which account a player means when both have the same handle. Capital letters do not make two separate handles here.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Give one account a different handle.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-account">A Twotter node has no account to post as</h3>
+<blockquote class="blurb">… the Twotter node has no account yet. / … points at a Twotter account that is not in this mod any more.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Red error.</dd>
+  <dt>What it means</dt><dd>The node has no account selected, or the account it used to name has been removed. The post will not appear.</dd>
+  <dt class="dt-danger">What to do</dt><dd>Pick an account in the node's <b class="ui">Account</b> field. If you need a new character, add it in the Twotter panel under <b class="ui">Manage accounts</b> first.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-empty">A Twotter node has nothing to post</h3>
+<blockquote class="blurb">… posts nothing — it has no tweet rows. / … has a tweet with no text and no picture.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The node has no posts, or one post has neither
+  text nor a picture. A blank post is not a useful clue.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Add a post and give it text. Or delete the node if you no longer need it. Pictures do not appear in game; see <a href="#msg-export-twotter-image">the picture warning</a>.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-image">A Twotter post picture will not appear in game</h3>
+<blockquote class="blurb">The game's posting record has no picture field — the picture stays in your project and in the editor's preview, but players will not see it.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning.</dd>
+  <dt>What it means</dt><dd>The editor keeps the picture, but the game does not show it in the timeline or on the post page. This is a game limit, not a broken upload.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Put any clue in the post's text, or place it in a file the player can open.</dd>
+</dl>
+
+<h3 id="msg-export-twotter-time">An older post's time changed when it was opened</h3>
+<blockquote class="blurb">… came from an older draft whose tweet time could not be carried over exactly, so it now says “1 month earlier”.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Blue information note.</dd>
+  <dt>What it means</dt><dd>The editor could not preserve the older post's time exactly while opening the old project.</dd>
+  <dt class="dt-ok">What to do</dt><dd>Open the Twotter node and set the amount and time unit to the age you intended.</dd>
+</dl>
+
+<h3 id="msg-export-files-unplaced">Place files could not put its files on a device</h3>
+<blockquote class="blurb">A “Place files” node could not be placed — … Point it at a device this quest creates, or target the player's PC instead.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Report</dt><dd>Amber warning. The files are not in the exported mod where you aimed them.</dd>
+  <dt>What it means</dt><dd>The chosen device is missing, or it lacks an account with a home folder. The project may also lack a network for the device.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Point the node at a device this quest creates, add an account if needed, or choose the player's PC. The related field messages explain <a href="#msg-field-files-no-network">a missing network</a>, <a href="#msg-field-files-no-device">an address with no device</a> and <a href="#msg-field-files-no-user">a device with no account</a>.</dd>
+</dl>
+
+<h2 id="target-matching">Messages about addon targets</h2>
+<p>The export report shows these amber warnings when your quest uses a loaded addon. That addon must check for target details. Not every addon has these rules. Read your message; the addon decides which services, versions and weaknesses can match.</p>
+
+<h3 id="msg-target-service">An addon does not recognise a service</h3>
+<blockquote class="blurb">“…” on this target means nothing to this addon — its tools only understand ….</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">What it means</dt><dd>The target uses a service name this addon's tools do not recognise, so the tool will never match it.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Change the service to one named in the warning, or check the addon's own instructions.</dd>
+</dl>
+
+<h3 id="msg-target-version">An addon needs a service version</h3>
+<blockquote class="blurb">This target has a service but no version — the addon matches targets by their version string, so a blank version never lines up.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">What it means</dt><dd>The quest listens for an addon that matches by version, but the service has no version filled in.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Fill in the version reported by the machine. Do not invent one; it must match what the game tool sees.</dd>
+</dl>
+
+<h3 id="msg-target-no-weakness">An addon is looking for a weakness the quest has not marked</h3>
+<blockquote class="blurb">This addon looks for targets with one of these weaknesses. None of this quest's targets names one.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">What it means</dt><dd>The addon searches for the weakness types named in the warning. None of your quest's targets has one.</dd>
+  <dt class="dt-warn">What to do</dt><dd>Mark the target with a weakness from the warning's list if that is what the game scenario uses.</dd>
+</dl>
+
+<h3 id="msg-target-weakness-mismatch">An addon does not recognise the marked weakness</h3>
+<blockquote class="blurb">This quest's targets are marked …, but this addon only looks for … — none of them lines up.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">What it means</dt><dd>The targets do have weaknesses, but not the type this addon searches for.</dd>
+  <dt class="dt-warn">What to do</dt><dd>If the game scenario supports it, choose a weakness from the addon's list in the warning. Otherwise change the addon or quest design.</dd>
 </dl>
 </section>
-
-<h3 id="msg-export-twotter-account">A Twotter node with nobody to post as</h3>
-<blockquote class="blurb">… the Twotter node has no account yet.</blockquote>
-<dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev error">Red</span></dd>
-  <dt>What it means</dt><dd>A <a href="nodes/comms-tweet.html">Twotter</a>
-  node posts from an account, and this one has none chosen. Or the account it names has since been deleted from the mod. Exported as it stands, the node
-  posts nothing at all. A clue the player was meant to find is not there at all.</dd>
-  <dt class="dt-danger">What to do</dt><dd>Pick an account in the node's
-  <b class="ui">Account</b> field. If the character does not exist yet, open
-  <b class="ui">Manage accounts</b> in the Twotter window and add it. Accounts belong to the whole mod, so one character can post across several quests.</dd>
-</dl>
-
-<h3 id="msg-export-twotter-empty">A Twotter node that posts nothing</h3>
-<blockquote class="blurb">… the Twotter node posts nothing — it has no tweet rows.</blockquote>
-<dl class="facts-list">
-  <dt class="dt-mute">Colour</dt><dd><span class="sev warn">Amber</span></dd>
-  <dt>What it means</dt><dd>The node is wired into the story and reaches the
-  player, but there is nothing for it to post. The same check covers a tweet row
-  with neither text nor a picture. That one is a profile with a blank post on it.</dd>
-  <dt class="dt-ok">What to do</dt><dd>Write the post, or delete the node if the
-  story has moved on without it.</dd>
-</dl>
 
 <div class="pagefoot"><a href="how-do-i.html">← How do I…</a><a class="next" href="export.html">Exporting and installing →</a></div>
 <a class="totop" href="#checking">↑ back to top</a>
 <footer class="colophon">
   HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
-  every message on this page is quoted from the editor's own source.
+  message wording and examples on this page are checked against the editor's current source.
 </footer>
 </main>
 </div>
