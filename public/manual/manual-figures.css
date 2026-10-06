@@ -26,6 +26,7 @@ figure.manual-figure {
     height: 100%;
     border: 0;
     background: var(--canvas);
+    pointer-events: none;
     visibility: hidden;
 }
 
@@ -292,6 +293,7 @@ figure.manual-figure {
     max-width: none;
     border: 0;
     background: var(--canvas);
+    pointer-events: none;
 }
 
 .manual-figure-viewer__status,

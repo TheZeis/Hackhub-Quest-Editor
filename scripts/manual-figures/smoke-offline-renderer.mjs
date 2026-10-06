@@ -244,6 +244,10 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
         || !/\.manual-figure-viewer__canvas\s*\{[^}]*\bflex:\s*0 0 auto;[^}]*\bmargin:\s*auto;/s.test(manualFigureCss)) {
         problems.push("the larger view no longer centers the canvas on both axes");
     }
+    if (!/\.manual-figure__stage iframe\s*\{[^}]*\bpointer-events:\s*none;/s.test(manualFigureCss)
+        || !/\.manual-figure-viewer__frame\s*\{[^}]*\bpointer-events:\s*none;/s.test(manualFigureCss)) {
+        problems.push("a fixed editor illustration can still receive pointer input");
+    }
     const document = dom.window.document;
     if (document.readyState === "loading") {
         await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
@@ -350,7 +354,7 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
 
     dom.window.close();
     if (problems.length) throw new Error(`Manual illustration viewer failed: ${problems.join("; ")}`);
-    console.log(`${mode} manual illustration viewer supports click, accessible button, gallery navigation, zoom, fallback, Escape and focus return`);
+    console.log(`${mode} manual illustration viewer supports click, accessible button, gallery navigation, zoom, inert scene frames, fallback, Escape and focus return`);
 }
 
 await smokeManualFigureViewer("https://manual-preview.example/manual/index.html", "allow-scripts", "HTTP");
