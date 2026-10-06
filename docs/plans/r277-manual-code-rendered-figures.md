@@ -65,6 +65,6 @@ and is explicitly unverified.
   rendering and scene startup, not pixel-level visual appearance.
 
 No product component, UI behavior, author-facing copy, or editor build stamp
-changed. `EDITOR_BUILD` remains `2026-10-03.r267`. `npm install` reported one
-high-severity audit finding; it was not automatically fixed as part of this
-documentation/renderer work.
+changed. `EDITOR_BUILD` remains `2026-10-03.r267`. At the r277 checkpoint,
+`npm install` reported one high-severity audit finding; the separate r278 record
+covers its fix.

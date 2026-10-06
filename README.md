@@ -174,11 +174,11 @@ Deferred on Zeis's call, with the reason recorded so the work is not lost.
 
 | # | Item | Notes |
 |---|---|---|
+| r278 | **Flagged build-tool dependency updated** | Updated the lockfile's development-only `source-map-js` dependency from 1.2.1 to 1.2.2. `npm audit` now reports 0 vulnerabilities; typecheck, all 1,848 tests across 90 files, and the app build pass. No editor code, behavior, copy or build stamp changed. See [the r278 record](docs/plans/r278-build-dependency-security-fix.md). |
 | r277 | **All 88 live manual figures use the shared code renderer** | Replaced the active node, how-to, tutorial, guide, troubleshooting and screen-tour image references with 88 local, fixed, read-only scenes. Updated node-page generation and the offline search index; G8 validates IDs, captions, indexing and unused/unknown scenes separately from raster captures. `npm run gen:manual` passed (88 scenes across 51 pages; 41 node pages regenerated; 407 search entries; 0 unmatched evidence labels); typecheck, the full suite (1,848 tests across 90 files), and the app build passed. G8 reports 88 rendered figures and 0 missing raster captures. JSDOM smoke is not a pixel-level visual review; screen-reader output remains unverified. No product behavior/copy or editor build stamp changed. See [the r277 record](docs/plans/r277-manual-code-rendered-figures.md). |
 | r276 | **Source-backed handbook review and evidence coverage** | Updated manual guidance for diagnostic limits, stock accounts, router recovery, unlisted pages, addon-file errors and storage; reviewed all 56 diagnostic sites and 10 curated panel messages against their source rows. All 63 explanation blocks and 32 feature-guide source mappings pass structural checks. Regenerated the offline index (319 entries, 51 pages) and evidence inventory (607 quoted UI occurrences, 215 distinct labels, none unmatched). The targeted tests pass; the docs-only build/typecheck record is in [the r276 audit](docs/plans/r276-manual-source-review.md). G8 then counted 88 missing figures. No product code, behavior or editor stamp changed. |
 | r275 | **Phase 1 source evidence is inventoried and drift-gated** | Added source citations for the registry, diagnostic sites, panel examples, UI labels, templates, permissions and export files, plus eight initial drift tests. The r275 inventory is a historical snapshot; r276 records the current source review, mapping and generated counts. No product code or editor build stamp changed; `EDITOR_BUILD` is `2026-10-03.r267`. See [the r275 record](docs/plans/r275-manual-evidence-inventory.md). |
 | r274 | **Figure accessibility structure and evidence gaps are recorded** | Added outside-the-frame `<figcaption>` text, descriptive iframe names, `tabindex="-1"` (so Tab skips each frame), and inert-renderer checks. All five local scenes pass the smoke. Zeis's Firefox-from-disk check confirms Tab skips the page and scenes; screen-reader output remains unverified and lower priority by user direction. No figure slot had yet been converted. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r274 record](docs/plans/r274-manual-accessibility-and-evidence-audit.md). |
-| r273 | **Five-scene layout and cursor review** | Hid unrelated canvas controls, made scenes 2 and 5 responsive, centered their nodes, and refined the detached-wire cursor. Zeis approved the prototype visually on 2026-10-04. The later r274 checks add caption semantics; Zeis then confirmed that Tab skips the prototype in Firefox from disk. Screen-reader output was not checked and remains lower priority by user direction. No editor figure had yet been converted. See [the r273 record](docs/plans/r273-manual-figure-scene-layout.md). |
 
 
 
@@ -231,7 +231,8 @@ which is kept as an archive — the bug histories in it explain several of the
 rules the code now follows.
 
 Older **Done recently** rows are archived in
-[`docs/archive/`](docs/archive/): r272 in
+[`docs/archive/`](docs/archive/): r273 in
+[`round-273.md`](docs/archive/round-273.md), r272 in
 [`round-272.md`](docs/archive/round-272.md), r262 in
 [`round-262.md`](docs/archive/round-262.md), r260–r261 in
 [`rounds-260-261.md`](docs/archive/rounds-260-261.md) (read its correction
