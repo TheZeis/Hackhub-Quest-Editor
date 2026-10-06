@@ -1,0 +1,94 @@
+/* The old raster slots use the same <figure> element. Keep the code-rendered
+   frames responsive while leaving the written description and caption in the
+   parent document for search, print and assistive technology. */
+figure.manual-figure {
+    display: block;
+    width: 100%;
+    margin: 20px 0 24px;
+    max-width: 100%;
+}
+
+.manual-figure__stage {
+    width: min(100%, var(--figure-width));
+    max-width: 100%;
+    aspect-ratio: var(--figure-ratio);
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--canvas);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.22);
+}
+
+.manual-figure__stage iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--canvas);
+    visibility: hidden;
+}
+
+.manual-figure--ready .manual-figure__stage iframe {
+    visibility: visible;
+}
+
+.manual-figure--failed .manual-figure__stage iframe {
+    display: none;
+}
+
+.manual-figure__fallback,
+.manual-figure__noscript {
+    margin: 8px 0 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    background: var(--surface);
+    padding: 9px 12px;
+    color: var(--ink-2);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.manual-figure__fallback[hidden] {
+    display: none;
+}
+
+.manual-figure__fallback::before {
+    content: "Illustration unavailable. ";
+    color: var(--warn);
+    font-weight: 650;
+}
+
+.manual-figure figcaption {
+    display: grid;
+    gap: 5px;
+    margin-top: 8px;
+    max-width: 82ch;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    line-height: 1.6;
+}
+
+.manual-figure__description {
+    color: var(--ink-2);
+}
+
+.manual-figure__caption {
+    color: var(--ink-3);
+}
+
+.manual-figure__still-note {
+    color: var(--warn);
+    font-size: 12px;
+    font-style: italic;
+}
+
+@media print {
+    .manual-figure__stage {
+        display: none;
+    }
+
+    .manual-figure__fallback,
+    .manual-figure__noscript {
+        display: none !important;
+    }
+}

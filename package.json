@@ -14,8 +14,8 @@
     "test:watch": "vitest",
     "gen:events": "node reference/generate-event-catalogue.mjs",
     "gen:manual-evidence": "node scripts/extract-manual-evidence-inventory.mjs --write",
-    "gen:manual-figures": "vite build --config vite.manual-figures.config.ts && node scripts/manual-figures/clean-bundle.mjs && node scripts/manual-figures/smoke-offline-renderer.mjs",
-    "gen:manual": "node scripts/extract-manual-inventory.mjs && node scripts/build-node-pages.mjs && npm run gen:manual-figures && node scripts/build-manual-index.mjs && npm run gen:manual-evidence",
+    "gen:manual-figures": "vite build --config vite.manual-figures.config.ts && node scripts/manual-figures/clean-bundle.mjs && node scripts/manual-figures/smoke-offline-renderer.mjs && node scripts/manual-figures/build-handbook.mjs && node scripts/build-manual-index.mjs",
+    "gen:manual": "node scripts/extract-manual-inventory.mjs && node scripts/build-node-pages.mjs && npm run gen:manual-figures && npm run gen:manual-evidence",
     "recover": "node scripts/sandbox-recover.mjs"
   },
   "dependencies": {

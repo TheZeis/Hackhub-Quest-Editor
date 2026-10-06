@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import { NODE_TYPES_REGISTRY, PALETTE_HIDDEN_TYPES, type FieldDef } from "@/schema/registry";
 import { EDITOR_BUILD } from "@/compiler/compile";
 import type { NodeType } from "@/schema/nodes";
+import { SCENE_CATALOGUE } from "../scripts/manual-figures/catalogue";
 
 const ROOT = resolve(__dirname, "..");
 const MANUAL = join(ROOT, "public", "manual");
@@ -319,58 +320,212 @@ describe("manual coverage — G10: headline figures", () => {
     });
 });
 
-/* ── G8: images ─────────────────────────────────────────────────────────── */
+/* ── G8: rendered editor figures and raster captures ────────────────────── */
 
-/**
- * The filenames the shot list declares, whether captured yet or not. Same
- * principle as G5: a screenshot that is planned but not yet taken is the shot
- * list's business, a filename that appears on no list is a typo.
- * Source: docs/plans/r164-manual-screenshots.md.
- */
+/** The old shot list now applies only to genuine raster references. */
 const DECLARED_SHOTS = new Set(
     (readFileSync(join(ROOT, "docs/plans/r164-manual-screenshots.md"), "utf8").match(
         /[a-z0-9][a-z0-9-]*\.png/g,
     ) ?? []),
 );
 
-describe("manual coverage — G8: screenshots", () => {
+const ACTIVE_FIGURE_IDS = Object.keys(SCENE_CATALOGUE).sort();
+const EXPECTED_FIGURES_BY_GROUP = {
+    nodes: 41,
+    howto: 17,
+    tutorial: 13,
+    guides: 12,
+    troubleshooting: 3,
+    tour: 2,
+};
+
+function tagAttribute(tag: string, name: string): string | undefined {
+    return new RegExp(`\\b${name}="([^"]*)"`, "i").exec(tag)?.[1];
+}
+
+function plainFigureText(value: string): string {
+    return value
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&[a-z]+;/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+describe("manual coverage — G8: figures", () => {
     const imgDir = join(MANUAL, "img");
 
-    it("ships every image a page references", () => {
-        const unknown: string[] = [];
-        const pending = new Set<string>();
-        for (const page of PAGES) {
-            for (const m of read(page).matchAll(/<img[^>]+src="([^"]+)"/g)) {
-                if (existsSync(resolve(dirname(page), m[1]))) continue;
-                const name = m[1].split("/").pop()!;
-                if (DECLARED_SHOTS.has(name)) {
-                    pending.add(name);
-                    continue;
-                }
-                unknown.push(`${rel(page)} → ${m[1]} (not in the shot list)`);
-            }
-        }
-        expect(
-            unknown,
-            `${unknown.length} images referenced that no page will ever get:\n  ${unknown.join("\n  ")}`,
-        ).toEqual([]);
-        // Informational: how many shots are still outstanding.
-        if (pending.size) console.log(`  manual: ${pending.size} screenshots still to capture`);
+    it("keeps the approved live figure total and group counts", () => {
+        const counts = Object.values(SCENE_CATALOGUE).reduce<Record<string, number>>((result, scene) => {
+            const group = scene.group ?? "ungrouped";
+            result[group] = (result[group] ?? 0) + 1;
+            return result;
+        }, {});
+        expect(ACTIVE_FIGURE_IDS).toHaveLength(88);
+        expect(counts).toEqual(EXPECTED_FIGURES_BY_GROUP);
+        expect(ACTIVE_FIGURE_IDS).not.toContain("tutorial-game-mod-list");
+        expect(ACTIVE_FIGURE_IDS).not.toContain("howto-wired-canvas");
+        expect(ACTIVE_FIGURE_IDS).not.toContain("settings-panel");
     });
 
-    it("references every image that sits in img/", () => {
-        if (!existsSync(imgDir)) return;
-        const onDisk = new Set(readdirSync(imgDir).filter((f) => f.endsWith(".png")));
-        const referenced = new Set<string>();
+    it("renders every live figure once with a known scene and complete parent-page text", () => {
+        const counts = new Map(ACTIVE_FIGURE_IDS.map((id) => [id, 0]));
+        const unknown: string[] = [];
+        const duplicates: string[] = [];
+        const broken: string[] = [];
+        const figureRecords: { page: string; sceneId: string; title: string; description: string; caption: string }[] = [];
+
         for (const page of PAGES) {
-            for (const m of read(page).matchAll(/<img[^>]+src="[^"]*img\/([^"]+)"/g)) {
-                referenced.add(m[1]);
+            const html = read(page);
+            const figureBlocks = [...html.matchAll(/<figure\b[^>]*\bdata-manual-figure\b[^>]*>[\s\S]*?<\/figure>/gi)];
+            for (const figureMatch of figureBlocks) {
+                const figure = figureMatch[0];
+                const figureTag = /^<figure\b[^>]*>/i.exec(figure)?.[0] ?? "";
+                const sceneId = tagAttribute(figureTag, "data-scene-id");
+                const frameTag = /<iframe\b[^>]*\bdata-manual-figure-scene="[^"]+"[^>]*>/i.exec(figure)?.[0];
+                if (!sceneId || !frameTag) {
+                    broken.push(`${rel(page)}: figure is missing its scene ID or iframe`);
+                    continue;
+                }
+                if (sceneId !== tagAttribute(frameTag, "data-manual-figure-scene")) {
+                    broken.push(`${rel(page)}: figure and iframe scene IDs differ (${sceneId})`);
+                }
+                if (!counts.has(sceneId)) {
+                    unknown.push(`${rel(page)}: ${sceneId}`);
+                    continue;
+                }
+                counts.set(sceneId, counts.get(sceneId)! + 1);
+                const frameTitle = tagAttribute(frameTag, "title") ?? "";
+                const describedBy = tagAttribute(frameTag, "aria-describedby") ?? "";
+                const captionMatch = /<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figure);
+                const captionTag = /<figcaption\b[^>]*>/i.exec(figure)?.[0] ?? "";
+                const captionId = tagAttribute(captionTag, "id");
+                const descriptionMatch = /<span\b[^>]*class="manual-figure__description"[^>]*>([\s\S]*?)<\/span>/i.exec(figure);
+                const captionTextMatch = /<span\b[^>]*class="manual-figure__caption"[^>]*>([\s\S]*?)<\/span>/i.exec(figure);
+                const description = plainFigureText(descriptionMatch?.[1] ?? "");
+                const caption = plainFigureText(captionTextMatch?.[1] ?? "");
+                const scene = SCENE_CATALOGUE[sceneId];
+                const rendererSrc = tagAttribute(frameTag, "data-renderer-src")?.split("?")[0] ?? "";
+                const rendererPath = rendererSrc ? resolve(dirname(page), rendererSrc) : "";
+
+                if (!frameTitle.startsWith("Code-rendered editor illustration:")) broken.push(`${rel(page)}: ${sceneId} has no descriptive iframe title`);
+                if (!captionMatch || !captionId || !describedBy.split(/\s+/).includes(captionId)) {
+                    broken.push(`${rel(page)}: ${sceneId} does not describe its own figcaption`);
+                }
+                if (!description || !caption) broken.push(`${rel(page)}: ${sceneId} has no equivalent visible description or caption`);
+                if (tagAttribute(frameTag, "tabindex") !== "-1") broken.push(`${rel(page)}: ${sceneId} can enter the Tab order`);
+                if (tagAttribute(frameTag, "loading") !== "lazy") broken.push(`${rel(page)}: ${sceneId} is not lazy-loaded`);
+                if (tagAttribute(frameTag, "sandbox") !== "") broken.push(`${rel(page)}: ${sceneId} does not use the empty source sandbox before bootstrap`);
+                if (tagAttribute(frameTag, "referrerpolicy") !== "no-referrer") broken.push(`${rel(page)}: ${sceneId} does not suppress referrers`);
+                if (!rendererSrc || !existsSync(rendererPath) || rendererPath !== join(dirname(MANUAL), "figures", "renderer.html")) {
+                    broken.push(`${rel(page)}: ${sceneId} does not point to the local shared renderer`);
+                }
+                if (scene.stillMoment && (!frameTitle.includes("still illustration") || !/manual-figure__still-note/.test(figure))) {
+                    broken.push(`${rel(page)}: ${sceneId} is a dynamic still without a title and visible still note`);
+                }
+                if (!scene.stillMoment && /manual-figure__still-note/.test(figure)) {
+                    broken.push(`${rel(page)}: ${sceneId} has an unconfigured still note`);
+                }
+                if (!/manual-figure__fallback/.test(figure) || !/manual-figure__noscript/.test(figure)) {
+                    broken.push(`${rel(page)}: ${sceneId} has no useful failure or no-script fallback`);
+                }
+                figureRecords.push({ page: relative(MANUAL, page).split("\\").join("/"), sceneId, title: plainFigureText(frameTitle), description, caption });
             }
         }
-        const orphans = [...onDisk].filter((f) => !referenced.has(f));
+
+        for (const [sceneId, count] of counts) {
+            if (count === 0) broken.push(`${sceneId}: active scene is unused`);
+            if (count > 1) duplicates.push(`${sceneId} (${count})`);
+        }
+        expect(unknown, `unknown rendered scene IDs:\n  ${unknown.join("\n  ")}`).toEqual([]);
+        expect(duplicates, `active scenes used more than once:\n  ${duplicates.join("\n  ")}`).toEqual([]);
+        expect(broken, `figure contract failures:\n  ${broken.join("\n  ")}`).toEqual([]);
+        expect(figureRecords).toHaveLength(88);
+    });
+
+    it("indexes each scene title, parent description and caption for local search", () => {
+        const source = readFileSync(join(MANUAL, "search-index.js"), "utf8");
+        const match = /window\.MANUAL_INDEX\s*=\s*(\[[\s\S]*\]);/.exec(source);
+        expect(match, "search-index.js is missing its generated index").not.toBeNull();
+        const entries = JSON.parse(match![1]) as { url: string; title: string; section: string; text: string }[];
+        const missing: string[] = [];
+        for (const figure of collectRenderedFigures()) {
+            const url = `${figure.page}#figure-${figure.sceneId}`;
+            const result = entries.find((entry) => entry.url === url);
+            if (!result) {
+                missing.push(`${url}: no dedicated local-search result`);
+                continue;
+            }
+            const indexedText = `${result.title} ${result.text}`;
+            for (const [kind, value] of [["title", figure.title], ["description", figure.description], ["caption", figure.caption]]) {
+                if (value && !indexedText.includes(value)) missing.push(`${url}: ${kind} is absent from the search result`);
+            }
+        }
+        expect(missing, `figure search coverage gaps:\n  ${missing.join("\n  ")}`).toEqual([]);
+    });
+
+    it("separates missing raster captures from rendered editor figures", () => {
+        const unknownRaster: string[] = [];
+        const pendingRaster = new Set<string>();
+        const activeAsRaster: string[] = [];
+        for (const page of PAGES) {
+            for (const match of read(page).matchAll(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/g)) {
+                const src = match[1];
+                const stem = src.split("/").pop()!.replace(/\.[^.]+$/, "");
+                if (SCENE_CATALOGUE[stem]) activeAsRaster.push(`${rel(page)} → ${src}`);
+                if (existsSync(resolve(dirname(page), src))) continue;
+                const name = src.split("/").pop()!;
+                if (DECLARED_SHOTS.has(name)) pendingRaster.add(name);
+                else unknownRaster.push(`${rel(page)} → ${src} (not in the shot list)`);
+            }
+        }
+        expect(activeAsRaster, `code-rendered scenes still referenced as raster captures:\n  ${activeAsRaster.join("\n  ")}`).toEqual([]);
+        expect(unknownRaster, `unknown missing raster captures:\n  ${unknownRaster.join("\n  ")}`).toEqual([]);
+        console.log(`  manual G8: ${ACTIVE_FIGURE_IDS.length} code-rendered figures; ${pendingRaster.size} distinct missing raster captures`);
+    });
+
+    it("ships every raster image that a page references", () => {
+        if (!existsSync(imgDir)) return;
+        const onDisk = new Set(readdirSync(imgDir).filter((file) => file.endsWith(".png")));
+        const referenced = new Set<string>();
+        for (const page of PAGES) {
+            for (const match of read(page).matchAll(/<img[^>]+src="[^"]*img\/([^"]+)"/g)) referenced.add(match[1]);
+        }
+        const orphans = [...onDisk].filter((file) => !referenced.has(file));
         expect(orphans, `unreferenced files in public/manual/img/: ${orphans.join(", ")}`).toEqual([]);
     });
 });
+
+function collectRenderedFigures(): { page: string; sceneId: string; title: string; description: string; caption: string }[] {
+    const figures: { page: string; sceneId: string; title: string; description: string; caption: string }[] = [];
+    for (const page of PAGES) {
+        const html = read(page);
+        for (const match of html.matchAll(/<figure\b[^>]*\bdata-manual-figure\b[^>]*>[\s\S]*?<\/figure>/gi)) {
+            const figure = match[0];
+            const figureTag = /^<figure\b[^>]*>/i.exec(figure)?.[0] ?? "";
+            const sceneId = tagAttribute(figureTag, "data-scene-id");
+            const frameTag = /<iframe\b[^>]*\bdata-manual-figure-scene="[^"]+"[^>]*>/i.exec(figure)?.[0];
+            if (!sceneId || !frameTag) continue;
+            const captionMatch = /<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figure);
+            const frameTitle = tagAttribute(frameTag, "title") ?? "";
+            const description = plainFigureText(/<span\b[^>]*class="manual-figure__description"[^>]*>([\s\S]*?)<\/span>/i.exec(figure)?.[1] ?? "");
+            const caption = plainFigureText(/<span\b[^>]*class="manual-figure__caption"[^>]*>([\s\S]*?)<\/span>/i.exec(figure)?.[1] ?? "");
+            if (!captionMatch) continue;
+            figures.push({
+                page: relative(MANUAL, page).split("\\").join("/"),
+                sceneId,
+                title: plainFigureText(frameTitle),
+                description,
+                caption,
+            });
+        }
+    }
+    return figures;
+}
 
 /* ── G11: panel messages ────────────────────────────────────────────────────
  * Ten messages are written by the inspector's own editors rather than by the

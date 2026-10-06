@@ -119,12 +119,17 @@ archived once it has stayed fixed for a few rounds.
 
 ### In progress
 
-The five-scene manual-illustration prototype is approved. It opens from disk in
-Firefox; Zeis confirmed Tab skips the page and all five scenes. Keep its captions
-and frame titles. Screen-reader output remains unverified and is lower priority
-by user direction. Prioritize plain instructions, numbers with units, and colour
-cues supported by words or shapes. None of the 88 editor figures has been
-converted.
+The approved manual-illustration approach is now implemented: one local,
+read-only renderer supplies all 88 live editor figures from editor components,
+registry facts and fixed fixtures. The removed game-only tutorial figure stays
+out, and the five game-only names plus two unlinked editor names remain dormant.
+The scene catalogue and manual generators preserve IDs and captions; G8 checks
+all 88 references, search entries, and missing raster captures separately. The
+renderer passes offline/JSDOM smoke checks, including the fixed scene contents,
+but no pixel-level browser review has been done for this bulk migration.
+Preserve the parent-page captions, descriptive frame titles and existing focus
+behavior. Screen-reader output remains unverified; no screen-reader testing is
+claimed.
 
 The handbook table of contents and static HTML source are approved. r276 updates
 reader copy after a source review and maps all 56 diagnostic sites and 10 curated
@@ -134,8 +139,9 @@ shipped source. The inventory covers 41 node types, 164 fields, 80 wire sockets,
 eight fixed export files and four optional output families. Two diagnostic
 messages lack a lexical quote match, but both have mapped explanations. These
 structural checks do not prove that every sentence is semantically complete.
-See the [r276 audit](docs/plans/r276-manual-source-review.md). No `src/**` file,
-app behavior or editor build stamp changed.
+See the [r276 audit](docs/plans/r276-manual-source-review.md). No product code,
+UI behavior or copy changed; only the manual-coverage test under `src/` changed.
+`EDITOR_BUILD` remains `2026-10-03.r267`.
 
 | Row | Disposition |
 |---|---|
@@ -152,7 +158,7 @@ app behavior or editor build stamp changed.
 | 1 | **Dead Air in-game playtest** | r232/r233 are code-verified (the shipping runtime read, the template invariants), but the template's novel parts have not been seen in game: the **converging wire** (the call's two outcomes into one drip), the **Timer day** on the game's clock, the phone's typed-answer terminal command, and the Kisscord player-typed send. The QA harness was retired in r253, so this one needs no harness: author the template in the editor, install its export, and play it. File the results under `docs/`. |
 | 2 | **App / PhoneApp surfaces** | 0.24's home-screen mod apps (an iframe plus a `HackhubSDK.Phone` bridge), and the phone app surface. Zeis (r235): bigger integrations — investigate the shape first, plan before building. Note: this is about mod apps on the home screen, not dialing (docs/03 §6). |
 | 3 | "Branching consequence" template | A choice that changes which ending the player gets. "Two Ways Out" is approved (may be morally grey) but not yet built. The official Cryptographer Hunt (a phone social-engineering scene with a fail route on the wrong choice) is the strongest argument for it — see [`docs/plans/r127-official-quest-comparison.md`](docs/plans/r127-official-quest-comparison.md). The shape now ships inside The Long Game (r136, act III: a typed verdict with two endings); whether a standalone template still adds anything is Zeis's call. (Dead Air's r233 rework moved its failed call from a second ending to a wait-and-retry route — see r233.) |
-| 4 | **Manual figures and reading accessibility** | The five-scene renderer is approved, but the 88 existing editor figure references still have no screenshots and none has been converted. Do not invent images or claim visual truth from tests. Keep the meaningful captions and frame titles; Tab skipping was confirmed by Zeis in Firefox from disk, while screen-reader output remains unverified and lower priority by user direction. Keep instructions plain, make numbers and units explicit, and pair colour with words or shapes. The small `ink-4` identifiers still need a contrast review. Handbook evidence and feature-to-source mapping are recorded in r276; structural checks do not replace source review when the editor changes. The five unlinked game names and two unlinked editor panels remain dormant. |
+| 4 | **Reading accessibility and visual review** | The 88 editor references now use local, fixed, read-only code-rendered scenes; the all-scene smoke checks content and startup but do not prove pixel-level appearance. Review the handbook in a real browser at supported sizes, including the tool-match scene's side-by-side addon and target details. Keep parent-page captions, descriptive frame titles, and focus behavior. The earlier Firefox-from-disk check confirmed Tab skips the five-scene prototype; no screen-reader output has been tested, and none is claimed. The small `ink-4` identifiers still need a contrast review. Keep the removed game-only figure removed and the five dormant game names plus two unlinked editor names out of the active scene count. See the [r277 migration record](docs/plans/r277-manual-code-rendered-figures.md). |
 
 
 ### Parked
@@ -168,11 +174,11 @@ Deferred on Zeis's call, with the reason recorded so the work is not lost.
 
 | # | Item | Notes |
 |---|---|---|
-| r276 | **Source-backed handbook review and evidence coverage** | Updated manual guidance for diagnostic limits, stock accounts, router recovery, unlisted pages, addon-file errors and storage; reviewed all 56 diagnostic sites and 10 curated panel messages against their source rows. All 63 explanation blocks and 32 feature-guide source mappings pass structural checks. Regenerated the offline index (319 entries, 51 pages) and evidence inventory (607 quoted UI occurrences, 215 distinct labels, none unmatched). The targeted tests pass; the docs-only build/typecheck record is in [the r276 audit](docs/plans/r276-manual-source-review.md). G8 still reports 88 missing figures. No `src/**`, behavior or editor stamp changed. |
-| r275 | **Phase 1 source evidence is inventoried and drift-gated** | Added source citations for the registry, diagnostic sites, panel examples, UI labels, templates, permissions and export files, plus eight initial drift tests. The r275 inventory is a historical snapshot; r276 records the current source review, mapping and generated counts. No `src/**` or editor build stamp changed; `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r275 record](docs/plans/r275-manual-evidence-inventory.md). |
-| r274 | **Figure accessibility structure and evidence gaps are recorded** | Added outside-the-frame `<figcaption>` text, descriptive iframe names, `tabindex="-1"` (so Tab skips each frame), and inert-renderer checks. All five local scenes pass the smoke. Zeis's Firefox-from-disk check confirms Tab skips the page and scenes; screen-reader output remains unverified and lower priority by user direction. No figure slot has been converted. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r274 record](docs/plans/r274-manual-accessibility-and-evidence-audit.md). |
-| r273 | **Five-scene layout and cursor review** | Hid unrelated canvas controls, made scenes 2 and 5 responsive, centered their nodes, and refined the detached-wire cursor. Zeis approved the prototype visually on 2026-10-04. The later r274 checks add caption semantics; Zeis then confirmed that Tab skips the prototype in Firefox from disk. Screen-reader output was not checked and remains lower priority by user direction. No editor figure was converted. See [the r273 record](docs/plans/r273-manual-figure-scene-layout.md). |
-| r272 | **Direct-from-disk manual renderer now boots** | Fixed the standalone bundle's unresolved `process.env.NODE_ENV` and Firefox's `moz-nullprincipal` sandbox origin blocking local JS/CSS. The prototype grants same-origin only for `file://`; HTTP preview stays scripts-only. JSDOM checks both policies and all five scene starts; Zeis confirmed the downloaded page opens all five scenes in Firefox without the editor running. No editor figure was replaced; G8 remains at 88 missing editor figures and G18 stays 0. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r272 record](docs/plans/r272-offline-manual-figure-renderer.md). |
+| r277 | **All 88 live manual figures use the shared code renderer** | Replaced the active node, how-to, tutorial, guide, troubleshooting and screen-tour image references with 88 local, fixed, read-only scenes. Updated node-page generation and the offline search index; G8 validates IDs, captions, indexing and unused/unknown scenes separately from raster captures. `npm run gen:manual` passed (88 scenes across 51 pages; 41 node pages regenerated; 407 search entries; 0 unmatched evidence labels); typecheck, the full suite (1,848 tests across 90 files), and the app build passed. G8 reports 88 rendered figures and 0 missing raster captures. JSDOM smoke is not a pixel-level visual review; screen-reader output remains unverified. No product behavior/copy or editor build stamp changed. See [the r277 record](docs/plans/r277-manual-code-rendered-figures.md). |
+| r276 | **Source-backed handbook review and evidence coverage** | Updated manual guidance for diagnostic limits, stock accounts, router recovery, unlisted pages, addon-file errors and storage; reviewed all 56 diagnostic sites and 10 curated panel messages against their source rows. All 63 explanation blocks and 32 feature-guide source mappings pass structural checks. Regenerated the offline index (319 entries, 51 pages) and evidence inventory (607 quoted UI occurrences, 215 distinct labels, none unmatched). The targeted tests pass; the docs-only build/typecheck record is in [the r276 audit](docs/plans/r276-manual-source-review.md). G8 then counted 88 missing figures. No product code, behavior or editor stamp changed. |
+| r275 | **Phase 1 source evidence is inventoried and drift-gated** | Added source citations for the registry, diagnostic sites, panel examples, UI labels, templates, permissions and export files, plus eight initial drift tests. The r275 inventory is a historical snapshot; r276 records the current source review, mapping and generated counts. No product code or editor build stamp changed; `EDITOR_BUILD` is `2026-10-03.r267`. See [the r275 record](docs/plans/r275-manual-evidence-inventory.md). |
+| r274 | **Figure accessibility structure and evidence gaps are recorded** | Added outside-the-frame `<figcaption>` text, descriptive iframe names, `tabindex="-1"` (so Tab skips each frame), and inert-renderer checks. All five local scenes pass the smoke. Zeis's Firefox-from-disk check confirms Tab skips the page and scenes; screen-reader output remains unverified and lower priority by user direction. No figure slot had yet been converted. `EDITOR_BUILD` remains `2026-10-03.r267`. See [the r274 record](docs/plans/r274-manual-accessibility-and-evidence-audit.md). |
+| r273 | **Five-scene layout and cursor review** | Hid unrelated canvas controls, made scenes 2 and 5 responsive, centered their nodes, and refined the detached-wire cursor. Zeis approved the prototype visually on 2026-10-04. The later r274 checks add caption semantics; Zeis then confirmed that Tab skips the prototype in Firefox from disk. Screen-reader output was not checked and remains lower priority by user direction. No editor figure had yet been converted. See [the r273 record](docs/plans/r273-manual-figure-scene-layout.md). |
 
 
 
@@ -225,7 +231,8 @@ which is kept as an archive — the bug histories in it explain several of the
 rules the code now follows.
 
 Older **Done recently** rows are archived in
-[`docs/archive/`](docs/archive/): r262 in
+[`docs/archive/`](docs/archive/): r272 in
+[`round-272.md`](docs/archive/round-272.md), r262 in
 [`round-262.md`](docs/archive/round-262.md), r260–r261 in
 [`rounds-260-261.md`](docs/archive/rounds-260-261.md) (read its correction
 banner), r227–r259 in
@@ -243,7 +250,7 @@ All four original steps are complete — the editor builds playable mods. The
 work since has been in-game QA, and the polish that came out of it.
 
 Current editor build: `2026-10-03.r267`. The current test suite has
-**1,834 tests** across 89 files, **41 node types** in 10 categories (all palette-visible), **164 editable
+**1,848 tests** across 90 files, **41 node types** in 10 categories (all palette-visible), **164 editable
 fields** and **80 sockets** (counted in the manual), **14 templates**
 (12 playable + 2 reference sheets), **99 game events**, against
 `@hotbunny/hackhub-content-sdk@0.24.0`.

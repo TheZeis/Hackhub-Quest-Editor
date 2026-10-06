@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>When something goes wrong — HackHub Quest Editor handbook</title>
 <link rel="stylesheet" href="manual.css" />
+<link rel="stylesheet" href="manual-figures.css" />
 </head>
 <body>
 <div class="wrap">
@@ -78,11 +79,28 @@ first.</p>
   <b class="ui">Start automatically</b> on the <b class="ui">Quest</b> tab. With
   it off, the quest waits for the player to accept it.</dd>
 </dl>
-<figure>
-  <img src="img/trouble-unreachable-badge.png"
-       alt="A node on the canvas carrying a small warning badge that reads Unreachable." />
-  <figcaption>The <b class="ui">Unreachable</b> badge. It is visible from
-  across the canvas, which is what it is for.</figcaption>
+<figure id="figure-trouble-unreachable-badge" class="manual-figure" data-manual-figure data-scene-id="trouble-unreachable-badge">
+  <div class="manual-figure__stage" style="--figure-width:900px;--figure-height:460px;--figure-ratio:1.956522">
+    <iframe
+      data-manual-figure-scene="trouble-unreachable-badge"
+      data-renderer-src="../figures/renderer.html?scene=trouble-unreachable-badge"
+      title="Code-rendered editor illustration: Unreachable warning badge on a canvas node"
+      aria-describedby="figure-caption-trouble-unreachable-badge"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="900"
+      height="460"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-trouble-unreachable-badge">
+    <span class="manual-figure__description">A node on the canvas carrying a small warning badge that reads Unreachable.</span>
+    <span class="manual-figure__caption">The <b class="ui">Unreachable</b> badge. It is visible from
+  across the canvas, which is what it is for.</span>
+  </figcaption>
 </figure>
 <div class="note ok"><b>Still nothing?</b> Drop a Debug probe straight after the
 start node and run a dry run. If the probe prints, your start is fine and the
@@ -109,11 +127,28 @@ the quest cannot be finished.</p>
   <b class="ui">Unlocked by</b> socket only accepts a wire from another
   objective. From anything else it is dropped without a message.</dd>
 </dl>
-<figure>
-  <img src="img/trouble-no-trigger.png"
-       alt="An Objective node carrying the No trigger badge, shown in the danger colour." />
-  <figcaption>The <b class="ui">No trigger</b> badge. It is red because the
-  player cannot finish the quest.</figcaption>
+<figure id="figure-trouble-no-trigger" class="manual-figure" data-manual-figure data-scene-id="trouble-no-trigger">
+  <div class="manual-figure__stage" style="--figure-width:900px;--figure-height:460px;--figure-ratio:1.956522">
+    <iframe
+      data-manual-figure-scene="trouble-no-trigger"
+      data-renderer-src="../figures/renderer.html?scene=trouble-no-trigger"
+      title="Code-rendered editor illustration: No trigger badge on an Objective"
+      aria-describedby="figure-caption-trouble-no-trigger"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="900"
+      height="460"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-trouble-no-trigger">
+    <span class="manual-figure__description">An Objective node carrying the No trigger badge, shown in the danger colour.</span>
+    <span class="manual-figure__caption">The <b class="ui">No trigger</b> badge. It is red because the
+  player cannot finish the quest.</span>
+  </figcaption>
 </figure>
 <p>To find out which of these it is, put a Debug probe on the wire feeding the objective. Then run a dry run. The probe prints whether it fired. A probe that
 prints and an objective that stays open means the trigger is the problem, not
@@ -155,11 +190,28 @@ game.</p>
   <dt class="dt-warn">Good to know</dt><dd>Everything exported as you built it,
   and what you built may not be what you meant. Read them, then decide.</dd>
 </dl>
-<figure>
-  <img src="img/trouble-export-report.png"
-       alt="The export window with a Needs attention section listing one item in the danger colour." />
-  <figcaption>The report. It describes consequences; it does not block
-  you.</figcaption>
+<figure id="figure-trouble-export-report" class="manual-figure" data-manual-figure data-scene-id="trouble-export-report">
+  <div class="manual-figure__stage" style="--figure-width:1040px;--figure-height:780px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="trouble-export-report"
+      data-renderer-src="../figures/renderer.html?scene=trouble-export-report"
+      title="Code-rendered editor illustration: Export window with an item that needs attention"
+      aria-describedby="figure-caption-trouble-export-report"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1040"
+      height="780"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-trouble-export-report">
+    <span class="manual-figure__description">The export window with a Needs attention section listing one item in the danger colour.</span>
+    <span class="manual-figure__caption">The report. It describes consequences; it does not block
+  you.</span>
+  </figcaption>
 </figure>
 <p>Each item is quoted in full, with its fix, in
 <a href="checking.html#pre-export">the report before you export</a>. Paste the

@@ -60,7 +60,6 @@ for (const file of walk(ROOT)) {
 
     if (!headings.length) {
         entries.push({ url: relPath, title: pageProse.slice(0, 80), section: relPath, text: pageProse.slice(0, 600) });
-        continue;
     }
 
     for (let i = 0; i < headings.length; i++) {
@@ -77,6 +76,25 @@ for (const file of walk(ROOT)) {
             url: idMatch ? `${relPath}#${idMatch[1]}` : relPath,
             title,
             section: relPath.replace(/\.html$/, ""),
+            text,
+        });
+    }
+
+    // Figures get their own search result, independent of which heading's
+    // 700-character excerpt happens to contain them. This keeps the accessible
+    // frame title, visible description and caption searchable on every page.
+    for (const match of html.matchAll(/<figure\b[^>]*\bdata-manual-figure\b[^>]*>[\s\S]*?<\/figure>/gi)) {
+        const figure = match[0];
+        const sceneId = /\bdata-scene-id="([^"]+)"/i.exec(figure)?.[1];
+        const iframeTitle = /<iframe\b[^>]*\btitle=["']([^"']+)["'][^>]*>/i.exec(figure)?.[1];
+        const caption = /<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figure)?.[1];
+        if (!sceneId || !iframeTitle || !caption) continue;
+        const title = proseOf(`<span>${iframeTitle}</span>`);
+        const text = proseOf(caption).slice(0, 700);
+        entries.push({
+            url: `${relPath}#figure-${sceneId}`,
+            title,
+            section: `Illustration · ${relPath.replace(/\.html$/, "")}`,
             text,
         });
     }

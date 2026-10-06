@@ -1,13 +1,16 @@
 # r271 — Code-rendered manual illustrations
 
-**Status: Zeis approved the five-scene prototype on 2026-10-04.** The optional
-scene 5 cursor-style refinement is recorded in r273. The game-only tutorial
-figure remains removed and its useful prose remains; no editor figure has been
-replaced. r272 fixed the bundle's `process.env.NODE_ENV` reference and Firefox's
-sandboxed `moz-nullprincipal` origin blocking local assets. Zeis confirmed that
-all five frames load from disk without the editor running. The visual approval
-gate is satisfied; keyboard and screen-reader checks remain open before the
-planned bulk conversion.
+**Status: Zeis approved the five-scene prototype on 2026-10-04; r277 completed
+the approved migration on 2026-10-06.** The optional scene 5 cursor-style
+refinement is recorded in r273. The game-only tutorial figure remains removed
+and its useful prose remains. All 88 active editor figure references now use
+the shared code renderer; the five unlinked game-only names and two unlinked
+editor-panel names remain dormant. The offline, search, coverage, source and
+build checks passed as recorded in
+[`r277-manual-code-rendered-figures.md`](r277-manual-code-rendered-figures.md).
+Automated DOM smoke checks do not establish pixel-level visual fidelity for the
+full migration. Screen-reader output remains unverified; no screen-reader
+testing is claimed.
 
 ## Approved direction
 

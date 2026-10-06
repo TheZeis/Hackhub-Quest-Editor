@@ -2,12 +2,14 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
+import { loadActiveFigureCatalogue } from "./handbook.mjs";
 
 const prototypePath = fileURLToPath(new URL("../../public/manual-figure-prototype.html", import.meta.url));
 const rendererPath = fileURLToPath(new URL("../../public/figures/renderer.html", import.meta.url));
 const bundlePath = path.resolve(path.dirname(rendererPath), "assets/renderer.js");
 const prototypeHtml = await readFile(prototypePath, "utf8");
 const bundle = await readFile(bundlePath, "utf8");
+const activeCatalogue = await loadActiveFigureCatalogue(path.resolve(path.dirname(prototypePath), ".."));
 
 if (/\bprocess\.env\.NODE_ENV\b/.test(bundle)) {
     throw new Error("The offline renderer still references process.env.NODE_ENV, which is not available in a browser.");
@@ -20,6 +22,9 @@ const scenes = [
     "tour-workspace",
     "tutorial-drag-wire",
 ];
+const activeSceneIds = Object.keys(activeCatalogue).sort();
+const smokeScenes = [...new Set([...scenes, ...activeSceneIds])];
+if (activeSceneIds.length !== 88) throw new Error(`Expected 88 live handbook scenes; catalogue has ${activeSceneIds.length}.`);
 
 for (const [mode, pageUrl, expectedSandbox] of [
     ["file", pathToFileURL(prototypePath).href, "allow-scripts allow-same-origin"],
@@ -76,7 +81,7 @@ for (const [mode, pageUrl, expectedSandbox] of [
     console.log(`${mode}:// prototype frames use the expected local renderer and sandbox`);
 }
 
-for (const scene of scenes) {
+for (const scene of smokeScenes) {
     const virtualConsole = new VirtualConsole();
     const runtimeErrors = [];
     virtualConsole.on("jsdomError", (error) => runtimeErrors.push(error.message));
@@ -89,8 +94,10 @@ for (const scene of scenes) {
         pretendToBeVisual: true,
         virtualConsole,
         beforeParse(window) {
-            // JSDOM has no layout engine or ResizeObserver. React Flow only
-            // needs the API to exist for this smoke test; real browsers provide it.
+            // JSDOM has no layout engine, ResizeObserver or structuredClone.
+            // Real browsers provide these APIs; the clone stub is only for the
+            // fixed plain-data fixtures exercised by this renderer smoke.
+            window.structuredClone = globalThis.structuredClone.bind(globalThis);
             window.ResizeObserver = class {
                 observe() {}
                 unobserve() {}
@@ -99,15 +106,52 @@ for (const scene of scenes) {
         },
     });
 
+    const settleTime = scene === "tutorial-11-status-clean" ? 820 : scene === "tutorial-12-dryrun" || scene === "guide-dryrun" ? 1600 : scene === "howto-12-tool-match" ? 520 : scene === "howto-07-website" || scene === "guide-websites-page" ? 700 : 180;
     await new Promise((resolve) => {
-        dom.window.addEventListener("load", () => setTimeout(resolve, 100), { once: true });
+        dom.window.addEventListener("load", () => setTimeout(resolve, settleTime), { once: true });
     });
 
     const root = dom.window.document.getElementById("root");
     const renderedScene = dom.window.document.documentElement.dataset.figureScene;
-    const text = root?.textContent ?? "";
+    const text = (dom.window.document.body.textContent ?? "").replace(/\s+/g, " ");
     if (!dom.window.document.body.hasAttribute("inert")) {
         runtimeErrors.push("the renderer document is not inert; its editor controls could be exposed as interactive");
+    }
+    if (scene === "howto-12-tool-match") {
+        const addonText = text.replace(/\s+/g, " ");
+        const inputs = Array.from(dom.window.document.querySelectorAll("input")).map((input) => input.value);
+        if (!addonText.includes("Recon-NG") || !addonText.includes("matches http, ftp, ssh")) {
+            runtimeErrors.push("the checked-in Recon-NG addon and its supported-service list are not visible");
+        }
+        if (!inputs.includes("OpenSSH 8.9.0")) {
+            runtimeErrors.push("the fixed SSH port version is not visible in the selected network inspector");
+        }
+    }
+    if (scene === "howto-07-website" || scene === "guide-websites-page") {
+        const preview = dom.window.document.querySelector('iframe[title="Page preview"]');
+        const previewHtml = preview?.getAttribute("srcdoc") ?? "";
+        if (!previewHtml.includes("R. Calloway") || !previewHtml.includes("The night shift doesn't log what it unloads")) {
+            runtimeErrors.push("the local Greyline Dispatch article is not open in the website preview");
+        }
+        if (text.includes("This page links to 1 page that don't exist yet")) {
+            runtimeErrors.push("the article fixture's root link has no matching Greyline Dispatch home page");
+        }
+    }
+    if (scene === "tutorial-12-dryrun" || scene === "guide-dryrun") {
+        if (!text.includes("Objective completed: send-manifest")) {
+            runtimeErrors.push("the fixed Harbour Manifest simulation did not show its completed sample trace");
+        }
+    }
+    if (scene === "trouble-export-report") {
+        if (!text.includes("Needs attention") || !text.includes("nothing can start this quest")) {
+            runtimeErrors.push("the explicit non-startable quest does not show its real export warning");
+        }
+    }
+    if (scene === "tutorial-11-status-clean" && !text.includes("Saved")) {
+        runtimeErrors.push("the settled status-bar figure does not show Saved");
+    }
+    if (scene === "tour-empty-canvas" && text.includes("Drag nodes from the left onto the canvas")) {
+        runtimeErrors.push("the component-only empty-canvas scene unexpectedly shows the App first-run card");
     }
     if (scene === "howto-wired-canvas") {
         for (const selector of [

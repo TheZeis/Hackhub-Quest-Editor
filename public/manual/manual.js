@@ -160,10 +160,78 @@
         });
     }
 
-    /* ── Missing screenshots ────────────────────────────────────────────── */
+    /* ── Local code-rendered illustrations ─────────────────────────────── */
 
-    /* Until an image is captured, show the filename it wants, so a missing
-       shot is visible on the page instead of a broken-image icon. */
+    /* Frames stay lazy, unfocusable and inert. The local-file exception keeps
+       the trusted renderer's sibling CSS/JS accessible when the handbook is
+       opened directly from disk; served pages keep the stricter opaque origin. */
+    function initManualFigures() {
+        var frames = Array.prototype.slice.call(
+            document.querySelectorAll("iframe[data-manual-figure-scene][data-renderer-src]"),
+        );
+        if (!frames.length) return;
+
+        var entries = frames.map(function (frame) {
+            var figure = frame.closest("[data-manual-figure]");
+            var entry = { frame: frame, figure: figure, timer: null, failed: false };
+
+            function fail(message) {
+                if (entry.failed) return;
+                entry.failed = true;
+                if (entry.timer !== null) window.clearTimeout(entry.timer);
+                if (figure) {
+                    figure.classList.add("manual-figure--failed");
+                    var fallback = figure.querySelector(".manual-figure__fallback");
+                    if (fallback) {
+                        fallback.hidden = false;
+                        if (message) fallback.setAttribute("data-failure", message);
+                    }
+                }
+            }
+
+            function markReady() {
+                if (entry.failed) return;
+                if (entry.timer !== null) window.clearTimeout(entry.timer);
+                if (figure) figure.classList.add("manual-figure--ready");
+                frame.dataset.sceneReady = "true";
+            }
+
+            entry.fail = fail;
+            entry.markReady = markReady;
+            frame.addEventListener("error", function () { fail("The local renderer did not load."); });
+            frame.addEventListener("load", function () {
+                if (frame.dataset.sceneReady === "true") return;
+                if (entry.timer !== null) window.clearTimeout(entry.timer);
+                entry.timer = window.setTimeout(function () {
+                    fail("The local renderer did not report that its scene started.");
+                }, 20000);
+            });
+            return entry;
+        });
+
+        window.addEventListener("message", function (event) {
+            var entry = entries.find(function (item) { return item.frame.contentWindow === event.source; });
+            if (!entry || !event.data || event.data.type !== "manual-figure-ready") return;
+            if (event.data.scene !== entry.frame.getAttribute("data-manual-figure-scene")) {
+                entry.fail("The renderer returned a different scene ID.");
+            } else if (event.data.status === "error") {
+                entry.fail("The scene could not be rendered.");
+            } else if (event.data.status === "ready") {
+                entry.markReady();
+            }
+        });
+
+        var localFile = window.location.protocol === "file:";
+        frames.forEach(function (frame) {
+            frame.setAttribute("sandbox", localFile ? "allow-scripts allow-same-origin" : "allow-scripts");
+            frame.src = frame.getAttribute("data-renderer-src");
+        });
+    }
+
+    /* ── Missing raster screenshots ─────────────────────────────────────── */
+
+    /* Until a raster image is captured, show its filename instead of a broken
+       image icon. Code-rendered figures are tracked separately above. */
     function initImageFallbacks() {
         Array.prototype.slice.call(document.querySelectorAll("img")).forEach(function (img) {
             img.addEventListener("error", function () {
@@ -190,6 +258,7 @@
     ready(function () {
         initTocHighlight();
         initSearch();
+        initManualFigures();
         initImageFallbacks();
     });
 })();

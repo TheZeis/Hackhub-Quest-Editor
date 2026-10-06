@@ -62,10 +62,49 @@
 }
 
 /* A manual figure explains the graph, not the editor's canvas controls. */
-.figure-canvas > .relative > .absolute.top-3.left-3,
-.figure-canvas .react-flow__controls,
-.figure-canvas .react-flow__minimap {
+.figure-canvas:not(.figure-canvas--tools) > .relative > .absolute.top-3.left-3,
+.figure-canvas:not(.figure-canvas--tools) .react-flow__controls,
+.figure-canvas:not(.figure-canvas--tools) .react-flow__minimap {
     display: none !important;
+}
+
+.figure-graph-scene {
+    display: flex;
+}
+
+.figure-graph-scene__canvas {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+.figure-graph-scene__inspector {
+    width: 340px;
+    min-width: 340px;
+    min-height: 0;
+    flex: 0 0 340px;
+    overflow: hidden;
+    border-left: 1px solid var(--color-line);
+    background: var(--color-surface);
+}
+
+.figure-graph-scene__inspector > * {
+    height: 100%;
+}
+
+.figure-palette {
+    display: flex;
+    justify-content: center;
+}
+
+.figure-palette > aside {
+    width: min(100%, 360px);
+    height: 100%;
+}
+
+.figure-status {
+    display: flex;
+    align-items: flex-end;
 }
 
 .figure-drag-stage {

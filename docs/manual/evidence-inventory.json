@@ -7750,8 +7750,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 396,
-          "endLine": 400
+          "line": 551,
+          "endLine": 555
         }
       },
       {
@@ -7770,8 +7770,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 401,
-          "endLine": 405
+          "line": 556,
+          "endLine": 560
         }
       },
       {
@@ -7790,8 +7790,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 406,
-          "endLine": 410
+          "line": 561,
+          "endLine": 565
         }
       },
       {
@@ -7810,8 +7810,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 411,
-          "endLine": 415
+          "line": 566,
+          "endLine": 570
         }
       },
       {
@@ -7830,8 +7830,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 416,
-          "endLine": 420
+          "line": 571,
+          "endLine": 575
         }
       },
       {
@@ -7850,8 +7850,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 421,
-          "endLine": 425
+          "line": 576,
+          "endLine": 580
         }
       },
       {
@@ -7870,8 +7870,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 426,
-          "endLine": 430
+          "line": 581,
+          "endLine": 585
         }
       },
       {
@@ -7890,8 +7890,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 431,
-          "endLine": 435
+          "line": 586,
+          "endLine": 590
         }
       },
       {
@@ -7910,8 +7910,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 436,
-          "endLine": 440
+          "line": 591,
+          "endLine": 595
         }
       },
       {
@@ -7930,8 +7930,8 @@
         "sourceTest": {
           "path": "src/manual.coverage.test.ts",
           "symbol": "PANEL_MESSAGES",
-          "line": 441,
-          "endLine": 445
+          "line": 596,
+          "endLine": 600
         }
       }
     ],

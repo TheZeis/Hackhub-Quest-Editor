@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>How do I… — HackHub Quest Editor handbook</title>
 <link rel="stylesheet" href="manual.css" />
+<link rel="stylesheet" href="manual-figures.css" />
 </head>
 <body>
 <div class="wrap">
@@ -87,11 +88,28 @@ never finish the quest.</p>
   <li>Check the status bar. The error should be gone.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-01-objective.png"
-       alt="An Objective node and a When event node side by side, joined by a single condition-coloured wire running from the trigger's When socket into the objective's Trigger socket." />
-  <figcaption>The finished pair. One wire, and it goes into <b>Trigger</b> —
-  not into <b>In</b>. It is a different kind of connection, and it will refuse the wire.</figcaption>
+<figure id="figure-howto-01-objective" class="manual-figure" data-manual-figure data-scene-id="howto-01-objective">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-01-objective"
+      data-renderer-src="../figures/renderer.html?scene=howto-01-objective"
+      title="Code-rendered editor illustration: When event connected to an Objective"
+      aria-describedby="figure-caption-howto-01-objective"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-01-objective">
+    <span class="manual-figure__description">A When event connects to the Objective through a condition-coloured wire from When to Trigger.</span>
+    <span class="manual-figure__caption">The finished pair. One wire, and it goes into <b>Trigger</b> —
+  not into <b>In</b>. It is a different kind of connection, and it will refuse the wire.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -141,11 +159,28 @@ back-and-forth. WeeChat is a public room, so other characters can be present.</p
   between "When the call ends" and "Right after starting the call". Leave it on the first
   unless something has to happen while the player is still listening.</li>
 </ol>
-<figure>
-  <img src="img/howto-02-npc-message.png"
-       alt="A Dialogue node set to Phone call with a Then wire running into it, and its two-line script open in the inspector." />
-  <figcaption>A two-line call. The node holds the conversation; the inspector is where
-  you write it.</figcaption>
+<figure id="figure-howto-02-npc-message" class="manual-figure" data-manual-figure data-scene-id="howto-02-npc-message">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:720px;--figure-ratio:1.888889">
+    <iframe
+      data-manual-figure-scene="howto-02-npc-message"
+      data-renderer-src="../figures/renderer.html?scene=howto-02-npc-message"
+      title="Code-rendered editor illustration: Phone call node with a two-line script"
+      aria-describedby="figure-caption-howto-02-npc-message"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-02-npc-message">
+    <span class="manual-figure__description">A Phone call Dialogue node has a Then wire and a two-line script in its inspector.</span>
+    <span class="manual-figure__caption">A two-line call. The node holds the conversation; the inspector is where
+  you write it.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -211,11 +246,28 @@ that notices the thing happened. The other is a  Branch that only lets the story
   <li><b>Give No somewhere to go.</b> Both paths need an end. Leave <b class="ui">No</b>
   hanging and the node says <b>Dead end</b>, because the quest stalls if the player takes it.</li>
 </ol>
-<figure>
-  <img src="img/howto-03-gated-message.png"
-       alt="A When event node joined by a cyan condition wire to a Branch, whose Yes socket runs into a Dialogue node and whose No socket runs on." />
-  <figcaption>The gate. The cyan wire carries a condition; only the blue wires carry the
-  story.</figcaption>
+<figure id="figure-howto-03-gated-message" class="manual-figure" data-manual-figure data-scene-id="howto-03-gated-message">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-03-gated-message"
+      data-renderer-src="../figures/renderer.html?scene=howto-03-gated-message"
+      title="Code-rendered editor illustration: Event condition branching to a dialogue"
+      aria-describedby="figure-caption-howto-03-gated-message"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-03-gated-message">
+    <span class="manual-figure__description">A When event feeds a Branch condition. The Yes path reaches Dialogue; the No path continues elsewhere.</span>
+    <span class="manual-figure__caption">The gate. The cyan wire carries a condition; only the blue wires carry the
+  story.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -281,10 +333,27 @@ when the story reaches them, and hand it straight on.</p>
   <b class="ui">Amount type</b> first. Fixed amount takes the number you type. Percentage of
   balance takes a slice of whatever the player has when the node runs.</li>
 </ol>
-<figure>
-  <img src="img/howto-04-payment.png"
-       alt="A Pay the player node on the story path, with Amount set to 100 and a Description and sender filled in." />
-  <figcaption>One payment. The amount, the statement label, and who it came from.</figcaption>
+<figure id="figure-howto-04-payment" class="manual-figure" data-manual-figure data-scene-id="howto-04-payment">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-04-payment"
+      data-renderer-src="../figures/renderer.html?scene=howto-04-payment"
+      title="Code-rendered editor illustration: Payment node on the story path"
+      aria-describedby="figure-caption-howto-04-payment"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-04-payment">
+    <span class="manual-figure__description">Pay the player sits on the story path, with an amount, description and sender.</span>
+    <span class="manual-figure__caption">One payment. The amount, the statement label, and who it came from.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -345,11 +414,28 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>Bring them back together.</b> Wire the end of both routes into one shared node. It
   runs once, because only one route ever got there.</li>
 </ol>
-<figure>
-  <img src="img/howto-05-branch.png"
-       alt="A Branch node with Yes and No each running through a short separate route, and both routes wiring back into one shared node." />
-  <figcaption>The shape that avoids duplication: part in the middle, shared at both
-  ends.</figcaption>
+<figure id="figure-howto-05-branch" class="manual-figure" data-manual-figure data-scene-id="howto-05-branch">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-05-branch"
+      data-renderer-src="../figures/renderer.html?scene=howto-05-branch"
+      title="Code-rendered editor illustration: Two branch paths rejoining one shared node"
+      aria-describedby="figure-caption-howto-05-branch"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-05-branch">
+    <span class="manual-figure__description">A Branch splits into Yes and No routes. Both routes join one shared node.</span>
+    <span class="manual-figure__caption">The shape that avoids duplication: part in the middle, shared at both
+  ends.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -407,10 +493,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>Connect all three routes.</b> Send <b class="ui">Correct</b> to the success route. Send <b class="ui">Wrong</b> to a hint or other consequence. Connect <b class="ui">Cancelled</b> to what should happen if the player closes the box.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-06-passphrase.png"
-       alt="Ask player with Mask typing on and Exactly this answer selected; Correct, Wrong and Cancelled each lead onward." />
-  <figcaption>Give a match, a miss and a closed question box separate follow-ups.</figcaption>
+<figure id="figure-howto-06-passphrase" class="manual-figure" data-manual-figure data-scene-id="howto-06-passphrase">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:720px;--figure-ratio:1.888889">
+    <iframe
+      data-manual-figure-scene="howto-06-passphrase"
+      data-renderer-src="../figures/renderer.html?scene=howto-06-passphrase"
+      title="Code-rendered editor illustration: Ask player node with three response routes"
+      aria-describedby="figure-caption-howto-06-passphrase"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-06-passphrase">
+    <span class="manual-figure__description">Ask player with Mask typing on and Exactly this answer selected; Correct, Wrong and Cancelled each lead onward.</span>
+    <span class="manual-figure__caption">Give a match, a miss and a closed question box separate follow-ups.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -452,10 +555,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>Send the clue.</b> Put the same host in a message the player sees before they need the site. The home page needs no extra path. If you add another page, share its path or link to it from the home page.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-07-website.png"
-       alt="The Websites builder with a distinctive Host, the Home page selected, and its public clue visible in the preview." />
-  <figcaption>The host brings the player in; the listed home page carries the clue.</figcaption>
+<figure id="figure-howto-07-website" class="manual-figure" data-manual-figure data-scene-id="howto-07-website">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="howto-07-website"
+      data-renderer-src="../figures/renderer.html?scene=howto-07-website"
+      title="Code-rendered editor illustration: Website builder preview of the public clue page"
+      aria-describedby="figure-caption-howto-07-website"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-07-website">
+    <span class="manual-figure__description">The website builder shows the Greyline Dispatch host and its listed /p/night-shift article in the preview.</span>
+    <span class="manual-figure__caption">The public article at /p/night-shift carries the byline clue.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -495,10 +615,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>To check a visit, choose <code>Browser.WebsiteOpened</code> instead. Match <code>Url</code> to the page path and connect its <b class="ui">When</b> wire.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-08-hidden-page.png"
-       alt="A selected website page with Listed in the in-game search turned off, plus its host and path." />
-  <figcaption>Unlisted pages leave search, but remain reachable by address.</figcaption>
+<figure id="figure-howto-08-hidden-page" class="manual-figure" data-manual-figure data-scene-id="howto-08-hidden-page">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="howto-08-hidden-page"
+      data-renderer-src="../figures/renderer.html?scene=howto-08-hidden-page"
+      title="Code-rendered editor illustration: Unlisted page in the website builder"
+      aria-describedby="figure-caption-howto-08-hidden-page"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-08-hidden-page">
+    <span class="manual-figure__description">A selected website page with Listed in the in-game search turned off, plus its host and path.</span>
+    <span class="manual-figure__caption">Unlisted pages leave search, but remain reachable by address.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -536,10 +673,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Give the player a way into that device and account. See <a href="nodes/world-network.html">Create network</a> for account and port settings.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-09-file-drop.png"
-       alt="Create network and Place files aimed at the same remote device, with a clue file listed." />
-  <figcaption>The same device address ties the file to its target.</figcaption>
+<figure id="figure-howto-09-file-drop" class="manual-figure" data-manual-figure data-scene-id="howto-09-file-drop">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-09-file-drop"
+      data-renderer-src="../figures/renderer.html?scene=howto-09-file-drop"
+      title="Code-rendered editor illustration: Network and file nodes aimed at the same device"
+      aria-describedby="figure-caption-howto-09-file-drop"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-09-file-drop">
+    <span class="manual-figure__description">Create network and Place files aimed at the same remote device, with a clue file listed.</span>
+    <span class="manual-figure__caption">The same device address ties the file to its target.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -576,10 +730,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Connect the objective's <b class="ui">On complete</b> output to the next story node. That beat starts after the matching scan.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-10-scan-gate.png"
-       alt="A Terminal.NmapScan condition matching data.targetIp and wired into an objective's Trigger socket." />
-  <figcaption>The event checks the scanned address, not the command's timing.</figcaption>
+<figure id="figure-howto-10-scan-gate" class="manual-figure" data-manual-figure data-scene-id="howto-10-scan-gate">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-10-scan-gate"
+      data-renderer-src="../figures/renderer.html?scene=howto-10-scan-gate"
+      title="Code-rendered editor illustration: Nmap scan event wired to an Objective"
+      aria-describedby="figure-caption-howto-10-scan-gate"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-10-scan-gate">
+    <span class="manual-figure__description">A Terminal.NmapScan condition matches the ip field against {{data.targetIp}} and is wired into an Objective's Trigger socket.</span>
+    <span class="manual-figure__caption">The event checks the scanned address, not the command's timing.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -617,10 +788,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Connect the trigger's <b class="ui">When</b> wire to the objective's <b class="ui">Trigger</b> socket.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-11-lead.png"
-       alt="A Tool response set to whois, keyed to a domain, with labeled response lines." />
-  <figcaption>The lookup returns the facts you wrote for that domain.</figcaption>
+<figure id="figure-howto-11-lead" class="manual-figure" data-manual-figure data-scene-id="howto-11-lead">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-11-lead"
+      data-renderer-src="../figures/renderer.html?scene=howto-11-lead"
+      title="Code-rendered editor illustration: Whois tool response for a domain"
+      aria-describedby="figure-caption-howto-11-lead"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-11-lead">
+    <span class="manual-figure__description">A Tool response set to whois, keyed to a domain, with labeled response lines.</span>
+    <span class="manual-figure__caption">The lookup returns the facts you wrote for that domain.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -659,10 +847,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Open <b class="ui">Export mod</b> or <b class="ui">Dry run</b>. Read the target warnings and adjust any unmatched services, versions or weaknesses.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-12-tool-match.png"
-       alt="A loaded tool pack listing its supported services beside a quest target with a matching service and version." />
-  <figcaption>A pack checks target details that the game tool can use.</figcaption>
+<figure id="figure-howto-12-tool-match" class="manual-figure" data-manual-figure data-scene-id="howto-12-tool-match">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="howto-12-tool-match"
+      data-renderer-src="../figures/renderer.html?scene=howto-12-tool-match"
+      title="Code-rendered editor illustration: Loaded Recon-NG addon beside an SSH network target"
+      aria-describedby="figure-caption-howto-12-tool-match"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-12-tool-match">
+    <span class="manual-figure__description">The loaded Recon-NG pack lists supported services beside a network target with a fixed SSH port and version.</span>
+    <span class="manual-figure__caption">The pack list and the target details are shown together; this view does not prove compatibility.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -699,10 +904,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li><b>Keep terminal commands out of this check.</b> Commands such as <code>lynx</code> cannot be checked as desktop apps.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-13-app-check.png"
-       alt="App Install Check set to a supported desktop app, with Installed and Missing routes connected." />
-  <figcaption>Give both outcomes a useful destination.</figcaption>
+<figure id="figure-howto-13-app-check" class="manual-figure" data-manual-figure data-scene-id="howto-13-app-check">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-13-app-check"
+      data-renderer-src="../figures/renderer.html?scene=howto-13-app-check"
+      title="Code-rendered editor illustration: App Install Check with both outcomes connected"
+      aria-describedby="figure-caption-howto-13-app-check"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-13-app-check">
+    <span class="manual-figure__description">App Install Check set to a supported desktop app, with Installed and Missing routes connected.</span>
+    <span class="manual-figure__caption">Give both outcomes a useful destination.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -739,10 +961,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Connect <b class="ui">Wrong</b> to a hint or retry route. Give the wrong answer somewhere useful to go.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-14-chained-talk.png"
-       alt="Two Dialogue nodes connected in order, with the first call set to continue when it ends." />
-  <figcaption>The second conversation starts after the first call ends.</figcaption>
+<figure id="figure-howto-14-chained-talk" class="manual-figure" data-manual-figure data-scene-id="howto-14-chained-talk">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-14-chained-talk"
+      data-renderer-src="../figures/renderer.html?scene=howto-14-chained-talk"
+      title="Code-rendered editor illustration: Two phone conversations chained in order"
+      aria-describedby="figure-caption-howto-14-chained-talk"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-14-chained-talk">
+    <span class="manual-figure__description">Two Dialogue nodes connected in order, with the first call set to continue when it ends.</span>
+    <span class="manual-figure__caption">The second conversation starts after the first call ends.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -779,10 +1018,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Put optional follow-up work under the quest's <b class="ui">On quest complete</b> entry.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-15-ending.png"
-       alt="A final story message and payment lead into Complete quest, with separate On quest complete work." />
-  <figcaption>Finish the story before the terminal ending.</figcaption>
+<figure id="figure-howto-15-ending" class="manual-figure" data-manual-figure data-scene-id="howto-15-ending">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-15-ending"
+      data-renderer-src="../figures/renderer.html?scene=howto-15-ending"
+      title="Code-rendered editor illustration: Story path ending with Complete quest"
+      aria-describedby="figure-caption-howto-15-ending"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-15-ending">
+    <span class="manual-figure__description">A final story message and payment lead into Complete quest, with separate On quest complete work.</span>
+    <span class="manual-figure__caption">Finish the story before the terminal ending.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -819,10 +1075,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>To reopen saved work, use top-bar <b class="ui">Load</b> or <b class="ui">Import a quest file</b> in the picker.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-16-from-template.png"
-       alt="The template picker showing First Contact and the Export current quest and Import a quest file options." />
-  <figcaption>Save current work before choosing a replacement template.</figcaption>
+<figure id="figure-howto-16-from-template" class="manual-figure" data-manual-figure data-scene-id="howto-16-from-template">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:720px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="howto-16-from-template"
+      data-renderer-src="../figures/renderer.html?scene=howto-16-from-template"
+      title="Code-rendered editor illustration: Template picker with save and import options"
+      aria-describedby="figure-caption-howto-16-from-template"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-16-from-template">
+    <span class="manual-figure__description">The template picker showing First Contact and the Export current quest and Import a quest file options.</span>
+    <span class="manual-figure__caption">Save current work before choosing a replacement template.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>
@@ -859,10 +1132,27 @@ alarm both finish. Neither sees the other's version.</p>
   <li>Unzip the new archive. Replace the old extracted mod folder inside the game's <code>mods/</code> folder.</li>
 </ol>
 
-<figure>
-  <img src="img/howto-17-update.png"
-       alt="The Mod settings showing the unchanged Mod id and increased Version before exporting a new zip." />
-  <figcaption>Keep the mod identity and raise its version for the new export.</figcaption>
+<figure id="figure-howto-17-update" class="manual-figure" data-manual-figure data-scene-id="howto-17-update">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="howto-17-update"
+      data-renderer-src="../figures/renderer.html?scene=howto-17-update"
+      title="Code-rendered editor illustration: Mod identity with an increased version"
+      aria-describedby="figure-caption-howto-17-update"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-17-update">
+    <span class="manual-figure__description">The Mod settings showing the unchanged Mod id and increased Version before exporting a new zip.</span>
+    <span class="manual-figure__caption">Keep the mod identity and raise its version for the new export.</span>
+  </figcaption>
 </figure>
 
 <h3>Variations</h3>

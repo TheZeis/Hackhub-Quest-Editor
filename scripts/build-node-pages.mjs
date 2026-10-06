@@ -21,6 +21,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { convertFigureReferences, loadActiveFigureCatalogue, rendererUrlForPage } from "./manual-figures/handbook.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "manual", "nodes");
@@ -28,6 +29,7 @@ const CHECK = process.argv.includes("--check");
 
 const inv = JSON.parse(readFileSync(join(ROOT, "docs/manual/inventory.json"), "utf8"));
 const voice = JSON.parse(readFileSync(join(ROOT, "docs/manual/node-voice.json"), "utf8"));
+const FIGURE_SCENES = await loadActiveFigureCatalogue(ROOT);
 
 const BUILD = inv.editorBuild;
 const slugOf = (type) => type.replace(/\./g, "-").toLowerCase();
@@ -451,6 +453,7 @@ function page(node, v) {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(node.label)} — HackHub Quest Editor handbook</title>
 <link rel="stylesheet" href="../manual.css" />
+<link rel="stylesheet" href="../manual-figures.css" />
 </head>
 <body>
 <div class="wrap">
@@ -537,7 +540,13 @@ for (const node of ORDER) {
     if (missing.length) {
         throw new Error(`${node.type}: voice entry is missing ${missing.join(", ")}`);
     }
-    const html = page(node, v);
+    const pageHtml = page(node, v);
+    const rendered = convertFigureReferences(pageHtml, rendererUrlForPage(`nodes/${slugOf(node.type)}.html`), FIGURE_SCENES);
+    const html = rendered.html;
+    const expectedScene = `node-${slugOf(node.type)}-inspector`;
+    if (rendered.converted.length !== 1 || rendered.converted[0] !== expectedScene) {
+        throw new Error(`${node.type}: expected exactly one rendered figure scene ${expectedScene}; found ${rendered.converted.join(", ") || "none"}`);
+    }
     const file = join(OUT, `${slugOf(node.type)}.html`);
     if (CHECK) {
         const before = existsSync(file) ? readFileSync(file, "utf8") : null;
