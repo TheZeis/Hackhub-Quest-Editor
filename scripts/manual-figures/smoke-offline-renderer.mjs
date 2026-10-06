@@ -8,9 +8,11 @@ import { renderFigureMarkup } from "./markup.mjs";
 const prototypePath = fileURLToPath(new URL("../../public/manual-figure-prototype.html", import.meta.url));
 const rendererPath = fileURLToPath(new URL("../../public/figures/renderer.html", import.meta.url));
 const manualScriptPath = fileURLToPath(new URL("../../public/manual/manual.js", import.meta.url));
+const manualFigureCssPath = fileURLToPath(new URL("../../public/manual/manual-figures.css", import.meta.url));
 const bundlePath = path.resolve(path.dirname(rendererPath), "assets/renderer.js");
 const prototypeHtml = await readFile(prototypePath, "utf8");
 const manualScript = await readFile(manualScriptPath, "utf8");
+const manualFigureCss = await readFile(manualFigureCssPath, "utf8");
 const bundle = await readFile(bundlePath, "utf8");
 const activeCatalogue = await loadActiveFigureCatalogue(path.resolve(path.dirname(prototypePath), ".."));
 
@@ -227,7 +229,7 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
             "../figures/renderer.html",
         );
     }).join("\n");
-    const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>${figures}<script>${manualScript}</script></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><style>.manual-figure-viewer__viewport{padding:16px}</style></head><body>${figures}<script>${manualScript}</script></body></html>`;
     const dom = new JSDOM(html, {
         url: pageUrl,
         runScripts: "dangerously",
@@ -238,6 +240,10 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
         },
     });
     const problems = [];
+    if (!/\.manual-figure-viewer__viewport\s*\{[^}]*\bdisplay:\s*flex;/s.test(manualFigureCss)
+        || !/\.manual-figure-viewer__canvas\s*\{[^}]*\bflex:\s*0 0 auto;[^}]*\bmargin:\s*auto;/s.test(manualFigureCss)) {
+        problems.push("the larger view no longer centers the canvas on both axes");
+    }
     const document = dom.window.document;
     if (document.readyState === "loading") {
         await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
@@ -261,12 +267,24 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
         problems.push("a focused inspector figure unexpectedly gained full-size gallery controls");
     }
 
-    if (hitTarget) hitTarget.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
     const dialog = document.querySelector(".manual-figure-viewer");
+    const viewerViewport = dialog?.querySelector(".manual-figure-viewer__viewport");
+    if (viewerViewport) {
+        Object.defineProperty(viewerViewport, "clientWidth", { configurable: true, value: 1464 });
+        Object.defineProperty(viewerViewport, "clientHeight", { configurable: true, value: 884 });
+    }
+    if (hitTarget) hitTarget.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
     if (!dialog?.open) problems.push("clicking the illustration did not open its larger view");
     const modalFrame = dialog?.querySelector("iframe.manual-figure-viewer__frame");
     if (!modalFrame || modalFrame.getAttribute("width") !== "1360" || modalFrame.getAttribute("height") !== "820") {
         problems.push("the larger view did not use the editor scene's natural size");
+    }
+    const fittedCanvas = dialog?.querySelector(".manual-figure-viewer__canvas");
+    const initialScale = Number(/scale\(([\d.]+)\)/.exec(modalFrame?.style.transform || "")?.[1] || 0);
+    if (initialScale <= 1 || initialScale > 1.04
+        || Number.parseInt(fittedCanvas?.style.width || "0", 10) > 1424
+        || Number.parseInt(fittedCanvas?.style.height || "0", 10) > 844) {
+        problems.push("the opening view did not maximize the available space without clipping the illustration");
     }
     if (modalFrame?.getAttribute("tabindex") !== "-1" || modalFrame?.getAttribute("sandbox") !== expectedSandbox) {
         problems.push(`the larger illustration frame lost its non-focusable ${expectedSandbox} sandbox`);
@@ -283,6 +301,22 @@ async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
         if (modalFrame.style.visibility !== "visible" || !dialog?.querySelector(".manual-figure-viewer__status")?.hidden) {
             problems.push("the larger view did not reveal its scene after the renderer-ready message");
         }
+    }
+
+    const zoomIn = dialog?.querySelector('[aria-label="Zoom in"]');
+    const zoomOut = dialog?.querySelector('[aria-label="Zoom out"]');
+    const fitButton = dialog?.querySelector('[aria-label="Fit illustration to the window"]');
+    const actualSize = dialog?.querySelector('[aria-label="Show illustration at actual size"]');
+    zoomIn?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    const zoomedScale = Number(/scale\(([\d.]+)\)/.exec(modalFrame?.style.transform || "")?.[1] || 0);
+    zoomOut?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    if (zoomedScale <= initialScale || Math.abs(Number(/scale\(([\d.]+)\)/.exec(modalFrame?.style.transform || "")?.[1] || 0) - initialScale) > 0.001) {
+        problems.push("zoom in and out did not adjust the illustration around its fitted size");
+    }
+    actualSize?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    fitButton?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    if (Math.abs(Number(/scale\(([\d.]+)\)/.exec(modalFrame?.style.transform || "")?.[1] || 0) - initialScale) > 0.001) {
+        problems.push("Fit and 100% did not restore their respective illustration sizes");
     }
 
     const nextButton = dialog?.querySelector(".manual-figure-viewer__next");

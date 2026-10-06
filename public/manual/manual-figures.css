@@ -152,8 +152,8 @@ figure.manual-figure {
 }
 
 .manual-figure-viewer {
-    width: min(96vw, 1600px);
-    height: min(94vh, 1100px);
+    width: min(98vw, 1680px);
+    height: min(98vh, 1200px);
     max-width: none;
     max-height: none;
     margin: auto;
@@ -263,6 +263,7 @@ figure.manual-figure {
 
 .manual-figure-viewer__viewport {
     position: relative;
+    display: flex;
     min-width: 0;
     min-height: 0;
     flex: 1 1 auto;
@@ -274,7 +275,8 @@ figure.manual-figure {
 
 .manual-figure-viewer__canvas {
     position: relative;
-    margin: 0 auto;
+    flex: 0 0 auto;
+    margin: auto;
 }
 
 .manual-figure-viewer__frame-canvas {

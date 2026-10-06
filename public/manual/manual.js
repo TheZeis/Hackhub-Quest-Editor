@@ -300,7 +300,7 @@
         failure.hidden = true;
 
         var footer = element("footer", "manual-figure-viewer__footer");
-        var help = element("p", "manual-figure-viewer__help", "At 100%, the scene uses its full design size. Scroll or zoom to inspect it.");
+        var help = element("p", "manual-figure-viewer__help", "The view opens fitted to the window. Choose 100% for full design size or zoom in to inspect details.");
         help.id = "manual-figure-viewer-help";
         var zoom = element("div", "manual-figure-viewer__zoom");
         zoom.setAttribute("aria-label", "Illustration size");
@@ -348,13 +348,23 @@
         }
 
         function updateScale(value) {
-            currentScale = Math.max(0.25, Math.min(2, Math.round(value * 100) / 100));
+            currentScale = Math.max(0.1, Math.min(2, Math.round(value * 1000) / 1000));
             canvas.style.width = Math.round(currentWidth * currentScale) + "px";
             canvas.style.height = Math.round(currentHeight * currentScale) + "px";
             if (viewerFrame) viewerFrame.style.transform = "scale(" + currentScale + ")";
             zoomValue.textContent = Math.round(currentScale * 100) + "%";
-            zoomOut.disabled = currentScale <= 0.25;
+            zoomOut.disabled = currentScale <= 0.1;
             zoomIn.disabled = currentScale >= 2;
+        }
+
+        function fitToViewport() {
+            var viewportStyle = window.getComputedStyle(viewport);
+            var horizontalPadding = (parseFloat(viewportStyle.paddingLeft) || 0) + (parseFloat(viewportStyle.paddingRight) || 0);
+            var verticalPadding = (parseFloat(viewportStyle.paddingTop) || 0) + (parseFloat(viewportStyle.paddingBottom) || 0);
+            var availableWidth = Math.max(1, viewport.clientWidth - horizontalPadding - 8);
+            var availableHeight = Math.max(1, viewport.clientHeight - verticalPadding - 8);
+            var fitScale = Math.min(2, availableWidth / currentWidth, availableHeight / currentHeight);
+            updateScale(Math.max(0.1, Math.floor(fitScale * 1000) / 1000));
         }
 
         function viewerFailed(message) {
@@ -424,7 +434,7 @@
                 if (viewerFrame === thisFrame) viewerFailed("The larger view could not load. The description and caption remain on the page.");
             });
             frameCanvas.appendChild(viewerFrame);
-            updateScale(1);
+            fitToViewport();
             viewerFrame.src = sourceFrame.getAttribute("src") || sourceFrame.getAttribute("data-renderer-src");
         }
 
@@ -472,11 +482,7 @@
         zoomOut.addEventListener("click", function () { updateScale(currentScale - 0.25); });
         zoomIn.addEventListener("click", function () { updateScale(currentScale + 0.25); });
         actualSize.addEventListener("click", function () { updateScale(1); });
-        fit.addEventListener("click", function () {
-            var availableWidth = Math.max(1, viewport.clientWidth - 32);
-            var availableHeight = Math.max(1, viewport.clientHeight - 32);
-            updateScale(Math.min(1, availableWidth / currentWidth, availableHeight / currentHeight));
-        });
+        fit.addEventListener("click", fitToViewport);
         close.addEventListener("click", closeViewer);
         dialog.addEventListener("cancel", function (event) {
             event.preventDefault();
