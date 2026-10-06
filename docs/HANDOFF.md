@@ -3,9 +3,10 @@
 ## Current status
 
 The handbook table of contents and static HTML source are approved. The r276
-handbook work, generated artifacts, audit notes and README roadmap are **local
-in the workspace; they are not yet committed or pushed**. Before checkpointing,
-fetch and compare the remote as required by [the sandbox reset guide](SANDBOX-RESETS.md).
+handbook work, generated artifacts, audit notes and README roadmap were
+committed as `6575664` and pushed to
+`arena/01a105b7-hackhub-quest-editor`. The pushed branch was based on fetched
+remote tip `a62d12f`; the source-review diff is now checkpointed on GitHub.
 
 The current work updated reader instructions in `public/manual/` and
 maintainer checks in `scripts/`. It reviewed all 56 diagnostic sites and 10 curated panel
