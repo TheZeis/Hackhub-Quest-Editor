@@ -27,6 +27,7 @@ for (const file of pages) {
     const convertedPage = convertFigureReferences(before, rendererSrc, CATALOGUE);
     let html = convertedPage.html;
     const converted = convertedPage.converted;
+    const refreshed = convertedPage.refreshed;
     if (html.includes("class=\"manual-figure\"") && !html.includes("manual-figures.css")) {
         const stylesheet = relativePagePath.includes("/") ? "../manual-figures.css" : "manual-figures.css";
         const manualStylesheet = /<link\b[^>]*href=[\"'](?:\.\.\/)?manual\.css[\"'][^>]*>/i;
@@ -35,7 +36,7 @@ for (const file of pages) {
         html = html.replace(link, `${link}\n<link rel=\"stylesheet\" href=\"${stylesheet}\" />`);
     }
     if (before !== html) {
-        changes.push({ file, relativePagePath, converted });
+        changes.push({ file, relativePagePath, converted, refreshed });
         if (!CHECK) writeFileSync(file, html);
     }
 }
@@ -69,5 +70,6 @@ if (unknown.length || missing.length || duplicates.length || raster.length) {
 }
 
 const convertedCount = changes.reduce((count, item) => count + item.converted.length, 0);
+const refreshedCount = changes.reduce((count, item) => count + item.refreshed.length, 0);
 console.log(`Manual figures: ${ACTIVE_IDS.length} active code-rendered references across ${pages.length} HTML pages.`);
-console.log(`${CHECK ? "Would update" : "Updated"} ${changes.length} handbook HTML files; ${convertedCount} raster references converted in this pass.`);
+console.log(`${CHECK ? "Would update" : "Updated"} ${changes.length} handbook HTML files; ${convertedCount} raster references converted and ${refreshedCount} existing scenes refreshed in this pass.`);

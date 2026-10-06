@@ -411,6 +411,24 @@ describe("manual coverage — G8: figures", () => {
                 const scene = SCENE_CATALOGUE[sceneId];
                 const rendererSrc = tagAttribute(frameTag, "data-renderer-src")?.split("?")[0] ?? "";
                 const rendererPath = rendererSrc ? resolve(dirname(page), rendererSrc) : "";
+                const expandable = scene.kind === "workspace" && scene.width >= 1280;
+                const hitTarget = /<div\b[^>]*\bclass="manual-figure__click-target"[^>]*>/i.exec(figure)?.[0];
+                const expandButton = /<button\b[^>]*\bclass="manual-figure__expand"[^>]*>/i.exec(figure)?.[0];
+
+                if (expandable) {
+                    if (tagAttribute(figureTag, "data-manual-figure-expandable") !== "true") broken.push(`${rel(page)}: ${sceneId} has no full-size gallery entry`);
+                    if (!hitTarget || tagAttribute(hitTarget, "aria-hidden") !== "true" || !/\bdata-manual-figure-open\b/.test(hitTarget)) {
+                        broken.push(`${rel(page)}: ${sceneId} is not clickable to open its larger view`);
+                    }
+                    if (!expandButton || tagAttribute(expandButton, "type") !== "button" || !/\bdata-manual-figure-open\b/.test(expandButton) || !figure.includes(">View larger</button>")) {
+                        broken.push(`${rel(page)}: ${sceneId} has no separate accessible View larger button`);
+                    }
+                    if (!tagAttribute(expandButton ?? "", "aria-label")?.startsWith("View larger illustration:")) {
+                        broken.push(`${rel(page)}: ${sceneId} has no descriptive label for its larger-view button`);
+                    }
+                } else if (tagAttribute(figureTag, "data-manual-figure-expandable") || hitTarget || expandButton) {
+                    broken.push(`${rel(page)}: ${sceneId} offers full-size gallery controls despite not being a wide workspace scene`);
+                }
 
                 if (!frameTitle.startsWith("Code-rendered editor illustration:")) broken.push(`${rel(page)}: ${sceneId} has no descriptive iframe title`);
                 if (!captionMatch || !captionId || !describedBy.split(/\s+/).includes(captionId)) {

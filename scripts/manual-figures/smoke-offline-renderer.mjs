@@ -3,11 +3,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
 import { loadActiveFigureCatalogue } from "./handbook.mjs";
+import { renderFigureMarkup } from "./markup.mjs";
 
 const prototypePath = fileURLToPath(new URL("../../public/manual-figure-prototype.html", import.meta.url));
 const rendererPath = fileURLToPath(new URL("../../public/figures/renderer.html", import.meta.url));
+const manualScriptPath = fileURLToPath(new URL("../../public/manual/manual.js", import.meta.url));
 const bundlePath = path.resolve(path.dirname(rendererPath), "assets/renderer.js");
 const prototypeHtml = await readFile(prototypePath, "utf8");
+const manualScript = await readFile(manualScriptPath, "utf8");
 const bundle = await readFile(bundlePath, "utf8");
 const activeCatalogue = await loadActiveFigureCatalogue(path.resolve(path.dirname(prototypePath), ".."));
 
@@ -211,3 +214,110 @@ for (const scene of smokeScenes) {
 
     console.log(`file:// scene rendered: ${scene}`);
 }
+
+async function smokeManualFigureViewer(pageUrl, expectedSandbox, mode) {
+    const scenes = ["tour-workspace", "tutorial-02-first-contact", "node-objective-inspector"];
+    const figures = scenes.map((sceneId) => {
+        const scene = activeCatalogue[sceneId];
+        return renderFigureMarkup(
+            sceneId,
+            scene,
+            `Fixed parent-page description for ${sceneId}.`,
+            `<span>Fixed caption for ${sceneId}.</span>`,
+            "../figures/renderer.html",
+        );
+    }).join("\n");
+    const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>${figures}<script>${manualScript}</script></body></html>`;
+    const dom = new JSDOM(html, {
+        url: pageUrl,
+        runScripts: "dangerously",
+        pretendToBeVisual: true,
+        beforeParse(window) {
+            window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+            window.HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+        },
+    });
+    const problems = [];
+    const document = dom.window.document;
+    if (document.readyState === "loading") {
+        await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const firstFigure = document.querySelector('[data-scene-id="tour-workspace"]');
+    const secondFigure = document.querySelector('[data-scene-id="tutorial-02-first-contact"]');
+    const fixedFigure = document.querySelector('[data-scene-id="node-objective-inspector"]');
+    const hitTarget = firstFigure?.querySelector(".manual-figure__click-target");
+    const firstButton = firstFigure?.querySelector(".manual-figure__expand");
+    const secondButton = secondFigure?.querySelector(".manual-figure__expand");
+
+    if (!firstFigure?.classList.contains("manual-figure--viewer-enabled") || !hitTarget || hitTarget.hidden) {
+        problems.push("wide workspace illustrations are not enabled as pointer-open targets");
+    }
+    if (!firstButton || firstButton.hidden || firstButton.getAttribute("aria-label")?.indexOf("View larger illustration:") !== 0) {
+        problems.push("wide workspace illustrations have no visible, descriptive View larger button");
+    }
+    if (fixedFigure?.querySelector("[data-manual-figure-open]")) {
+        problems.push("a focused inspector figure unexpectedly gained full-size gallery controls");
+    }
+
+    if (hitTarget) hitTarget.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+    const dialog = document.querySelector(".manual-figure-viewer");
+    if (!dialog?.open) problems.push("clicking the illustration did not open its larger view");
+    const modalFrame = dialog?.querySelector("iframe.manual-figure-viewer__frame");
+    if (!modalFrame || modalFrame.getAttribute("width") !== "1360" || modalFrame.getAttribute("height") !== "820") {
+        problems.push("the larger view did not use the editor scene's natural size");
+    }
+    if (modalFrame?.getAttribute("tabindex") !== "-1" || modalFrame?.getAttribute("sandbox") !== expectedSandbox) {
+        problems.push(`the larger illustration frame lost its non-focusable ${expectedSandbox} sandbox`);
+    }
+    if (!dialog?.querySelector(".manual-figure-viewer__next") || !dialog?.querySelector(".manual-figure-viewer__zoom")) {
+        problems.push("the larger view has no gallery navigation or zoom controls");
+    }
+
+    if (modalFrame) {
+        dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+            data: { type: "manual-figure-ready", scene: "tour-workspace", status: "ready" },
+            source: modalFrame.contentWindow,
+        }));
+        if (modalFrame.style.visibility !== "visible" || !dialog?.querySelector(".manual-figure-viewer__status")?.hidden) {
+            problems.push("the larger view did not reveal its scene after the renderer-ready message");
+        }
+    }
+
+    const nextButton = dialog?.querySelector(".manual-figure-viewer__next");
+    nextButton?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    const secondModalFrame = dialog?.querySelector("iframe.manual-figure-viewer__frame");
+    if (secondModalFrame?.getAttribute("data-manual-figure-scene") !== "tutorial-02-first-contact") {
+        problems.push("the gallery's Next button did not open the next wide workspace scene");
+    }
+    if (secondModalFrame) {
+        dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+            data: { type: "manual-figure-ready", scene: "tutorial-02-first-contact", status: "error" },
+            source: secondModalFrame.contentWindow,
+        }));
+        if (dialog?.querySelector(".manual-figure-viewer__failure")?.hidden !== false) {
+            problems.push("a renderer failure in the larger view has no readable fallback");
+        }
+    }
+
+    const escaped = dialog?.dispatchEvent(new dom.window.Event("cancel", { bubbles: false, cancelable: true }));
+    if (dialog?.open || escaped !== false || document.activeElement !== firstButton) {
+        problems.push("Escape did not close the larger view and return focus to its opener");
+    }
+
+    secondButton?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+    const secondDialogFrame = dialog?.querySelector("iframe.manual-figure-viewer__frame");
+    const closeButton = dialog?.querySelector(".manual-figure-viewer__close");
+    closeButton?.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+    if (dialog?.open || document.activeElement !== secondButton || secondDialogFrame?.isConnected) {
+        problems.push("the accessible View larger and Close buttons did not close cleanly and restore focus");
+    }
+
+    dom.window.close();
+    if (problems.length) throw new Error(`Manual illustration viewer failed: ${problems.join("; ")}`);
+    console.log(`${mode} manual illustration viewer supports click, accessible button, gallery navigation, zoom, fallback, Escape and focus return`);
+}
+
+await smokeManualFigureViewer("https://manual-preview.example/manual/index.html", "allow-scripts", "HTTP");
+await smokeManualFigureViewer("file:///manual/index.html", "allow-scripts allow-same-origin", "file://");

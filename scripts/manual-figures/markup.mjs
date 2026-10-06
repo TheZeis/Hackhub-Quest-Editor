@@ -35,8 +35,16 @@ export function renderFigureMarkup(sceneId, scene, description, captionHtml, ren
         ? `\n    <span class="manual-figure__still-note">${escapeText(scene.stillNote || "Still illustration; this is a fixed view, not a live interaction.")}</span>`
         : "";
     const ratio = (scene.width / scene.height).toFixed(6);
+    const expandable = scene.kind === "workspace" && scene.width >= 1280;
+    const expandability = expandable ? ' data-manual-figure-expandable="true"' : "";
+    const clickTarget = expandable
+        ? '\n    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>'
+        : "";
+    const expandButton = expandable
+        ? `\n  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: ${escapeAttribute(scene.title)}" hidden>View larger</button>`
+        : "";
 
-    return `<figure id="figure-${escapeAttribute(sceneId)}" class="manual-figure" data-manual-figure data-scene-id="${escapeAttribute(sceneId)}">
+    return `<figure id="figure-${escapeAttribute(sceneId)}" class="manual-figure" data-manual-figure data-scene-id="${escapeAttribute(sceneId)}"${expandability}>
   <div class="manual-figure__stage" style="--figure-width:${scene.width}px;--figure-height:${scene.height}px;--figure-ratio:${ratio}">
     <iframe
       data-manual-figure-scene="${escapeAttribute(sceneId)}"
@@ -49,13 +57,13 @@ export function renderFigureMarkup(sceneId, scene, description, captionHtml, ren
       referrerpolicy="no-referrer"
       width="${scene.width}"
       height="${scene.height}"
-    ></iframe>
+    ></iframe>${clickTarget}
   </div>
   <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
   <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
   <figcaption id="${escapeAttribute(captionId)}">
     <span class="manual-figure__description">${escapeText(description.trim())}</span>
     <span class="manual-figure__caption">${captionHtml.trim()}</span>${stillNote}
-  </figcaption>
+  </figcaption>${expandButton}
 </figure>`;
 }

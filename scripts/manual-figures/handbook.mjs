@@ -28,30 +28,48 @@ function attribute(tag, name) {
 }
 
 /**
- * Replace only references whose filename is an active scene ID. Unlinked and
- * game-only names remain untouched and therefore stay outside the renderer's
- * live-scene count.
+ * Convert raster references for active scene IDs and refresh already-rendered
+ * figures by their saved scene ID. Unlinked and game-only names remain
+ * untouched and stay outside the renderer's live-scene count.
  */
 export function convertFigureReferences(html, rendererSrc, catalogue) {
     const converted = [];
-    const replacedImages = String(html).replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, (figureHtml) => {
+    const refreshed = [];
+    const replacedFigures = String(html).replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, (figureHtml) => {
+        const figureTag = /^<figure\b[^>]*>/i.exec(figureHtml)?.[0] ?? "";
         const imgTag = /<img\b[^>]*>/i.exec(figureHtml)?.[0];
-        if (!imgTag) return figureHtml;
-        const src = attribute(imgTag, "src");
-        const alt = attribute(imgTag, "alt");
-        const captionMatch = /<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figureHtml);
-        if (!src || alt === null) return figureHtml;
+        if (imgTag) {
+            const src = attribute(imgTag, "src");
+            const alt = attribute(imgTag, "alt");
+            const captionMatch = /<figcaption\b[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figureHtml);
+            if (!src || alt === null) return figureHtml;
 
-        const sceneId = path.posix.basename(src.replace(/\\/g, "/"), path.posix.extname(src));
-        const scene = catalogue[sceneId];
-        if (!scene) return figureHtml;
-        if (!captionMatch) throw new Error(`Active manual figure ${sceneId} has no figcaption.`);
-        if (!alt.trim()) throw new Error(`Active manual figure ${sceneId} has an empty description.`);
+            const sceneId = path.posix.basename(src.replace(/\\/g, "/"), path.posix.extname(src));
+            const scene = catalogue[sceneId];
+            if (!scene) return figureHtml;
+            if (!captionMatch) throw new Error(`Active manual figure ${sceneId} has no figcaption.`);
+            if (!alt.trim()) throw new Error(`Active manual figure ${sceneId} has an empty description.`);
 
-        converted.push(sceneId);
-        return renderFigureMarkup(sceneId, scene, alt, captionMatch[1], rendererSrc);
+            converted.push(sceneId);
+            return renderFigureMarkup(sceneId, scene, alt, captionMatch[1], rendererSrc);
+        }
+
+        const iframeTag = /<iframe\b[^>]*\bdata-manual-figure-scene="[^"]+"[^>]*>/i.exec(figureHtml)?.[0];
+        const sceneId = attribute(figureTag, "data-scene-id") || attribute(iframeTag ?? "", "data-manual-figure-scene");
+        const scene = sceneId ? catalogue[sceneId] : null;
+        if (!sceneId || !scene) return figureHtml;
+
+        const descriptionMatch = /<span\b[^>]*\bclass="manual-figure__description"[^>]*>([\s\S]*?)<\/span>/i.exec(figureHtml);
+        const captionMatch = /<span\b[^>]*\bclass="manual-figure__caption"[^>]*>([\s\S]*?)<\/span>/i.exec(figureHtml);
+        const description = decodeEntities((descriptionMatch?.[1] ?? "").replace(/<[^>]*>/g, "")).trim();
+        if (!description || !captionMatch) {
+            throw new Error(`Active rendered manual figure ${sceneId} is missing its description or caption.`);
+        }
+        const normalized = renderFigureMarkup(sceneId, scene, description, captionMatch[1], rendererSrc);
+        if (normalized !== figureHtml) refreshed.push(sceneId);
+        return normalized;
     });
-    const result = replacedImages.replace(/<iframe\b[^>]*\bdata-manual-figure-scene="([^"]+)"[^>]*>/gi, (tag, sceneId) => {
+    const result = replacedFigures.replace(/<iframe\b[^>]*\bdata-manual-figure-scene="([^"]+)"[^>]*>/gi, (tag, sceneId) => {
         if (!catalogue[sceneId]) return tag;
         const expected = `${rendererSrc}?scene=${sceneId}`
             .replace(/&/g, "&amp;")
@@ -63,7 +81,7 @@ export function convertFigureReferences(html, rendererSrc, catalogue) {
         }
         return tag.replace(/<iframe\b/i, `<iframe data-renderer-src="${expected}"`);
     });
-    return { html: result, converted };
+    return { html: result, converted, refreshed };
 }
 
 /** The renderer URL, relative to one handbook HTML file. */
