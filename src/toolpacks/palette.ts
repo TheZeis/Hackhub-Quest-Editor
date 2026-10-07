@@ -26,8 +26,8 @@ export function defaultPackValues(fields: PackField[]): Record<string, string> {
 
 /** Deep clone without the JSON.parse(JSON.stringify) dance (A3 DRY). */
 function deepClone<T>(value: T): T {
-    // structuredClone is available in modern browsers and Node 17+; vitest's
-    // jsdom provides it. Fallback only for very old environments.
+    // structuredClone is available in modern browsers and Node 17+; a headless test environment's
+    // a headless DOM provides it. Fallback only for very old environments.
     if (typeof structuredClone === "function") {
         return structuredClone(value);
     }

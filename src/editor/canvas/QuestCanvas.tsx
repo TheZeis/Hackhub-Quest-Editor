@@ -147,13 +147,13 @@ function CanvasInner() {
     const physics = useSyncExternalStore(
         subscribeWirePhysics,
         wirePhysicsEnabled,
-        () => false, // server/jsdom: nothing is animating anyway
+        () => false, // server/a headless DOM: nothing is animating anyway
     );
     // One animation drives every wire's dots; this is only its switch.
     const motion = useSyncExternalStore(
         subscribeWireMotion,
         wireMotionEnabled,
-        () => false, // server/jsdom: nothing is animating anyway
+        () => false, // server/a headless DOM: nothing is animating anyway
     );
 
 
@@ -206,7 +206,7 @@ function CanvasInner() {
      * It has to be window, in the capture phase. React Flow calls
      * `setPointerCapture` on pointerdown, which retargets every later pointer
      * event to the captured element — a listener on our own wrapper sees the
-     * pointerdown and then nothing, so the value goes stale mid-drag. (jsdom
+     * pointerdown and then nothing, so the value goes stale mid-drag. (a headless DOM
      * implements neither PointerEvent nor setPointerCapture, which is why this
      * looked fine in tests while the editor was broken.)
      */

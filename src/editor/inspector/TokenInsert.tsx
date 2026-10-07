@@ -5,7 +5,7 @@
  *
  * Deliberately not a Radix popover: this picker is opened and closed in unit
  * tests dozens of times, and Radix's positioning loop turns each of those
- * into seconds under jsdom. A fixed panel in a portal, a backdrop for
+ * into seconds under a headless DOM. A fixed panel in a portal, a backdrop for
  * outside-clicks, Escape to close — everything this picker needs, nothing
  * that spins.
  *

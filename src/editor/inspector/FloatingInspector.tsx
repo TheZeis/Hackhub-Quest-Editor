@@ -24,7 +24,7 @@ import {
 
 /**
  * Pointer capture keeps a drag alive when the pointer leaves the handle, but it
- * is optional (jsdom does not implement it), so both calls are guarded — a
+ * is optional (a headless DOM does not implement it), so both calls are guarded — a
  * missing capture must not throw out of the gesture.
  */
 function capturePointer(event: React.PointerEvent): void {

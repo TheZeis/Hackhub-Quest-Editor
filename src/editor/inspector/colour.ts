@@ -5,7 +5,7 @@
  * at the boundaries — grey has no meaningful hue, hue wraps at 360, and every
  * channel rounds — so it is worth pinning on its own rather than through a
  * component. Nothing here measures anything, which also means these tests are
- * as true in a browser as they are in jsdom.
+ * as true in a browser as they are in a headless DOM.
  *
  * Hex is the storage format, because that is what the project document already
  * holds and what the game's CSS expects.

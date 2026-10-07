@@ -134,7 +134,7 @@ function hexPath(cx: number, cy: number, s: number): string {
  *
  * The colour travels a CSS channel (r144): `var()` and `color-mix()` resolve
  * in real CSS, not in SVG presentation *attributes* — the attribute route
- * rendered these two styles invisible in a real browser, which jsdom cannot
+ * rendered these two styles invisible in a real browser, which a headless DOM cannot
  * see. So the stamps stroke `currentColor` and the colour rides the svg's
  * inline `color` style, the same net mechanism the library's own background
  * uses for its pattern colour.

@@ -11,7 +11,7 @@ import { Icon } from "@/components/Icon";
 import { usePacks } from "@/store/packs";
 
 /** Read a File as text via FileReader — File.text() is not available in all
-    environments (jsdom among them); same helper shape as Load HTML. */
+    environments (a headless DOM among them); same helper shape as Load HTML. */
 function readAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

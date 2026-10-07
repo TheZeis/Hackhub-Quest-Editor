@@ -8,7 +8,7 @@
  * content is all in the document. This only adds polish.
  *
  * Search reads `window.MANUAL_INDEX`, which is generated into search-index.js
- * by scripts/build-manual-index.mjs. A plain <script src> rather than fetch(),
+ * by the handbook build process. A plain <script src> rather than fetch(),
  * because fetch() is blocked on file:// and the manual must open off disk (H1).
  */
 (function () {
