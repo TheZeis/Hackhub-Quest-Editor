@@ -32,6 +32,7 @@ Keep:
 reference/Official-Quest/
 reference/example-toolpack/
 reference/reconng/
+reference/ToolPack-Format.md
 reference/generate-event-catalogue.mjs
 reference/hackhub-events.json
 ```
@@ -57,7 +58,6 @@ docs/Game-Patch-1.3.0-1.3.1.md
 docs/HANDOFF.md
 docs/In-Game-Handbook.md
 docs/SANDBOX-RESETS.md
-docs/ToolPack-Format.md
 docs/ideas/
 docs/manual/
 docs/plans/
@@ -69,7 +69,7 @@ Delete the superseded public maintenance note:
 public/manual/after-the-sdk-update.md
 ```
 
-Before deleting `docs/ToolPack-Format.md`, confirm that the retained `reference/` material and the handbook provide enough author-facing compatibility information. If a product error still points to that file, replace the path with a useful handbook link or plain-language explanation before deletion.
+Move `docs/ToolPack-Format.md` to `reference/ToolPack-Format.md`. This is a needed compatibility document for mod authors who want to build addons that work with the editor. Update all links and product messages that point to the old path. Keep the document in the retained `reference/` directory and do not replace it with a handbook link.
 
 ### Stale public prototype
 
@@ -245,7 +245,7 @@ Record the passing baseline, handbook counts, editor build stamp, and any known 
 
 ### 2. Preserve the development branch
 
-Create or confirm the definitive development branch at the verified pre-cleanup commit. Push it and verify the remote branch before cleanup begins. Do not switch this session to another branch and do not merge to `main`.
+The repository owner has created the `dev` branch. Verify that `origin/dev` points to the verified pre-cleanup commit before cleanup begins. The `dev` branch remains the authoritative home for tests, QA, research, handbook generation, and maintenance tooling. Do not switch this session to another branch and do not merge to `main`.
 
 ### 3. Make the generated handbook independent of the public prototype
 
