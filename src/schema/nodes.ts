@@ -548,7 +548,7 @@ export const UnclaimQuestNodeDataSchema = z.object({
  * declared contract. The pack's entry template and the author's values are
  * snapshotted INTO the node, so the project stays self-contained — it
  * compiles (and the game mod reads its key) even where the pack is not
- * loaded. See docs/ToolPack-Format.md.
+ * loaded. See reference/ToolPack-Format.md.
  */
 export const PackDataNodeDataSchema = z.object({
     packId: z.string().default(""),

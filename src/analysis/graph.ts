@@ -4,7 +4,7 @@
  * Everything here is a question about the shape of a quest graph, answered from
  * the document alone. The canvas uses it to flag problems, the inspector uses it
  * for the health panel, and the Step 4 export report will reuse it verbatim
- * (docs/01 §4.3: analysis and compilation are pure and side-effect free).
+ * (the editor architecture §4.3: analysis and compilation are pure and side-effect free).
  */
 import type { EdgeDoc } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";

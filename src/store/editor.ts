@@ -1,7 +1,7 @@
 /**
  * The editor store.
  *
- * One serialisable `ProjectDocument` is the only source of truth (docs/01 §4.2).
+ * One serialisable `ProjectDocument` is the only source of truth (the editor architecture §4.2).
  * Every mutation goes through `mutate()`, which snapshots for undo/redo unless the
  * caller opts out — dragging and viewport moves opt out and commit once at the end
  * so a single drag is a single undo step.

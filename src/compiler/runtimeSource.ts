@@ -2953,7 +2953,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                                    post that DID render had no comments at all.
                                    Blank now means NO author is sent; whether the
                                    game mints a persona for it is unverified
-                                   (docs/03 §20) - a typed name is the proven
+                                   (the SDK issue record §20) - a typed name is the proven
                                    shape. Same rule for an avatar without a name:
                                    the pair ships only when a name exists. */
                                 if (c.authorName) {
@@ -3343,7 +3343,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                    - and an absent abstract member is precisely the kind of
                    thing this build ignores without complaint. */
                 this.Icon = w.icon || "";
-                /* popular is declared on WebsiteDefinition (docs/03 Q12 —
+                /* popular is declared on WebsiteDefinition (the SDK issue record Q12 —
                    purpose unverified; our self-test compares search ranking
                    with one site flagged). Emitted only when set, so sites
                    that don't use it compile exactly as before (r129 rule). */
@@ -3420,9 +3420,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                sends them to their manifest, where the answers is not. */
             __QE.log("extras: the game refused a message from a MENU CLICK (it reads the calling mod as null). " +
                 "This is not a missing permission in your manifest - your quests' own notifications are unaffected. " +
-                "See docs/03-questions-for-the-developers.md, Q14.");
+                "This is a game limitation, not a missing quest permission.");
         }
-        return refused ? "nothing - the game refused it (see Q14)" : "nothing - this build has no UI API";
+        return refused ? "nothing - the game refused it (see the editor handbook)" : "nothing - this build has no UI API";
     }
 
     /* True when an SDK error is the click-context permission refusal, whatever
@@ -3566,7 +3566,7 @@ function __qeRegisterProject(sdk, PROJECT) {
         return function () {
             __QE.log("extras: " + what + " \"" + id + "\" clicked (language " + extraLanguage() + ")");
             if (clickDefer(work, what, id)) return;
-            __QE.log("extras: no Scheduler in this build, so the action runs inside the click - a gated call here will be refused (see Q14)");
+            __QE.log("extras: no Scheduler in this build, so the action runs inside the click - a gated call here will be refused (see the editor handbook)");
             work();
         };
     }

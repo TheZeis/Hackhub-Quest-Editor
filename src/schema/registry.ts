@@ -6,7 +6,7 @@
  * node type means adding an entry here — the palette, the canvas and the
  * inspector all read from it.
  *
- * The descriptors are hand-authored per node type (docs/01 §4.1 deliberately
+ * The descriptors are hand-authored per node type (the editor architecture §4.1 deliberately
  * rejects a JSON-schema-driven form generator), but rendered by one shared
  * inspector engine so every node gets consistent, accessible controls.
  */
@@ -967,7 +967,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                        project field stays and keeps migrating, and the export
                        report still names any picture it finds. A feature
                        request for the field is filed in
-                       docs/03-questions-for-the-developers.md §10 — this line
+                       the SDK issue record §10 — this line
                        goes back the day the API accepts one. */
                     // { kind: "image", key: "image", label: "Attached picture", hint: "…" },
                     {

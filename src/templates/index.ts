@@ -2,7 +2,7 @@
  * Starter templates.
  *
  * Each is a plain `ProjectDocument` factory, which means the templates are
- * themselves exercised by the compiler test suite (docs/01 §5). Ids are generated
+ * themselves exercised by the compiler test suite (the editor architecture §5). Ids are generated
  * deterministically so a template builds byte-identically every time and snapshot
  * tests stay stable.
  *

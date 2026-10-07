@@ -7,7 +7,7 @@
  * files that only Vite can resolve. Keeping the pattern in a leaf file lets the
  * compiler and the schema share it without dragging the editor's HTML into a
  * Node script. (Same class of problem as the note at the bottom of
- * `scripts/extract-manual-inventory.mjs`.)
+ * `the handbook inventory process`.)
  */
 
 /** Letters, numbers and `_`, 3–15 characters — what Twotter search matches on. */

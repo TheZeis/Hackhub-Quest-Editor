@@ -3,7 +3,7 @@
  *
  * Hand-built rather than generated from the schema: the requirement is that
  * non-coders never see raw JSON, so each control is chosen for its field
- * (docs/01 §4.1).
+ * (the editor architecture §4.1).
  */
 import type { ReactNode } from "react";
 import * as Switch from "@radix-ui/react-switch";

@@ -1,6 +1,6 @@
 /**
  * Tool packs — the package format that lets community tool-mod authors
- * extend this editor with pure data (docs/ToolPack-Format.md is the
+ * extend this editor with pure data (reference/ToolPack-Format.md is the
  * modder-facing spec). A pack is a `toolpack.json` file: the events its game
  * mod emits, the SharedStorage contracts it reads, the target conventions it
  * matches against, and (reserved) editor nodes.
@@ -194,7 +194,7 @@ export function parseToolPack(raw: unknown): { ok: true; pack: ToolPack } | { ok
     if (fmt !== TOOLPACK_FORMAT) {
         return {
             ok: false,
-            error: `This addon says "format": ${JSON.stringify(fmt) ?? "(none)"} — this editor speaks format ${TOOLPACK_FORMAT}. See docs/ToolPack-Format.md for the current shape.`,
+            error: `This addon says "format": ${JSON.stringify(fmt) ?? "(none)"} — this editor speaks format ${TOOLPACK_FORMAT}. See reference/ToolPack-Format.md for the current shape.`,
         };
     }
     const result = ToolPackSchema.safeParse(raw);

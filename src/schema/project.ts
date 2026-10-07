@@ -1,7 +1,7 @@
 /**
  * The project document: mod metadata + quests, each with its own graph.
  *
- * Per decision 3 (docs/01 §8) a project is one mod containing one or more quests.
+ * Per decision 3 (the editor architecture §8) a project is one mod containing one or more quests.
  * New projects start with a single quest so the multi-quest structure stays out
  * of the way until it is needed.
  */
@@ -23,7 +23,7 @@ import { STARTER_PAGE } from "@/templates/pages";
 
 /**
  * `permissions` is deliberately absent: it is *derived* from the graph by the
- * analysis layer at export time (docs/01 §1.2). Letting authors type it would
+ * analysis layer at export time (the editor architecture §1.2). Letting authors type it would
  * reproduce the trap where an omitted field silently grants every permission.
  */
 export const ModSchema = z.object({
@@ -49,7 +49,7 @@ export type ModDoc = z.infer<typeof ModSchema>;
    The WYSIWYG website builder's model. A mod ships any number of sites; each
    page compiles to an HTML file under the site's host. Pages with `seo:false`
    stay routable but leave the in-game search index — the dirhunter hiding
-   place (docs/01 §1.4).
+   place (the editor architecture §1.4).
    ─────────────────────────────────────────────────────────────────────── */
 
 export const WebPageSchema = z.object({
@@ -87,7 +87,7 @@ export const WebsiteSchema = z.object({
     name: z.string().default(""),
     /**
      * `WebsiteDefinition.popular` in the SDK — declared, purpose unverified.
-     * docs/03 Q12: our self-test is two identical sites, one flagged, compare
+     * the SDK issue record Q12: our self-test is two identical sites, one flagged, compare
      * search ranking in-game. Emitted only when set, so sites that don't use
      * it compile exactly as before.
      */

@@ -9,14 +9,7 @@
     "dev": "vite optimize --logLevel error && vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "gen:events": "node reference/generate-event-catalogue.mjs",
-    "gen:manual-evidence": "node scripts/extract-manual-evidence-inventory.mjs --write",
-    "gen:manual-figures": "vite build --config vite.manual-figures.config.ts && node scripts/manual-figures/clean-bundle.mjs && node scripts/manual-figures/smoke-offline-renderer.mjs && node scripts/manual-figures/build-handbook.mjs && node scripts/build-manual-index.mjs",
-    "gen:manual": "node scripts/extract-manual-inventory.mjs && node scripts/build-node-pages.mjs && npm run gen:manual-figures && npm run gen:manual-evidence",
-    "recover": "node scripts/sandbox-recover.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
@@ -40,23 +33,16 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@hotbunny/hackhub-content-sdk": "0.24.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.18.0",
     "@types/prismjs": "^1.26.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "jsdom": "^26.1.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.2.2"
   },
   "engines": {
     "node": ">=22.12.0"

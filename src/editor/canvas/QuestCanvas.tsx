@@ -262,7 +262,7 @@ function CanvasInner() {
      * A node's size for geometry decisions: measured when React Flow has
      * measured, computed otherwise. Both the frame-membership test and the
      * Ctrl+G bounding box need it, and the compute path is the one that
-     * exists at every moment (docs/06: "compute, don't measure"). The
+     * exists at every moment (the editor implementation notes: "compute, don't measure"). The
      * Twotter card's summary names its account, so the same accounts the
      * card renders with must feed the size.
      */

@@ -13,7 +13,7 @@
  * So the picker still offers these five (they are at least real pages) and the
  * field still takes typed text, but the editor does not pretend the id is known:
  * the runtime logs what was asked for and that the game lands on the landing
- * page, and `docs/03-questions-for-the-developers.md` asks how to reach an
+ * page, and `the SDK issue record` asks how to reach an
  * article (Q15). When that answer arrives, replace the `id` values here — the
  * picker and the compiler read `id`, never `title`.
  */

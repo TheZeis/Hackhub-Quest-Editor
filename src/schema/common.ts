@@ -14,7 +14,7 @@ export const TARGET_IP_TOKEN = "{{data.targetIp}}";
  * Shared primitives for the project document.
  *
  * Everything here is deliberately JSON-serialisable: the document is the single
- * source of truth for the whole app (see docs/01-analysis-and-architecture.md §4.2
+ * source of truth for the whole app (see the editor architecture §4.2
  * rule 1), so it must round-trip through localStorage, a .hackhubqe file, and the
  * `project.json` embedded in every export.
  */

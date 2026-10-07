@@ -9,7 +9,7 @@
  *
  * Source: Zeis's transcriptions of the official quests
  * (reference/Official-Quest/) and the cross-check in
- * docs/plans/r127-official-quest-comparison.md.
+ * the official quest comparison.
  *
  * r127 originally proposed this as a page in `handbookArticles.ts` — wrong
  * surface: that catalogue is the in-game Handbook's jump targets

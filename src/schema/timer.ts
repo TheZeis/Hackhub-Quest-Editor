@@ -2,7 +2,7 @@
  * The Timer's calendar vocabulary, in one pure place.
  *
  * The editor never resolves a *relative* Timer — "in 1 month 2 weeks" is
- * resolved inside the game, at arm time (docs/plans/r176-timer-calendar-ux.md
+ * resolved inside the game, at arm time (the timer design notes
  * §D2, extended in r177) — but it can still say the rule in plain English, and
  * it can tell a real fixed date from an impossible one. Nothing here touches
  * React or the store, so the inspector, the canvas card and the field warnings

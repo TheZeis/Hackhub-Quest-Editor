@@ -1,7 +1,0 @@
-# Archived roadmap entry — r264
-
-Moved out of the README's **Done recently** table in r269, to keep that table to its five newest entries. This preserves the original r264 record; links are adjusted for this archive file.
-
-| # | Item | Notes |
-|---|---|---|
-| r264 | **The answered and the withdrawn are out of the developer list — and it is renumbered** | Zeis's call on the r263 audit: *"remove §19 and §25 completely, then fix the numbering. There's no need to make the file longer with something he already answered, or to tell him about a bug we had that is entirely unrelated to him."* Gone are the API v2 question (answered 2026-09-28 — add `"apiVersion": 2`, which the editor has emitted since r241) and the withdrawn mail-delivery report (our own invented `player@gomail.com`). The list is **23 sections with no gaps**. Renumbering a document with **143 cross-references** was the real work: the mapping went into the file's header, the *live* pointers moved (`README.md`, four rows of the QA ledger), the *historical* ones stayed as written per this repository's archive rule, and the r263 row now names sections instead of numbering them. Three code comments cited the deleted §19 and now carry the date instead. One deliberate omission: `runtimeSource.ts:2956` also cites a section, but its comments ship inside `dist/mod.js` (verified against the built QA export), so editing it would change compiler output and cost an `EDITOR_BUILD` bump — left alone and flagged. |

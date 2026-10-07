@@ -4,7 +4,7 @@
  * type declarations.
  *
  * Why this exists: the payload table on the docs' Events *guide* page has been
- * stale for large parts of the catalogue (see docs/01-analysis-and-architecture.md §7.2).
+ * stale for large parts of the catalogue (see the editor architecture notes).
  * Building the editor's trigger palette from that table would generate trigger
  * conditions that never match. `ModEventMap` in the published `index.d.ts` is the
  * authoritative source, so we parse it.

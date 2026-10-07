@@ -5,7 +5,7 @@
  * own `ModEventMap` (see `reference/generate-event-catalogue.mjs`). This matters:
  * the docs' Events guide has listed stale payloads for large parts of the catalogue,
  * and a condition built against a stale field name would silently never match
- * (docs/01 §7.2).
+ * (the editor architecture §7.2).
  */
 import raw from "../../reference/hackhub-events.json";
 

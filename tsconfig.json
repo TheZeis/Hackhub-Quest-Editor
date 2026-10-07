@@ -23,11 +23,11 @@
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
 
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "reference", "scripts/manual-figures", "vite.config.ts", "vite.manual-figures.config.ts", "vitest.setup.ts"]
+  "include": ["src", "reference", "vite.config.ts"]
 }
