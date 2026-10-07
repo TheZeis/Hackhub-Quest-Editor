@@ -3,8 +3,11 @@
  * fields, attachment included.
  */
 import { FieldShell, TextArea, TextInput, Toggle } from "@/editor/inspector/primitives";
+import { TextInputWithGenerate } from "@/editor/inspector/GenerateButton";
+import { generateField } from "@/lib/generate";
 import type { MailNodeData } from "@/schema/nodes";
 import { SimFrame } from "./chrome";
+import { mailBodyText } from "@/compiler/mailText";
 
 export function MailScript({ value, onChange }: { value: MailNodeData; onChange: (p: Partial<MailNodeData>) => void }) {
     const { from, to, subject, content, attachment } = value;
@@ -22,10 +25,13 @@ export function MailScript({ value, onChange }: { value: MailNodeData; onChange:
                         </span>
                         <span>now</span>
                     </div>
-                    <div
-                        className="webpage-mail mt-2 max-h-48 overflow-y-auto text-[11.5px] leading-relaxed text-ink-2"
-                        dangerouslySetInnerHTML={{ __html: content || "<p>…</p>" }}
-                    />
+                    {/* GoMail prints the body as plain text, so the preview
+                        shows exactly what the compiler will send - not the
+                        rendered HTML. Showing the rendered version here is why
+                        a briefing shipped reading "<p>His name is ...". */}
+                    <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap text-[11.5px] leading-relaxed text-ink-2">
+                        {mailBodyText(content) || "…"}
+                    </div>
                     {attachment && attachment.name && (
                         <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2 py-1 font-mono text-[10.5px] text-ink-3">
                             📎 {attachment.name}.{attachment.extension}
@@ -39,7 +45,14 @@ export function MailScript({ value, onChange }: { value: MailNodeData; onChange:
                     label="From"
                     hint="The sender address. Make it a domain the player might look up — it is a lead."
                 >
-                    <TextInput ariaLabel="Mail from" value={from} onChange={(f) => onChange({ from: f })} mono />
+                    <TextInputWithGenerate
+                        ariaLabel="Mail from"
+                        value={from}
+                        onChange={(f) => onChange({ from: f })}
+                        onGenerate={() => onChange({ from: generateField("email") })}
+                        generateLabel="e-mail"
+                        mono
+                    />
                 </FieldShell>
                 <FieldShell label="To" hint="Leave blank to send it to the player.">
                     <TextInput ariaLabel="Mail to" value={to ?? ""} onChange={(t) => onChange({ to: t || undefined })} mono />
@@ -51,18 +64,35 @@ export function MailScript({ value, onChange }: { value: MailNodeData; onChange:
                 </FieldShell>
                 <FieldShell
                     label="Body"
-                    hint="The body of the mail. HTML tags are rendered as written, so <b> and <p> work."
+                    hint="The body of the mail. GoMail shows it as plain text — blank lines separate paragraphs. Any HTML you paste in is converted to text for you, so it never reaches the player as tags."
                 >
                     <TextArea ariaLabel="Mail body" value={content} onChange={(c) => onChange({ content: c })} rows={8} />
                 </FieldShell>
                 <Toggle
                     label="The player can reply"
-                    hint="Let the player answer. Their reply arrives as an event you can trigger on."
+                    hint="Adds a Reply button. Proven in game (the 2026-09-20 mail QA): the button draws on this direct send path, and the player's reply arrives addressed to your From address — trigger on the Mail.Sent event where “to” contains that address to react to it."
                     checked={value.replyable}
                     onChange={(replyable) => onChange({ replyable })}
                 />
+                <Toggle
+                    label="Withdraw the mail when the quest ends"
+                    hint="Removes this mail from the player's inbox when the quest is completed or abandoned. Off by default: a story mail is something the player may want to re-read. Needs no id from you — the send path records it."
+                    checked={value.withdrawOnQuestEnd}
+                    onChange={(withdrawOnQuestEnd) => onChange({ withdrawOnQuestEnd })}
+                />
                 <div className="rounded-md border border-line/70 bg-surface p-2">
                     <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">Attachment</p>
+                    {/* Worth being explicit: an attachment is a file this mail
+                        ARRIVES with, not the file the player is sent to fetch.
+                        A quest file lives on the target machine, put there by a
+                        user's "Files" list on a network node. QA read it the
+                        other way round, which is a fair reading of a box
+                        labelled only "Attachment". */}
+                    <p className="mb-2 text-[10.5px] leading-snug text-ink-4">
+                        A file that arrives <em>with</em> this mail — a dossier, a photo, a list. Not
+                        the file the player has to go and steal: that one belongs on the target
+                        machine, under a user on a network node.
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                         <FieldShell label="File name" hint="The attachment's filename, without the extension.">
                             <TextInput

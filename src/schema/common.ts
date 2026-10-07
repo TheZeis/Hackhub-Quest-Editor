@@ -1,8 +1,20 @@
 /**
+ * The address of the machine a quest is built around.
+ *
+ * The game allocates it per playthrough (`Network.randomIp()` in
+ * `CreateData()`), and the author never types it: networks live in the save and
+ * outlive the mod, so a fixed address meant a re-exported build collided with
+ * its own older self (r73). Anywhere an author needs the address — a whois
+ * answer, an objective hint, a mail — this token is filled in for them, and the
+ * inspector shows "Random IP" rather than the token itself.
+ */
+export const TARGET_IP_TOKEN = "{{data.targetIp}}";
+
+/**
  * Shared primitives for the project document.
  *
  * Everything here is deliberately JSON-serialisable: the document is the single
- * source of truth for the whole app (see docs/01-analysis-and-architecture.md §4.2
+ * source of truth for the whole app (see the editor architecture §4.2
  * rule 1), so it must round-trip through localStorage, a .hackhubqe file, and the
  * `project.json` embedded in every export.
  */
@@ -76,6 +88,8 @@ export const FileEntrySchema: z.ZodType<FileEntry> = z.lazy(() =>
         extension: z.string().optional(),
         hidden: z.boolean().optional(),
         locked: z.boolean().optional(),
+        /** The player may delete this file (rm works on it). Off = protected. SDK 0.24. */
+        deleteable: z.boolean().optional(),
         children: z.array(FileEntrySchema).optional(),
     }),
 );
@@ -87,6 +101,7 @@ export type FileEntry = {
     extension?: string;
     hidden?: boolean;
     locked?: boolean;
+    deleteable?: boolean;
     children?: FileEntry[];
 };
 
@@ -142,6 +157,21 @@ export const VULNERABILITY_TYPES = [
 export const VulnerabilityTypeSchema = z.enum(VULNERABILITY_TYPES);
 export type VulnerabilityType = z.infer<typeof VulnerabilityTypeSchema>;
 
+/**
+ * Display-only descriptions for the vulnerability dropdown (r155): the
+ * universal meaning of each weakness in gamer words. The option *values*
+ * stay the raw enum, so exports are byte-identical.
+ */
+export const VULNERABILITY_BLURBS: Record<VulnerabilityType, string> = {
+    SQL_INJECTION: "steal from the database",
+    XSS: "script in web pages",
+    CORS: "read other sites' data",
+    SSRF: "make the server fetch",
+    LFI: "read the server's files",
+    RFI: "load a file from your URL",
+    RCE: "run any command",
+};
+
 export const VulnerabilitySchema = z.object({
     id: z.string(),
     type: VulnerabilityTypeSchema,
@@ -187,6 +217,14 @@ export const NetworkDeviceSchema: z.ZodType<NetworkDevice> = z.lazy(() =>
         rootFiles: z.array(FileEntrySchema).default([]),
         /** Hidden from `nmap` unless the player already knows the IP. */
         isIpHidden: z.boolean().optional(),
+        /**
+         * Device only. Adds the engine's stock `root` and `guest` accounts
+         * alongside the ones written here. A guest account is what the SSH
+         * exploit lands in when it finds one, so leaving it off gives the
+         * player the authored account instead. Defaults to on, which is what
+         * every build before r78 did unconditionally.
+         */
+        extraAccounts: z.boolean().optional(),
         location: z
             .object({
                 latitude: z.string(),
@@ -214,6 +252,7 @@ export type NetworkDevice = {
     rules: FirewallRule[];
     rootFiles: FileEntry[];
     isIpHidden?: boolean;
+    extraAccounts?: boolean;
     location?: { latitude: string; longitude: string; city?: string; country?: string };
     children: NetworkDevice[];
 };

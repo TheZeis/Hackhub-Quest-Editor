@@ -6,15 +6,10 @@
   "description": "Visual no-code quest mod editor for HackHub - Ultimate Hacker Simulator",
   "license": "MIT",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite optimize --logLevel error && vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "gen:events": "node reference/generate-event-catalogue.mjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
@@ -38,24 +33,16 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.18.0",
     "@types/prismjs": "^1.26.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "jsdom": "^26.1.0",
-    "playwright-core": "^1.62.1",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.3",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.2.2"
   },
   "engines": {
     "node": ">=22.12.0"

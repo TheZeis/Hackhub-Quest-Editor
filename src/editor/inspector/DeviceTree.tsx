@@ -12,9 +12,13 @@ import { nanoid } from "nanoid";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
 import { DEVICE_TYPES, DEVICE_TYPE_LABELS, type DeviceType, type NetworkDevice } from "@/schema/common";
+import { TARGET_IP_TOKEN } from "@/schema/common";
+import { PORT_PRESETS } from "@/schema/portPresets";
 import { FIELD_GROUPS } from "@/schema/registry";
 import { useEditor } from "@/store/editor";
 import { ListEditor } from "./ListEditor";
+import { TextInputWithGenerate } from "./GenerateButton";
+import { generateField } from "@/lib/generate";
 import { FieldShell, SelectInput, TextInput, Toggle } from "./primitives";
 
 const TYPE_OPTIONS = DEVICE_TYPES.map((t) => ({ value: t, label: DEVICE_TYPE_LABELS[t] }));
@@ -56,7 +60,7 @@ export function DeviceEditor({
                     aria-hidden
                 />
                 <span className="truncate font-mono text-[11.5px] text-ink-2">
-                    {device.ip || "no IP"}
+                    {device.ip === TARGET_IP_TOKEN ? "Random IP" : device.ip || "no IP"}
                 </span>
                 <span className="ml-auto text-[10px] tracking-wider text-ink-4 uppercase">
                     {DEVICE_TYPE_LABELS[device.type]}
@@ -73,30 +77,52 @@ export function DeviceEditor({
                     />
                 </FieldShell>
 
-                <FieldShell label="IP address" hint="Use the {{data.targetIp}} token for the router of a randomly-addressed quest.">
-                    <TextInput
-                        ariaLabel="IP address"
-                        value={device.ip}
-                        onChange={(ip) => write({ ip })}
-                        mono
-                    />
-                </FieldShell>
+                {/* The address of the machine a quest is built around is
+                    allocated by the game, not typed (r73): networks live in the
+                    save and outlive the mod, so a fixed address meant a
+                    re-exported build collided with its own older self. The
+                    field shows "Random IP" rather than the raw token, because
+                    the author never has to know the token exists. Machines
+                    BEHIND a router keep a real, editable LAN address. */}
+                {device.ip === TARGET_IP_TOKEN ? (
+                    <FieldShell
+                        label="IP address"
+                        hint="The game gives this machine a fresh address every playthrough, so a re-exported mod can never clash with an older copy of itself. Anywhere you need the address — a whois answer, a hint, a mail — it is filled in for you."
+                    >
+                        <TextInput ariaLabel="IP address" value="Random IP" onChange={() => {}} disabled mono />
+                    </FieldShell>
+                ) : (
+                    <FieldShell label="IP address" hint="The address of this machine on the network behind the router.">
+                        <TextInputWithGenerate
+                            ariaLabel="IP address"
+                            value={device.ip}
+                            onChange={(ip) => write({ ip })}
+                            onGenerate={() => write({ ip: generateField("ip", {}, { ipFlavour: "private" }) })}
+                            generateLabel="IP address"
+                            mono
+                        />
+                    </FieldShell>
+                )}
 
                 <FieldShell label="Hostname">
-                    <TextInput
+                    <TextInputWithGenerate
                         ariaLabel="Hostname"
                         value={device.name ?? ""}
                         onChange={(name) => write({ name })}
+                        onGenerate={() => write({ name: generateField("hostname") })}
+                        generateLabel="hostname"
                         mono
                         placeholder="optional"
                     />
                 </FieldShell>
 
                 <FieldShell label="Domain">
-                    <TextInput
+                    <TextInputWithGenerate
                         ariaLabel="Domain"
                         value={device.domainName ?? ""}
                         onChange={(domainName) => write({ domainName })}
+                        onGenerate={() => write({ domainName: generateField("domain") })}
+                        generateLabel="domain"
                         mono
                         placeholder="optional"
                     />
@@ -108,10 +134,12 @@ export function DeviceEditor({
                             label="Router model"
                             hint="Enables the in-game `fern` recovery route: the player runs fern “<model>” to recover the password. Leave blank to disable that route."
                         >
-                            <TextInput
+                            <TextInputWithGenerate
                                 ariaLabel="Router model"
                                 value={device.model ?? ""}
                                 onChange={(model) => write({ model })}
+                                onGenerate={() => write({ model: generateField("routerModel") })}
+                                generateLabel="router model"
                                 mono
                                 placeholder="TP-Link Archer C6"
                             />
@@ -138,7 +166,55 @@ export function DeviceEditor({
                     onChange={(isIpHidden) => write({ isIpHidden })}
                 />
 
+                {device.type === "DEVICE" && (
+                    <>
+                        <Toggle
+                            label="Add stock root and guest accounts"
+                            checked={device.extraAccounts !== false}
+                            onChange={(extraAccounts) => write({ extraAccounts })}
+                        />
+                        {device.extraAccounts !== false && (
+                            <p className="mx-3 mb-2 text-[11px] leading-snug text-dim">
+                                The SSH exploit lands in a guest account when it finds one, so the
+                                player may need to switch user or crack a password to reach the
+                                accounts you wrote. Turn this off for a machine that should have
+                                only the accounts listed here.
+                            </p>
+                        )}
+                    </>
+                )}
+
                 <Collapsible title={`Ports (${device.ports.length})`}>
+                    <FieldShell
+                        label="Add a common port"
+                        hint="Fills a port with values from the game's own quests and scans. Mail ports leave the version blank — fill it from your scan."
+                    >
+                        <SelectInput
+                            ariaLabel="Add a common port"
+                            value=""
+                            onChange={(id) => {
+                                const preset = PORT_PRESETS.find((p) => p.id === id);
+                                if (!preset) return;
+                                write({
+                                    ports: [
+                                        ...device.ports,
+                                        {
+                                            id: nanoid(8),
+                                            external: preset.external,
+                                            internal: preset.internal,
+                                            active: true,
+                                            service: preset.service,
+                                            version: preset.version,
+                                        },
+                                    ],
+                                });
+                            }}
+                            options={[
+                                { value: "", label: "Pick a port…" },
+                                ...PORT_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+                            ]}
+                        />
+                    </FieldShell>
                     <ListEditor
                         nodeId={nodeId}
                         path={`${path}.ports`}

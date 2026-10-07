@@ -3,9 +3,9 @@
  *
  * Loaded from `reference/hackhub-events.json`, which is *generated* from the SDK's
  * own `ModEventMap` (see `reference/generate-event-catalogue.mjs`). This matters:
- * the docs' Events guide lists stale payloads for roughly half of the 92 events,
+ * the docs' Events guide has listed stale payloads for large parts of the catalogue,
  * and a condition built against a stale field name would silently never match
- * (docs/01 §7.2).
+ * (the editor architecture §7.2).
  */
 import raw from "../../reference/hackhub-events.json";
 
@@ -31,7 +31,7 @@ export const EVENTS: CatalogueEvent[] = catalogue.events;
 
 export const EVENT_GROUPS: { id: string; label: string }[] = [
     { id: "recon", label: "Reconnaissance & terminal" },
-    { id: "web", label: "Directory brute-force & browser" },
+    { id: "web", label: "Directory brute-force, browser & HTTP" },
     { id: "access", label: "Access & exploitation" },
     { id: "cracking", label: "Cracking & vuln scanning" },
     { id: "wifi", label: "Bettercap & Wi-Fi" },
@@ -81,11 +81,27 @@ export function eventFields(name: string): string[] {
     return payloadFields(ev.payload);
 }
 
-/** True when the payload is a primitive rather than an object (e.g. `string`). */
+/**
+ * Events the SDK types as an object but the game actually raises with a bare
+ * value.
+ *
+ * The compiler copes with this generally: on a primitive payload any field name
+ * resolves to the payload itself. This list exists so the editor can *say so*
+ * in the condition builder when an in-game probe proves a declaration is wrong.
+ *
+ * SDK 0.24.0 now types the old `Terminal.Lynx.Search` mismatch as `string`, so
+ * there are no known declaration/runtime primitive mismatches today.
+ */
+export const PAYLOAD_IS_REALLY_PRIMITIVE = new Set<string>();
+
+const MATCHABLE_PRIMITIVE_PAYLOADS = new Set(["string", "number", "boolean"]);
+
+/** True when the payload is one bare value the author can match as a whole. */
 export function isPrimitivePayload(name: string): boolean {
+    if (PAYLOAD_IS_REALLY_PRIMITIVE.has(name)) return true;
     const ev = byName.get(name);
     if (!ev) return false;
-    return !ev.payload.trim().startsWith("{");
+    return MATCHABLE_PRIMITIVE_PAYLOADS.has(ev.payload.trim());
 }
 
 export function isKnownEvent(name: string): boolean {
@@ -102,13 +118,23 @@ export function groupedEvents(): { group: string; label: string; events: Catalog
 }
 
 /**
- * Human label for an event, e.g. `Terminal.NmapScan` → `Nmap scan`.
+ * Human-readable event name, e.g. `Metasploit.Meterpreter.Connected` →
+ * `Metasploit: Meterpreter connected`.
  *
- * The namespace is dropped because the picker already groups events by it.
+ * The namespace stays — it says which part of the game fires — and the tail
+ * is split on camelCase with only the first word keeping its capitals, so
+ * acronyms (`SSH`, `FTP`) survive while `Connected` reads as `connected`.
+ * Single-segment names just get their words split (`NetworkPacketTransfer` →
+ * `Network packet transfer`). Stored values are always the raw id; this is
+ * display only.
  */
-export function eventLabel(name: string): string {
-    const last = name.split(".").pop() ?? name;
-    const words = last.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim().toLowerCase();
-    if (!words) return name;
-    return words.charAt(0).toUpperCase() + words.slice(1);
+export function humanEventName(name: string): string {
+    const parts = name.split(".").filter((p) => p.length > 0);
+    if (parts.length === 0) return name;
+    const split = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim().split(/\s+/);
+    const sentence = (words: string[]) =>
+        [words[0], ...words.slice(1).map((w) => w.toLowerCase())].join(" ");
+    if (parts.length === 1) return sentence(split(parts[0]));
+    const [ns, ...tail] = parts;
+    return `${ns}: ${sentence(tail.flatMap(split))}`;
 }

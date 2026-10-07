@@ -1,7 +1,7 @@
 /**
  * The editor store.
  *
- * One serialisable `ProjectDocument` is the only source of truth (docs/01 §4.2).
+ * One serialisable `ProjectDocument` is the only source of truth (the editor architecture §4.2).
  * Every mutation goes through `mutate()`, which snapshots for undo/redo unless the
  * caller opts out — dragging and viewport moves opt out and commit once at the end
  * so a single drag is a single undo step.
@@ -9,12 +9,14 @@
 import { create } from "zustand";
 import { original, produce } from "immer";
 import { nanoid } from "nanoid";
-import type { ProjectDocument, QuestDoc, ModDoc, WebsiteDoc, WebPageDoc } from "@/schema/project";
+import type { ProjectDocument, QuestDoc, ModDoc, WebsiteDoc, WebPageDoc, TwotterAccountDoc } from "@/schema/project";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
 import { ProjectSchema, createProject, createQuest } from "@/schema/project";
-import { nodeTypeDef } from "@/schema/registry";
+import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import { layeredLayout } from "@/analysis/graph";
+import { debugProbeName } from "@/editor/canvas/debugName";
+import { groupColourRandomOn, randomGroupColour } from "@/editor/canvas/groupColours";
 import { canConnect, type EdgeKind } from "@/schema/edges";
 import type { NodeType } from "@/schema/nodes";
 import type { Position, Viewport } from "@/schema/common";
@@ -32,7 +34,7 @@ export interface UiState {
     inspectorCollapsed: boolean;
     paletteCollapsed: boolean;
     /** Set while a modal (templates, export, settings) is open. */
-    modal: null | "templates" | "mod" | "shortcuts" | "websites" | "dialogues" | "newProject";
+    modal: null | "templates" | "mod" | "shortcuts" | "websites" | "twotter" | "extras" | "dialogues" | "newProject" | "simulator" | "toolpacks" | "settings";
     /** While set, the dialogues modal edits this node instead of listing all. */
     dialogueNode: string | null;
     toast: { id: string; message: string; tone: ToastTone } | null;
@@ -73,10 +75,16 @@ export interface EditorStore {
     setViewport: (questId: string, viewport: Viewport) => void;
 
     /* nodes */
-    addNode: (type: NodeType, position: Position) => string | null;
+    addNode: (type: NodeType, position: Position, data?: Record<string, unknown>) => string | null;
     updateNodeData: (nodeId: string, patch: Record<string, unknown>) => void;
     setNodePosition: (nodeId: string, position: Position) => void;
     setNodePositions: (positions: Record<string, Position>) => void;
+    /**
+     * Move several nodes as one deliberate edit — aligning, spreading, snapping.
+     * Unlike `setNodePositions`, which serves the live drag and deliberately
+     * records no history, this is a single undoable step for the whole group.
+     */
+    arrangeNodes: (positions: Record<string, Position>) => void;
     removeNodes: (ids: string[]) => void;
     /** Re-arrange the active quest into a readable left-to-right layout. */
     applyLayout: () => void;
@@ -98,6 +106,11 @@ export interface EditorStore {
     pasteClipboard: () => void;
     duplicateSelection: () => void;
 
+    /* Twotter accounts (r185) — mod level, like the websites */
+    addTwotterAccount: (account: TwotterAccountDoc) => void;
+    removeTwotterAccount: (id: string) => void;
+    updateTwotterAccount: (id: string, patch: Partial<Omit<TwotterAccountDoc, "id">>) => void;
+
     /* websites */
     addWebsite: (website: WebsiteDoc) => void;
     removeWebsite: (id: string) => void;
@@ -105,6 +118,16 @@ export interface EditorStore {
     addPage: (websiteId: string, page: WebPageDoc) => void;
     updatePage: (websiteId: string, pageId: string, patch: Partial<WebPageDoc>) => void;
     removePage: (websiteId: string, pageId: string) => void;
+
+    /* pack extras + translations (r203) — mod level, like the websites */
+    addExtra: (list: "menuItems" | "widgets" | "contextItems", item: never) => void;
+    updateExtra: (list: "menuItems" | "widgets" | "contextItems", id: string, patch: Record<string, unknown>) => void;
+    removeExtra: (list: "menuItems" | "widgets" | "contextItems", id: string) => void;
+    setTranslation: (language: string, key: string, value: string) => void;
+    addTranslationLanguage: (language: string) => void;
+    removeTranslationLanguage: (language: string) => void;
+    addTranslationKey: (key: string) => void;
+    removeTranslationKey: (key: string) => void;
 
     /* ui */
     select: (selection: Selection) => void;
@@ -306,7 +329,105 @@ export const useEditor = create<EditorStore>()((set, get) => {
         updateQuest: (id, patch) =>
             mutate((project) => {
                 const quest = project.quests.find((q) => q.id === id);
-                if (quest) Object.assign(quest, patch);
+                if (quest) {
+                    Object.assign(quest, patch);
+                    /* An id swap has to carry the id-keyed state across, or the
+                       editor immediately loses the quest it is editing (the
+                       active-quest pointer and the saved canvas viewport). */
+                    if (patch.id && patch.id !== id) {
+                        if (project.editor.activeQuestId === id) project.editor.activeQuestId = patch.id;
+                        if (project.editor.viewports[id]) {
+                            project.editor.viewports[patch.id] = project.editor.viewports[id];
+                            delete project.editor.viewports[id];
+                        }
+                    }
+                }
+            }),
+
+        /* Twotter accounts — the Twotter panel writes through these (r185) */
+        addTwotterAccount: (account) =>
+            mutate((project) => {
+                project.twotterAccounts.push(account);
+            }),
+
+        removeTwotterAccount: (id) =>
+            mutate((project) => {
+                project.twotterAccounts = project.twotterAccounts.filter((a) => a.id !== id);
+            }),
+
+        updateTwotterAccount: (id, patch) =>
+            mutate((project) => {
+                const account = project.twotterAccounts.find((a) => a.id === id);
+                if (account) Object.assign(account, patch);
+            }),
+
+        /* Pack extras (r203). One set of actions for the three lists, because
+           they differ only in which array they land in; the panel keeps the
+           forms apart. */
+        addExtra: (list, item) =>
+            mutate((project) => {
+                project.extras = project.extras ?? { menuItems: [], widgets: [], contextItems: [] };
+                (project.extras[list] as unknown[]).push(item);
+            }),
+
+        updateExtra: (list, id, patch) =>
+            mutate((project) => {
+                const found = (project.extras?.[list] ?? []).find((i) => i.id === id);
+                if (found) Object.assign(found, patch);
+            }),
+
+        removeExtra: (list, id) =>
+            mutate((project) => {
+                const extras = project.extras;
+                if (!extras) return;
+                extras[list] = (extras[list] as { id: string }[]).filter((i) => i.id !== id) as never;
+            }),
+
+        /* Translations. The language list and the key set are shared by every
+           language (the game falls back to English for anything a language has
+           not filled in), so adding or removing a language or a key touches
+           every row at once — that is what keeps the table consistent. */
+        setTranslation: (language, key, value) =>
+            mutate((project) => {
+                const t = project.translations ?? { languages: ["en"], strings: {} };
+                t.strings[language] = t.strings[language] ?? {};
+                t.strings[language][key] = value;
+                project.translations = t;
+            }),
+
+        addTranslationLanguage: (language) =>
+            mutate((project) => {
+                const t = project.translations ?? { languages: ["en"], strings: {} };
+                if (!t.languages.includes(language)) t.languages.push(language);
+                t.strings[language] = t.strings[language] ?? {};
+                project.translations = t;
+            }),
+
+        removeTranslationLanguage: (language) =>
+            mutate((project) => {
+                const t = project.translations;
+                if (!t) return;
+                t.languages = t.languages.filter((l) => l !== language);
+                delete t.strings[language];
+                project.translations = t;
+            }),
+
+        addTranslationKey: (key) =>
+            mutate((project) => {
+                const t = project.translations ?? { languages: ["en"], strings: {} };
+                for (const language of t.languages) {
+                    t.strings[language] = t.strings[language] ?? {};
+                    if (!(key in t.strings[language])) t.strings[language][key] = "";
+                }
+                project.translations = t;
+            }),
+
+        removeTranslationKey: (key) =>
+            mutate((project) => {
+                const t = project.translations;
+                if (!t) return;
+                for (const language of Object.keys(t.strings)) delete t.strings[language][key];
+                project.translations = t;
             }),
 
         /* websites — the builder dialog writes through these */
@@ -351,12 +472,26 @@ export const useEditor = create<EditorStore>()((set, get) => {
                 project.editor.viewports[questId] = viewport;
             }, { history: false }),
 
-        addNode: (type, position) => {
+        addNode: (type, position, data) => {
             const quest = activeQuestOf(get().project);
             if (!quest) return null;
             const def = nodeTypeDef(type);
             const id = nanoid(10);
-            const node = { id, type, position, data: def.create() } as unknown as NodeDoc;
+            const nodeData = (data ? { ...(def.create() as object), ...data } : def.create()) as Record<
+                string,
+                unknown
+            >;
+            // r229: a new frame may wear a random ready-made colour when the
+            // author opted in — but never over a colour the caller picked.
+            if (type === "layout.group" && groupColourRandomOn() && data?.color === undefined) {
+                nodeData.color = randomGroupColour();
+            }
+            const node = {
+                id,
+                type,
+                position,
+                data: nodeData,
+            } as unknown as NodeDoc;
             mutate((project) => {
                 const q = project.quests.find((x) => x.id === quest.id);
                 q?.graph.nodes.push(node);
@@ -367,24 +502,41 @@ export const useEditor = create<EditorStore>()((set, get) => {
 
         updateNodeData: (nodeId, patch) =>
             mutate((project) => {
-                const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+                const quest = activeQuestOf(project);
                 const node = quest?.graph.nodes.find((n) => n.id === nodeId);
-                if (!node) return;
+                if (!node || !quest) return;
                 for (const [path, value] of Object.entries(patch)) {
                     setPath(node.data as unknown as Record<string, unknown>, path, value);
+                }
+                /* Typing a name into a debug probe makes it the author's, and
+                   re-wiring must never overwrite it again. Clearing the field
+                   hands it back to us, so the next wire names it afresh. */
+                if (node.type === "flow.debug" && "label" in patch) {
+                    (node.data as { labelAuto: boolean }).labelAuto =
+                        String(patch.label ?? "").trim().length === 0;
+                }
+                // Nodes whose sockets come from their own data (Sequence) can
+                // lose a socket on edit. A wire hanging off a socket that no
+                // longer exists would be invisible but still compiled, so it
+                // goes with it.
+                if (nodeTypeDef(node.type).dynamicSources) {
+                    const live = new Set(sourcesOf(node).map((h) => h.id));
+                    quest.graph.edges = quest.graph.edges.filter(
+                        (e) => e.source !== node.id || live.has(e.sourceHandle),
+                    );
                 }
             }),
 
         setNodePosition: (nodeId, position) =>
             mutate((project) => {
-                const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+                const quest = activeQuestOf(project);
                 const node = quest?.graph.nodes.find((n) => n.id === nodeId);
                 if (node) node.position = position;
             }, { history: false }),
 
         setNodePositions: (positions) =>
             mutate((project) => {
-                const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+                const quest = activeQuestOf(project);
                 if (!quest) return;
                 for (const node of quest.graph.nodes) {
                     const next = positions[node.id];
@@ -394,7 +546,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
 
         removeNodes: (ids) =>
             mutate((project) => {
-                const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+                const quest = activeQuestOf(project);
                 if (!quest) return;
                 const doomed = new Set(ids);
                 quest.graph.nodes = quest.graph.nodes.filter((n) => !doomed.has(n.id));
@@ -403,9 +555,21 @@ export const useEditor = create<EditorStore>()((set, get) => {
                 );
             }),
 
+        arrangeNodes: (positions) => {
+            if (Object.keys(positions).length === 0) return;
+            mutate((project) => {
+                const quest = activeQuestOf(project);
+                if (!quest) return;
+                for (const node of quest.graph.nodes) {
+                    const next = positions[node.id];
+                    if (next) node.position = next;
+                }
+            });
+        },
+
         applyLayout: () => {
             const project = get().project;
-            const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+            const quest = activeQuestOf(project);
             if (!quest) return;
             const positions = layeredLayout(quest.graph.nodes, quest.graph.edges);
             if (Object.keys(positions).length === 0) return;
@@ -421,7 +585,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
 
         connect: ({ source, sourceHandle, target, targetHandle }) => {
             const project = get().project;
-            const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+            const quest = activeQuestOf(project);
             if (!quest) return false;
             if (source === target) return false;
 
@@ -429,7 +593,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
             const targetNode = quest.graph.nodes.find((n) => n.id === target);
             if (!sourceNode || !targetNode) return false;
 
-            const sourceKind = nodeTypeDef(sourceNode.type).sources.find(
+            const sourceKind = sourcesOf(sourceNode).find(
                 (h) => h.id === sourceHandle,
             )?.kind;
             const targetKind = nodeTypeDef(targetNode.type).targets.find(
@@ -458,14 +622,39 @@ export const useEditor = create<EditorStore>()((set, get) => {
             };
             mutate((p) => {
                 const q = p.quests.find((x) => x.id === quest.id);
-                q?.graph.edges.push(edge);
+                if (!q) return;
+                q.graph.edges.push(edge);
+
+                /* Name a debug probe after whatever it was just wired to.
+                   Hand-labelling ten probes per test run is the friction that
+                   stops a diagnostic being used, so the probe names itself:
+                   <Socket>-<Node>-<Detail>, the convention QA arrived at. Only
+                   ever fills a blank label — an author's own text is never
+                   overwritten, here or on a later rewire. */
+                const probe = q.graph.nodes.find((n) => n.id === target);
+                if (probe && probe.type === "flow.debug") {
+                    const data = probe.data as { label: string; labelAuto?: boolean };
+                    /* Re-name on every rewire, so a probe plugged into the
+                       wrong socket and then moved stops describing the wire it
+                       used to be on. Only a name we generated is replaced:
+                       `labelAuto` records that, because "is it blank?" stops
+                       being a usable test the moment we fill it in.
+
+                       A probe can take more than one wire, so the newest
+                       connection wins — that is the one the author just made,
+                       and the one they are thinking about. */
+                    if (!data.label.trim() || data.labelAuto) {
+                        data.label = debugProbeName(sourceNode, sourceHandle);
+                        data.labelAuto = true;
+                    }
+                }
             });
             return true;
         },
 
         removeEdges: (ids) =>
             mutate((project) => {
-                const quest = project.quests.find((q) => q.id === project.editor.activeQuestId);
+                const quest = activeQuestOf(project);
                 if (!quest) return;
                 const doomed = new Set(ids);
                 quest.graph.edges = quest.graph.edges.filter((e) => !doomed.has(e.id));
@@ -530,8 +719,8 @@ export const useEditor = create<EditorStore>()((set, get) => {
             );
             set({
                 clipboard: {
-                    nodes: JSON.parse(JSON.stringify(nodes)),
-                    edges: JSON.parse(JSON.stringify(edges)),
+                    nodes: clone(nodes),
+                    edges: clone(edges),
                 },
             });
         },
@@ -553,7 +742,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
                 const id = nanoid(10);
                 idMap.set(n.id, id);
                 return {
-                    ...JSON.parse(JSON.stringify(n)),
+                    ...clone(n),
                     id,
                     position: { x: n.position.x + 32, y: n.position.y + 32 },
                 } as NodeDoc;
@@ -561,7 +750,7 @@ export const useEditor = create<EditorStore>()((set, get) => {
             const edges = clipboard.edges.map(
                 (e) =>
                     ({
-                        ...JSON.parse(JSON.stringify(e)),
+                        ...clone(e),
                         id: nanoid(10),
                         source: idMap.get(e.source)!,
                         target: idMap.get(e.target)!,

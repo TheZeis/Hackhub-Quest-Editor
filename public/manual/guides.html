@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Feature guides — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="manual.css" />
+<link rel="stylesheet" href="manual-figures.css" />
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="index.html">Start here</a></li>
+    <li><a href="tutorial.html">Your first quest</a></li>
+    <li><a href="concepts.html">How a quest works</a></li>
+    <li><a href="nodes.html">Node reference</a></li>
+    <li><a href="guides.html">Feature guides</a></li>
+    <li><a href="how-do-i.html">How do I…</a></li>
+    <li><a href="checking.html">Checking your quest</a></li>
+    <li><a href="export.html">Exporting and installing</a></li>
+    <li><a href="troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+<main>
+<header class="hero">
+  <h1>Feature guides</h1>
+  <p class="tag">One page per surface — how to get there, and what to do once you are.</p>
+</header>
+<section id="guides">
+<p>One page per surface of the editor, in the order you meet them. Each section
+says what the thing is for, what is on it, and what goes wrong when you ignore
+it. Where a setting has a consequence you cannot see, the consequence is
+stated.</p>
+
+<h2 id="inspector-tabs">The inspector's three tabs</h2>
+<p>The panel on the right holds three tabs, and one of them is disabled until
+you need it.</p>
+<dl class="facts-list">
+  <dt>Node</dt><dd>Every field on the node you have selected. Greyed out when
+  nothing is selected, because there is nothing to show.</dd>
+  <dt>Quest</dt><dd>Settings for the quest you are looking at. This is the
+  default tab, so it is what you see on an empty canvas.</dd>
+  <dt>Mod</dt><dd>Settings for the whole file: the name on the box, the version,
+  the icon.</dd>
+</dl>
+<figure id="figure-guide-inspector-tabs" class="manual-figure" data-manual-figure data-scene-id="guide-inspector-tabs">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:660px;--figure-ratio:0.666667">
+    <iframe
+      data-manual-figure-scene="guide-inspector-tabs"
+      data-renderer-src="../figures/renderer.html?scene=guide-inspector-tabs"
+      title="Code-rendered editor illustration: Inspector at rest on the Quest tab"
+      aria-describedby="figure-caption-guide-inspector-tabs"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="660"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-inspector-tabs">
+    <span class="manual-figure__description">The inspector at rest on the Quest tab, with the Node tab greyed out because nothing is selected.</span>
+    <span class="manual-figure__caption">The inspector at rest. <b class="ui">Node</b> waits for a
+  selection.</span>
+  </figcaption>
+</figure>
+<p>The panel can also leave the side of the window. Drag its left edge outward
+and it floats, which helps when a node sits underneath it. Drag the title bar to
+move it and the bottom-right corner to resize it.</p>
+<figure id="figure-guide-inspector-drawer" class="manual-figure" data-manual-figure data-scene-id="guide-inspector-drawer" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="guide-inspector-drawer"
+      data-renderer-src="../figures/renderer.html?scene=guide-inspector-drawer"
+      title="Code-rendered editor illustration: Floating inspector over the canvas"
+      aria-describedby="figure-caption-guide-inspector-drawer"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-inspector-drawer">
+    <span class="manual-figure__description">The inspector floating free of the window edge, dragged over the canvas.</span>
+    <span class="manual-figure__caption">The same panel, floating. Its position is a preference, never part
+  of your project.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Floating inspector over the canvas" hidden>View larger</button>
+</figure>
+<div class="note"><b>The floating panel and the docked one are the same
+inspector.</b> The fields
+are identical either way, so nothing is hidden in one mode. The editor also
+keeps the floating panel inside the window, so you cannot lose it past an
+edge.</div>
+
+<h2 id="quest-settings">Quest settings</h2>
+<p>Six groups. Most quests need four of them.</p>
+<h3>Identity</h3>
+<dl class="facts-list">
+  <dt>Quest identifier</dt><dd>Internal. Unique across your mod, and the thing
+  other quests name when they start this one.</dd>
+  <dt>Display title</dt><dd>What the player sees in their quest list.</dd>
+  <dt>Description</dt><dd>The pitch shown before the player accepts. Use it to
+  name any game mod the quest needs.</dd>
+  <dt>Journal group</dt><dd>Folders the player's journal into groups. Two quests
+  in the same group read as one story.</dd>
+</dl>
+<h3>Hackhub feed post</h3>
+<p>The toggle that puts the quest on the Hackhub feed as a job the player can
+accept on the spot. It is the organic way to be found. The scripted
+<b class="ui">Claim another quest</b> node covers quests the story starts itself. Quests
+accepted from the feed complete from the post itself, not the journal.</p>
+<dl class="facts-list">
+  <dt>Post this quest to the Hackhub feed</dt><dd>Off (the default) ships no
+  post at all.</dd>
+  <dt>Post text</dt><dd>The feed body — the pitch the player accepts.</dd>
+  <dt>Poster name</dt><dd>Who seems to have written the post. Blank, the game
+  generates a name. Your own reads best when it is tied to the story rather
+  than a name anyone could have.</dd>
+  <dt>Poster avatar</dt><dd>A PNG or JPG. Blank, the game draws one — a mod
+  that ships no avatars still looks at home on the board.</dd>
+  <dt>Likes</dt><dd>Cosmetic. In-demand jobs have likes; desperate ones do
+  not, and sometimes that is the fiction.</dd>
+  <dt>Comments</dt><dd>Any number, each with a name, an optional drawn or
+  uploaded avatar, and a line of text.</dd>
+</dl>
+<p><b>About the game-generated persona:</b> every field you leave blank is
+filled by the game. It supplies a generated name and a drawn avatar. A post with nothing set still looks like it belongs. Feed posts are part of the quest's
+registration. There is currently no way for a mod to take one back down.
+asking the game's developers for that is on the list.</p>
+<h3>Rewards</h3>
+<p><b class="ui">Money</b> and <b class="ui">XP</b>, both plain numbers. These
+are what the game pays for finishing the quest. That is separate from anything a <b class="ui">Pay the player</b> node does mid-story.</p>
+<h3>Behaviour</h3>
+<dl class="facts-list">
+  <dt>Start automatically</dt><dd>The quest begins on its own instead of waiting
+  to be accepted.</dd>
+  <dt>Complete automatically</dt><dd>The game closes the quest once its
+  objectives are done. Leave it off when a <b class="ui">Complete quest</b>
+  node decides the ending. See <a href="concepts.html#why-no-complete">how
+  quests finish</a>.</dd>
+  <dt>Player can abandon</dt><dd>Lets them give up. Turning it off also means
+  <b class="ui">On quest abandoned</b> never runs.</dd>
+  <dt>Show a manual complete button</dt><dd>Puts a button in the player's hands
+  and lets them decide when the quest is over.</dd>
+  <dt>Tidy the objective list when the story ends</dt><dd>Clears completed
+  objectives so the panel is not a scroll of old text.</dd>
+  <dt>Closing line</dt><dd>One sentence shown when the quest ends. Use it with
+  the legacy tidy-up option, or as the final visible line before a Complete
+  quest node.</dd>
+</dl>
+<h3>Employer</h3>
+<p><b class="ui">First name</b>, <b class="ui">Last name</b> and
+<b class="ui">E-mail</b>. The person the quest is from. Worth filling in,
+because a job with no name behind it reads as a system message.</p>
+<h3>Health</h3>
+<p>Not a setting. This group counts your objectives and flags those without a
+<b class="ui">When event</b> wire. It does not count story wires: a regular
+Objective can still tick when the story reaches it. Treat the count as a prompt
+to check the route, not proof that the objective cannot finish. See
+<a href="checking.html#msg-panel-objective-trigger">the Health message</a>.</p>
+<figure id="figure-guide-quest-settings" class="manual-figure" data-manual-figure data-scene-id="guide-quest-settings">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="guide-quest-settings"
+      data-renderer-src="../figures/renderer.html?scene=guide-quest-settings"
+      title="Code-rendered editor illustration: Quest Behaviour controls in the inspector"
+      aria-describedby="figure-caption-guide-quest-settings"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-quest-settings">
+    <span class="manual-figure__description">The Quest tab scrolled to the Behaviour group, showing its six controls.</span>
+    <span class="manual-figure__caption">The <b class="ui">Behaviour</b> group, where completion is
+  decided.</span>
+  </figcaption>
+</figure>
+
+<h2 id="mod-settings">Mod settings</h2>
+<p>These describe the file, not the story. Everything here ends up on the card
+the game shows the player.</p>
+<dl class="facts-list">
+  <dt>Mod id</dt><dd>Internal, and part of the exported file's name. Changing it
+  later makes the game treat the result as a different mod.</dd>
+  <dt>Display name</dt><dd>The name on the box.</dd>
+  <dt>Version</dt><dd>Also part of the filename, which is how two builds of one
+  mod avoid overwriting each other.</dd>
+  <dt>Author</dt><dd>Your name. Defaults to the editor's name if you leave
+  it.</dd>
+  <dt>Description</dt><dd>The blurb in the mod list.</dd>
+  <dt>Cover image</dt><dd>and <b class="ui">Icon</b> — the two pictures. Both
+  optional, both shipped inside the <code>.zip</code>.</dd>
+  <dt>Tags</dt><dd>Search terms for the mod list.</dd>
+</dl>
+<figure id="figure-guide-mod-settings" class="manual-figure" data-manual-figure data-scene-id="guide-mod-settings">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="guide-mod-settings"
+      data-renderer-src="../figures/renderer.html?scene=guide-mod-settings"
+      title="Code-rendered editor illustration: Mod identity and permissions in the inspector"
+      aria-describedby="figure-caption-guide-mod-settings"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-mod-settings">
+    <span class="manual-figure__description">The Mod tab, with the identity fields and the permissions list visible.</span>
+    <span class="manual-figure__caption">The <b class="ui">Mod</b> tab. Permissions appear here but are
+  not editable — your nodes choose them.</span>
+  </figcaption>
+</figure>
+
+<h2 id="dialogues">Dialogues</h2>
+<p>The <b class="ui">Dialogues</b> button opens the phone conversations, in one
+place rather than scattered across the canvas. This is where you write who says
+what, in what order, and with what delay.</p>
+<figure id="figure-guide-dialogues" class="manual-figure" data-manual-figure data-scene-id="guide-dialogues">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:820px;--figure-ratio:1.365854">
+    <iframe
+      data-manual-figure-scene="guide-dialogues"
+      data-renderer-src="../figures/renderer.html?scene=guide-dialogues"
+      title="Code-rendered editor illustration: Dialogue editor with a conversation open"
+      aria-describedby="figure-caption-guide-dialogues"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-dialogues">
+    <span class="manual-figure__description">The Dialogues window with one conversation open and its lines listed.</span>
+    <span class="manual-figure__caption">One conversation, line by line.</span>
+  </figcaption>
+</figure>
+<p>If nothing leads there, the canvas can flag the node as unreachable. Do not rely on the export report to catch it.</p>
+
+<h2 id="websites">Websites</h2>
+<p>The <b class="ui">Websites</b> button opens the builder. Your sites are on the left, and the pages of whichever site you picked on the right. A site is a host;
+a page is a path on it.</p>
+<figure id="figure-guide-websites" class="manual-figure" data-manual-figure data-scene-id="guide-websites" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="guide-websites"
+      data-renderer-src="../figures/renderer.html?scene=guide-websites"
+      title="Code-rendered editor illustration: Website builder with its site and pages"
+      aria-describedby="figure-caption-guide-websites"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-websites">
+    <span class="manual-figure__description">The Websites builder, with the site list on the left and one site's pages on the right.</span>
+    <span class="manual-figure__caption">Sites and their pages.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Website builder with its site and pages" hidden>View larger</button>
+</figure>
+<p>Each page has a live preview beside the editor, so you see roughly what the
+player will see.</p>
+<figure id="figure-guide-websites-page" class="manual-figure" data-manual-figure data-scene-id="guide-websites-page" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="guide-websites-page"
+      data-renderer-src="../figures/renderer.html?scene=guide-websites-page"
+      title="Code-rendered editor illustration: Website page editor with a preview"
+      aria-describedby="figure-caption-guide-websites-page"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-websites-page">
+    <span class="manual-figure__description">A single page in the page editor, with its preview showing the rendered result.</span>
+    <span class="manual-figure__caption">Editing one page, preview alongside.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Website page editor with a preview" hidden>View larger</button>
+</figure>
+<div class="note warn"><b>Web addresses can overlap.</b> Two sites in one mod
+that use the same host can compete over the same address. The export report
+checks for duplicates in this mod, but cannot inspect other installed mods. Give
+each site its own distinctive host. A page can also be unlisted. It stays out
+of game search. A player may still reach it by address, a link or a brute-force
+tool. Unlisted does not mean private.</div>
+
+<h2 id="templates">Templates</h2>
+<p>The picker has fourteen entries: twelve templates and two Reference sheets.
+Each card shows difficulty and node count. The window also offers
+<b class="ui">Export current quest</b> and <b class="ui">Import a quest file</b>.</p>
+<figure id="figure-guide-templates" class="manual-figure" data-manual-figure data-scene-id="guide-templates">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:720px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="guide-templates"
+      data-renderer-src="../figures/renderer.html?scene=guide-templates"
+      title="Code-rendered editor illustration: Template gallery with difficulty and node counts"
+      aria-describedby="figure-caption-guide-templates"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-templates">
+    <span class="manual-figure__description">The Start from a template window, listing the templates with their difficulty and node counts.</span>
+    <span class="manual-figure__caption">The template list.</span>
+  </figcaption>
+</figure>
+<p>Loading a template replaces the current project and clears undo history.
+Autosave is not a versioned backup, so save a project file before experimenting.</p>
+<p>Here is every card in the picker. The summaries name the kind of work each one teaches, not its plot. The first twelve are starter quests; the last two are lookup sheets, not quests to edit.</p>
+<ul class="plain template-list">
+  <li><b class="ui">Blank quest</b> — Beginner · 4 nodes. Start with the basic quest entry points and build everything else yourself.</li>
+  <li><b class="ui">First Contact</b> — Beginner · 8 nodes. A short, straightforward quest with one objective and a clear finish.</li>
+  <li><b class="ui">The Byline</b> — Beginner · 11 nodes. Follow clues through a website and a writer lookup.</li>
+  <li><b class="ui">Cold Call</b> — Beginner · 10 nodes. Learn how conversation, hints and a typed answer can carry a quest.</li>
+  <li><b class="ui">The Harbour Manifest</b> — Advanced · 22 nodes. A compact reconnaissance and server-access route.</li>
+  <li><b class="ui">The Help Desk Leak</b> — Advanced · 23 nodes. Use public website clues to reach a hidden page.</li>
+  <li><b class="ui">Bad Attachment</b> — Advanced · 14 nodes. Build a mail-led story that depends on a player's reply.</li>
+  <li><b class="ui">Six Tries</b> — Advanced · 23 nodes. A terminal-focused route through scanning, login recovery and SSH.</li>
+  <li><b class="ui">Dead Air</b> — Advanced · 28 nodes. Mix phone, chat, timed waits and repeated choices.</li>
+  <li><b class="ui">Cold Storage</b> — Expert · 20 nodes. Follow a longer network route into a database.</li>
+  <li><b class="ui">The Ledger Contract</b> — Expert · 33 nodes. Trace a network route and use different access steps.</li>
+  <li><b class="ui">The Long Game</b> — Expert · 36 nodes. A three-part campaign with linked quests and different endings.</li>
+  <li><b class="ui">Node Reference</b> — Reference · 51 nodes. A read-only canvas showing the node types and example fields.</li>
+  <li><b class="ui">Quest Cookbook</b> — Reference · 16 nodes. A read-only guide to techniques used in the game's quests.</li>
+</ul>
+<p>Choose a template to learn from. Use <b class="ui">Export current quest</b> and <b class="ui">Import a quest file</b> to move work between projects.</p>
+
+<h2 id="dry-run">Dry run</h2>
+<p>The <b class="ui">Dry run</b> button walks through your quest the way the
+exported mod would run it, without installing anything. It is the closest thing
+to a test drive the editor has. It runs the editor's emitted mod against a
+small recording version of the game's tools.</p>
+<figure id="figure-guide-dryrun" class="manual-figure" data-manual-figure data-scene-id="guide-dryrun">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:820px;--figure-ratio:1.365854">
+    <iframe
+      data-manual-figure-scene="guide-dryrun"
+      data-renderer-src="../figures/renderer.html?scene=guide-dryrun"
+      title="Code-rendered editor illustration: Dry run badges after a fixed sample trace — still illustration"
+      aria-describedby="figure-caption-guide-dryrun"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-dryrun">
+    <span class="manual-figure__description">The Dry run window shows a fixed finished trace from the Harbour Manifest sample, including the nodes that fired.</span>
+    <span class="manual-figure__caption">The settled sample trace shows what the simulator reported.</span>
+    <span class="manual-figure__still-note">Still illustration: the fixed sample run has finished; the report is not live.</span>
+  </figcaption>
+</figure>
+<p>Watch the order and which path the run takes. A missing node may have no wire, or this run may have taken another branch.</p>
+
+<h3>Read the results carefully</h3>
+<p>Opening <b class="ui">Dry run</b> starts a run. After you edit the quest,
+choose <b class="ui">Run again</b>. The dialog lists the story steps it reached,
+then shows how each objective completed or what its event check found.</p>
+<ul class="plain">
+  <li><code>would tick</code>. The listener matched a sample shaped from the condition you wrote. It does not prove that the game will send that event.</li>
+  <li><code>would never tick</code>. The simulator found no matching listener or the sample did not satisfy the condition. Read the note beside the objective and check its event, detail and value. If the note says the listener threw, copy that full message too.</li>
+  <li><code>unknown event</code>. The event is not in the simulator's built-in event list. A community addon's event can still be real; the dry run cannot test it.</li>
+  <li><code>internal beat</code>. The event belongs to the quest's own story flow, rather than a tool the player uses.</li>
+</ul>
+<p>The list at the top also includes export warnings. An error beside a quest
+means it did not register or its code threw while starting. An error above the
+quest list means the mod could not be prepared or failed while registering.
+Copy the full message and build stamp if you need help.</p>
+<h3>If the dry run itself reports an error</h3>
+<ul class="plain">
+  <li><blockquote class="blurb">the compiler produced no dist/mod.js — nothing to dry-run</blockquote> means the editor did not create the mod file. The dry run needs it. Copy the full message and build stamp if you ask for help.</li>
+  <li><code>the emitted mod threw while registering</code> means the mod failed while setting itself up. The rest of the report may be incomplete.</li>
+  <li><code>this quest did not register</code> means the simulator could not find that quest in the mod it loaded.</li>
+  <li><code>the quest's own code threw</code> means that quest failed while its opening steps ran. Keep the full text after the colon; it may name what failed.</li>
+</ul>
+<div class="note warn"><b>A dry run is a rehearsal, not a game test.</b> It uses sample
+event details, not events emitted by the real game. It collapses waits instead
+of waiting through in-game time, and it does not use the game's tools or show
+its screens. A random choice follows the simulator's sample path; other runs
+in game can take another path. Test timed conversations, scans, exploits,
+community events and other game-dependent steps in the actual game.</div>
+
+<h2 id="addons">Addons</h2>
+<p>Addons are packs made by other people that add events and tool actions to
+your editor. The window's own description of them:</p>
+<blockquote class="blurb">Community addons drop in here as data: their events join the trigger picker, their quest data becomes nodes. Addons are data only — the editor never runs code from them.</blockquote>
+<figure id="figure-guide-addons" class="manual-figure" data-manual-figure data-scene-id="guide-addons">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:720px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="guide-addons"
+      data-renderer-src="../figures/renderer.html?scene=guide-addons"
+      title="Code-rendered editor illustration: Addons window in its empty state"
+      aria-describedby="figure-caption-guide-addons"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-addons">
+    <span class="manual-figure__description">The Addons window, showing the drop area and any packs already loaded.</span>
+    <span class="manual-figure__caption">The addons window. Drag a pack in, and its events and nodes
+  appear.</span>
+  </figcaption>
+</figure>
+<p>Once a pack is loaded, its events show up in the trigger picker under
+<b class="ui">Community addons</b>. Its actions appear in a palette group that
+starts with <code>Editor Mods</code> and ends with the pack name. Nothing changes
+until you load one.</p>
+<div class="note warn"><b>Your players need the related game mod too.</b> Features
+that depend on an addon may not work for players who have not installed the game
+mod it drives, and the game may not explain what is missing. Name that
+requirement in your quest description — the editor can remind you, but it cannot
+write the description for you.</div>
+
+<h3>If an addon will not load</h3>
+<p>Open <b class="ui">Addons</b>, then choose <b class="ui">Load a pack (<code>.json</code>)</b> or drop the file into the window. An addon file holds information. The editor reads that information; it does not run programs from the file.</p>
+<dl class="facts-list">
+  <dt>A typing mistake in the file</dt><dd><blockquote class="blurb">[file name]: this is not valid JSON — check for a trailing comma or a stray character.</blockquote> Get a fresh copy, or send the message to the addon author.</dd>
+  <dt>The file is not an addon</dt><dd>It may be a text file, but it does not contain one complete addon. Ask the author for the full <code>toolpack.json</code>.</dd>
+  <dt>The format number is wrong</dt><dd>This editor accepts version 2 of the addon file. The file uses another version. Ask the author for an updated <code>toolpack.json</code>; changing your quest will not fix this.</dd>
+  <dt>A short path and message are shown</dt><dd>The addon is missing a detail or has one the editor cannot use. The dotted path tells you where the problem is in the file. Send the whole message to the addon author instead of editing the file yourself.</dd>
+  <dt>The file could not be read</dt><dd>Try selecting it again from your computer. If it still fails, download or copy the file again.</dd>
+  <dt>No addon files were selected</dt><dd>The picker only accepts files ending in <code>.json</code>. Choose the addon file, often named <code>toolpack.json</code>.</dd>
+</dl>
+<p>The editor shows at most four problems at once. If the file still will not load, ask the addon author to check the rest.</p>
+<p>You can select several files at once. A good file can load even when another
+one fails; the result line reports both. Loading applies immediately. Choose
+<b class="ui">Save</b> to close the window; this does not save your quest project.</p>
+<div class="note warn"><b>Keep the original addon file.</b> Addons are saved in
+this browser, not in your project. The window gives each addon an ID, a label
+that identifies it. Loading another file with the same ID replaces the loaded
+addon. If browser storage fails, the addon lasts only for this session. An
+invalid saved addon can be skipped on the next visit
+without a separate warning. If an addon disappears, load its original
+<code>.json</code> file again.</div>
+
+<h2 id="settings">Settings</h2>
+<p>The <b class="ui">Settings</b> button holds editor preferences. None of them
+reach your quest or the exported mod; they change how the editor looks and
+feels for you.</p>
+<dl class="facts-list">
+  <dt>Canvas</dt><dd><b class="ui">Show grid</b>, <b class="ui">Grid
+  colour</b>, <b class="ui">Grid opacity</b>, <b class="ui">Grid scale</b> and
+  <b class="ui">Snap to grid</b>.</dd>
+  <dt>Wires</dt><dd><b class="ui">Animated wires</b>,
+  <b class="ui">Springy wires</b>, <b class="ui">Line weight</b> and
+  <b class="ui">Mark size</b>.</dd>
+  <dt>Appearance</dt><dd><b class="ui">Interface font</b>, with a
+  <b class="ui">Follow the editor theme</b> option for the grid.</dd>
+  <dt>Getting out</dt><dd><b class="ui">Clear the autosaved draft</b> and
+  <b class="ui">Reset all editor preferences</b>. Both are deliberate and both
+  ask first.</dd>
+</dl>
+<figure id="figure-guide-settings" class="manual-figure" data-manual-figure data-scene-id="guide-settings" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="guide-settings"
+      data-renderer-src="../figures/renderer.html?scene=guide-settings"
+      title="Code-rendered editor illustration: Settings sheet over the editor workspace"
+      aria-describedby="figure-caption-guide-settings"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-settings">
+    <span class="manual-figure__description">The Settings window, with the canvas, wire and appearance controls listed.</span>
+    <span class="manual-figure__caption">Preferences only. Your quest is untouched by anything
+  here.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Settings sheet over the editor workspace" hidden>View larger</button>
+</figure>
+
+<h2 id="canvas-tools">Canvas tools</h2>
+<p>Top left of the canvas. These move nodes around; none of them change what
+your quest does.</p>
+<dl class="facts-list">
+  <dt>Tidy up</dt><dd>Arranges the whole graph left to right, by how far each
+  node sits from its entry point. The one to reach for after a long building
+  session.</dd>
+  <dt>Align in a row · Align in a column</dt><dd>Puts the selected nodes on one
+  line, centred.</dd>
+  <dt>Space out across · Space out down</dt><dd>Equalises the gaps without
+  moving anything onto a line. The outermost nodes stay where they are.</dd>
+  <dt>Springy wires</dt><dd>Switches the wires between settling and drifting.
+  Purely cosmetic, and off is calmer on a big map.</dd>
+  <dt>Debug</dt><dd>Opens the editor's own diagnostics: the build stamp, wire
+  numbers, counters and a recent-event log. <b>This is not the Debug probe
+  node</b>. That one goes on your canvas and prints what a node does at
+  runtime.</dd>
+</dl>
+<figure id="figure-guide-canvas-tools" class="manual-figure" data-manual-figure data-scene-id="guide-canvas-tools">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="guide-canvas-tools"
+      data-renderer-src="../figures/renderer.html?scene=guide-canvas-tools"
+      title="Code-rendered editor illustration: Canvas toolbar and issue counter"
+      aria-describedby="figure-caption-guide-canvas-tools"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-guide-canvas-tools">
+    <span class="manual-figure__description">The canvas toolbar in the top-left corner, with the tidy-up and alignment buttons and the issue counter.</span>
+    <span class="manual-figure__caption">The canvas tools, with the issue counter beside them.</span>
+  </figcaption>
+</figure>
+<p>Beside the tools is the counter described in
+<a href="checking.html#where-messages-appear">where messages appear</a>. It
+reads <span class="mono">No issues</span> when the quest is clean.</p>
+
+
+<h2 id="pack-extras">Things outside your quests</h2>
+<p>This section covers three things a pack can add outside a quest. They are a start-menu entry, a small box on the desktop and right-click entries.</p>
+<p>They all live in one window, opened from <b class="ui">Extras</b> on the
+toolbar. Nothing there is required: a pack with none of it exports exactly as it
+always did.</p>
+
+<h3 id="menu-entry">A start-menu entry</h3>
+<p>The start menu has a strip of entries along the bottom. A pack can add one,
+with a picture. It has four possible jobs. It can say something, start one of your quests,
+send the player a letter, or open the game's own handbook.</p>
+<dl class="facts-list">
+  <dt>Picture</dt><dd>Optional, and worth having for a pack whose entry sits
+  beside the game's own. Pick a picture from your machine. It travels inside the pack, so keep it small. The menu draws it the size of a letter in this
+  sentence.</dd>
+  <dt>The entry's own words</dt><dd>The label, and the sentence a "say
+  something" entry shows. They appear as you write them; the editor has no
+  screen for managing translated text yet.</dd>
+  <dt>When it appears</dt><dd>As soon as the player's game loads your pack.
+  Nothing has to be started for it to sit there.</dd>
+</dl>
+<div class="note ok"><b>Positions are the game's.</b> Entries land in the bottom
+strip. An earlier version of the game ignored a "top" or "bottom" choice, so this
+editor does not offer one.</div>
+
+<h3 id="desktop-widget">A box on the desktop</h3>
+<p>A widget is a small web page the game draws on the player's desktop. Think a note, a counter, a status board. You build it with the same editor the website builder uses, including the preview.</p>
+<dl class="facts-list">
+  <dt>Size and place</dt><dd>Width, height and the corner it sits at, in the
+  desktop's own pixels.</dd>
+  <dt>See-through</dt><dd><em>Off</em> by default, so a widget arrives with a
+  background. Turn it on for a widget meant to look painted onto the
+  wallpaper.</dd>
+</dl>
+<div class="note warn"><b>A widget's own words are a page, not a quest.</b> What
+you type inside the widget is shown as you typed it: translated words do not
+reach in there, because the widget is a file the game opens, not a line of text
+it fills in. Write those words in the language you want them in.</div>
+
+<h3 id="right-click-entry">An entry in a right-click menu</h3>
+<p>Where a player right-clicks, a pack can add an entry. That can be on a file, on the
+desktop, on the taskbar, or on a window. Each entry carries a label, an optional
+picture, and one of the four jobs above.</p>
+<p>Use it for the thing a player reaches for while looking at something. Think "inspect this file", "send this to my notes", or "open the walkthrough".</p>
+
+<h3 id="translated-words">Translated text is not available yet</h3>
+<p>The game can show translated text, but this editor does not currently offer a
+screen for writing or checking translations. Text you enter in quests and pack
+extras is used as written; changing the game's language does not translate it.
+This handbook does not give steps for a feature the editor cannot currently
+manage.</p>
+
+<h3 id="extras-handbook">The handbook entry, honestly</h3>
+<p>One of the four jobs opens the game's handbook. In HackHub 1.3.1, the book
+opens on its own landing page; it does not jump to the page you chose. The entry
+can still point players toward the handbook. The editor's log records which
+page was requested. See <a href="troubleshooting.html">When something goes
+wrong</a> for help finding the log.</p>
+
+<h2 id="generate-tags">Two buttons beside a text field</h2>
+<p>Some text fields carry one or two small buttons. They look alike and do
+opposite things, which is worth getting straight early.</p>
+<dl class="facts-list">
+  <dt>The dice</dt><dd>Fills the field with a sample value, such as an address,
+  a contractor's name or an e-mail. It becomes ordinary text in your project.
+  It stays until you edit it or generate another value.</dd>
+  <dt>The sparkle</dt><dd>It may stand for a saved answer, player detail or generated value. The tag tells the game which one.</dd>
+</dl>
+<p>Roll the dice when you want something concrete to look at while you build.
+Use the sparkle when the game is the only thing that knows the answer. A machine address is the common case, since the game allocates it.</p>
+<div class="note ok"><b>Both are ordinary edits.</b> Either one can be undone
+with <kbd>Ctrl</kbd>+<kbd>Z</kbd>, exactly like typing.</div>
+</section>
+
+<div class="pagefoot"><a href="nodes.html">← Node reference</a><a class="next" href="how-do-i.html">How do I… →</a></div>
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  every figure on these pages is taken from the editor's own source.
+</footer>
+</main>
+</div>
+<script src="search-index.js"></script>
+<script src="manual.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
  * bar framing it. Panels collapse so the canvas can take the whole window on a
  * small screen.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
@@ -11,6 +11,13 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { QuestCanvas } from "@/editor/canvas/QuestCanvas";
 import { NodePalette } from "@/editor/palette/NodePalette";
 import { InspectorPanel } from "@/editor/inspector/InspectorPanel";
+import { FloatingInspector } from "@/editor/inspector/FloatingInspector";
+import { InspectorDockHandle } from "@/editor/inspector/InspectorDockHandle";
+import {
+    inspectorDockedWidth,
+    inspectorMode,
+    subscribeInspectorLayout,
+} from "@/editor/inspector/drawerLayout";
 import { StatusBar } from "@/editor/shell/StatusBar";
 import { TopBar } from "@/editor/shell/TopBar";
 import { Overlays, Toast } from "@/editor/shell/Overlays";
@@ -21,6 +28,13 @@ import { TEMPLATES } from "@/templates";
 export default function App() {
     const inspectorCollapsed = useEditor((s) => s.ui.inspectorCollapsed);
     const setUi = useEditor((s) => s.setUi);
+    const mode = useSyncExternalStore(subscribeInspectorLayout, inspectorMode, inspectorMode);
+    const floating = mode === "floating";
+    const dockedWidth = useSyncExternalStore(
+        subscribeInspectorLayout,
+        inspectorDockedWidth,
+        inspectorDockedWidth,
+    );
     const nodeCount = useEditor((s) => {
         const quest = s.project.quests.find((q) => q.id === s.project.editor.activeQuestId);
         return quest?.graph.nodes.length ?? 0;
@@ -48,46 +62,64 @@ export default function App() {
                     {nodeCount === 0 && <FirstRunHint onPick={() => setUi({ modal: "templates" })} />}
                 </main>
 
-                {/* inspector */}
-                <aside
-                    aria-label="Inspector"
-                    className={cn(
-                        "relative flex shrink-0 flex-col border-l border-line bg-surface transition-[width] duration-200",
-                        inspectorCollapsed ? "w-10" : "w-[340px]",
-                    )}
-                >
-                    {inspectorCollapsed ? (
-                        <button
-                            type="button"
-                            className="flex h-full w-10 flex-col items-center gap-2 pt-3 text-ink-4 hover:text-ink-2"
-                            onClick={() => setUi({ inspectorCollapsed: false })}
-                            title="Show inspector"
-                            aria-label="Show inspector"
-                        >
-                            <Icon name="panelLeft" size={15} />
-                            <span className="text-[10px] tracking-wider [writing-mode:vertical-rl]">
-                                INSPECTOR
-                            </span>
-                        </button>
-                    ) : (
-                        <>
-                            {/* The collapse control lives at the right of the tab
-                                bar — at the left it sat on top of the "Node" tab
-                                and made it unclickable. */}
+                {/* inspector — docked to the right edge unless the author has
+                    popped it out into a floating drawer (r158). When floating,
+                    the aside is not rendered at all so the canvas takes the full
+                    width, and <FloatingInspector /> draws over the shell. */}
+                {!floating && (
+                    <aside
+                        aria-label="Inspector"
+                        className={cn(
+                            "relative flex shrink-0 flex-col border-l border-line bg-surface",
+                            // A dragged resize must track the cursor frame-for-
+                            // frame, so no width transition while expanded; the
+                            // collapse toggle keeps its slide.
+                            inspectorCollapsed && "w-10 transition-[width] duration-200",
+                        )}
+                        style={inspectorCollapsed ? undefined : { width: dockedWidth }}
+                    >
+                        {inspectorCollapsed ? (
                             <button
                                 type="button"
-                                className="btn-icon absolute top-1.5 right-2 z-10"
-                                onClick={() => setUi({ inspectorCollapsed: true })}
-                                title="Hide inspector"
-                                aria-label="Hide inspector"
+                                className="flex h-full w-10 flex-col items-center gap-2 pt-3 text-ink-4 hover:text-ink-2"
+                                onClick={() => setUi({ inspectorCollapsed: false })}
+                                title="Show inspector"
+                                aria-label="Show inspector"
                             >
-                                <Icon name="panelRight" size={14} />
+                                <Icon name="panelLeft" size={15} />
+                                <span className="text-[10px] tracking-wider [writing-mode:vertical-rl]">
+                                    INSPECTOR
+                                </span>
                             </button>
-                            <InspectorPanel />
-                        </>
-                    )}
-                </aside>
+                        ) : (
+                            <>
+                                {/* The grab handle on the left edge — drag it to
+                                    pull the inspector out, or click to float it.
+                                    This is the affordance authors reach for; the
+                                    small icon button that shipped in r158 went
+                                    unfound (r159). */}
+                                <InspectorDockHandle />
+
+                                {/* The collapse control lives at the right of the
+                                    tab bar — at the left it sat on top of the
+                                    "Node" tab and made it unclickable. Floating is
+                                    the left-edge handle's job now. */}
+                                <button
+                                    type="button"
+                                    className="btn-icon absolute top-1.5 right-2 z-10"
+                                    onClick={() => setUi({ inspectorCollapsed: true })}
+                                    title="Hide inspector"
+                                    aria-label="Hide inspector"
+                                >
+                                    <Icon name="panelRight" size={14} />
+                                </button>
+                                <InspectorPanel />
+                            </>
+                        )}
+                    </aside>
+                )}
             </div>
+            {floating && <FloatingInspector />}
             </ReactFlowProvider>
 
             <StatusBar />

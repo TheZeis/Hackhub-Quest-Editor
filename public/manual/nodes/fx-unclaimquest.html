@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unclaim quest — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="../manual.css" />
+<link rel="stylesheet" href="../manual-figures.css" />
+</head>
+<body>
+<div class="wrap">
+
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="../index.html">Start here</a></li>
+    <li><a href="../tutorial.html">Your first quest</a></li>
+    <li><a href="../concepts.html">How a quest works</a></li>
+    <li><a href="../nodes.html">Node reference</a>
+      <ul class="sub">
+        <li><a href="../nodes.html#cat-entry"><span class="cat-dot" style="background:var(--cat-entry)"></span>Quest lifecycle</a></li>
+        <li><a href="../nodes.html#cat-objective"><span class="cat-dot" style="background:var(--cat-objective)"></span>Objectives</a></li>
+        <li><a href="../nodes.html#cat-trigger"><span class="cat-dot" style="background:var(--cat-trigger)"></span>Triggers</a></li>
+        <li><a href="../nodes.html#cat-world"><span class="cat-dot" style="background:var(--cat-world)"></span>World building</a></li>
+        <li><a href="../nodes.html#cat-comms"><span class="cat-dot" style="background:var(--cat-comms)"></span>Communication</a></li>
+        <li><a href="../nodes.html#cat-reply"><span class="cat-dot" style="background:var(--cat-reply)"></span>Custom terminal</a></li>
+        <li><a href="../nodes.html#cat-effect"><span class="cat-dot" style="background:var(--cat-effect)"></span>Effects</a></li>
+        <li><a href="../nodes.html#cat-community"><span class="cat-dot" style="background:var(--cat-community)"></span>Community addons</a></li>
+        <li><a href="../nodes.html#cat-flow"><span class="cat-dot" style="background:var(--cat-flow)"></span>Flow control</a></li>
+        <li><a href="../nodes.html#cat-layout"><span class="cat-dot" style="background:var(--cat-layout)"></span>Layout</a></li>
+      </ul>
+    </li>
+    <li><a href="../guides.html">Feature guides</a></li>
+    <li><a href="../how-do-i.html">How do I…</a></li>
+    <li><a href="../checking.html">Checking your quest</a></li>
+    <li><a href="../export.html">Exporting and installing</a></li>
+    <li><a href="../troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="../appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="hero">
+  <h1><span class="cat-dot" style="background:var(--cat-effect)"></span>Unclaim quest</h1>
+  <p class="tag"><span class="badge" style="color:var(--cat-effect)">Effects</span>
+  &nbsp;<code class="mono" style="color:var(--ink-4)">fx.unclaimQuest</code></p>
+</header>
+
+<section id="node-fx-unclaimquest-page">
+
+<h2>What it does</h2>
+<p>Unclaims a quest by name. Blank removes the quest this node belongs to.</p>
+
+<h2>When you'd use it</h2>
+<p>Use it to pull back a side job, reset a chapter handoff, or remove this quest without completion.</p>
+<p>If you are ending a successful path, use <b class="ui">Complete quest</b> instead.</p>
+<p>It has no output because the chosen quest is removed here.</p>
+
+<h2>In the game, this looks like</h2>
+<p>The named quest leaves the player's active list without counting as completed.</p>
+
+<h2>Fields</h2>
+
+<h3 id="node-fx-unclaimquest-field-questName">Quest</h3>
+<blockquote class="blurb">The identifier of the claimed quest to remove. Leave blank to remove this quest.</blockquote>
+<dl class="facts-list">
+  <dt>What to put here</dt><dd>Copy the internal name from the quest strip or the other mod notes. Blank targets this quest.</dd>
+  <dt>Example</dt><dd><code>side-contract</code></dd>
+  <dt class="dt-mute">Default</dt><dd>empty</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>The current quest is removed.</dd>
+  <dt class="dt-warn">Watch out</dt><dd>A spelling mismatch removes nothing, so the unwanted quest stays active.</dd>
+</dl>
+
+
+
+<h2>Wires</h2>
+<table>
+  <thead><tr><th>Socket</th><th>Direction</th><th>What to connect</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="name kind-flow">In</td><td>input</td>
+      <td>The point where the chosen quest should be removed.</td>
+    </tr>
+  </tbody>
+</table>
+<p class="wire-legend">
+  <span class="wire-chip kind-flow"><i></i><b>Then</b> runs next</span>
+  <span class="wire-chip kind-condition"><i></i><b>When</b> tests a condition</span>
+  <span class="wire-chip kind-unlock"><i></i><b>Unlocks</b> opens an objective</span>
+  <span class="wire-chip kind-data"><i></i><b>Data</b> carries a value</span>
+</p>
+<p>A wire only joins two sockets of the same colour, and the editor draws the
+wire in that colour. That is what the colours are for: match the colours and
+the connection takes, mismatch them and it will not.</p>
+
+<h2>Step by step: add this node to a quest</h2>
+<ol class="plain">
+  <li>Find <b class="ui">Unclaim quest</b> under <b>Effects</b>.</li>
+  <li>Type the quest identifier, or leave <b class="ui">Quest</b> blank for this quest.</li>
+  <li>Wire the cancellation beat into its input.</li>
+</ol>
+
+<figure id="figure-node-fx-unclaimquest-inspector" class="manual-figure" data-manual-figure data-scene-id="node-fx-unclaimquest-inspector">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="node-fx-unclaimquest-inspector"
+      data-renderer-src="../../figures/renderer.html?scene=node-fx-unclaimquest-inspector"
+      title="Code-rendered editor illustration: Unclaim quest inspector"
+      aria-describedby="figure-caption-node-fx-unclaimquest-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-node-fx-unclaimquest-inspector">
+    <span class="manual-figure__description">The Unclaim quest node selected on the canvas, with its inspector open on the right.</span>
+    <span class="manual-figure__caption">The inspector for <b>Unclaim quest</b>.</span>
+  </figcaption>
+</figure>
+
+<h2>Common mistakes</h2>
+<ul class="plain">
+  <li><b>The wrong quest name is typed.</b> Nothing is removed. Copy the identifier from the quest strip or the other mod's notes.</li>
+  <li><b>It replaces a success ending.</b> The quest disappears without completion. Use <b class="ui">Complete quest</b> for success.</li>
+</ul>
+
+<h2>Messages you might see</h2>
+<ul class="plain">
+  <li><a href="../checking.html#msg-unreachable">Unreachable</a>. Nothing leads to this node, so no quest is unclaimed</li>
+</ul>
+
+<h2>Related nodes</h2>
+<ul class="plain">
+  <li><a href="fx-pay.html">Pay the player</a> — Deposits money in the player's bank.</li>
+  <li><a href="fx-withdraw.html">Charge the player</a> — Takes money out of the player's account.</li>
+  <li><a href="fx-notify.html">Notify</a> — Puts a message on the player's screen.</li>
+  <li><a href="fx-prompt.html">Ask player</a> — Asks the player a one-line question.</li>
+  <li><a href="fx-setdata.html">Set quest data</a> — Stores a value for later.</li>
+  <li><a href="fx-claimquest.html">Claim another quest</a> — Starts the next quest.</li>
+  <li><a href="fx-completequest.html">Complete quest</a> — Finishes the current quest.</li>
+  <li><a href="fx-retirequest.html">Retire quest</a> — Removes the current quest without completion.</li>
+  <li><a href="fx-shell.html">Run terminal command</a> — Runs a command in the player's terminal.</li>
+  <li><a href="fx-handbook.html">Open handbook</a> — Opens an in-game article.</li>
+</ul>
+
+</section>
+
+<div class="pagefoot">
+  <a href="fx-retirequest.html">← Retire quest</a>
+  <a class="next" href="fx-shell.html">Run terminal command →</a>
+</div>
+
+<a class="totop" href="#node-fx-unclaimquest-page">↑ back to top</a>
+
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  field labels, hints, defaults and limits on this page are taken from the
+  editor's own node definitions.
+</footer>
+
+</main>
+</div>
+<script src="../search-index.js"></script>
+<script src="../manual.js"></script>
+</body>
+</html>

@@ -4,11 +4,11 @@
  * Everything here is a question about the shape of a quest graph, answered from
  * the document alone. The canvas uses it to flag problems, the inspector uses it
  * for the health panel, and the Step 4 export report will reuse it verbatim
- * (docs/01 §4.3: analysis and compilation are pure and side-effect free).
+ * (the editor architecture §4.3: analysis and compilation are pure and side-effect free).
  */
 import type { EdgeDoc } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
-import { nodeTypeDef } from "@/schema/registry";
+import { nodeTypeDef, sourcesOf } from "@/schema/registry";
 import type { Position } from "@/schema/common";
 
 export interface GraphIssue {
@@ -17,6 +17,12 @@ export interface GraphIssue {
     label: string;
     /** Full explanation, used by the health panel and export report. */
     detail: string;
+    /**
+     * The concrete next step, in game terms ("which nodes to put where").
+     * Required: a warning that says what is wrong without saying how to fix
+     * it is a dead end for a non-coder (r124).
+     */
+    nextStep: string;
     severity: "warn" | "danger";
 }
 
@@ -68,10 +74,11 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
     for (const node of nodes) {
         const def = nodeTypeDef(node.type);
 
-        // Sticky notes are annotations; nothing about them is broken.
-        if (node.type === "flow.note" || node.type === "layout.group") continue;
+        // Sticky notes, groups and story beats are planning furniture; nothing
+        // about them is broken. (Beats are wireable pass-throughs, stripped
+        // from the export — reachability through them is unaffected.)
+        if (node.type === "flow.note" || node.type === "layout.group" || node.type === "flow.beat") continue;
 
-        const wiredIn = (incoming.get(node.id) ?? []).length;
         const wiredOut = (outgoing.get(node.id) ?? []).length;
 
         // An objective nothing can ever complete.
@@ -83,25 +90,103 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                     label: "No trigger",
                     detail:
                         "Nothing completes this objective. Wire a “When event” node into its trigger socket, or the player can never finish the quest.",
+                    nextStep:
+                        "Add a “When event” node from Triggers, pick the game event that means the player did it, and wire its “When” socket into this objective's “Trigger” socket.",
                     severity: "danger",
                 });
             }
         }
 
         // A branch or reply with an unwired outcome is a dead end the player hits.
-        if (node.type === "flow.branch" || node.type === "reply.input") {
-            const sockets = def.sources.map((s) => s.id);
+        if (
+            node.type === "flow.branch" ||
+            node.type === "flow.appcheck" ||
+            node.type === "reply.input" ||
+            node.type === "fx.prompt" ||
+            node.type === "flow.sequence"
+        ) {
+            const outputs = sourcesOf(node);
+            const sockets = outputs.map((s) => s.id);
             const used = new Set(
                 edges.filter((e) => e.source === node.id).map((e) => e.sourceHandle),
             );
             const missing = sockets.filter((s) => !used.has(s));
             if (missing.length > 0) {
+                const names = missing
+                    .map((m) => outputs.find((s) => s.id === m)?.label ?? m)
+                    .join("” and “");
                 issues.push({
                     nodeId: node.id,
                     label: "Dead end",
-                    detail: `The “${missing
-                        .map((m) => def.sources.find((s) => s.id === m)?.label ?? m)
-                        .join("” and “")}” outcome goes nowhere, so the quest stalls if the player takes it.`,
+                    detail:
+                        node.type === "flow.appcheck"
+                            ? `The “${names}” output goes nowhere, so a player whose desktop takes that path stalls.`
+                            : node.type === "flow.sequence"
+                            ? `The “${names}” output goes nowhere, so that step of the sequence does nothing. Wire it up or remove the output.`
+                            : node.type === "reply.input"
+                              ? `The “${names}” outcome goes nowhere, so a wrong answer just shows the failure message and the player tries again. That retry loop is the usual design — wire it only if a wrong answer should do something more.`
+                              : node.type === "fx.prompt"
+                                ? `The “${names}” outcome goes nowhere. That is fine if the story should stop there; wire it if the player should see a follow-up.`
+                                : `The “${names}” outcome goes nowhere, so the quest stalls if the player takes it.`,
+                    nextStep:
+                        node.type === "flow.appcheck"
+                            ? `Wire the “${names}” output to the node that should run for that player, or give them a hint and send both outputs the same way.`
+                            : node.type === "flow.sequence"
+                            ? `Wire the “${names}” step to the node that should run at that point, or remove the step.`
+                            : node.type === "reply.input"
+                              ? `Leave it if retrying is the design, or wire the “${names}” answer to the node that should run on a wrong answer.`
+                              : node.type === "fx.prompt"
+                                ? `Wire the “${names}” outcome to the node that should run next, or leave it empty if stopping there is intentional.`
+                                : `Wire the “${names}” outcome to the node that should run down that path.`,
+                    severity: "warn",
+                });
+            }
+        }
+
+        // A Timer (r172, renamed r173): no time set means it fires the
+        // moment the story reaches it, and an unwired "Out" means the timer
+        // does nothing when it fires.
+        if (node.type === "flow.timer") {
+            const mode = node.data.mode ?? "after";
+            let nothingSet = false;
+            let noTimeDetail = "";
+            let noTimeNext = "";
+            if (mode === "after") {
+                const scheduled =
+                    (Number(node.data.years) || 0) +
+                    (Number(node.data.months) || 0) +
+                    (Number(node.data.weeks) || 0) +
+                    (Number(node.data.days) || 0) +
+                    (Number(node.data.hours) || 0) +
+                    (Number(node.data.minutes) || 0);
+                nothingSet = scheduled <= 0;
+                noTimeDetail = "No years, months, weeks, days, hours or minutes are set, so the timer fires the moment the story reaches it — nothing waits.";
+                noTimeNext = "Set a time in the node's Wait fields, or remove the node if the story should carry on.";
+            } else if (mode === "at") {
+                nothingSet = !(Number(node.data.dateYear) > 0 && Number(node.data.dateMonth) > 0 && Number(node.data.dateDay) > 0);
+                noTimeDetail = "No full date is set, so the timer fires the moment the story reaches it — nothing waits.";
+                noTimeNext = "Set a full in-game date (Year, Month and Day — read them off the in-game clock), or remove the node if the story should carry on.";
+            }
+            /* "daytime" — the relative rule (r176) — needs no check: any
+               amount is legal (0 is "today at HH:MM"), and only the in-game
+               "now" can decide whether that time has already passed. The
+               runtime fails open. */
+            if (nothingSet) {
+                issues.push({
+                    nodeId: node.id,
+                    label: "Nothing scheduled",
+                    detail: noTimeDetail,
+                    nextStep: noTimeNext,
+                    severity: "warn",
+                });
+            }
+            if (wiredOut === 0) {
+                issues.push({
+                    nodeId: node.id,
+                    label: "The timer has nothing to do",
+                    detail: "When the time comes, the timer has nowhere to go — the story stops there.",
+                    nextStep:
+                        "Wire the Out socket to the node that should run when the time comes, or leave it unwired if the story is meant to end there.",
                     severity: "warn",
                 });
             }
@@ -114,16 +199,29 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                 label: "Unreachable",
                 detail:
                     "Nothing leads to this node. Wire it to the chain that should run it — nodes do nothing until something points at them.",
+                nextStep:
+                    "Drag a wire from the node that should run it into this node's input — usually the last node of your “Quest start” chain.",
                 severity: "warn",
             });
         }
 
-        // A non-root with no inputs at all is almost certainly a mistake.
-        if (!isRoot(node.type) && wiredIn === 0 && reachable.has(node.id)) {
+        // There used to be an "Unwired" issue here (non-root, reachable, no
+        // inputs). It could never fire: a non-root only becomes reachable by
+        // following an edge that targets it, so it always has an input.
+        // Removed in r124 rather than kept as a guard no test can exercise.
+
+        /* A wired "On quest complete" still needs an actual completion path.
+           The graph analysis can see an explicit Complete quest node; quest
+           Behaviour settings are checked elsewhere, so this rule stays as a
+           gentle reminder only when the graph itself has no formal ending. */
+        if (node.type === "entry.complete" && wiredOut > 0 && !nodes.some((n) => n.type === "fx.completeQuest")) {
             issues.push({
                 nodeId: node.id,
-                label: "Unwired",
-                detail: "This node has no input socket connected, so nothing will ever run it.",
+                label: "Only runs on completion",
+                detail:
+                    "This is wired, but it only runs after the quest is marked complete. This graph has no Complete quest node yet.",
+                nextStep:
+                    "Add a Complete quest node to the final story beat, or turn on auto-complete or the Complete button in the quest's Behaviour settings.",
                 severity: "warn",
             });
         }
@@ -134,6 +232,10 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                 nodeId: node.id,
                 label: "Empty",
                 detail: `Nothing is wired to “${def.label}”. That is fine if you do not need it — delete the node to clear this.`,
+                nextStep:
+                    node.type === "entry.start"
+                        ? "Wire the nodes that should run when the quest is claimed to its output — usually your briefing mail first — or delete it if you don't need it."
+                        : `Wire the nodes that should run at “${def.label}” to its output, or delete it if you don't need it.`,
                 severity: "warn",
             });
         }

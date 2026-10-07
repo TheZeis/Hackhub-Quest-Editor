@@ -38,8 +38,11 @@ const PATHS: Record<string, string> = {
     book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z",
     branch: "M6 3v12 M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M18 9a9 9 0 0 1-9 9",
     clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 7v5l3 2",
+    hourglass: "M5 22h14 M5 2h14 M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22 M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2",
     shuffle: "M16 3h5v5 M4 20 21 3 M21 16v5h-5 M15 15l6 6 M4 4l5 5",
     note: "M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-6-6Z M14 3v7h7",
+    /* A magnifier over a line: a checkpoint that looks at what is passing. */
+    bug: "M11 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z M14.5 13.5 20 19 M3 20h6",
     plus: "M12 5v14 M5 12h14",
     trash: "M3 6h18 M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
     undo: "M9 14 4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3",
@@ -58,6 +61,7 @@ const PATHS: Record<string, string> = {
     sparkle:
         "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15Z",
     play: "M6 4l14 8-14 8V4Z",
+    pause: "M8 4h3v16H8z M13 4h3v16h-3z",
     file: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z M14 3v6h6",
     package: "M21 8 12 3 3 8v8l9 5 9-5V8Z M3 8l9 5 9-5 M12 13v8",
     panelLeft: "M3 3h18v18H3z M9 3v18",
@@ -71,9 +75,34 @@ const PATHS: Record<string, string> = {
     arrowRight: "M5 12h14 M13 6l6 6-6 6",
     layers: "M12 2 2 7l10 5 10-5-10-5Z M2 17l10 5 10-5 M2 12l10 5 10-5",
     filter: "M3 4h18l-7 8v7l-4 2v-9L3 4Z",
+    /* Two boxes side by side on a shared centre line: nodes aligned in a row. */
+    rows: "M3 12h18 M6 8h4v8H6z M14 8h4v8h-4z",
+    /* Two boxes stacked on a shared centre line: nodes aligned in a column. */
+    columns: "M12 3v18 M8 6h8v4H8z M8 14h8v4H8z",
+    /* Outer bars fixed, middle bar centred: even horizontal gaps. */
+    "spread-h": "M4 4v16 M20 4v16 M11 8h2v8h-2z",
+    /* The same, turned: even vertical gaps. */
+    "spread-v": "M4 4h16 M4 20h16 M8 11v2h8v-2z",
+    grid: "M3 9h18 M3 15h18 M9 3v18 M15 3v18",
 };
 
-export type IconName = keyof typeof PATHS;
+/**
+ * Filled glyphs that don't fit the single-stroke line-art model above: they
+ * carry their own `viewBox` and one or more `fill`ed sub-paths (drawn in
+ * `currentColor`, no stroke). The dice reads as "randomize" — a tumbling die —
+ * which a stroked square could not (a plain square looked like a text box).
+ */
+const FILLED_ICONS: Record<string, { viewBox: string; paths: string[] }> = {
+    dice: {
+        viewBox: "0 0 32 32",
+        paths: [
+            "M7.98815 13.8772C8.09168 14.9779 7.50506 15.9307 6.68549 15.9964 5.86592 16.0621 5.11537 15.2243 5.01185 14.1237 4.90832 13.023 5.49494 12.0702 6.31451 12.0045 7.13408 11.9306 7.88463 12.7684 7.98815 13.8772ZM12.6855 25.9964C13.5051 25.9307 14.0917 24.9779 13.9882 23.8773 13.8846 22.7684 13.1341 21.9306 12.3145 22.0045 11.4949 22.0702 10.9083 23.023 11.0118 24.1237 11.1154 25.2243 11.8659 26.0621 12.6855 25.9964ZM25.6855 12.0036C26.5051 12.0693 27.0917 13.0221 26.9882 14.1228 26.8846 15.2316 26.1341 16.0694 25.3145 15.9955 24.4949 15.9298 23.9083 14.977 24.0118 13.8763 24.1154 12.7757 24.8659 11.9379 25.6855 12.0036ZM23.9882 19.1228C24.0917 18.0221 23.5051 17.0693 22.6855 17.0036 21.8659 16.9379 21.1154 17.7757 21.0118 18.8763 20.9083 19.977 21.4949 20.9298 22.3145 20.9955 23.1341 21.0694 23.8846 20.2316 23.9882 19.1228ZM19.6855 22.0036C20.5051 22.0693 21.0917 23.0221 20.9882 24.1227 20.8846 25.2316 20.1341 26.0694 19.3145 25.9955 18.4949 25.9298 17.9083 24.977 18.0118 23.8763 18.1154 22.7757 18.8659 21.9379 19.6855 22.0036Z",
+            "M13.8828 2.45108L4.49429 6.50391C4.27506 6.60214 4.07814 6.73458 3.90475 6.89358C2.84693 7.15621 2 8.10306 2 9.32352V23.4931C2 24.6841 2.70455 25.7624 3.79533 26.2406L13.4961 30.494C13.7933 30.6243 14.0969 30.692 14.3951 30.7049C15.4393 31.0984 16.5607 31.0984 17.6049 30.7049C17.9031 30.692 18.2067 30.6243 18.5039 30.494L28.2047 26.2406C29.2954 25.7624 30 24.6841 30 23.4931V9.32352C30 8.15045 29.2176 7.23015 28.2175 6.92724C28.0446 6.75323 27.8417 6.609 27.6071 6.50391L18.1171 2.45108C16.778 1.84964 15.2408 1.84964 13.8828 2.45108ZM15 14.8091V28.2045C15 28.5652 14.6296 28.8072 14.2992 28.6624L4.59844 24.409C4.23485 24.2495 4 23.8901 4 23.4931V9.32352C4 8.96038 4.37489 8.71836 4.70583 8.86785L13.8233 12.9864C14.5396 13.31 15 14.0231 15 14.8091ZM17 28.2045V14.8091C17 14.0231 17.4604 13.31 18.1767 12.9864L27.2942 8.86785C27.6251 8.71836 28 8.96038 28 9.32352V23.4931C28 23.8901 27.7651 24.2495 27.4016 24.409L17.7008 28.6624C17.3704 28.8072 17 28.5652 17 28.2045ZM16 7.5C14.3431 7.5 13 7.05229 13 6.5C13 5.94771 14.3431 5.5 16 5.5C17.6568 5.5 19 5.94771 19 6.5C19 7.05229 17.6568 7.5 16 7.5Z",
+        ],
+    },
+};
+
+export type IconName = keyof typeof PATHS | keyof typeof FILLED_ICONS;
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
     name: IconName | string;
@@ -81,6 +110,25 @@ interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
 }
 
 export function Icon({ name, size = 16, ...rest }: IconProps) {
+    const filled = FILLED_ICONS[name];
+    if (filled) {
+        return (
+            <svg
+                width={size}
+                height={size}
+                viewBox={filled.viewBox}
+                fill="currentColor"
+                stroke="none"
+                aria-hidden="true"
+                focusable="false"
+                {...rest}
+            >
+                {filled.paths.map((d, i) => (
+                    <path key={i} d={d} />
+                ))}
+            </svg>
+        );
+    }
     const d = PATHS[name] ?? PATHS.info;
     return (
         <svg

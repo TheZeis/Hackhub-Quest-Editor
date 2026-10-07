@@ -10,8 +10,13 @@ import { TEMPLATES, type Template } from "@/templates";
 import { downloadProject, parseProjectFile, projectFileName } from "@/templates/share";
 import { clearDraft } from "@/store/autosave";
 import { WebsiteBuilderDialog } from "@/editor/websites/WebsiteBuilder";
+import { TwotterPanelDialog } from "@/editor/twotter/TwotterPanel";
+import { ExtrasDialog } from "@/editor/extras/ExtrasDialog";
 import { DialoguesDialog } from "./DialoguesDialog";
+import { SimulatorDialog } from "@/editor/simulator/SimulatorDialog";
 import { ExportDialog } from "./ExportDialog";
+import { ToolPackManagerDialog } from "@/toolpacks/ToolPackManagerDialog";
+import { SettingsDialog } from "./SettingsDialog";
 import { EVENT_COUNT, SDK_VERSION } from "@/schema/events";
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
@@ -65,7 +70,7 @@ export function Toast() {
 
 /* ── Shared modal chrome ─────────────────────────────────────────────────── */
 
-function Modal({
+export function Modal({
     open,
     onOpenChange,
     title,
@@ -119,7 +124,7 @@ function Modal({
 
 const DIFFICULTY_STYLE: Record<Template["difficulty"], string> = {
     Beginner: "border-ok/30 bg-ok/10 text-ok",
-    Intermediate: "border-warn/30 bg-warn/10 text-warn",
+    Expert: "border-warn/30 bg-warn/10 text-warn",
     Advanced: "border-danger/30 bg-danger/10 text-danger",
     Reference: "border-accent/30 bg-accent-soft text-accent",
 };
@@ -219,43 +224,133 @@ function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
 /* ── Shortcuts ───────────────────────────────────────────────────────────── */
 
-const SHORTCUTS: { keys: string[]; action: string }[] = [
-    { keys: ["Ctrl", "Z"], action: "Undo" },
-    { keys: ["Ctrl", "Shift", "Z"], action: "Redo" },
-    { keys: ["Ctrl", "S"], action: "Save the draft now" },
-    { keys: ["Delete"], action: "Delete the selected nodes or wires" },
-    { keys: ["Ctrl", "C"], action: "Copy the selected nodes" },
-    { keys: ["Ctrl", "X"], action: "Cut the selected nodes" },
-    { keys: ["Ctrl", "V"], action: "Paste copied nodes" },
-    { keys: ["Ctrl", "D"], action: "Duplicate the selected nodes" },
-    { keys: ["Shift", "click"], action: "Add to the selection" },
-    { keys: ["drag from palette"], action: "Place a node" },
-    { keys: ["click a node"], action: "Add it at the viewport centre" },
-    { keys: ["Esc"], action: "Clear the selection" },
+/**
+ * A single shortcut row. `keys` are drawn as key caps; `gesture`, when present,
+ * is drawn as plain italic text for mouse/pointer actions that are not a key
+ * (e.g. "drag from palette") — so a reader can tell a keypress from a gesture
+ * at a glance instead of reading a lowercase phrase inside a key cap (r157).
+ */
+interface Shortcut {
+    keys?: string[];
+    gesture?: string;
+    action: string;
+}
+
+interface ShortcutGroup {
+    title: string;
+    items: Shortcut[];
+}
+
+/**
+ * The cheat sheet, audited against the code that implements each gesture
+ * (r157): `useKeyboardShortcuts` for the keys, `QuestCanvas`/`NodePalette` for
+ * the pointer gestures, React Flow's `panOnDrag`/`zoomOnScroll` config for
+ * navigation. Kept grouped by the job the author is doing, newest additions
+ * (Shift+A search, right-click search, wire-to-empty create, double-click
+ * reroute, box select) included — the previous flat list had drifted stale.
+ */
+export const SHORTCUT_GROUPS: ShortcutGroup[] = [
+    {
+        title: "Editing",
+        items: [
+            { keys: ["Ctrl", "Z"], action: "Undo" },
+            { keys: ["Ctrl", "Shift", "Z"], action: "Redo" },
+            { keys: ["Ctrl", "Y"], action: "Redo (alternative)" },
+            { keys: ["Ctrl", "C"], action: "Copy the selected nodes" },
+            { keys: ["Ctrl", "X"], action: "Cut the selected nodes" },
+            { keys: ["Ctrl", "V"], action: "Paste copied nodes" },
+            { keys: ["Ctrl", "D"], action: "Duplicate the selected nodes" },
+            { keys: ["Delete"], action: "Delete the selected nodes or wires" },
+            { keys: ["Ctrl", "S"], action: "Save the draft now" },
+        ],
+    },
+    {
+        title: "Add nodes",
+        items: [
+            { gesture: "drag from palette", action: "Place a node where you drop it" },
+            { gesture: "click a palette card", action: "Add it at the viewport centre" },
+            { keys: ["Shift", "A"], action: "Search for a node at the pointer" },
+            { gesture: "right-click the canvas", action: "Search for a node here" },
+            { gesture: "drag a wire onto empty canvas", action: "Create a node the wire fits" },
+        ],
+    },
+    {
+        title: "Select",
+        items: [
+            { gesture: "click a node", action: "Select just that node" },
+            { keys: ["Shift"], gesture: "click", action: "Add to / toggle the selection" },
+            { keys: ["Ctrl"], gesture: "click", action: "Add to / toggle the selection" },
+            { gesture: "drag on empty canvas", action: "Box-select (any overlap counts)" },
+            { keys: ["Shift"], gesture: "drag a box", action: "Add to / remove from the selection" },
+            { keys: ["Ctrl", "G"], action: "Group the selection — press again on a frame to ungroup it" },
+            { keys: ["Esc"], action: "Clear the selection" },
+        ],
+    },
+    {
+        title: "Wiring",
+        items: [
+            { gesture: "drag from a socket", action: "Start a wire" },
+            { gesture: "drop on a node's body", action: "Wire to its matching socket" },
+            { gesture: "drag a wire out of an input", action: "Pick it up to move or remove it" },
+            { gesture: "drop on empty canvas", action: "Remove the wire" },
+            { gesture: "double-click a wire", action: "Insert a reroute point" },
+        ],
+    },
+    {
+        title: "Move around",
+        items: [
+            { gesture: "middle-drag or right-drag", action: "Pan the canvas" },
+            { gesture: "scroll", action: "Zoom in and out" },
+            { gesture: "drag a frame's title bar", action: "Move the group and its contents" },
+        ],
+    },
 ];
+
+/** One row: the action on the left, its keys and/or gesture on the right. */
+function ShortcutRow({ shortcut }: { shortcut: Shortcut }) {
+    return (
+        <li className="flex items-center justify-between gap-4 px-4 py-2">
+            <span className="text-[12px] text-ink-2">{shortcut.action}</span>
+            <span className="flex shrink-0 items-center gap-1">
+                {shortcut.keys?.map((key) => (
+                    <kbd key={key} className="kbd">
+                        {key}
+                    </kbd>
+                ))}
+                {shortcut.gesture && (
+                    <span className="text-[11px] text-ink-4 italic">{shortcut.gesture}</span>
+                )}
+            </span>
+        </li>
+    );
+}
 
 function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
     return (
         <Modal
             open={open}
             onOpenChange={onOpenChange}
-            title="Keyboard shortcuts"
-            width="w-[420px]"
+            title="Shortcuts & gestures"
+            subtitle="Keys work anywhere; gestures are on the canvas."
+            width="w-[440px]"
         >
-            <ul className="divide-y divide-line">
-                {SHORTCUTS.map((shortcut) => (
-                    <li key={shortcut.action} className="flex items-center justify-between gap-4 px-4 py-2">
-                        <span className="text-[12px] text-ink-2">{shortcut.action}</span>
-                        <span className="flex shrink-0 items-center gap-1">
-                            {shortcut.keys.map((key) => (
-                                <kbd key={key} className="kbd">
-                                    {key}
-                                </kbd>
+            <div className="divide-y divide-line">
+                {SHORTCUT_GROUPS.map((group) => (
+                    <section key={group.title}>
+                        <h3 className="bg-canvas px-4 py-1.5 text-[10px] font-semibold tracking-wider text-ink-4 uppercase">
+                            {group.title}
+                        </h3>
+                        <ul className="divide-y divide-line">
+                            {group.items.map((shortcut) => (
+                                <ShortcutRow
+                                    key={`${shortcut.keys?.join("+") ?? ""}|${shortcut.gesture ?? ""}|${shortcut.action}`}
+                                    shortcut={shortcut}
+                                />
                             ))}
-                        </span>
-                    </li>
+                        </ul>
+                    </section>
                 ))}
-            </ul>
+            </div>
         </Modal>
     );
 }
@@ -333,8 +428,13 @@ export function Overlays() {
             <TemplatesDialog open={modal === "templates"} onOpenChange={(o) => setUi({ modal: o ? "templates" : null })} />
             <ShortcutsDialog open={modal === "shortcuts"} onOpenChange={(o) => setUi({ modal: o ? "shortcuts" : null })} />
             <WebsiteBuilderDialog open={modal === "websites"} onOpenChange={(o) => setUi({ modal: o ? "websites" : null })} />
+            <TwotterPanelDialog open={modal === "twotter"} onOpenChange={(o) => setUi({ modal: o ? "twotter" : null })} />
+            <ExtrasDialog open={modal === "extras"} onOpenChange={(o) => setUi({ modal: o ? "extras" : null })} />
             <DialoguesDialog open={modal === "dialogues"} onOpenChange={(o) => setUi({ modal: o ? "dialogues" : null })} />
             <ExportDialog open={modal === "mod"} onOpenChange={(o) => setUi({ modal: o ? "mod" : null })} />
+            <SimulatorDialog open={modal === "simulator"} onOpenChange={(o) => setUi({ modal: o ? "simulator" : null })} />
+            <ToolPackManagerDialog open={modal === "toolpacks"} onOpenChange={(o) => setUi({ modal: o ? "toolpacks" : null })} />
+            <SettingsDialog open={modal === "settings"} onOpenChange={(o) => setUi({ modal: o ? "settings" : null })} />
         </>
     );
 }

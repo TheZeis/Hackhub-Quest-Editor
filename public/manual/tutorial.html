@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your first quest — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="manual.css" />
+<link rel="stylesheet" href="manual-figures.css" />
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="index.html">Start here</a></li>
+    <li><a href="tutorial.html">Your first quest</a></li>
+    <li><a href="concepts.html">How a quest works</a></li>
+    <li><a href="nodes.html">Node reference</a></li>
+    <li><a href="guides.html">Feature guides</a></li>
+    <li><a href="how-do-i.html">How do I…</a></li>
+    <li><a href="checking.html">Checking your quest</a></li>
+    <li><a href="export.html">Exporting and installing</a></li>
+    <li><a href="troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+<main>
+<header class="hero">
+  <h1>Your first quest</h1>
+  <p class="tag">Twenty minutes, start to finish, ending in a mod you install and play.</p>
+</header>
+<section id="tutorial">
+<p>Twenty minutes, and you finish with a mod installed in the game. Start from
+a template rather than a blank canvas. Seeing a working quest is the fastest way
+to learn what its parts do.</p>
+<div class="note ok"><b>Nothing here is destructive.</b> Every step can be
+undone with <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and the editor keeps a copy in your
+browser as you work. The editor says so itself, in the panel you meet first.</div>
+
+<h2 id="tour">The screen, labelled</h2>
+<p>Open the editor with nothing loaded and you get a short welcome panel. Its
+own description of the job:</p>
+<blockquote class="blurb">Drag nodes from the left onto the canvas, then wire their sockets together. Every field on the right is a dropdown or a switch — no JSON, no code.</blockquote>
+<p>That is the whole method, and the screen is arranged around it.</p>
+<figure id="figure-tour-workspace" class="manual-figure" data-manual-figure data-scene-id="tour-workspace" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="tour-workspace"
+      data-renderer-src="../figures/renderer.html?scene=tour-workspace"
+      title="Code-rendered editor illustration: First Contact in the full editor workspace"
+      aria-describedby="figure-caption-tour-workspace"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tour-workspace">
+    <span class="manual-figure__description">The First Contact workspace shows the top bar, node library, canvas, selected Objective inspector and status bar.</span>
+    <span class="manual-figure__caption">The editor with a quest loaded. Five regions, and you use four of
+  them constantly.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: First Contact in the full editor workspace" hidden>View larger</button>
+</figure>
+<dl class="facts-list">
+  <dt>Top bar</dt><dd>The buttons: <b class="ui">New</b>,
+  <b class="ui">Load</b>, <b class="ui">Save</b>, undo, redo, the quest tabs,
+  <b class="ui">Dialogues</b>, <b class="ui">Websites</b>,
+  <b class="ui">Dry run</b>, <b class="ui">Addons</b>,
+  <b class="ui">Settings</b> and <b class="ui">Export mod</b>. Hover any of
+  them for a longer description.</dd>
+  <dt>Palette</dt><dd>Every node the editor can make, grouped by what it does.
+  Type in the <b class="ui">Filter nodes</b> box to narrow it. Drag one onto the
+  canvas, or click it to drop one in the middle.</dd>
+  <dt>Canvas</dt><dd>Your quest map. Drag nodes around, draw wires between
+  sockets, scroll to zoom.</dd>
+  <dt>Inspector</dt><dd>Three tabs: <b class="ui">Node</b>,
+  <b class="ui">Quest</b> and <b class="ui">Mod</b>. The
+  <b class="ui">Node</b> tab stays greyed out until you click a node, because
+  there is nothing to show yet.</dd>
+  <dt>Status bar</dt><dd>The bottom bar shows whether your work is saved. It also
+  shows node and wire counts, your selection, and how far you can undo.</dd>
+</dl>
+<figure id="figure-tour-empty-canvas" class="manual-figure" data-manual-figure data-scene-id="tour-empty-canvas" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="tour-empty-canvas"
+      data-renderer-src="../figures/renderer.html?scene=tour-empty-canvas"
+      title="Code-rendered editor illustration: A new project with an empty quest canvas"
+      aria-describedby="figure-caption-tour-empty-canvas"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tour-empty-canvas">
+    <span class="manual-figure__description">A new project with an empty quest canvas. This component-only illustration does not include the first-run welcome card.</span>
+    <span class="manual-figure__caption">The blank project. The first-run welcome card is not shown in this view.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: A new project with an empty quest canvas" hidden>View larger</button>
+</figure>
+
+<h2 id="new-project">Start from a template</h2>
+<p>Fourteen templates come with the editor, including a blank quest and a
+36-node quest. You want <b class="ui">First Contact</b>: eight nodes, marked
+Beginner, and deliberately no hacking in it. Its own description:</p>
+<blockquote class="blurb">The whole spine in miniature: a brief, one objective (a person lookup), a payment and a closing line. No hacking — just the shape of a quest.</blockquote>
+<ol class="plain">
+  <li>Click <b class="ui">Browse 14 templates</b> on the welcome panel. If you
+  closed it, click <b class="ui">Templates</b> in the top bar instead.</li>
+  <li>In the window titled <b class="ui">Start from a template</b>, choose
+  <b class="ui">First Contact</b>. The editor confirms with a message reading
+  <span class="mono">Loaded “First Contact”.</span></li>
+</ol>
+<figure id="figure-tutorial-01-new-dialog" class="manual-figure" data-manual-figure data-scene-id="tutorial-01-new-dialog">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:720px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="tutorial-01-new-dialog"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-01-new-dialog"
+      title="Code-rendered editor illustration: Start from a template window"
+      aria-describedby="figure-caption-tutorial-01-new-dialog"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-01-new-dialog">
+    <span class="manual-figure__description">The Start from a template window, showing the list of templates with their names, difficulty labels and node counts.</span>
+    <span class="manual-figure__caption">The template picker. Difficulty and node count are shown for
+  each.</span>
+  </figcaption>
+</figure>
+<div class="note warn"><b>Save before replacing the project.</b>
+<b class="ui">New</b> asks <span class="mono">Start a new project?</span> and
+warns that it cannot be undone. It deletes every quest, website and conversation
+in the project, along with the autosaved copy. It offers
+<b class="ui">Save current quest first</b> for that reason. The template picker
+also replaces the current project and clears undo history. Autosave is not a
+versioned backup. Use top-bar <b class="ui">Save</b> or the picker's
+<b class="ui">Export current quest</b> before choosing a template. Restore it
+with top-bar <b class="ui">Load</b> or <b class="ui">Import a quest file</b>.</div>
+<figure id="figure-tutorial-02-first-contact" class="manual-figure" data-manual-figure data-scene-id="tutorial-02-first-contact" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="tutorial-02-first-contact"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-02-first-contact"
+      title="Code-rendered editor illustration: First Contact loaded in the editor"
+      aria-describedby="figure-caption-tutorial-02-first-contact"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-02-first-contact">
+    <span class="manual-figure__description">The editor immediately after loading the First Contact template, with eight nodes on the canvas.</span>
+    <span class="manual-figure__caption">First Contact, loaded.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: First Contact loaded in the editor" hidden>View larger</button>
+</figure>
+
+<h2 id="read-the-map">Read the map you loaded</h2>
+<p>Before changing anything, work out what this quest does. Zoom out until all
+eight nodes fit on screen.</p>
+<figure id="figure-tutorial-03-read-the-map" class="manual-figure" data-manual-figure data-scene-id="tutorial-03-read-the-map">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="tutorial-03-read-the-map"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-03-read-the-map"
+      title="Code-rendered editor illustration: The First Contact node map"
+      aria-describedby="figure-caption-tutorial-03-read-the-map"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-03-read-the-map">
+    <span class="manual-figure__description">The whole First Contact node map zoomed to fit, with blue flow wires running left to right between the nodes.</span>
+    <span class="manual-figure__caption">Read left to right. The wires, not the positions, decide the
+  order.</span>
+  </figcaption>
+</figure>
+<p>Follow the blue wires. They read as "and then", so a chain of them is the
+story running in order. You should find a brief being sent to the player, an
+objective, a payment, and a closing line. That is the spine, and almost every
+quest you write will be this shape with more in the middle.</p>
+<p>Now click the objective node. The inspector opens on its fields.</p>
+<figure id="figure-tutorial-04-inspector-tabs" class="manual-figure" data-manual-figure data-scene-id="tutorial-04-inspector-tabs" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="tutorial-04-inspector-tabs"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-04-inspector-tabs"
+      title="Code-rendered editor illustration: Node, Quest and Mod inspector tabs"
+      aria-describedby="figure-caption-tutorial-04-inspector-tabs"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-04-inspector-tabs">
+    <span class="manual-figure__description">The top of the inspector panel, with the Node, Quest and Mod tabs visible and the Node tab selected.</span>
+    <span class="manual-figure__caption">The three inspector tabs. <b class="ui">Node</b> is the one you
+  will use most.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Node, Quest and Mod inspector tabs" hidden>View larger</button>
+</figure>
+<div class="note"><b>Why this matters.</b> A template you cannot read is a
+template you cannot edit. Every quest you build later will be a variation on
+something you have already taken apart.</div>
+
+<h2 id="add-objective">Add your own objective</h2>
+<p>Now change the quest. You will add a second objective, so the player has two
+things to do instead of one.</p>
+<ol class="plain">
+  <li>In the palette, find <b class="ui">Objective</b>. Type
+  <span class="mono">objective</span> in <b class="ui">Filter nodes</b> if the
+  list is long.</li>
+  <li>Drag it onto an empty part of the canvas. A new node appears.</li>
+  <li>Click it. The inspector now shows its fields.</li>
+</ol>
+<figure id="figure-tutorial-05-add-objective" class="manual-figure" data-manual-figure data-scene-id="tutorial-05-add-objective">
+  <div class="manual-figure__stage" style="--figure-width:360px;--figure-height:720px;--figure-ratio:0.500000">
+    <iframe
+      data-manual-figure-scene="tutorial-05-add-objective"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-05-add-objective"
+      title="Code-rendered editor illustration: Objective in the node library"
+      aria-describedby="figure-caption-tutorial-05-add-objective"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="360"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-05-add-objective">
+    <span class="manual-figure__description">The node palette with the Objective entry visible in the list.</span>
+    <span class="manual-figure__caption">Objective, in the palette.</span>
+  </figcaption>
+</figure>
+<p>Fill in the two fields that matter for this exercise:</p>
+<dl class="facts-list">
+  <dt>Identifier</dt><dd>A short name the game uses internally, like
+  <span class="mono">find-the-contact</span>. The player never sees it, but it
+  has to be unique within the quest.</dd>
+  <dt>Shown to the player</dt><dd>The line that appears in their quest panel.
+  Write it as an instruction: <span class="mono">Look up who wrote the
+  article.</span></dd>
+</dl>
+<figure id="figure-tutorial-06-objective-inspector" class="manual-figure" data-manual-figure data-scene-id="tutorial-06-objective-inspector">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="tutorial-06-objective-inspector"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-06-objective-inspector"
+      title="Code-rendered editor illustration: Objective fields in the inspector"
+      aria-describedby="figure-caption-tutorial-06-objective-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-06-objective-inspector">
+    <span class="manual-figure__description">The inspector showing a selected Objective node with its Identifier and Shown to the player fields filled in.</span>
+    <span class="manual-figure__caption">Two fields, and the objective exists.</span>
+  </figcaption>
+</figure>
+<p>Now wire it in. Drag from the <b class="ui">On complete</b> socket on the
+first objective to the <b class="ui">In</b> socket on the new one. A blue wire
+appears, and the second objective now starts when the first one finishes.</p>
+
+<h2 id="wire-trigger">Make it complete</h2>
+<p>An objective with nothing wired to its trigger never completes on its own.
+This is the step that turns a quest from a script into something that reacts to
+the player.</p>
+<ol class="plain">
+  <li>Drag <b class="ui">When event</b> from the palette onto the canvas.</li>
+  <li>Click it and open its <b class="ui">Game event</b> field. Pick the event
+  that matches what the player will do.</li>
+  <li>Drag from the node's <b class="ui">When</b> socket to the objective's
+  <b class="ui">Trigger</b> socket. The wire is cyan, because it is a different
+  kind of connection from the blue ones.</li>
+</ol>
+<figure id="figure-tutorial-07-drag-wire" class="manual-figure" data-manual-figure data-scene-id="tutorial-07-drag-wire">
+  <div class="manual-figure__stage" style="--figure-width:900px;--figure-height:520px;--figure-ratio:1.730769">
+    <iframe
+      data-manual-figure-scene="tutorial-07-drag-wire"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-07-drag-wire"
+      title="Code-rendered editor illustration: Fixed still illustration of a wire being dragged — still illustration"
+      aria-describedby="figure-caption-tutorial-07-drag-wire"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="900"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-07-drag-wire">
+    <span class="manual-figure__description">A fixed mid-drag snapshot shows a When wire loose near the Objective's socket.</span>
+    <span class="manual-figure__caption">Mid-drag. The wire follows your cursor until you drop it on a
+  matching socket.</span>
+    <span class="manual-figure__still-note">Still illustration: the wire and cursor are a fixed snapshot, not an active drag.</span>
+  </figcaption>
+</figure>
+<figure id="figure-tutorial-08-when-event-inspector" class="manual-figure" data-manual-figure data-scene-id="tutorial-08-when-event-inspector">
+  <div class="manual-figure__stage" style="--figure-width:720px;--figure-height:720px;--figure-ratio:1.000000">
+    <iframe
+      data-manual-figure-scene="tutorial-08-when-event-inspector"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-08-when-event-inspector"
+      title="Code-rendered editor illustration: When event inspector with its event picker open"
+      aria-describedby="figure-caption-tutorial-08-when-event-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="720"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-08-when-event-inspector">
+    <span class="manual-figure__description">The inspector for a When event node, with the game event picker open and its list of events.</span>
+    <span class="manual-figure__caption">Choosing the event. There are 99, grouped by the part of the game
+they come from.</span>
+  </figcaption>
+</figure>
+<div class="note warn"><b>The socket has to match.</b> A cyan wire only lands on
+a cyan socket. If you drop it on <b class="ui">In</b> instead of
+<b class="ui">Trigger</b>, nothing connects — and that is the editor refusing a
+connection that would not mean anything.</div>
+
+<h2 id="write-the-reward">Give the player a reason to finish</h2>
+<p>Two nodes make a quest feel like a job rather than a checklist. Both are
+already in First Contact; click them to see what they hold.</p>
+<p>A <b class="ui">Dialogue</b> node is a conversation on the player's phone.
+Select one and the inspector shows who speaks and what they say. This is where
+an employer explains the job and where the story closes.</p>
+<figure id="figure-tutorial-09-dialogue-inspector" class="manual-figure" data-manual-figure data-scene-id="tutorial-09-dialogue-inspector">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="tutorial-09-dialogue-inspector"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-09-dialogue-inspector"
+      title="Code-rendered editor illustration: Dialogue node inspector"
+      aria-describedby="figure-caption-tutorial-09-dialogue-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-09-dialogue-inspector">
+    <span class="manual-figure__description">The inspector for a Dialogue node, showing its speaker and message lines.</span>
+    <span class="manual-figure__caption">A conversation, node by node.</span>
+  </figcaption>
+</figure>
+<p>A <b class="ui">Pay the player</b> node puts money in their account. Set the
+amount in dollars. It starts at 100. Adjust the amount to suit the job.</p>
+<figure id="figure-tutorial-10-pay-inspector" class="manual-figure" data-manual-figure data-scene-id="tutorial-10-pay-inspector">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="tutorial-10-pay-inspector"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-10-pay-inspector"
+      title="Code-rendered editor illustration: Pay the player inspector"
+      aria-describedby="figure-caption-tutorial-10-pay-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-10-pay-inspector">
+    <span class="manual-figure__description">The inspector for a Pay the player node, with its amount field set.</span>
+    <span class="manual-figure__caption">The payment. Leave the amount blank and the node does
+  nothing.</span>
+  </figcaption>
+</figure>
+
+<h2 id="check-it">Check it before you ship it</h2>
+<p>The editor checks your work in two places. The status bar along the bottom
+tells you the shape of what you have built.</p>
+<figure id="figure-tutorial-11-status-clean" class="manual-figure" data-manual-figure data-scene-id="tutorial-11-status-clean">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:64px;--figure-ratio:21.250000">
+    <iframe
+      data-manual-figure-scene="tutorial-11-status-clean"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-11-status-clean"
+      title="Code-rendered editor illustration: Saved status and graph counts"
+      aria-describedby="figure-caption-tutorial-11-status-clean"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="64"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-11-status-clean">
+    <span class="manual-figure__description">The status bar alone, reading Saved, then a count of nodes, wires and objectives, then the history depth.</span>
+    <span class="manual-figure__caption">The status bar. It reports counts and whether your work is
+  saved; it does not list problems.</span>
+  </figcaption>
+</figure>
+<p>Problems show up on the nodes themselves and in the export window, not here.
+The fuller check is <b class="ui">Dry run</b>, which walks through your quest
+the way the exported mod would run it.</p>
+<figure id="figure-tutorial-12-dryrun" class="manual-figure" data-manual-figure data-scene-id="tutorial-12-dryrun">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:820px;--figure-ratio:1.365854">
+    <iframe
+      data-manual-figure-scene="tutorial-12-dryrun"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-12-dryrun"
+      title="Code-rendered editor illustration: Dry run window after a fixed sample trace — still illustration"
+      aria-describedby="figure-caption-tutorial-12-dryrun"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="820"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-12-dryrun">
+    <span class="manual-figure__description">The Dry run window shows a fixed finished trace from the sample quest, with the nodes that fired.</span>
+    <span class="manual-figure__caption">The fixed sample trace shows which nodes fired in order.</span>
+    <span class="manual-figure__still-note">Still illustration: the fixed sample run has finished; this is not a live game trace.</span>
+  </figcaption>
+</figure>
+<p>Run it and watch the order. If a node you expected never appears, it is not
+wired to anything. Drop a <b class="ui">Debug probe</b> after it and run again.
+The probe prints what a node does when it fires. It also shows whether the node
+fires at all. <a href="checking.html">Checking your quest</a> lists every message
+the editor can show you.</p>
+
+<h2 id="export">Export, install, play</h2>
+<p>Click <b class="ui">Export mod</b>. Before packing, the window shows what you
+are about to ship. It lists your quests, websites, the permissions your nodes
+need, and every file in the archive.</p>
+<figure id="figure-tutorial-13-export-dialog" class="manual-figure" data-manual-figure data-scene-id="tutorial-13-export-dialog">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:760px;--figure-ratio:1.263158">
+    <iframe
+      data-manual-figure-scene="tutorial-13-export-dialog"
+      data-renderer-src="../figures/renderer.html?scene=tutorial-13-export-dialog"
+      title="Code-rendered editor illustration: Export mod window"
+      aria-describedby="figure-caption-tutorial-13-export-dialog"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="760"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-tutorial-13-export-dialog">
+    <span class="manual-figure__description">The Export mod window showing the quest list, websites, permission chips and the file list, with a Download .zip button.</span>
+    <span class="manual-figure__caption">The export summary. Read it before you download.</span>
+  </figcaption>
+</figure>
+<p>Anything red means the game will drop or change something you built. Fix it
+first. Then choose <b class="ui">Download .zip</b> and unzip the folder into the
+game's <code>mods/</code> directory.</p>
+<p>Everything the archive contains and why is on the
+<a href="export.html">exporting and installing</a> page. The one thing worth
+remembering from it: the <code>.zip</code> is finished output. Your project file
+is the thing you keep editing.</p>
+
+<h2 id="recap">What you now know</h2>
+<p>You loaded a quest and read what it did. You added to it, made an objective
+respond to real play, and installed the result. Four ideas carried all of it:</p>
+<ul>
+  <li><b>Wires decide order, not position.</b> Moving a node changes nothing.
+  <a href="concepts.html#quest-map">Your quest map</a> explains why.</li>
+  <li><b>Wires have kinds.</b> Blue for "and then", cyan for "when". A socket
+  takes only its own kind.</li>
+  <li><b>An objective completes when its trigger fires.</b> That is the
+  difference between a quest that reacts and one that assumes.</li>
+  <li><b>Exporting is not saving.</b> Two different files, two different
+  purposes.</li>
+</ul>
+<p>Next, take apart a bigger template. <b class="ui">The Byline</b> adds a
+website clue, and <b class="ui">Cold Call</b> tells its story entirely in
+conversation. Then look at the <a href="how-do-i.html">How do I…</a> pages when
+you want to build something specific.</p>
+</section>
+
+<div class="pagefoot"><a href="index.html">← Start here</a><a class="next" href="concepts.html">How a quest works →</a></div>
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  every figure on these pages is taken from the editor's own source.
+</footer>
+</main>
+</div>
+<script src="search-index.js"></script>
+<script src="manual.js"></script>
+</body>
+</html>

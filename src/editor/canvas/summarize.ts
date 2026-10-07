@@ -6,9 +6,11 @@
  * nothing but the header".
  */
 import type { DialogueKind, NodeDoc } from "@/schema/nodes";
-import type { QuestDoc } from "@/schema/project";
-import { eventLabel } from "@/schema/events";
+import type { QuestDoc, TwotterAccountDoc } from "@/schema/project";
+import { humanEventName } from "@/schema/events";
+import { clockText, OFFSET_UNITS, shortDateText, unitsShort, WAIT_UNITS } from "@/schema/timer";
 import { DEVICE_TYPE_LABELS } from "@/schema/common";
+import { describePackNodeAction } from "@/toolpacks/palette";
 
 export const DIALOGUE_KIND_LABELS: Record<DialogueKind, string> = {
     phone: "Phone call",
@@ -72,7 +74,17 @@ function deviceLine(d: { ip: string; type: string; children?: unknown[]; ports?:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Loose = Record<string, any>;
 
-export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
+export function summarize(
+    node: NodeDoc,
+    quest?: QuestDoc,
+    /**
+     * The mod's Twotter accounts, when the caller has them. Optional so the
+     * many existing `summarize(node)` call sites keep working: without it the
+     * card says the account name is not set yet, which is true of the field it
+     * can see.
+     */
+    accounts?: Pick<TwotterAccountDoc, "id" | "handle">[],
+): string[] {
     const d = node.data as Loose;
     switch (node.type) {
         case "entry.start":
@@ -86,7 +98,7 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
         case "entry.load":
             return ["Runs on claim and after every reload"];
         case "entry.complete":
-            return ["Runs when all objectives are done"];
+            return ["Runs after the quest is completed"];
         case "entry.abandon":
             return ["Runs when the player abandons"];
 
@@ -100,7 +112,7 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             const conditions = d.conditions as { id: string }[] | undefined;
             const n = conditions?.length ?? 0;
             return [
-                d.event ? eventLabel(String(d.event)) : "no event chosen",
+                d.event ? humanEventName(String(d.event)) : "no event chosen",
                 n === 0 ? "fires on any occurrence" : `${n} condition${n === 1 ? "" : "s"}`,
             ];
         }
@@ -178,25 +190,36 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
                     : d.kind === "mail"
                       ? 1
                       : ((d.kind === "kisscord" ? d.kisscord?.messages : d.weechat?.messages) as unknown[] | undefined)?.length ?? 0;
-            return [
+            const lines = [
                 `${DIALOGUE_KIND_LABELS[d.kind as DialogueKind] ?? "Dialogue"} · ${count} line${count === 1 ? "" : "s"}`,
                 first ? clip(String(first)) : "empty conversation",
             ];
+            if (d.kind === "phone") {
+                lines.push(d.phone?.continueMode === "immediate" ? "Out after call starts" : "Out when call ends");
+            }
+            return lines;
         }
 
-        case "comms.tweet":
-            return [
-                d.accountId ? `@${d.accountId}` : "no account yet",
-                d.content ? clip(String(d.content), 56) : "no tweet yet",
-            ];
-
-        case "reply.hackertyper":
-            return [
-                { website: "Website page", app: "Desktop app", phoneApp: "Phone app" }[
-                    d.surface as "website"
-                ],
-                d.text ? clip(String(d.text), 52) : "no text yet",
-            ];
+        case "comms.tweet": {
+            /*
+             * Stage 2 (r188): the card stays a card — the handle, then what the
+             * node actually says. The row the author reads first on the card is
+             * the OLDEST one, because that is the order the node holds them in;
+             * the profile panel and the inspector are where the game's order
+             * (newest first) is shown.
+             */
+            const account = accounts?.find((a) => a.id === d.accountId);
+            const rows = (d.tweets as { content?: string; timeMode?: string; agoAmount?: number; agoUnit?: string }[] | undefined) ?? [];
+            const handle = account ? `@${account.handle || "unnamed"}` : "no account yet";
+            if (!rows.length) return [handle, "no tweets yet"];
+            const first = clip(String(rows[0]?.content ?? ""), 40);
+            const line = first ? `“${first}”` : "empty tweet";
+            const when = rows[0]?.timeMode === "earlier"
+                ? `${Number(rows[0]?.agoAmount ?? 1)} ${String(rows[0]?.agoUnit ?? "days")} ago`
+                : "posts on arrival";
+            if (rows.length === 1) return [handle, `${line} — ${when}`];
+            return [handle, `${rows.length} tweets, oldest first — ${line} ${when}`];
+        }
 
         case "reply.input":
             return [
@@ -216,11 +239,28 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
         case "fx.notify":
             return [d.message ? clip(String(d.message), 60) : "no message yet"];
 
+        case "fx.prompt": {
+            const mode = d.matchMode === "any" ? "any answer" : "checked answer";
+            return [
+                d.label ? clip(String(d.label), 60) : d.title ? clip(String(d.title), 60) : "no question yet",
+                d.storeAs ? `saves as ${d.storeAs}` : mode,
+            ];
+        }
+
         case "fx.setData":
             return [d.key ? `${d.key} = ${d.value ?? ""}` : "no key yet"];
 
         case "fx.claimQuest":
             return [d.questName ? String(d.questName) : "no quest chosen"];
+
+        case "fx.completeQuest":
+            return ["Finishes this quest"];
+
+        case "fx.retireQuest":
+            return ["Removes this quest"];
+
+        case "fx.unclaimQuest":
+            return [d.questName ? `Unclaims ${String(d.questName)}` : "Unclaims this quest"];
 
         case "fx.shell":
             return [d.command ? clip(String(d.command), 52) : "no command yet"];
@@ -236,16 +276,89 @@ export function summarize(node: NodeDoc, quest?: QuestDoc): string[] {
             ];
         }
 
+        case "flow.appcheck": {
+            const lines = [d.app ? `Does the player have ${String(d.app)}?` : "No app name yet"];
+            if (d.saveList) lines.push(`Saves the installed list as ${d.key || "installedApps"}`);
+            return lines;
+        }
+
         case "flow.delay":
             return [`${Number(d.seconds ?? 0)} s`];
+
+        case "flow.timer": {
+            const mode = d.mode ?? "after";
+            if (mode === "daytime") {
+                // "in 1mo 2w 2d at 18:23": the editor never resolves a relative
+                // Timer — the mod does, in the game, at arm time (r176/r177) —
+                // so the card says the rule rather than a date it cannot know.
+                const offset = unitsShort(d, OFFSET_UNITS);
+                return [`${offset ? `in ${offset}` : "today"} at ${clockText(d.hour, d.minute)}`];
+            }
+            if (mode === "at") {
+                const date = shortDateText(d.dateYear, d.dateMonth, d.dateDay);
+                if (!date) return ["no date set"];
+                return [`${date}, ${clockText(d.hour, d.minute)}`];
+            }
+            return [unitsShort(d, WAIT_UNITS) ?? "no time set"];
+        }
 
         case "flow.random": {
             const options = d.options as { label: string }[] | undefined;
             return [options?.length ? `${options.length} options` : "no options yet"];
         }
 
+        case "flow.sequence": {
+            const steps = (d.steps as { label?: string; delayMs?: number }[] | undefined) ?? [];
+            if (steps.length === 0) return ["no outputs yet"];
+            const total = steps.reduce((sum, s) => sum + Number(s.delayMs ?? 0), 0);
+            return [
+                `${steps.length} output${steps.length === 1 ? "" : "s"}, in order`,
+                clip(steps.map((s) => s.label || "step").join(" → "), 46),
+                total > 0 ? `${total} ms end to end` : "no pauses",
+            ];
+        }
+
+        case "flow.debug": {
+            const bits: string[] = [];
+            if (d.includePayload) bits.push("the event");
+            if (d.includeData) bits.push("saved values");
+            return [
+                d.label ? clip(String(d.label), 46) : "unnamed checkpoint",
+                bits.length ? `prints ${bits.join(" and ")}` : "prints when it is reached",
+                d.toast ? "in the log and on screen" : "in the log",
+            ];
+        }
+
+        case "world.packData": {
+            const lines: string[] = [];
+            if (d.contractLabel) lines.push(d.contractLabel);
+            const filled = Object.values((d.values as Record<string, string>) ?? {}).filter((v) => v);
+            if (filled.length) lines.push(`${filled.length} value${filled.length === 1 ? "" : "s"} filled in`);
+            return lines.length ? lines : ["Not set up yet — pick a pack and a data shape"];
+        }
+
+        case "pack.node": {
+            if (!d.nodeId) return ["Not set up yet — add it from the palette's Editor Mods group"];
+            const what = describePackNodeAction(d as { emitter?: string; command?: string });
+            const lines = [`${d.nodeLabel || "Addon node"} — ${what}`];
+            if (d.packName) lines.push(`from ${d.packName}`);
+            const filled = Object.values((d.values as Record<string, string>) ?? {}).filter((v) => v);
+            if (filled.length) lines.push(`${filled.length} value${filled.length === 1 ? "" : "s"} filled in`);
+            return lines;
+        }
+
         case "flow.note":
             return d.text ? [clip(String(d.text), 120)] : ["Empty note"];
+
+        case "flow.beat": {
+            const lines: string[] = [];
+            if (d.title) lines.push(clip(String(d.title), 80));
+            if (d.text) lines.push(clip(String(d.text), 120));
+            for (const c of (d.choices as { label?: string }[]) ?? []) {
+                if (c.label) lines.push(`· ${clip(String(c.label), 60)}`);
+            }
+            return lines.length ? lines : ["Empty beat"];
+        }
 
         default: {
             const exhaustive: never = node;

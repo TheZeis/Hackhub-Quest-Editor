@@ -5,18 +5,32 @@
  * a field can live at any depth (`attachment.name`, `messages.2.content`) without
  * the parent threading callbacks down.
  */
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { FRAME_COLOURS } from "@/editor/canvas/groupColours";
+import { ColourPicker } from "./ColourPicker";
 import { Icon } from "@/components/Icon";
 import type { FieldDef } from "@/schema/registry";
-import { getPath, selectActiveQuest, useEditor } from "@/store/editor";
+import { getPath, useEditor } from "@/store/editor";
+import { fieldWarnings } from "@/analysis/fields";
 import { ImagePickerField } from "./ModFields";
 import { ConditionsEditor } from "./ConditionsEditor";
 import { DeviceEditor, DeviceListEditor } from "./DeviceTree";
 import { EventPicker } from "./EventPicker";
 import { ListEditor } from "./ListEditor";
+import { HANDBOOK_ARTICLES } from "@/schema/handbookArticles";
+import { createTwotterAccount } from "@/schema/project";
+import { SelectOrCustomInput } from "./SelectOrCustom";
+import { TablesEditor } from "./TablesEditor";
+import { TokenTextInput } from "./TokenInsert";
+import { GenerateButton } from "./GenerateButton";
+import { listTokenSuggestions } from "./tokenSuggestions";
+import { generateField, type GenContext } from "@/lib/generate";
+import type { FieldGenerate } from "@/schema/registry";
 import {
+    ClockInput,
     FieldShell,
+    HintBadge,
     NumberInput,
     SelectInput,
     TextArea,
@@ -25,6 +39,71 @@ import {
 } from "./primitives";
 import type { NetworkDevice } from "@/schema/common";
 import type { ConditionClause } from "@/schema/nodes";
+
+/**
+ * Ready-made frame colours: the values come from the single source of truth
+ * the random-on-creation roll (r229) uses, so the picker and the roll can
+ * never drift apart. Anything else is one click away in the picker.
+ */
+const GROUP_COLOUR_LABELS = ["Slate", "Blue", "Green", "Amber", "Pink", "Violet", "Orange", "Cyan"];
+const GROUP_COLORS = FRAME_COLOURS.map((value, i) => ({ value, label: GROUP_COLOUR_LABELS[i] }));
+
+/**
+ * Picks one of the mod's Twotter accounts (r185), by handle. Accounts are
+ * mod-level, so the options come from the project rather than the quest — and
+ * the empty row makes the next step obvious instead of leaving a new author
+ * with a dropdown that only says "none".
+ */
+function TwotterAccountPicker({
+    value,
+    onChange,
+    onManage,
+}: {
+    value: string;
+    onChange: (next: string) => void;
+    onManage: () => void;
+}) {
+    const accounts = useEditor((s) => s.project.twotterAccounts);
+    const addTwotterAccount = useEditor((s) => s.addTwotterAccount);
+    const account = accounts.find((a) => a.id === value) ?? null;
+
+    return (
+        <div className="space-y-1.5">
+            <SelectInput
+                ariaLabel="Account"
+                value={account ? account.id : ""}
+                onChange={(next) => {
+                    /* Creating from here keeps the author on the node: the
+                       account exists, it is selected, and the Twotter panel is
+                       where it gets its handle and face. */
+                    if (next === "__new") {
+                        const created = createTwotterAccount({});
+                        addTwotterAccount(created);
+                        onChange(created.id);
+                        onManage();
+                        return;
+                    }
+                    onChange(next);
+                }}
+                options={[
+                    ...(account ? [] : [{ value: "", label: accounts.length ? "Pick an account…" : "No accounts yet" }]),
+                    ...accounts.map((a) => ({
+                        value: a.id,
+                        label: `@${a.handle || "unnamed"}${a.displayName ? ` — ${a.displayName}` : ""}`,
+                    })),
+                    { value: "__new", label: "＋ New account…" },
+                ]}
+            />
+            <button
+                type="button"
+                className="text-[11px] text-accent hover:underline"
+                onClick={onManage}
+            >
+                Manage accounts
+            </button>
+        </div>
+    );
+}
 
 export function Field({
     def,
@@ -39,6 +118,10 @@ export function Field({
         const quest = s.project.quests.find((q) => q.id === s.project.editor.activeQuestId);
         return quest?.graph.nodes.find((n) => n.id === nodeId) ?? null;
     });
+    const quest = useEditor((s) =>
+        (s.project.quests.find((q) => q.id === s.project.editor.activeQuestId) ?? null),
+    );
+    const warnings = useMemo(() => fieldWarnings(quest ?? undefined, node!), [quest, node]);
     const updateNodeData = useEditor((s) => s.updateNodeData);
 
     if (!node) return null;
@@ -48,13 +131,19 @@ export function Field({
         const siblingPath = basePath ? `${basePath}.${def.showWhen.key}` : def.showWhen.key;
         const current = getPath(node.data, siblingPath);
         const wanted = def.showWhen.equals;
+        // Booleans are compared by their spelling, so a toggle can gate a field
+        // with equals: "true".
+        const seen = typeof current === "boolean" ? String(current) : current;
         const matches = Array.isArray(wanted)
-            ? wanted.includes(current as string)
-            : current === wanted;
+            ? wanted.includes(seen as string)
+            : seen === wanted;
         if (!matches) return null;
     }
 
     if (def.kind === "section") {
+        // A section with `path` addresses its children under a nested record
+        // (the firewall node's single rule); without one they share the parent.
+        const childBase = def.path ? (basePath ? `${basePath}.${def.path}` : def.path) : basePath;
         return (
             <fieldset className="my-1 rounded-md border border-line/70 py-0.5">
                 <legend className="ml-2 px-1 text-[10px] font-semibold tracking-wider text-ink-4 uppercase">
@@ -65,7 +154,7 @@ export function Field({
                         key={"key" in child ? child.key : `${i}-${child.kind}`}
                         def={child}
                         nodeId={nodeId}
-                        basePath={basePath}
+                        basePath={childBase}
                     />
                 ))}
             </fieldset>
@@ -92,32 +181,92 @@ export function Field({
         );
     }
 
-    const path = basePath ? `${basePath}.${def.key}` : def.key;
+    // Rows and the clock are layout: they have no key of their own, and read
+    // and write their children's paths instead.
+    const path = "key" in def ? (basePath ? `${basePath}.${def.key}` : def.key) : "";
+    // Only match warnings on exactly this field — a nested or sibling field's
+    // problem belongs to its own control, not here.
+    const fieldWarning = warnings.find((w) => w.path === path);
     const raw = getPath(node.data, path);
 
     const write = (value: unknown) => updateNodeData(nodeId, { [path]: value });
+
+    /**
+     * Roll a value for this field's dice button. Reads any `reuse` siblings
+     * (relative to this field's base path) so e.g. an e-mail can be built from
+     * the first/last name beside it — but writes only this field, keeping one
+     * click to one undo step.
+     */
+    const runGenerate = (gen: FieldGenerate) => {
+        const ctx: GenContext = {};
+        for (const key of gen.reuse ?? []) {
+            const siblingPath = basePath ? `${basePath}.${key}` : key;
+            const v = getPath(node.data, siblingPath);
+            const text = v === undefined || v === null ? "" : String(v);
+            if (!text) continue;
+            const lower = key.toLowerCase();
+            if (lower.includes("first")) ctx.firstName = text;
+            else if (lower.includes("last")) ctx.lastName = text;
+            else if (lower.includes("service")) ctx.service = text;
+            else if (lower.includes("compan") || lower.includes("employer")) ctx.company = text;
+        }
+        write(generateField(gen.kind, ctx, { ipFlavour: gen.ipFlavour }));
+    };
+
     const asString = (value: unknown) => (value === undefined || value === null ? "" : String(value));
     const asNumber = (value: unknown) => (typeof value === "number" ? value : Number(value) || 0);
     const asBool = (value: unknown) => value === true;
     const asArray = (value: unknown) => (Array.isArray(value) ? (value as Record<string, unknown>[]) : []);
 
     switch (def.kind) {
-        case "text":
+        case "text": {
+            const dice = def.generate ? (
+                <GenerateButton
+                    label={def.generate.label ?? def.label.toLowerCase()}
+                    onGenerate={() => runGenerate(def.generate!)}
+                />
+            ) : null;
             return (
-                <FieldShell label={def.label} hint={def.hint}>
-                    <TextInput
-                        ariaLabel={def.label}
-                        value={asString(raw)}
-                        onChange={write}
-                        placeholder={def.placeholder}
-                        mono={def.mono}
-                    />
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    {def.tokens ? (
+                        <TokenTextInput
+                            ariaLabel={def.label}
+                            value={asString(raw)}
+                            onChange={write}
+                            placeholder={def.placeholder}
+                            mono={def.mono}
+                            suggestions={listTokenSuggestions(quest, nodeId)}
+                            trailing={dice}
+                        />
+                    ) : dice ? (
+                        <div className="flex items-start gap-1">
+                            <div className="min-w-0 flex-1">
+                                <TextInput
+                                    ariaLabel={def.label}
+                                    value={asString(raw)}
+                                    onChange={write}
+                                    placeholder={def.placeholder}
+                                    mono={def.mono}
+                                />
+                            </div>
+                            {dice}
+                        </div>
+                    ) : (
+                        <TextInput
+                            ariaLabel={def.label}
+                            value={asString(raw)}
+                            onChange={write}
+                            placeholder={def.placeholder}
+                            mono={def.mono}
+                        />
+                    )}
                 </FieldShell>
             );
+        }
 
         case "date":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <input
                         type="date"
                         aria-label={def.label}
@@ -130,21 +279,34 @@ export function Field({
 
         case "textarea":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
-                    <TextArea
-                        ariaLabel={def.label}
-                        value={asString(raw)}
-                        onChange={write}
-                        placeholder={def.placeholder}
-                        mono={def.mono}
-                        rows={def.rows ?? 3}
-                    />
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    {def.tokens ? (
+                        <TokenTextInput
+                            ariaLabel={def.label}
+                            value={asString(raw)}
+                            onChange={write}
+                            placeholder={def.placeholder}
+                            mono={def.mono}
+                            multiline
+                            rows={def.rows ?? 3}
+                            suggestions={listTokenSuggestions(quest, nodeId)}
+                        />
+                    ) : (
+                        <TextArea
+                            ariaLabel={def.label}
+                            value={asString(raw)}
+                            onChange={write}
+                            placeholder={def.placeholder}
+                            mono={def.mono}
+                            rows={def.rows ?? 3}
+                        />
+                    )}
                 </FieldShell>
             );
 
         case "number":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <NumberInput
                         ariaLabel={def.label}
                         value={asNumber(raw)}
@@ -152,6 +314,7 @@ export function Field({
                         min={def.min}
                         max={def.max}
                         step={def.step}
+                        suffix={def.suffix}
                     />
                 </FieldShell>
             );
@@ -159,7 +322,7 @@ export function Field({
         case "slider": {
             const value = Math.min(def.max, Math.max(def.min, asNumber(raw)));
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <div className="flex items-center gap-3">
                         <input
                             type="range"
@@ -183,6 +346,20 @@ export function Field({
             );
         }
 
+        case "color": {
+            const current = asString(raw) || GROUP_COLORS[0].value;
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    <ColourPicker
+                        label={def.label}
+                        value={current}
+                        onChange={write}
+                        presets={GROUP_COLORS}
+                    />
+                </FieldShell>
+            );
+        }
+
         case "image":
             return (
                 <ImagePickerField
@@ -193,30 +370,6 @@ export function Field({
                     onChange={(next) => write(next ?? "")}
                 />
             );
-
-        case "questAccount": {
-            const accounts = useEditor(selectActiveQuest)?.twotterAccounts ?? [];
-            return (
-                <FieldShell label={def.label} hint={def.hint}>
-                    {accounts.length === 0 ? (
-                        <p className="text-[11px] leading-relaxed text-ink-3">
-                            No Twotter accounts yet — add one in the <strong className="text-ink-2">Quest tab</strong> under
-                            “Twotter accounts”, then pick which account makes this post.
-                        </p>
-                    ) : (
-                        <SelectInput
-                            ariaLabel={def.label}
-                            value={asString(raw)}
-                            onChange={write}
-                            options={accounts.map((a) => ({
-                                value: a.id,
-                                label: `@${a.username || a.id}${a.displayName ? ` — ${a.displayName}` : ""}`,
-                            }))}
-                        />
-                    )}
-                </FieldShell>
-            );
-        }
 
         case "toggle":
             return (
@@ -230,20 +383,165 @@ export function Field({
 
         case "select":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <SelectInput
                         ariaLabel={def.label}
                         value={asString(raw)}
-                        onChange={write}
+                        onChange={(next) => write(def.numeric ? Number(next) : next)}
                         options={def.options}
+                        display={def.display}
+                    />
+                </FieldShell>
+            );
+
+        case "selectOrCustom": {
+            const sameValue = def.sameAs
+                ? resolveSameAs(node.data, basePath, def.sameAs.fromKey)
+                : undefined;
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    <SelectOrCustomInput
+                        ariaLabel={def.label}
+                        value={asString(raw)}
+                        onChange={(v) => write(v)}
+                        options={def.options}
+                        sameAsLabel={def.sameAs?.label}
+                        sameAsValue={sameValue}
+                        sameAsEmptyHint={def.sameAs?.emptyHint}
+                        placeholder={def.placeholder}
+                        mono={def.mono}
+                        tokenSuggestions={def.tokens ? listTokenSuggestions(quest, nodeId) : undefined}
+                        trailing={
+                            def.generate ? (
+                                <GenerateButton
+                                    label={def.generate.label ?? def.label.toLowerCase()}
+                                    onGenerate={() => runGenerate(def.generate!)}
+                                />
+                            ) : undefined
+                        }
+                    />
+                </FieldShell>
+            );
+        }
+
+        case "row": {
+            /* Several fields on one line. Children keep their own shell, label,
+               hint and warning — a row is layout, not a control. The readback,
+               when the row has one, spells the values out in words. */
+            const readback = def.readback?.(node.data as Record<string, unknown>) ?? null;
+            return (
+                <div>
+                    {def.label && (
+                        <div className="flex items-center gap-1 px-3 pt-1.5">
+                            <span className="field-label mb-0">{def.label}</span>
+                            {def.hint && <HintBadge label={def.label} hint={def.hint} />}
+                        </div>
+                    )}
+                    <div
+                        className={cn(
+                            /* `@container`: the row's own width decides its
+                               columns, not the window's — the inspector is a
+                               resizable panel, so a viewport breakpoint would
+                               be wrong the moment someone drags it.
+
+                               `columns` used to be an unconditional
+                               `grid-cols-N`, which cannot be right at every
+                               width: a cell is `px-3` (24px) plus a ~36px unit
+                               caption plus the number box, so the Timer's
+                               four-box "In" row needs ~28rem of panel and the
+                               docked panel is 340px wide. It clipped the boxes
+                               off the right edge (r183). The row now folds to
+                               two columns below the width its captions need and
+                               opens back up when the panel is dragged wider. */
+                            "@container grid [&>*]:min-w-0",
+                            def.columns === 2
+                                ? "grid-cols-2"
+                                : def.columns === 3
+                                  ? "grid-cols-2 @min-[21rem]:grid-cols-3"
+                                  : def.columns === 4
+                                    ? "grid-cols-2 @min-[28rem]:grid-cols-4"
+                                    : "auto-cols-fr grid-flow-col",
+                        )}
+                    >
+                        {def.fields.map((child, i) => (
+                            <Field
+                                key={"key" in child ? child.key : `${i}-${child.kind}`}
+                                def={child}
+                                nodeId={nodeId}
+                                basePath={basePath}
+                            />
+                        ))}
+                    </div>
+                    {readback && (
+                        <p className="mt-0.5 px-3 text-[11px] leading-snug text-ink-3">
+                            <span className="mr-1 text-ink-4">=</span>
+                            {readback}
+                        </p>
+                    )}
+                </div>
+            );
+        }
+
+        case "clock": {
+            /* One control over two number fields. The caption is the clock's
+               own; the fields keep their labels, so the manual and a screen
+               reader still see "Hour" and "Minute". */
+            const hourPath = basePath ? `${basePath}.${def.hour.key}` : def.hour.key;
+            const minutePath = basePath ? `${basePath}.${def.minute.key}` : def.minute.key;
+            const innerWarning =
+                warnings.find((w) => w.path === hourPath) ?? warnings.find((w) => w.path === minutePath);
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={innerWarning}>
+                    <ClockInput
+                        hour={asNumber(getPath(node.data, hourPath))}
+                        minute={asNumber(getPath(node.data, minutePath))}
+                        onChange={(next) =>
+                            updateNodeData(nodeId, {
+                                ...(next.hour === undefined ? {} : { [hourPath]: next.hour }),
+                                ...(next.minute === undefined ? {} : { [minutePath]: next.minute }),
+                            })
+                        }
+                    />
+                </FieldShell>
+            );
+        }
+
+        case "tables":
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    <TablesEditor value={asArray(raw)} onChange={(next) => write(next)} />
+                </FieldShell>
+            );
+
+        case "handbookArticle":
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    <SelectOrCustomInput
+                        ariaLabel={def.label}
+                        value={asString(raw)}
+                        onChange={(v) => write(v)}
+                        options={HANDBOOK_ARTICLES.map((a) => ({ value: a.id, label: a.title }))}
+                        placeholder="Article id"
+                        mono
                     />
                 </FieldShell>
             );
 
         case "event":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <EventPicker value={asString(raw)} onChange={write} />
+                </FieldShell>
+            );
+
+        case "twotterAccount":
+            return (
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
+                    <TwotterAccountPicker
+                        value={asString(raw)}
+                        onChange={write}
+                        onManage={() => useEditor.getState().setUi({ modal: "twotter" })}
+                    />
                 </FieldShell>
             );
 
@@ -251,7 +549,7 @@ export function Field({
             const eventPath = basePath ? `${basePath}.event` : "event";
             const eventName = asString(getPath(node.data, eventPath));
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <ConditionsEditor
                         value={(raw as ConditionClause[] | undefined) ?? []}
                         onChange={(next) => write(next)}
@@ -263,7 +561,7 @@ export function Field({
 
         case "list":
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     <ListEditor nodeId={nodeId} path={path} items={asArray(raw)} def={def} />
                 </FieldShell>
             );
@@ -271,7 +569,7 @@ export function Field({
         case "deviceTree": {
             const value = raw as NetworkDevice | NetworkDevice[] | undefined;
             return (
-                <FieldShell label={def.label} hint={def.hint}>
+                <FieldShell label={def.label} hint={def.hint} warning={fieldWarning}>
                     {Array.isArray(value) ? (
                         <DeviceListEditor nodeId={nodeId} path={path} devices={value} />
                     ) : value ? (
@@ -288,6 +586,24 @@ export function Field({
             return <NoValue label={String(exhaustive)} />;
         }
     }
+}
+
+/**
+ * Reads the field a `sameAs` choice copies. A leading "/" addresses the node
+ * root (the firewall rule's "/ip"); otherwise the row is tried first so a
+ * row-local key wins, then the root.
+ */
+function resolveSameAs(data: unknown, basePath: string, fromKey: string): string {
+    const read = (path: string) => {
+        const v = getPath(data, path);
+        return v === undefined || v === null ? "" : String(v);
+    };
+    if (fromKey.startsWith("/")) return read(fromKey.slice(1));
+    if (basePath) {
+        const scoped = getPath(data, `${basePath}.${fromKey}`);
+        if (scoped !== undefined && scoped !== null) return String(scoped);
+    }
+    return read(fromKey);
 }
 
 function NoValue({ label }: { label?: ReactNode }) {

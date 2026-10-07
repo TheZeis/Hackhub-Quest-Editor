@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Timer — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="../manual.css" />
+<link rel="stylesheet" href="../manual-figures.css" />
+</head>
+<body>
+<div class="wrap">
+
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="../index.html">Start here</a></li>
+    <li><a href="../tutorial.html">Your first quest</a></li>
+    <li><a href="../concepts.html">How a quest works</a></li>
+    <li><a href="../nodes.html">Node reference</a>
+      <ul class="sub">
+        <li><a href="../nodes.html#cat-entry"><span class="cat-dot" style="background:var(--cat-entry)"></span>Quest lifecycle</a></li>
+        <li><a href="../nodes.html#cat-objective"><span class="cat-dot" style="background:var(--cat-objective)"></span>Objectives</a></li>
+        <li><a href="../nodes.html#cat-trigger"><span class="cat-dot" style="background:var(--cat-trigger)"></span>Triggers</a></li>
+        <li><a href="../nodes.html#cat-world"><span class="cat-dot" style="background:var(--cat-world)"></span>World building</a></li>
+        <li><a href="../nodes.html#cat-comms"><span class="cat-dot" style="background:var(--cat-comms)"></span>Communication</a></li>
+        <li><a href="../nodes.html#cat-reply"><span class="cat-dot" style="background:var(--cat-reply)"></span>Custom terminal</a></li>
+        <li><a href="../nodes.html#cat-effect"><span class="cat-dot" style="background:var(--cat-effect)"></span>Effects</a></li>
+        <li><a href="../nodes.html#cat-community"><span class="cat-dot" style="background:var(--cat-community)"></span>Community addons</a></li>
+        <li><a href="../nodes.html#cat-flow"><span class="cat-dot" style="background:var(--cat-flow)"></span>Flow control</a></li>
+        <li><a href="../nodes.html#cat-layout"><span class="cat-dot" style="background:var(--cat-layout)"></span>Layout</a></li>
+      </ul>
+    </li>
+    <li><a href="../guides.html">Feature guides</a></li>
+    <li><a href="../how-do-i.html">How do I…</a></li>
+    <li><a href="../checking.html">Checking your quest</a></li>
+    <li><a href="../export.html">Exporting and installing</a></li>
+    <li><a href="../troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="../appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header class="hero">
+  <h1><span class="cat-dot" style="background:var(--cat-flow)"></span>Timer</h1>
+  <p class="tag"><span class="badge" style="color:var(--cat-flow)">Flow control</span>
+  &nbsp;<code class="mono" style="color:var(--ink-4)">flow.timer</code></p>
+</header>
+
+<section id="node-flow-timer-page">
+
+<h2>What it does</h2>
+<p>It holds the story until the time you set. Use it when the story needs to pause. Unlike a Wait, time keeps passing while the player is away. A timer set two in-game days ahead fires two in-game days later, even if the player saves and quits.</p>
+
+<h2>When you'd use it</h2>
+<p>Use it for things that happen on the world's own schedule. An article goes out, a report is reviewed, or a deadline lands while the player is busy elsewhere.</p>
+<p>For world events that all land on one in-game date, set several timers to the same date. They fire together.</p>
+<p>Unlike a Wait, the time keeps passing while the player is away. A timer set two in-game days out lands two in-game days later even if the player saves and quits. That is what lets a campaign happen in the world's own time.</p>
+
+<h2>In the game, this looks like</h2>
+<p>The story pauses at the timer (the wires after it do not run yet). When the in-game clock reaches the due time, the timer's “Out” wire runs. It is as if the story jumped back to this point. If the quest finishes or is abandoned first, the timer is cancelled.</p>
+
+<h2>Fields</h2>
+
+<h3 id="node-flow-timer-field-mode">When it fires</h3>
+<blockquote class="blurb">A stretch to wait, a clock time counted from now, or a fixed moment in the story's own calendar.</blockquote>
+<dl class="facts-list">
+  <dt class="dt-mute">Default</dt><dd><code>"after"</code></dd>
+  <dt>Limits</dt><dd>One of the 3 listed below.</dd>
+</dl>
+<table>
+  <thead><tr><th>Choice</th><th>What it is stored as</th></tr></thead>
+  <tbody>
+    <tr><td class="name">Wait</td><td><code>after</code></td></tr>
+    <tr><td class="name">A coming day</td><td><code>daytime</code></td></tr>
+    <tr><td class="name">An exact date</td><td><code>at</code></td></tr>
+  </tbody>
+</table>
+
+<h3 id="node-flow-timer-field-years">Years</h3>
+<blockquote class="blurb">Whole in-game years to wait, before the shorter units beside it. A target month with fewer days uses its last day.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>1</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. It adds one in-game year to the calendar. The day number stays the same. If the next year has no leap day, 29 February becomes 28 February.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-months">Months</h3>
+<blockquote class="blurb">Whole in-game months to wait, on top of the years. 31 January plus one month lands on 28 February, not in March.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>1</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. It adds one in-game month to the calendar. For example, 31 January plus one month lands on 28 February, not March, because February has no 31st.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-weeks">Weeks</h3>
+<blockquote class="blurb">In-game weeks to wait, on top of the months. One week is seven in-game days.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>2</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. A week is seven in-game days, so 2 weeks and 14 days wait exactly the same length of time.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-days">Days</h3>
+<blockquote class="blurb">In-game days to wait first. 0 is fine — the units are added up.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>1</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. The units are added together, so days, months and hours count towards one due time. If every box is blank, the timer does not wait.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-hours">Hours</h3>
+<blockquote class="blurb">In-game hours, on top of the days. 25 hours is a legal value.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>2</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. The units are added up, so 25 hours is a legal value.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-minutes">Minutes</h3>
+<blockquote class="blurb">In-game minutes, on top of the days and hours. At the default game speed one in-game minute passes every real second.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>30</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Counts as zero. These are in-game minutes. At the default game speed, one in-game minute passes every real second, so 30 minutes is half a real minute.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-offsetYears">Years</h3>
+<blockquote class="blurb">In-game years from now, counted from the day the story reaches this node. A target month with fewer days uses its last day.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>1</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no years. Count from the in-game day the player reaches this node. So “1 year, at 18:23” is that same date next year. If the next year has no leap day, 29 February becomes 28 February.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-offsetMonths">Months</h3>
+<blockquote class="blurb">In-game months from now, on top of the years. 31 January plus one month lands on 28 February, not in March.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>1</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no months. Count whole in-game months from the day the player gets here. So 31 January plus one month lands on 28 February, rather than skipping into March.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-offsetWeeks">Weeks</h3>
+<blockquote class="blurb">In-game weeks from now, on top of the months. One week is seven in-game days.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>2</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means no weeks. A week is seven in-game days, so 2 weeks is 14 days. Use the clock time below to set when the timer rings, whatever time the player arrived.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-offsetDays">Days</h3>
+<blockquote class="blurb">In-game days from now, on top of the weeks and months. 0 means today, so “0 days, at 09:00” fires the next time the clock reads 09:00.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>3</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 or more. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 means today — the next time the clock reads the time below. Days are added after the months and weeks. With all offset fields at 0, the timer can still ring today at 09:00.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-dateDay">Day</h3>
+<blockquote class="blurb">The in-game day of the month, as the in-game clock shows it. The field warns when that day does not exist.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>20</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>1 to 31. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>1–31, as the in-game clock shows it.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-dateMonth">Month</h3>
+<blockquote class="blurb">The in-game month, by name, as the in-game clock shows it.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>9</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>One of the 13 listed below.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>1–12, as the in-game clock shows it. January is 1.</dd>
+</dl>
+<table>
+  <thead><tr><th>Choice</th><th>What it is stored as</th></tr></thead>
+  <tbody>
+    <tr><td class="name">Not set yet</td><td><code>0</code></td></tr>
+    <tr><td class="name">January</td><td><code>1</code></td></tr>
+    <tr><td class="name">February</td><td><code>2</code></td></tr>
+    <tr><td class="name">March</td><td><code>3</code></td></tr>
+    <tr><td class="name">April</td><td><code>4</code></td></tr>
+    <tr><td class="name">May</td><td><code>5</code></td></tr>
+    <tr><td class="name">June</td><td><code>6</code></td></tr>
+    <tr><td class="name">July</td><td><code>7</code></td></tr>
+    <tr><td class="name">August</td><td><code>8</code></td></tr>
+    <tr><td class="name">September</td><td><code>9</code></td></tr>
+    <tr><td class="name">October</td><td><code>10</code></td></tr>
+    <tr><td class="name">November</td><td><code>11</code></td></tr>
+    <tr><td class="name">December</td><td><code>12</code></td></tr>
+  </tbody>
+</table>
+
+<h3 id="node-flow-timer-field-dateYear">Year</h3>
+<blockquote class="blurb">The in-game year, e.g. 2026. Read it off the in-game clock, not your own calendar.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>2026</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>1970 to 9999. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>Read it off the in-game clock, not your own calendar. With no full date set, the timer fires the moment the story reaches it.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-hour">Hour</h3>
+<blockquote class="blurb">The hour the in-game clock will show, 0–23. This is the player's clock, not the wall clock.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>12</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 to 23. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 is legal — it is 00:00, the middle of the in-game night. The time the in-game clock will show, not the wall clock.</dd>
+</dl>
+
+<h3 id="node-flow-timer-field-minute">Minute</h3>
+<blockquote class="blurb">The minute the in-game clock will show, 0–59.</blockquote>
+<dl class="facts-list">
+  <dt>Example</dt><dd><code>0</code></dd>
+  <dt class="dt-mute">Default</dt><dd><code>0</code></dd>
+  <dt>Limits</dt><dd>0 to 59. Whole numbers, in steps of 1.</dd>
+  <dt class="dt-danger">If you leave it empty</dt><dd>0 is legal — on the hour. In-game seconds are real-world milliseconds, so there is no second field.</dd>
+</dl>
+
+
+
+<h2>Wires</h2>
+<table>
+  <thead><tr><th>Socket</th><th>Direction</th><th>What to connect</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="name kind-flow">In</td><td>input</td>
+      <td>Whatever should run immediately before this node.</td>
+    </tr>
+    <tr>
+      <td class="name kind-flow">Out</td><td>output</td>
+      <td>Whatever should happen after this node runs.</td>
+    </tr>
+  </tbody>
+</table>
+<p class="wire-legend">
+  <span class="wire-chip kind-flow"><i></i><b>Then</b> runs next</span>
+  <span class="wire-chip kind-condition"><i></i><b>When</b> tests a condition</span>
+  <span class="wire-chip kind-unlock"><i></i><b>Unlocks</b> opens an objective</span>
+  <span class="wire-chip kind-data"><i></i><b>Data</b> carries a value</span>
+</p>
+<p>A wire only joins two sockets of the same colour, and the editor draws the
+wire in that colour. That is what the colours are for: match the colours and
+the connection takes, mismatch them and it will not.</p>
+
+
+
+<figure id="figure-node-flow-timer-inspector" class="manual-figure" data-manual-figure data-scene-id="node-flow-timer-inspector">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="node-flow-timer-inspector"
+      data-renderer-src="../../figures/renderer.html?scene=node-flow-timer-inspector"
+      title="Code-rendered editor illustration: Timer inspector"
+      aria-describedby="figure-caption-node-flow-timer-inspector"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-node-flow-timer-inspector">
+    <span class="manual-figure__description">The Timer node selected on the canvas, with its inspector open on the right.</span>
+    <span class="manual-figure__caption">The inspector for <b>Timer</b>.</span>
+  </figcaption>
+</figure>
+
+<h2>Common mistakes</h2>
+<ul class="plain">
+  <li><b>Treating the time as real minutes.</b> The clock is the game's, not the wall clock's. One in-game minute is one real second at default speed. A full in-game day is about 24 real minutes of play.</li>
+  <li><b>Expecting the timer to fire after the quest is over.</b> A timer belongs to its quest. Complete or abandon the quest before the due time and the timer is cancelled — nothing arrives afterwards.</li>
+  <li><b>Setting an in-game date from your own calendar.</b> The in-game clock runs at 60× your wall clock and starts where the save started. Read the year, month, day and time off the in-game clock itself, then work backwards from there.</li>
+</ul>
+
+<h2>Messages you might see</h2>
+<ul class="plain">
+  <li><a href="../checking.html#msg-nothing-scheduled">Nothing scheduled</a>. No time or full date is set, so the timer fires the moment the story reaches it</li>
+  <li><a href="../checking.html#msg-timer-nothing-to-do">The timer has nothing to do</a>. The “Out” socket is unwired, so the story stops at the timer when it fires</li>
+</ul>
+
+<h2>Related nodes</h2>
+<ul class="plain">
+  <li><a href="flow-branch.html">Branch</a> — Sends the story down one of two paths.</li>
+  <li><a href="flow-appcheck.html">App Install Check</a> — Asks the game whether the player has an app, and splits the story on the answer.</li>
+  <li><a href="flow-delay.html">Wait</a> — Pauses the story.</li>
+  <li><a href="flow-reroute.html">Reroute</a> — A tidy point for your wires.</li>
+  <li><a href="flow-random.html">Random pick</a> — Picks one path at random.</li>
+  <li><a href="flow-sequence.html">Sequence</a> — Fires several outputs in order.</li>
+  <li><a href="flow-debug.html">Debug probe</a> — Prints what is happening here.</li>
+</ul>
+
+</section>
+
+<div class="pagefoot">
+  <a href="flow-delay.html">← Wait</a>
+  <a class="next" href="flow-reroute.html">Reroute →</a>
+</div>
+
+<a class="totop" href="#node-flow-timer-page">↑ back to top</a>
+
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  field labels, hints, defaults and limits on this page are taken from the
+  editor's own node definitions.
+</footer>
+
+</main>
+</div>
+<script src="../search-index.js"></script>
+<script src="../manual.js"></script>
+</body>
+</html>
