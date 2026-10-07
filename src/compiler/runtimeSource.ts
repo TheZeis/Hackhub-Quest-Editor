@@ -7,6 +7,26 @@
  */
 export const RUNTIME_SOURCE = String.raw`
 var __QE = (function () {
+    /* The token scope for anything OUTSIDE a quest (r203): pack extras are
+       registered at mod level, so they have no quest Data. The getters are the
+       same lazy ones the quest scope uses - computed only if a token asks, and
+       never allowed to throw, because an eager SDK call once cost a mod its
+       whole quest (see dataScope). */
+    function tokenScope() {
+        return {
+            player: {
+                get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.getPlayerIp ? sdk.Network.getPlayerIp() : ""; }); },
+                get email() { return __QE.safe(function () { return sdk.Mail && sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; }); },
+                get username() { return __QE.safe(function () { return sdk.Shell && sdk.Shell.getUsername ? sdk.Shell.getUsername() : ""; }); },
+            },
+            random: {
+                get password() { return __QE.safe(function () { return sdk.Random && sdk.Random.password ? sdk.Random.password() : ""; }); },
+                get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.randomIp ? sdk.Network.randomIp() : ""; }); },
+                get username() { return __QE.safe(function () { return sdk.Random && sdk.Random.username ? sdk.Random.username() : ""; }); },
+            },
+        };
+    }
+
     function getPath(obj, path) {
         return String(path).split(".").reduce(function (acc, k) {
             return acc == null ? acc : acc[k];
@@ -14,8 +34,47 @@ var __QE = (function () {
     }
     function fill(tpl, scope) {
         return String(tpl).replace(/\{\{([^}]+)\}\}/g, function (_m, p) {
-            var v = getPath(scope, p.trim());
+            var key = p.trim();
+            /* {{tr.some.key}} - translated text, wherever the author typed it.
+               The SDK's t() falls back to English, then to the key itself, so a
+               missing line is visible on screen instead of silently blank; if
+               the build has no Localization at all, showing the key is still
+               more honest than showing nothing. */
+            if (key.indexOf("tr.") === 0) {
+                var tkey = key.slice(3);
+                /* NOT __QE.safe here: it turns null into "", which would erase
+                   the difference between "no translation" and "empty text" and
+                   leave a blank on screen. A failure has to stay a failure so
+                   the key can be shown instead. */
+                var out = null;
+                try {
+                    out = sdk.Localization && sdk.Localization.t ? sdk.Localization.t(tkey) : null;
+                } catch (eTr) {
+                    out = null;
+                }
+                if (out == null || out === "") return tkey;
+                return String(out);
+            }
+            var v = getPath(scope, key);
             return v == null ? "" : String(v);
+        });
+    }
+    /* The same translation lookup as fill()'s {{tr.}} branch, exposed for the
+       fields the game reads ONCE, at registration: a quest's Title and
+       Description. Everything else is filled when it is used, but those two are
+       taken off the definition while it is handed over - so the token has to be
+       resolved before that, and there is no quest Data to offer at that point. */
+    function fillTranslations(text) {
+        return String(text == null ? "" : text).replace(/\{\{tr\.([^}]+)\}\}/g, function (_m, k) {
+            var tkey = String(k).trim();
+            var out = null;
+            try {
+                out = sdk.Localization && sdk.Localization.t ? sdk.Localization.t(tkey) : null;
+            } catch (eTr) {
+                out = null;
+            }
+            if (out == null || out === "") return tkey;
+            return String(out);
         });
     }
     function asString(x) { return x == null ? "" : String(x); }
@@ -88,20 +147,16 @@ var __QE = (function () {
 
     /* Read the field a condition names off an event payload.
 
-       The SDK's declarations are not always right about the shape. It types
-       Terminal.Lynx.Search as { query: string }, and the editor offers "query"
-       on that basis - but the game emits the search term as a BARE STRING.
-       Asking a string for .query gives undefined, so the condition silently
-       never matched and the objective never ticked. QA hit exactly that:
+       Older SDKs typed Terminal.Lynx.Search as { query: string }, so the
+       editor offered "query" and projects saved that field. The game emitted
+       the search term as a BARE STRING, so asking the payload for .query gave
+       undefined and the objective never ticked. SDK 0.24.0 corrected that
+       declaration, but old projects still need to run.
 
-           objective "identify-target": Terminal.Lynx.Search fired but did not
-           match. Event carried: "Anselm Ritter"
-
-       Three events (AppStore.Downloaded, Terminal.SSH.Connected/Disconnected)
-       are declared as primitives, so a payload that is not an object is a
-       legitimate shape the author still has to be able to match on. When the
-       payload is a primitive, any field name resolves to the payload itself -
-       which is the only value there is, and certainly what the author meant. */
+       Primitive events are a legitimate shape the author still has to be able
+       to match on. When the payload is a primitive, any field name resolves to
+       the payload itself - which is the only value there is, and certainly what
+       the author meant. */
     function fieldOf(payload, field) {
         if (payload != null && typeof payload !== "object") return payload;
         var direct = getPath(payload, field);
@@ -151,6 +206,19 @@ var __QE = (function () {
         if (input.matchMode === "contains") return a.indexOf(e) >= 0;
         if (input.matchMode === "regex") {
             try { return new RegExp(e).test(a); } catch (err) { return false; }
+        }
+        return a === e;
+    }
+    function matchPrompt(input, answer, scope) {
+        var mode = input.matchMode || "any";
+        if (mode === "any") return true;
+        var expected = fill(input.expected || "", scope);
+        if (String(expected).trim().length === 0) return false;
+        var a = input.caseSensitive ? String(answer) : String(answer).toLowerCase();
+        var e = input.caseSensitive ? String(expected) : String(expected).toLowerCase();
+        if (mode === "contains") return a.indexOf(e) >= 0;
+        if (mode === "regex") {
+            try { return new RegExp(String(expected), input.caseSensitive ? "" : "i").test(String(answer)); } catch (err) { return false; }
         }
         return a === e;
     }
@@ -285,10 +353,368 @@ var __QE = (function () {
         });
         return JSON.parse(fill(json, scope));
     }
-    return { getPath: getPath, fill: fill, packText: packText, packFill: packFill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, sleep: sleep, seq: seq, describe: describe, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
+    return { getPath: getPath, fill: fill, fillTranslations: fillTranslations, tokenScope: tokenScope, packText: packText, packFill: packFill, htmlToText: htmlToText, matchAll: matchAll, matchInput: matchInput, matchPrompt: matchPrompt, sleep: sleep, seq: seq, describe: describe, wait: wait, ageStringFromDate: ageStringFromDate, safe: safe, log: log };
 })();
 
 function __qeRegisterProject(sdk, PROJECT) {
+
+    /* ── scheduled timers (SDK 0.24 Time/Scheduler) ──────────────────────
+       A Timer arms a job on the in-game clock when the story reaches the
+       node; when the clock hits the due time the job fires and the node's
+       "Out" wire runs (r172, renamed r173).
+
+       The kind registry is SHARED across every installed pack (SDK docs):
+       two mods both using "timer" would silently answer each other's
+       jobs, so the mod id goes into the kind. The handler must exist on
+       every load, before anything schedules - hence here, at the top of
+       mod load, before any quest starts. */
+    var BEAT_KIND = "qe/" + String((PROJECT && PROJECT.mod && (PROJECT.mod.id || PROJECT.mod.name)) || "editor-mod") + "/timer";
+    /* questId -> fire(nodeId). Rebound by each quest's OnStart /
+       OnObjectivesStart to whichever instance the engine actually runs. */
+    var liveBeats = {};
+    /* questId -> job ids that quest armed and has not cancelled. Kept here,
+       above the quest factory, because the job handler below runs outside any
+       quest's closure and needs to drop a job the moment it fires. */
+    var beatJobsByQuest = {};
+    /* The job ids we armed, minus the ones that have already fired. Leaving a
+       fired id in the list made the cancel line overstate itself — "cancelled 2
+       pending timer(s)" with only one left, in the very log a tester is told to
+       trust (S-03, 2026-09-18). */
+    function forgetBeatJob(questId, id) {
+        var list = beatJobsByQuest[questId];
+        if (!list || !id) return;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] === id) {
+                list.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /* How many times a due job may be re-armed while its quest is not
+       live yet (the engine can fire due jobs at mod load, before quest
+       start). A quest that auto-starts on load is live within a few
+       ticks; anything still missing after this many re-arms is dropped
+       with a log line instead of looping forever. */
+    var BEAT_REARM_MAX = 20;
+    if (sdk.Scheduler && sdk.Scheduler.register) {
+        sdk.Scheduler.register(BEAT_KIND, function (payload, job) {
+            var p = payload || {};
+            if (job) forgetBeatJob(p.questId, job.id);
+            var fire = liveBeats[p.questId];
+            if (!fire) {
+                if ((p.attempts || 0) < BEAT_REARM_MAX) {
+                    /* Not live yet: re-arm for the next engine tick. */
+                    sdk.Scheduler.schedule(BEAT_KIND, { questId: p.questId, nodeId: p.nodeId, attempts: (p.attempts || 0) + 1 }, { ms: 10 });
+                    return;
+                }
+                __QE.log("timer missed: quest " + p.questId + " is not active in this session");
+                return;
+            }
+            fire(p.nodeId);
+        });
+        __QE.log("timer handler registered (kind " + BEAT_KIND + ")");
+    } else {
+        __QE.log("no Scheduler API in this game build - timers will not fire");
+    }
+
+    /* ── Twotter (r185) ──────────────────────────────────────────────────
+       Accounts are mod-level data (PROJECT.twotterAccounts); the Tweet node
+       posts from one of them. Everything an account needs happens through the
+       platform API here, never through the declarative TwotterAccounts /
+       Tweets quest fields — those are the fields the engine writes with
+       bio: undefined, which crashed the game's Twotter search for seven QA
+       rounds and got the whole feature removed in r31.
+
+       What the r179 probe established and this code relies on:
+
+       - createUser() fills a COMPLETE record (name, surname, avatar,
+         banner, joinedAt, password) for the fields we cannot express, so we
+         hand it the ones we own and let it fill the rest.
+       - A bio we send as "" stays a string. Nothing may ever send
+         undefined - that is the whole bug.
+       - removeUser() deletes accounts, quest-declared ones included.
+       - postTweet() posts, and Twotter.PostSeen fires for the player.
+
+       And what the P-01 probes added (2026-09-18):
+
+       - A sendedAt we send is KEPT: all three spellings read back "a month
+         ago", while a tweet with no time read "a few seconds ago". So a
+         backdated series is possible, and the runtime sends ISO with
+         milliseconds computed from the in-game clock.
+       - A profile shows the newest tweet first, whatever order we posted in.
+         We post oldest -> newest anyway (deterministic, and it matches the
+         author's list), and the display sorts itself.
+
+       Ownership, in the words of the rule the author approved: a quest removes
+       only what it created, and only when no other live quest declares the
+       same account. An account we merely ADOPTED (it already existed) is never
+       ours to remove. The SDK asks a mod to take its accounts with it when the
+       package unloads, and the unload hook below does that. Measured in game on
+       2026-09-19: when the player DISABLES this mod in the Mods list, the game
+       applies that at the next start, calls the hook, and the accounts go (the
+       removal stuck across the reload). A plain quit calls no hook - nothing
+       needs cleaning then - and a mod deleted from disk while the game is closed
+       can never run any code of ours, so that one case still leaves the accounts
+       in the save (question 11). */
+    var TWOTTER_ACCOUNTS = PROJECT.twotterAccounts || [];
+    var twotterReady = !!(sdk.Twotter && sdk.Twotter.createUser && sdk.Twotter.addUser);
+    /* accountId -> questId that created it in this session. */
+    var twotterCreatedBy = {};
+    /* accountId -> true when the account already existed and we only refreshed
+       it. Adopted accounts belong to someone else (another mod, or the player)
+       and are never removed by us. */
+    var twotterAdopted = {};
+    /* questId -> true once the quest has been seen to start (OnStart or
+       OnObjectivesStart) and -> true once it has completed or been abandoned.
+       A quest only counts as LIVE while it is started and not ended, which is
+       the rule the author approved. An account a quest declares but has never
+       needed does not hold it: a mod whose act I is abandoned leaves an empty
+       profile behind otherwise, and act II brings the account back itself when
+       it starts (see ensureDeclaredTwotterAccounts). */
+    var twotterQuestLive = {};
+    var twotterQuestEnded = {};
+    /* accountId -> [questId] for every quest whose Tweet nodes post from it.
+       Read from PROJECT's graphs, so it covers quests that have not started. */
+    var twotterDeclaredBy = {};
+    (PROJECT.quests || []).forEach(function (q) {
+        ((q.graph && q.graph.nodes) || []).forEach(function (n) {
+            if (n.type !== "comms.tweet" || !n.data || !n.data.accountId) return;
+            var list = twotterDeclaredBy[n.data.accountId] || (twotterDeclaredBy[n.data.accountId] = []);
+            if (list.indexOf(q.id) < 0) list.push(q.id);
+        });
+    });
+
+    function twotterAccount(id) {
+        for (var i = 0; i < TWOTTER_ACCOUNTS.length; i++) {
+            if (TWOTTER_ACCOUNTS[i].id === id) return TWOTTER_ACCOUNTS[i];
+        }
+        return null;
+    }
+
+    function twotterHandle(account) {
+        var handle = String(account.handle == null ? "" : account.handle).replace(/^@+/, "");
+        return handle.replace(/ +/g, "_");
+    }
+
+    /* A display name is one line to the author; the platform stores a first
+       name and a surname, so the first word is the first name and the rest is
+       the surname ("Justyna Kuznetsova" -> "Justyna" / "Kuznetsova"). */
+    function twotterSplitName(displayName) {
+        var parts = String(displayName == null ? "" : displayName).trim().split(" ");
+        var words = [];
+        for (var i = 0; i < parts.length; i++) {
+            if (parts[i]) words.push(parts[i]);
+        }
+        if (!words.length) return { first: "", last: "" };
+        return { first: words[0], last: words.slice(1).join(" ") };
+    }
+
+    /* Create the account, or adopt the one already carrying this handle.
+
+       The id is the editor's own account id, which makes creation idempotent
+       across reloads: a second call finds the account and refreshes it instead
+       of making a twin. */
+    function ensureTwotterAccount(account, questId) {
+        if (!twotterReady || !account) return null;
+        var handle = twotterHandle(account);
+        if (!handle) {
+            __QE.log("twotter: account " + account.id + " has no handle; skipping it");
+            return null;
+        }
+        var existing = null;
+        try {
+            if (sdk.Twotter.getUserByUsername) existing = sdk.Twotter.getUserByUsername(handle);
+        } catch (e) {
+            __QE.log("twotter: looking up @" + handle + " failed (continuing): " + e);
+        }
+        var name = twotterSplitName(account.displayName);
+        var fields = {
+            username: handle,
+            firstName: name.first,
+            lastName: name.last,
+            name: name.first,
+            surname: name.last,
+            /* ALWAYS a string. A blank bio is "", never undefined — the exact
+               shape that crashed the game's search. */
+            bio: account.bio == null ? "" : String(account.bio),
+            verified: !!account.verified,
+            followers: Math.max(0, Math.round(Number(account.followers) || 0)),
+            following: Math.max(0, Math.round(Number(account.following) || 0)),
+        };
+        /* Author-supplied pictures are passed through when they exist, and left
+           out entirely when they do not, so the engine's own default is used
+           rather than an empty string (r20: an empty avatar was what first
+           broke the profile screen). */
+        if (account.avatar) fields.avatar = account.avatar;
+        if (account.banner) fields.banner = account.banner;
+
+        if (existing) {
+            /* Ours or somebody else's? A record carrying the id we create with
+               is the account this mod registered — in this session, or in one
+               before the last reload — and it stays ours to clean up. Anything
+               else is a genuine adoption: the player, or another mod, had that
+               handle first, and it is not ours to delete. */
+            var ours = String(existing.id) === String(account.id);
+            if (ours) {
+                if (!twotterCreatedBy[account.id]) twotterCreatedBy[account.id] = questId;
+            } else {
+                twotterAdopted[account.id] = true;
+            }
+            try {
+                if (sdk.Twotter.updateUser) sdk.Twotter.updateUser(existing.id, fields);
+                __QE.log(ours
+                    ? "twotter: refreshed @" + handle + " (our account, already in the save)"
+                    : "twotter: adopted @" + handle + " (already existed); author fields refreshed");
+            } catch (e) {
+                __QE.log("twotter: refreshing @" + handle + " failed (continuing): " + e);
+            }
+            return existing.id;
+        }
+        try {
+            var user = sdk.Twotter.createUser({
+                id: account.id,
+                username: fields.username,
+                firstName: fields.firstName,
+                lastName: fields.lastName,
+                bio: fields.bio,
+                verified: fields.verified,
+                followers: fields.followers,
+                following: fields.following,
+                avatar: fields.avatar,
+                banner: fields.banner,
+            });
+            sdk.Twotter.addUser(user);
+            twotterCreatedBy[account.id] = questId;
+            __QE.log("twotter: created @" + handle + " (" + account.id + ") for quest " + questId);
+            return account.id;
+        } catch (e) {
+            __QE.log("twotter: creating @" + handle + " failed (the story continues): " + e);
+            return null;
+        }
+    }
+
+    /* Every account the mod declares, ensured once. Called from the quest's
+       start hooks: the first quest that needs an account brings it into the
+       world, and a later quest that needs the same one simply finds it. */
+    function ensureDeclaredTwotterAccounts(questId) {
+        if (!twotterReady) {
+            __QE.log("twotter: no Twotter API in this game build - accounts are not registered");
+            return;
+        }
+        var accountIds = Object.keys(twotterDeclaredBy);
+        for (var i = 0; i < accountIds.length; i++) {
+            /* The map is accountId -> [questId]. Until r186 this loop walked the
+               account ids and searched THEM for the quest id, so it never
+               matched and never ran: the only thing that ever created an
+               account was a tweet node, which meant a quest whose posting was
+               skipped (a re-run after the account had been removed) came back
+               with no account at all. */
+            var declarers = twotterDeclaredBy[accountIds[i]] || [];
+            if (declarers.indexOf(questId) < 0) continue;
+            ensureTwotterAccount(twotterAccount(accountIds[i]), questId);
+        }
+    }
+
+    function removeTwotterAccount(accountId, why) {
+        if (!twotterReady || !sdk.Twotter.removeUser) return;
+        try {
+            var gone = sdk.Twotter.removeUser(accountId);
+            __QE.log("twotter: removeUser(" + accountId + ") -> " + gone + (why ? " (" + why + ")" : ""));
+            if (gone) {
+                delete twotterCreatedBy[accountId];
+                delete twotterAdopted[accountId];
+            }
+        } catch (e) {
+            __QE.log("twotter: removing " + accountId + " failed (continuing): " + e);
+        }
+    }
+
+    /* A quest has finished (complete or abandon): the accounts that quest
+       declared may have become unneeded — take back the ones this mod created
+       and no live quest still declares.
+
+       Note which accounts are looked at: the ones THIS quest declares, not the
+       ones it created. The creator and the last declarer are usually different
+       quests (quest A brings a character into the world, quest B still posts
+       from it), and an account is only due for removal when the LAST quest that
+       needs it ends — whoever that turns out to be. Three things keep an
+       account: the author asked for it to outlive the story, another live quest
+       still declares it, or it was not ours (we adopted it). */
+    function releaseTwotterAccounts(questId) {
+        twotterQuestEnded[questId] = true;
+        if (!twotterReady) return;
+        var ids = Object.keys(twotterDeclaredBy);
+        for (var i = 0; i < ids.length; i++) {
+            var accountId = ids[i];
+            var declared = twotterDeclaredBy[accountId] || [];
+            var mine = false;
+            for (var k = 0; k < declared.length; k++) {
+                if (declared[k] === questId) { mine = true; break; }
+            }
+            if (!mine) continue;
+            if (twotterAdopted[accountId] || !twotterCreatedBy[accountId]) continue;
+            var account = twotterAccount(accountId);
+            if (!account) continue;
+            if (account.removeWhenQuestEnds === false) {
+                __QE.log("twotter: keeping @" + twotterHandle(account) + " - the author asked for it to outlive the quest");
+                continue;
+            }
+            var stillNeeded = false;
+            var keptBy = "";
+            for (var j = 0; j < declared.length; j++) {
+                var other = declared[j];
+                if (other === questId) continue;
+                if (twotterQuestLive[other] && !twotterQuestEnded[other]) {
+                    stillNeeded = true;
+                    keptBy = other;
+                    break;
+                }
+            }
+            if (stillNeeded) {
+                __QE.log("twotter: keeping @" + twotterHandle(account) + " - quest " + keptBy + " is still live and declares it");
+                continue;
+            }
+            removeTwotterAccount(accountId, "the last quest that needs it ended");
+        }
+    }
+
+    /* The game unloading this package (the SDK's own example for it is
+       "disabled by user"): accounts a mod adds live in the player's save and are
+       NOT removed when the mod goes away, so this is where the mod takes its
+       characters with it. Adopted accounts are left alone - they were never
+       ours - and everything gets a log line, because the alternative is an
+       account nobody can explain.
+
+       Measured 2026-09-19 (game 1.3.1): disabling the mod in the Mods list is
+       applied by the game at the next start, and the hook fires there -
+       "unloading: removing the Twotter accounts this mod declared" then
+       "twotter: removeUser(qe-tw-account) -> true (mod unloaded)", with the
+       account gone from the save at the following load. A plain quit to desktop
+       calls no hook at all, and the account survives that (nothing needed
+       cleaning, so nothing was wrong). Removing the mod from disk while the game
+       is closed is the one case no mod code can ever reach: the game prunes the
+       orphaned quest by itself ("[PruneOrphanQuests] ... no installed content
+       defines it") but leaves the accounts. */
+    function removeAllTwotterAccounts() {
+        if (!twotterReady || !sdk.Twotter.removeUser) return;
+        for (var i = 0; i < TWOTTER_ACCOUNTS.length; i++) {
+            var account = TWOTTER_ACCOUNTS[i];
+            if (twotterAdopted[account.id]) {
+                __QE.log("twotter: leaving @" + twotterHandle(account) + " - we adopted it, it was not ours");
+                continue;
+            }
+            var exists = null;
+            try {
+                exists = sdk.Twotter.getUserByUsername ? sdk.Twotter.getUserByUsername(twotterHandle(account)) : null;
+            } catch (e) {
+                exists = null;
+            }
+            /* Only the record we registered: if somebody else is carrying the
+               handle now, that account is not ours to delete. */
+            if (!exists || String(exists.id) !== String(account.id)) continue;
+            removeTwotterAccount(exists.id, "mod unloaded");
+        }
+    }
 
     /* ── one quest ─────────────────────────────────────────────────────── */
     function registerQuest(qd) {
@@ -305,36 +731,89 @@ function __qeRegisterProject(sdk, PROJECT) {
         var mailNodes = g.nodes.filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "mail"; });
         var mailIndex = {};
         var mailFrom = {};
+        /* r215: the To field, honoured at last — it was in the schema and the
+           sim ("leave blank to send it to the player") but the send paths
+           never read it, so every graph mail went to the player. */
+        var mailTo = {};
+        /* r211: the withdraw-on-quest-end flags, kept out of the Mails array
+           on purpose — that array is handed to the engine as Quest.Mails, and
+           the flag is ours, not a QuestMailDefinition field. */
+        var mailWithdraw = {};
         mailNodes.forEach(function (n, i) {
             mailIndex[n.id] = i;
             if (n.data.mail.from) mailFrom[n.id] = n.data.mail.from;
+            if (n.data.mail.to) mailTo[n.id] = n.data.mail.to;
+            if (n.data.mail.withdrawOnQuestEnd) mailWithdraw[n.id] = true;
         });
 
         var Mails = mailNodes.map(function (n) {
             var m = n.data.mail;
             var out = { title: m.subject, content: __QE.htmlToText(m.content) };
+            if (m.to) out.to = m.to;
             if (m.replyable) out.replyable = true;
             if (m.attachment && m.attachment.name) out.attachment = m.attachment;
             return out;
         });
 
-        var Dialog = {};
-        (qd.dialog || []).forEach(function (b) {
-            Dialog[b.name] = (b.lines || []).map(function (l) {
-                var out = { speaker: l.speaker, text: l.text };
-                if (l.isEnd) out.isEnd = true;
-                if (l.options && l.options.length) {
-                    out.options = l.options.map(function (o) {
-                        var oo = { label: o.label };
-                        if (o.text) oo.text = o.text;
-                        if (o.switchBranch) oo.switchBranch = o.switchBranch;
-                        if (o.isEnd) oo.isEnd = true;
-                        return oo;
-                    });
-                }
-                return out;
+        function mapDialogOption(o, scope, continueFlow, markCallback) {
+            var oo = { label: scope ? __QE.fill(o.label || "", scope) : (o.label || "") };
+            if (o.text) oo.text = scope ? __QE.fill(o.text, scope) : o.text;
+            if (o.switchBranch) oo.switchBranch = o.switchBranch;
+            if (o.nextIndex != null) oo.nextIndex = Number(o.nextIndex);
+            if (o.timeout != null) oo.timeout = Number(o.timeout);
+            if (o.isEnd) oo.isEnd = true;
+            if (continueFlow && o.isEnd) {
+                oo.onSelect = continueFlow;
+                if (markCallback) markCallback();
+            }
+            return oo;
+        }
+
+        function dialogLineEndsCall(l, index, lines) {
+            if (l.options && l.options.length) return false;
+            return !!l.isEnd || index >= lines.length - 1;
+        }
+
+        function mapDialogLine(l, scope, continueFlow, index, lines, markCallback) {
+            var out = {
+                speaker: l.speaker,
+                text: scope ? __QE.fill(l.text || "", scope) : (l.text || ""),
+            };
+            if (l.audio) out.audio = l.audio;
+            if (l.timeout != null) out.timeout = Number(l.timeout);
+            if (l.isEnd) out.isEnd = true;
+            if (continueFlow && dialogLineEndsCall(l, index, lines)) {
+                out.onEnd = continueFlow;
+                if (markCallback) markCallback();
+            }
+            if (l.options && l.options.length) {
+                out.options = l.options.map(function (o) {
+                    return mapDialogOption(o, scope, continueFlow, markCallback);
+                });
+            }
+            return out;
+        }
+
+        function buildDialog(scope, continueFlow, markCallback) {
+            var out = {};
+            (qd.dialog || []).forEach(function (b) {
+                var lines = b.lines || [];
+                out[b.name] = lines.map(function (l, i) {
+                    return mapDialogLine(l, scope, continueFlow, i, lines, markCallback);
+                });
             });
-        });
+            return out;
+        }
+
+        var Dialog = buildDialog(null, null, null);
+
+        function installDialog(scope, continueFlow) {
+            var callbacks = 0;
+            if (!questRef) return callbacks;
+            var filled = buildDialog(scope, continueFlow, function () { callbacks++; });
+            if (Object.keys(filled).length) questRef.Dialog = filled;
+            return callbacks;
+        }
 
         var kisscordNodes = g.nodes
             .filter(function (n) { return n.type === "comms.dialogue" && n.data.kind === "kisscord"; });
@@ -451,10 +930,108 @@ function __qeRegisterProject(sdk, PROJECT) {
             }, Promise.resolve());
         }
 
+        /* ── Twotter posts (r185) ──────────────────────────────────────── */
+
+        /* Node ids that have already posted in this playthrough. The flow
+           re-runs on a save reload (entry.load chains replayed by
+           OnObjectivesStart), and a node that posted twice would stack
+           duplicates in a feed the player may still be reading. */
+        var postedTweetNodes = {};
+
+        /* The moment an "already on the profile" tweet was posted, as ISO with
+           milliseconds — the one spelling the game kept in all three P-01a
+           tests, and what its relative ages are rendered from. */
+        function twotterEarlierIso(row) {
+            var base = (sdk.Time && sdk.Time.date) ? sdk.Time.date() : new Date();
+            var when = new Date(base.getTime());
+            var amount = Math.max(1, Math.round(Number(row.agoAmount) || 1));
+            var unit = String(row.agoUnit || "days");
+            if (unit === "minutes") when.setMinutes(when.getMinutes() - amount);
+            else if (unit === "hours") when.setHours(when.getHours() - amount);
+            else if (unit === "days") when.setDate(when.getDate() - amount);
+            else if (unit === "weeks") when.setDate(when.getDate() - 7 * amount);
+            else if (unit === "months") when.setMonth(when.getMonth() - amount);
+            else if (unit === "years") when.setFullYear(when.getFullYear() - amount);
+            return when.toISOString();
+        }
+
+        /* Post this node's tweets, once per playthrough. Rows are posted oldest
+           -> newest: the author writes a history the way it happened, and while
+           the profile sorts by time anyway (P-01b), posting in order keeps two
+           tweets at the same age reading in the order they were written. */
+        function postTweets(node, scope) {
+            if (!twotterReady || !sdk.Twotter.postTweet) {
+                __QE.log("twotter node " + node.id + ": no Twotter API in this build - nothing posted");
+                return;
+            }
+            if (postedTweetNodes[node.id]) {
+                __QE.log("twotter node " + node.id + ": already posted in this playthrough; skipping");
+                return;
+            }
+            postedTweetNodes[node.id] = true;
+            var account = twotterAccount(node.data.accountId);
+            if (!account) {
+                __QE.log("twotter node " + node.id + ": no account set (or the account was deleted) - nothing posted");
+                return;
+            }
+            var userId = ensureTwotterAccount(account, qd.id);
+            if (!userId) return;
+            var rows = node.data.tweets || [];
+            if (!rows.length) {
+                __QE.log("twotter node " + node.id + ": no tweets to post");
+                return;
+            }
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                /* Deterministic id: a reload cannot post a second copy under a
+                   different name, and cleanup has something stable to remove. */
+                var tweetId = "qe-" + qd.id + "-" + node.id + "-" + i;
+                var tweet = {
+                    id: tweetId,
+                    userId: userId,
+                    content: __QE.fill(row.content || "", scope),
+                    interaction: {
+                        comments: Math.max(0, Math.round(Number(row.comments) || 0)),
+                        share: Math.max(0, Math.round(Number(row.shares) || 0)),
+                        likes: Math.max(0, Math.round(Number(row.likes) || 0)),
+                        views: Math.max(0, Math.round(Number(row.views) || 0)),
+                    },
+                    showInTimeline: !!row.showInTimeline,
+                };
+                if (row.timeMode === "earlier") tweet.sendedAt = twotterEarlierIso(row);
+                /* The posting API's record has no picture field (SDK 0.24
+                   TwotterTweet), and the r185 QA run confirmed it: a tweet with
+                   an attached picture showed no picture in the timeline or on
+                   the detail page, so the editor no longer offers one (r187).
+                   The key is still sent when an older project carries one:
+                   unknown keys cost the game nothing, and if a future SDK
+                   starts reading either spelling, the pictures authors already
+                   attached come back with it. */
+                if (row.image) {
+                    tweet.image = row.image;
+                    tweet.media = row.image;
+                }
+                try {
+                    sdk.Twotter.postTweet(tweet);
+                    __QE.log("twotter node " + node.id + ": posted " + tweetId +
+                        (tweet.sendedAt ? " (backdated to " + tweet.sendedAt + ")" : " (now)"));
+                    questCleanup.push({ kind: "tweet", id: tweetId });
+                } catch (e) {
+                    __QE.log("twotter node " + node.id + ": posting failed (the story continues): " + e);
+                }
+            }
+        }
+
         /* Everything this quest added to the world that should disappear with
            it. Filled as the flow runs (a node the story never reaches added
            nothing), drained in OnComplete/OnAbandon. */
         var questCleanup = [];
+
+        /* Job ids armed by flow.timer nodes, cancelled when the quest ends: a
+           timer for a finished quest must not fire. The same array is reachable
+           as beatJobsByQuest[qd.id], which is how the job handler (outside this
+           closure) drops an id once it has fired. */
+        var beatJobs = beatJobsByQuest[qd.id] || (beatJobsByQuest[qd.id] = []);
 
         /* Has the quest already been torn down once?
 
@@ -512,6 +1089,21 @@ function __qeRegisterProject(sdk, PROJECT) {
             questCleanup.length = 0;
             __QE.log("cleanup starting (" + reason + "): " + todo.length + " item(s) to undo" +
                 (skipped ? ", leaving " + skipped + " network(s) standing" : ""));
+            /* A quest that ends may be lived through again: the engine lets a
+               finished quest be claimed afresh, and the tweets this node
+               posted were just removed with everything else. Forgetting the
+               posting guard here is what lets the next run post them again —
+               without it a re-claimed quest shows a profile with nothing on it
+               and objectives waiting for a post that can never arrive (seen in
+               the r185 QA run). Reloading mid-story is unaffected: the guard is
+               what stops a replayed flow from stacking duplicates then. */
+            postedTweetNodes = {};
+            /* The quest's Twotter characters go with it (r185). Done here
+               rather than in the loop below because it asks a question the
+               other kinds do not: whether another live quest still needs the
+               account. */
+            releaseTwotterAccounts(qd.id);
+
             while (todo.length) {
                 var item = todo.pop();
                 __QE.log("cleanup: " + item.kind + " " + (item.ip || item.domain || item.command || item.id || ""));
@@ -533,8 +1125,20 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }
                     if (item.kind === "domain" && sdk.Network.removeDomain) sdk.Network.removeDomain(item.domain);
                     if (item.kind === "commandData" && sdk.Shell && sdk.Shell.removeCommandData) sdk.Shell.removeCommandData(item.command, item.input);
+                    if (item.kind === "tweet" && sdk.Twotter && sdk.Twotter.removeTweet) {
+                        sdk.Twotter.removeTweet(item.id);
+                        __QE.log("cleanup: tweet " + item.id + " removed");
+                    }
                     if (item.kind === "firewall" && sdk.Network.removeFirewallRule) sdk.Network.removeFirewallRule(item.ip, item.port);
                     if (item.kind === "database" && sdk.Database && sdk.Database.remove) sdk.Database.remove(item.id);
+                    /* r211: the quest's withdrawn mails (M-02/M-03: remove is
+                       trustworthy and the removal persists; M-07: quest-end
+                       cleanup is the one timing that works - M-08 refused the
+                       unload hook everything gated). */
+                    if (item.kind === "mail" && sdk.Mail && sdk.Mail.remove) {
+                        var mr = sdk.Mail.remove(item.id);
+                        __QE.log("cleanup: Mail.remove(" + item.id + " \"" + (item.subject || "") + "\") -> " + mr);
+                    }
                     if (item.kind === "port") {
                         if (item.action === "open" && sdk.Network.closePort) sdk.Network.closePort(item.ip, item.port);
                         if (item.action === "close" && sdk.Network.openPort) sdk.Network.openPort(item.ip, item.port);
@@ -549,6 +1153,22 @@ function __qeRegisterProject(sdk, PROJECT) {
         }
 
         var objectiveNodes = g.nodes.filter(function (n) { return n.type === "objective"; });
+        /* Objectives that carry a trigger event complete via that trigger -
+           the engine's declarative trigger and our own listener both check
+           the author's conditions. Flow reaching such an objective must not
+           tick it first, or the trigger never decides anything: r211's probe
+           put "reply to me" behind a Mail.Sent trigger, the flow stepped
+           into the objective right after the mails went out, and the
+           objective completed itself before the player could touch anything
+           (seen in the first playtest, 2026-09-20). */
+        var objectivesWithTriggers = {};
+        objectiveNodes.forEach(function (n) {
+            var has = g.edges.some(function (e) {
+                return e.kind === "condition" && e.target === n.id &&
+                    byId[e.source] && byId[e.source].type === "trigger.event";
+            });
+            if (has && n.data.name) objectivesWithTriggers[n.data.name] = true;
+        });
         var questRef = null;
         var needsTargetIp = g.nodes.some(function (n) {
             return (n.type === "world.network" || n.type === "world.wifi") && n.data.ipMode === "random";
@@ -600,15 +1220,10 @@ function __qeRegisterProject(sdk, PROJECT) {
         /* How many objectives have ticked, and whether the author asked for
            the panel to be emptied once they all have.
 
-           The engine cannot complete a mod quest without freezing (r86), so a
-           finished story leaves its entry in the quest list forever. There is
-           no removeObjective in the SDK, but QuestObjectiveDefinition has a
-           "hidden" flag, and refillObjectives already proves the engine re-reads
-           the array we hand it (r73 fixed visible {{tokens}} that way). So
-           when the last objective ticks we flip every row to hidden and ask
-           the panel to redraw. Whether the engine honours "hidden" after the
-           first render is exactly what probe M tests - it may only be read
-           when the list is first built. */
+           Current builds can formally finish a quest through the Complete quest
+           node. This legacy cleanup option remains for projects that choose to
+           leave a story in the active list: when the last objective ticks we
+           flip rows to hidden and ask the panel to redraw. */
         var objectivesDone = 0;
         function hideAllObjectives() {
             if (!questRef || !questRef.Objectives) return;
@@ -693,20 +1308,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                permission, and the exception escaped OnStart so the quest never
                started. A value the author never mentioned must not be able to
                do that. */
-            var base = {
-                data: d,
-                Data: d,
-                player: {
-                    get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.getPlayerIp ? sdk.Network.getPlayerIp() : ""; }); },
-                    get email() { return __QE.safe(function () { return sdk.Mail && sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; }); },
-                    get username() { return __QE.safe(function () { return sdk.Shell && sdk.Shell.getUsername ? sdk.Shell.getUsername() : ""; }); },
-                },
-                random: {
-                    get password() { return __QE.safe(function () { return sdk.Random && sdk.Random.password ? sdk.Random.password() : ""; }); },
-                    get ip() { return __QE.safe(function () { return sdk.Network && sdk.Network.randomIp ? sdk.Network.randomIp() : ""; }); },
-                    get username() { return __QE.safe(function () { return sdk.Random && sdk.Random.username ? sdk.Random.username() : ""; }); },
-                },
-            };
+            /* __QE.tokenScope(), not a bare call: tokenScope lives in the IIFE
+               above, and this function is a sibling of it, not a child. A bare
+               call threw "tokenScope is not defined" on EVERY quest node that
+               filled a token - which is how the r203 gates caught it (208 tests
+               in compile.test.ts). */
+            var base = __QE.tokenScope();
+            base.data = d;
+            base.Data = d;
             if (extra) { for (var k in extra) base[k] = extra[k]; }
             return base;
         }
@@ -790,6 +1399,7 @@ function __qeRegisterProject(sdk, PROJECT) {
             if (questRef && questRef.Mails && questRef.Mails[mi] &&
                 String(questRef.Mails[mi].title || "").length > 0) {
                 var filledMail = { title: subject, content: content };
+                if (baseMail.to) filledMail.to = baseMail.to;
                 if (baseMail.replyable) filledMail.replyable = true;
                 if (baseMail.attachment) filledMail.attachment = baseMail.attachment;
                 questRef.Mails[mi] = filledMail;
@@ -797,42 +1407,26 @@ function __qeRegisterProject(sdk, PROJECT) {
 
             /* Which path can express what this mail needs?
 
-               Mail.send takes a MailDefinition: subject, content, from, to,
-               metadata, attachments — and NO replyable. Quest.sendMail sends
-               Quest.Mails[i], a QuestMailDefinition, which is the only shape
-               that carries a reply flag.
-
-               Mail.send stays the default because r37 measured it as the
-               reliable path. But a mail the author marked replyable cannot say
-               so through it, so that one mail goes the other way - provided the
-               engine has actually taken our Mails array, which is the same
-               check the fallback below makes. If it has not, send through
-               Mail.send anyway and say why: a mail that arrives without its
-               Reply button beats a mail that never arrives. */
-            var engineHasMail = !!(questRef && questRef.Mails && questRef.Mails[mi] &&
-                String(questRef.Mails[mi].title || "").length > 0);
+               The 2026-09-20 mail QA (M-04) disproved the old premise: a
+               Reply button draws on the DIRECT Mail.send path when the
+               definition carries replyable: true - and Mail.send returns the
+               mail's id, the handle quest-end withdrawal needs (M-02/M-03).
+               Quest.sendMail returns void (M-07), so it is demoted to the
+               throw-fallback below: still there, because it is the only
+               remaining path when Mail.send is missing or refuses, but never
+               the first choice. */
             var wantsReply = !!baseMail.replyable;
             var how = "";
+            var sentMailId = null;
 
-            if (wantsReply && engineHasMail && questRef.sendMail) {
-                try {
-                    questRef.sendMail(mi, from || undefined);
-                    how = "Quest.sendMail(" + mi + ") [replyable]";
-                } catch (eR) {
-                    __QE.log("Quest.sendMail(" + mi + ") threw while sending a replyable mail: " +
-                        (eR && eR.message ? eR.message : eR));
-                }
-            }
-            if (!how && wantsReply) {
-                __QE.log("mail \"" + subject + "\" is marked replyable, but the engine has no usable copy " +
-                    "to send that way - going out through Mail.send instead, which has no reply flag, " +
-                    "so no Reply button will appear.");
-            }
-
-            if (!how && sdk.Mail && sdk.Mail.send) {
+            if (sdk.Mail && sdk.Mail.send) {
                 var direct = { subject: subject, content: content };
                 if (from) direct.from = from;
-                var to = __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
+                if (wantsReply) direct.replyable = true;
+                /* r215: the node's To field wins; the player's address is the
+                   fallback (the sim's "leave blank to send it to the player",
+                   which until now was the only thing it could do). */
+                var to = mailTo[node.id] || __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
                 if (to) direct.to = to;
                 if (baseMail.attachment && baseMail.attachment.name) {
                     direct.attachments = [{
@@ -841,14 +1435,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                         data: baseMail.attachment.content || "",
                     }];
                 }
-                /* MailDefinition — what Mail.send takes — has no "replyable"
-                   field. Only QuestMailDefinition does, and that is the array
-                   the engine ignores on this build (r37). So a mail sent this
-                   way never gets a Reply button, whatever the author ticked.
-                   Say so once rather than leaving them looking for it. */
                 try {
-                    sdk.Mail.send(direct);
-                    how = "Mail.send";
+                    var directId = sdk.Mail.send(direct);
+                    if (directId != null && directId !== "") sentMailId = String(directId);
+                    how = wantsReply ? "Mail.send [replyable]" : "Mail.send";
                 } catch (e) {
                     __QE.log("Mail.send failed for \"" + subject + "\": " + (e && e.message ? e.message : e));
                 }
@@ -876,7 +1466,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 } else {
                     try {
                         if (questRef.sendMail) {
-                            questRef.sendMail(mi, from || undefined);
+                            questRef.sendMail(mi, from || undefined, mailTo[node.id] || undefined);
                             how = "Quest.sendMail(" + mi + ")";
                         }
                     } catch (e2) {
@@ -890,6 +1480,18 @@ function __qeRegisterProject(sdk, PROJECT) {
                 return;
             }
             __QE.log("mail \"" + subject + "\" sent via " + how);
+
+            /* r211 withdraw-on-quest-end: armed only when the send returned an
+               id - the id IS the handle, and the fallback path returns none
+               (M-07). A flag without a handle says so honestly rather than
+               leaving the author wondering why the mail survived. */
+            if (mailWithdraw[node.id] && sentMailId != null) {
+                questCleanup.push({ kind: "mail", id: sentMailId, subject: subject });
+                __QE.log("mail \"" + subject + "\" will be withdrawn when the quest ends (id " + sentMailId + ")");
+            } else if (mailWithdraw[node.id]) {
+                __QE.log("mail \"" + subject + "\" is marked withdraw-on-quest-end, but this send returned " +
+                    "no id to remove - it will stay in the inbox.");
+            }
 
             /* Confirm it landed. This wait is a plain timer on purpose - the
                check must not be able to hang on the game's own clock, which is
@@ -924,6 +1526,55 @@ function __qeRegisterProject(sdk, PROJECT) {
             return false;
         }
 
+        var objectiveDoneDepth = 0;
+        var pendingQuestEnd = null;
+
+        function performQuestEnd(req) {
+            if (!req) return;
+            try {
+                if (req.kind === "complete") {
+                    if (questRef && typeof questRef.complete === "function") {
+                        questRef.complete();
+                        __QE.log("quest completed by Complete quest node");
+                    } else {
+                        __QE.log("Complete quest node skipped: Quest.complete is unavailable");
+                    }
+                } else if (req.kind === "retire") {
+                    if (questRef && typeof questRef.retire === "function") {
+                        questRef.retire();
+                        __QE.log("quest retired by Retire quest node");
+                    } else {
+                        __QE.log("Retire quest node skipped: Quest.retire is unavailable");
+                    }
+                } else if (req.kind === "unclaim") {
+                    if (sdk.Quest && typeof sdk.Quest.unclaim === "function") {
+                        sdk.Quest.unclaim(req.name || qd.name);
+                        __QE.log("quest unclaimed by Unclaim quest node: " + (req.name || qd.name));
+                    } else {
+                        __QE.log("Unclaim quest node skipped: Quest.unclaim is unavailable");
+                    }
+                }
+            } catch (e) {
+                __QE.log("quest ending failed: " + (e && e.message ? e.message : e));
+            }
+        }
+
+        function requestQuestEnd(kind, name) {
+            var req = { kind: kind, name: name };
+            if (objectiveDoneDepth > 0) {
+                pendingQuestEnd = req;
+                return;
+            }
+            performQuestEnd(req);
+        }
+
+        function flushQuestEnd() {
+            if (!pendingQuestEnd) return;
+            var req = pendingQuestEnd;
+            pendingQuestEnd = null;
+            performQuestEnd(req);
+        }
+
         function runFlow(nodeId, ctx, depth) {
             try {
                 return runFlowStep(nodeId, ctx, depth);
@@ -945,6 +1596,194 @@ function __qeRegisterProject(sdk, PROJECT) {
             return __QE.seq(flowOuts(nodeId), function (e) {
                 return runFlow(e.target, ctx, depth + 1);
             });
+        }
+
+        /* ── scheduled timers ──────────────────────────────────────────
+           Arming is synchronous inside the flow's call stack (the engine
+           only grants this mod permissions there). Firing happens inside
+           the Scheduler callback - a call the engine made, so the mod
+           still holds its permissions: r166 T-02 proved mail, toast and
+           objective completion all work from inside one. */
+        /* A whole, non-negative count - every offset box is one. */
+        function intOr0(v) {
+            return Math.max(0, Math.round(Number(v) || 0));
+        }
+
+        /* The unit boxes of whichever mode this Timer is in, read exactly the
+           way the editor's own vocabulary reads them (src/schema/timer.ts).
+           "daytime" pins a clock time, so it has no hours or minutes boxes. */
+        function offsetParts(d) {
+            if ((d.mode || "after") === "daytime") {
+                return {
+                    years: intOr0(d.offsetYears), months: intOr0(d.offsetMonths),
+                    weeks: intOr0(d.offsetWeeks), days: intOr0(d.offsetDays),
+                    hours: 0, minutes: 0
+                };
+            }
+            return {
+                years: intOr0(d.years), months: intOr0(d.months), weeks: intOr0(d.weeks),
+                days: intOr0(d.days), hours: intOr0(d.hours), minutes: intOr0(d.minutes)
+            };
+        }
+
+        /* Add an offset to a moment, in the order the editor promises: years
+           and months move the calendar (keeping the day number, clamped to the
+           target month's last day - 31 Jan + 1 month = 28 Feb, never 2 or 3
+           March), then weeks and days, then hours and minutes as wall-clock
+           time. The clamp happens once, on the calendar part alone, so
+           "1 month + 1 day" from 31 Jan is 1 March. The Date constructor
+           rolls any overflow, so four more hours past 23:00 is tomorrow. */
+        function addOffset(base, p) {
+            var y = base.getFullYear() + p.years;
+            var m = base.getMonth() + p.months;
+            var day = base.getDate();
+            if (p.years || p.months) {
+                var last = new Date(y, m + 1, 0).getDate();
+                if (day > last) day = last;
+            }
+            day += p.weeks * 7 + p.days;
+            return new Date(y, m, day, base.getHours() + p.hours, base.getMinutes() + p.minutes);
+        }
+
+        /* The in-game timestamp a Timer is due at (r173; relative units
+           r176/r177). Returns null when an "at" date is incomplete (the
+           analysis already warns; the flow fails open). "daytime" resolves
+           against Time.date() at arm time - the local-time Date constructor
+           makes the hour/minute the player's clock time with no offset
+           maths. */
+        function computeTimerFireAt(d) {
+            var h = Math.max(0, Math.min(23, Math.round(Number(d.hour) || 0)));
+            var mi = Math.max(0, Math.min(59, Math.round(Number(d.minute) || 0)));
+            if (d.mode === "daytime") {
+                /* "In 1 month 2 weeks 2 days, at 18:23": the calendar part is
+                   resolved here, at arm time, against the player's own clock;
+                   the clock is then pinned onto the day that lands on. */
+                var later = addOffset(sdk.Time.date(), offsetParts(d));
+                return new Date(later.getFullYear(), later.getMonth(), later.getDate(), h, mi).getTime();
+            }
+            var y = Math.round(Number(d.dateYear) || 0);
+            var m = Math.round(Number(d.dateMonth) || 0);
+            var day = Math.round(Number(d.dateDay) || 0);
+            if (!(y > 0 && m > 0 && day > 0)) return null;
+            /* "The clock shows h:mi": interpret the chosen wall time in the
+               player machine's zone - the zone the in-game clock displays.
+               Settled in game on 2026-09-18 (S-04): the taskbar clock read
+               20:17 while Time.now rendered 20:15 local and 18:15 UTC, so
+               local it is, and this correction stays. The probe was the raw
+               QA harness's "qe24 clock"; the arm log keeps printing ISO next
+               to the raw value for future spot checks. */
+            var tz = new Date().getTimezoneOffset() * 60000;
+            return Date.UTC(y, m - 1, day, h, mi) - tz;
+        }
+
+        /* The rule in the author's own units, for the arm log: a tester
+           compares it with what the inspector promised. */
+        function ruleText(d) {
+            var mode = d.mode || "after";
+            var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+            var clock = pad(Math.max(0, Math.min(23, Math.round(Number(d.hour) || 0)))) + ":" +
+                pad(Math.max(0, Math.min(59, Math.round(Number(d.minute) || 0))));
+            if (mode === "at") {
+                return "on " + intOr0(d.dateYear) + "-" + intOr0(d.dateMonth) + "-" + intOr0(d.dateDay) + ", at " + clock + " in-game";
+            }
+            var keys = mode === "daytime"
+                ? [["offsetYears", "y"], ["offsetMonths", "mo"], ["offsetWeeks", "w"], ["offsetDays", "d"]]
+                : [["years", "y"], ["months", "mo"], ["weeks", "w"], ["days", "d"], ["hours", "h"], ["minutes", "m"]];
+            var bits = [];
+            for (var i = 0; i < keys.length; i++) {
+                var n = intOr0(d[keys[i][0]]);
+                if (n) bits.push(n + keys[i][1]);
+            }
+            var offset = bits.length ? bits.join(" ") : "(nothing set)";
+            return mode === "daytime" ? "in " + offset + ", at " + clock + " in-game" : "after " + offset;
+        }
+
+        function armBeat(nodeId, d) {
+            if (!sdk.Scheduler) {
+                __QE.log("timer node " + nodeId + ": no Scheduler API - the timer will not fire");
+                return;
+            }
+            /* Idempotent: the opening flow re-runs on a save reload, and a
+               re-run must not double-arm the same timer. */
+            var pending = (sdk.Scheduler.list ? sdk.Scheduler.list(BEAT_KIND) : []) || [];
+            for (var i = 0; i < pending.length; i++) {
+                var pp = pending[i].payload;
+                if (pp && pp.questId === qd.id && pp.nodeId === nodeId) {
+                    __QE.log("timer node " + nodeId + " already armed - not double-arming");
+                    return;
+                }
+            }
+            var payload = { questId: qd.id, nodeId: nodeId, attempts: 0 };
+            var mode = d.mode || "after";
+            var parts = offsetParts(d);
+            var id;
+            if (mode === "after" && !parts.years && !parts.months) {
+                /* The SDK's own duration form: days, hours and minutes, which
+                   the engine adds to the in-game clock itself. Preferred
+                   wherever it fits - it is the path S-01/S-02 verified. */
+                if (!sdk.Scheduler.schedule) {
+                    __QE.log("timer node " + nodeId + ": no schedule API - the timer will not fire");
+                    return;
+                }
+                id = sdk.Scheduler.schedule(BEAT_KIND, payload, {
+                    days: parts.weeks * 7 + parts.days,
+                    hours: parts.hours,
+                    minutes: parts.minutes,
+                });
+                __QE.log("timer node " + nodeId + " armed " + ruleText(d) + " (job " + id + ")");
+            } else {
+                /* Everything else is an absolute moment: months and years have
+                   no field in the duration form (r177), and the calendar modes
+                   are resolved here, at arm time, against Time.date(). */
+                if (!sdk.Scheduler.scheduleAt) {
+                    __QE.log("timer node " + nodeId + ": no scheduleAt API in this game build - the timer will not fire");
+                    return;
+                }
+                var fireAt = mode === "after"
+                    ? addOffset(sdk.Time.date(), parts).getTime()
+                    : computeTimerFireAt(d);
+                if (fireAt === null) {
+                    __QE.log("timer node " + nodeId + ": no full date set - the timer will not fire");
+                    return;
+                }
+                id = sdk.Scheduler.scheduleAt(BEAT_KIND, payload, fireAt);
+                /* The rule in words, then the ISO string next to the raw
+                   value: S-04 compares both with the on-screen clock to settle
+                   the display timezone, and the raw harness's "qe24 clock"
+                   does the same for the current time. */
+                __QE.log("timer node " + nodeId + " armed " + ruleText(d) + " -> in-game " + new Date(fireAt).toISOString() + " (fireAt " + fireAt + ", job " + id + ")");
+            }
+            beatJobs.push(id);
+        }
+
+        function fireBeat(nodeId) {
+            var node = byId[nodeId];
+            if (!node) {
+                __QE.log("timer: node " + nodeId + " no longer exists - nothing to fire");
+                return;
+            }
+            __QE.log("timer " + nodeId + " fired");
+            /* The timer is a new entry point into the graph: a fresh
+               payload, quest data still resolving through dataScope(). */
+            flowOuts(nodeId).forEach(function (e) {
+                runFlow(e.target, { payload: {}, vars: {} }, 0);
+            });
+        }
+
+        function bindBeatFire(instance) {
+            liveBeats[qd.id] = function (nodeId) {
+                questRef = instance;
+                fireBeat(nodeId);
+            };
+        }
+
+        function cancelBeatJobs() {
+            if (!beatJobs.length) return;
+            beatJobs.forEach(function (id) {
+                __QE.safe(function () { if (sdk.Scheduler && sdk.Scheduler.cancel) sdk.Scheduler.cancel(id); });
+            });
+            __QE.log("cancelled " + beatJobs.length + " pending timer(s)");
+            beatJobs.length = 0;
         }
 
         function runFlowStep(nodeId, ctx, depth) {
@@ -969,6 +1808,24 @@ function __qeRegisterProject(sdk, PROJECT) {
                 if (node.type === "flow.branch") {
                     var yes = __QE.matchAll(node.data.conditions, node.data.source === "data" ? (questRef ? questRef.Data : {}) : (ctx && ctx.payload) || {}, scopeOf(ctx));
                     edges = edges.filter(function (e) { return e.sourceHandle === (yes ? "true" : "false"); });
+                }
+                if (node.type === "flow.appcheck") {
+                    /* The SDK's own doc comment is why this node exists: most
+                       desktop apps are unlocked as the player earns them, so a
+                       pack that assumes one is present notifies about something
+                       the player cannot open, which reads as the pack being
+                       broken. Guarded like the widget path is - a build without
+                       the call must not throw inside the quest walk. */
+                    if (node.data.saveList) {
+                        var appNames = (sdk.Desktop && sdk.Desktop.getInstalledApps) ? sdk.Desktop.getInstalledApps() : [];
+                        var appKey = String(node.data.key || "").trim() || "installedApps";
+                        if (questRef && questRef.SetData) {
+                            __QE.safe(function () { questRef.SetData(appKey, appNames.join(", ")); });
+                        }
+                    }
+                    var haveApp = !!(node.data.app && sdk.Desktop && sdk.Desktop.isAppInstalled
+                        && sdk.Desktop.isAppInstalled(String(node.data.app)));
+                    edges = edges.filter(function (e) { return e.sourceHandle === (haveApp ? "true" : "false"); });
                 }
                 /* Walk the wires SYNCHRONOUSLY for as long as we can.
                    The engine only treats this mod as "current" while it is
@@ -1089,34 +1946,43 @@ function __qeRegisterProject(sdk, PROJECT) {
                     var wifiIp = d.ipMode === "fixed" && d.ip
                         ? d.ip
                         : ((questRef && questRef.Data && questRef.Data.targetIp) || (sdk.Network.randomIp ? sdk.Network.randomIp() : "10.0.0.1"));
-                    /* SDK 0.21.0 has no wireless API: use it if a future
-                       version ships one, otherwise fall back to a plain
-                       router network so the machines at least exist. */
+                    var wifiRoot = mapDevice({
+                        ip: wifiIp,
+                        type: "ROUTER",
+                        model: d.model,
+                        ports: d.ports || [],
+                        users: d.users || [],
+                        children: d.children || [],
+                    });
+                    /* SDK 0.24.0 declares a native wireless creator. Keep the
+                       old router fallback because exported mods may run on an
+                       older game build even though the editor now exposes the
+                       Wi-Fi node for current HackHub builds. */
                     if (sdk.Network.createWifiNetwork) {
-                        sdk.Network.createWifiNetwork({
+                        var wifiDef = {
                             ssid: d.ssid,
                             password: d.password,
                             signal: d.signal,
-                            bssid: d.bssid,
-                            channel: d.channel,
+                            ip: wifiIp,
                             model: d.model,
-                        });
+                            users: wifiRoot.users || [],
+                            ports: wifiRoot.ports || [],
+                            children: wifiRoot.children || [],
+                        };
+                        if (d.bssid) wifiDef.bssid = d.bssid;
+                        if (d.channel != null && d.channel !== "") {
+                            var wifiChannel = Number(d.channel);
+                            if (!isNaN(wifiChannel)) wifiDef.channel = wifiChannel;
+                        }
+                        if (d.wps != null) wifiDef.wps = !!d.wps;
+                        var madeWifiIp = sdk.Network.createWifiNetwork(wifiDef);
+                        questCleanup.push({ kind: "network", ip: madeWifiIp || wifiIp, onComplete: d.destroyOnComplete === true });
+                        return next();
                     } else {
                         /* Same reason as world.network above. */
                         questCleanup.push({ kind: "network", ip: wifiIp, onComplete: d.destroyOnComplete === true });
-                        return buildNetwork(wifiIp, mapDevice({
-                            ip: wifiIp,
-                            type: "ROUTER",
-                            model: d.model,
-                            ports: d.ports || [],
-                            users: d.users || [],
-                            children: d.children || [],
-                        }), next);
+                        return buildNetwork(wifiIp, wifiRoot, next);
                     }
-                    /* The createWifiNetwork branch (a future SDK) still needs
-                       its teardown registered. */
-                    questCleanup.push({ kind: "network", ip: wifiIp, onComplete: d.destroyOnComplete === true });
-                    return next();
                 }
                 case "world.domain": {
                     /* A domain the player can whois / nslookup their way to. */
@@ -1323,6 +2189,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                     });
                     return next();
                 }
+                case "comms.tweet": {
+                    postTweets(node, scope);
+                    return next();
+                }
                 case "comms.dialogue": {
                     /* Timed chat → play it here, message by message, so a
                        conversation can land on a Sequence beat. */
@@ -1332,26 +2202,43 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }
                     if (d.kind === "phone") {
                         var branchName = d.phone && d.phone.branch ? d.phone.branch : "default";
-                        var baseLines = Dialog[branchName];
-                        if (baseLines && questRef.Dialog && questRef.Dialog[branchName]) {
-                            questRef.Dialog[branchName] = baseLines.map(function (line) {
-                                var out = { speaker: line.speaker, text: __QE.fill(line.text, scope) };
-                                if (line.isEnd) out.isEnd = true;
-                                if (line.options) {
-                                    out.options = line.options.map(function (o) {
-                                        var oo = { label: o.label };
-                                        if (o.text) oo.text = __QE.fill(o.text, scope);
-                                        if (o.switchBranch) oo.switchBranch = o.switchBranch;
-                                        if (o.isEnd) oo.isEnd = true;
-                                        return oo;
-                                    });
-                                }
-                                return out;
-                            });
+                        var startIndex = d.phone && d.phone.startIndex ? d.phone.startIndex : 0;
+                        var waitForEnd = !(d.phone && d.phone.continueMode === "immediate");
+                        if (!questRef || typeof questRef.createDialog !== "function") {
+                            __QE.log("phone dialogue \"" + branchName + "\" could not start; continuing flow");
+                            return next();
                         }
-                        questRef.createDialog(branchName, d.phone && d.phone.startIndex ? d.phone.startIndex : 0);
+                        if (waitForEnd) {
+                            var continued = false;
+                            var continueOnce = function () {
+                                if (continued) return;
+                                continued = true;
+                                __QE.log("phone dialogue \"" + branchName + "\" ended; continuing flow");
+                                return next();
+                            };
+                            var callbacks = installDialog(scope, continueOnce);
+                            questRef.createDialog(branchName, startIndex);
+                            if (!callbacks) {
+                                __QE.log("phone dialogue \"" + branchName + "\" has no ending line; continuing flow now");
+                                return next();
+                            }
+                            return undefined;
+                        }
+                        installDialog(scope, null);
+                        questRef.createDialog(branchName, startIndex);
                     }
                     return next();
+                }
+                case "fx.completeQuest":
+                    requestQuestEnd("complete");
+                    return undefined;
+                case "fx.retireQuest":
+                    requestQuestEnd("retire");
+                    return undefined;
+                case "fx.unclaimQuest": {
+                    var unclaimName = __QE.fill(d.questName || qd.name, scope);
+                    requestQuestEnd("unclaim", unclaimName);
+                    return undefined;
                 }
                 case "fx.notify": {
                     var notifyMsg = __QE.fill(d.message, scope);
@@ -1363,6 +2250,44 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }
                     return next();
                 }
+                case "fx.prompt": {
+                    var runPromptOut = function (handle, nextCtx) {
+                        return __QE.seq(flowOuts(nodeId).filter(function (e) { return e.sourceHandle === handle; }), function (e) {
+                            return runFlow(e.target, nextCtx, depth + 1);
+                        }, function (e) {
+                            __QE.log("flow after Ask player stopped: " + (e && e.message ? e.message : e));
+                        });
+                    };
+                    var promptOptions = {};
+                    var title = __QE.fill(d.title || "", scope).trim();
+                    var label = __QE.fill(d.label || "", scope).trim();
+                    var placeholder = __QE.fill(d.placeholder || "", scope);
+                    var defaultValue = __QE.fill(d.defaultValue || "", scope);
+                    if (title) promptOptions.title = title;
+                    if (label) promptOptions.label = label;
+                    if (placeholder) promptOptions.placeholder = placeholder;
+                    if (defaultValue) promptOptions.defaultValue = defaultValue;
+                    if (d.password) promptOptions.password = true;
+                    if (sdk.UI && sdk.UI.prompt) {
+                        return Promise.resolve(sdk.UI.prompt(promptOptions)).then(function (answer) {
+                            if (answer === null || answer === undefined) return runPromptOut("cancel", ctx);
+                            var text = String(answer);
+                            var key = String(d.storeAs || "").trim();
+                            if (key && questRef && questRef.SetData) questRef.SetData(key, text);
+                            var nextCtx = {
+                                payload: ctx && ctx.payload ? ctx.payload : {},
+                                vars: Object.assign({}, (ctx && ctx.vars) || {}, { answer: text }),
+                            };
+                            var handle = __QE.matchPrompt(d, text, scopeOf(nextCtx)) ? "success" : "failure";
+                            return runPromptOut(handle, nextCtx);
+                        }, function (e) {
+                            __QE.log("Ask player failed: " + (e && e.message ? e.message : e));
+                            return runPromptOut("cancel", ctx);
+                        });
+                    }
+                    __QE.log("Ask player skipped: UI.prompt is unavailable");
+                    return runPromptOut("cancel", ctx);
+                }
                 case "fx.handbook": {
                     /* No permission needed: the SDK's permission list has no
                        handbook entry, and open() only reads. A blank article
@@ -1370,6 +2295,10 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (sdk.Handbook && sdk.Handbook.open) {
                         var articleId = __QE.fill(d.articleId || "", scope).trim();
                         if (articleId) {
+                            /* Same finding as the click action (2026-09-19): the
+                               call opens the handbook but lands on its landing
+                               page, because the article ids are not published. */
+                            __QE.log("handbook: asked for article \"" + articleId + "\" - the game lands on its own landing page (see Q15)");
                             var articleCat = __QE.fill(d.category || "", scope).trim();
                             if (articleCat) sdk.Handbook.open(articleId, articleCat);
                             else sdk.Handbook.open(articleId);
@@ -1461,6 +2390,39 @@ function __qeRegisterProject(sdk, PROJECT) {
                 }
                 case "flow.delay":
                     return __QE.sleep(Math.max(0, Number(d.seconds || 0)) * 1000).then(next);
+                case "flow.timer": {
+                    var timerMode = d.mode || "after";
+                    if (timerMode === "after") {
+                        var schedTotal = (Number(d.years) || 0) + (Number(d.months) || 0) +
+                            (Number(d.weeks) || 0) + (Number(d.days) || 0) +
+                            (Number(d.hours) || 0) + (Number(d.minutes) || 0);
+                        if (schedTotal <= 0) {
+                            /* Fail-open like the rest of the codebase: a
+                               timer with no time set fires immediately
+                               instead of stranding the story (analysis
+                               already warns about it). */
+                            __QE.log("timer node " + nodeId + ": nothing scheduled - the timer fires immediately");
+                            return next();
+                        }
+                    } else {
+                        /* Date modes (r173): fail open when no full date is
+                           set, or when the due time has already passed by
+                           the time the story arrives. */
+                        var dueAt = computeTimerFireAt(d);
+                        if (dueAt === null) {
+                            __QE.log("timer node " + nodeId + ": no full date set - the timer fires immediately");
+                            return next();
+                        }
+                        if (sdk.Time && sdk.Time.now && dueAt <= sdk.Time.now()) {
+                            __QE.log("timer node " + nodeId + ": due time already passed - the timer fires immediately");
+                            return next();
+                        }
+                    }
+                    armBeat(nodeId, d);
+                    /* The flow ends here: the story continues down "Out"
+                       when the in-game clock reaches the due time (r172). */
+                    return Promise.resolve();
+                }
                 case "flow.sequence": {
                     /* Fire each output in author order, pausing the step's own
                        delay (milliseconds) before it. Steps own their sockets:
@@ -1482,10 +2444,20 @@ function __qeRegisterProject(sdk, PROJECT) {
                     }, Promise.resolve());
                 }
                 case "objective":
-                    /* When the story flow reaches an objective, tick it off.
-                       (Objectives with a trigger event complete via the SDK
-                       declarative trigger instead.) */
-                    if (d.name && questRef && questRef.completeObjective) questRef.completeObjective(d.name);
+                    /* When the story flow reaches an objective, tick it off -
+                       unless a trigger event owns it. A trigger objective is
+                       the player's job, not the flow's: flow arrival must not
+                       tick it (r212) and must not follow its "done" wire
+                       either - flowOuts cannot tell a done wire from an out
+                       wire, and following it completed the quest the moment
+                       the mails went out (r213, the probe's second finding).
+                       The listener runs the done wires when the event matches.
+                       A plain objective keeps both halves: ticked on arrival,
+                       done wire followed, because arrival IS its completion. */
+                    if (objectivesWithTriggers[d.name]) return undefined;
+                    if (d.name && questRef && questRef.completeObjective) {
+                        questRef.completeObjective(d.name);
+                    }
                     return next();
                 case "trigger.event":
                 case "entry.start":
@@ -1513,6 +2485,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                 if (f.isFolder) o.isFolder = true;
                 if (f.locked) o.readonly = true;
                 if (f.hidden) o.hidden = true;
+                if (f.deleteable) o.deleteable = true;
                 if (f.children && f.children.length) o.children = mapFiles(f.children);
                 return o;
             });
@@ -1921,8 +2894,12 @@ function __qeRegisterProject(sdk, PROJECT) {
                     super(...arguments);
                     questRef = this;
                     this.Name = qd.name;
-                    this.Title = qd.title;
-                    this.Description = qd.description;
+                    /* Title and Description are read at REGISTRATION, so a
+                       {{tr.…}} in either has to be resolved right here - later
+                       is too late. Everything else keeps its token until it is
+                       used, which is what lets {{data.…}} work at all. */
+                    this.Title = __QE.fillTranslations(qd.title);
+                    this.Description = __QE.fillTranslations(qd.description);
                     this.Group = qd.group;
                     /* Only assign when the author actually set rewards.
                        Assigning undefined still defines the property, and
@@ -1939,9 +2916,9 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (qd.autoComplete != null) this.AutoComplete = !!qd.autoComplete;
                     if (qd.abandonable != null) this.Abandonable = !!qd.abandonable;
                     /* Assign explicitly either way. Leaving it unset inherits
-                       the engine's default, and Nemesis - the only mod known
-                       not to hit the completion crash - sets it to false
-                       outright. Matching that shape exactly matters (r86). */
+                       the engine's default; the editor setting should be the
+                       only source of truth for whether the player sees this
+                       manual finish button. */
                     this.HasCompleteButton = !!qd.hasCompleteButton;
                     if (qd.questsToComplete && qd.questsToComplete.length) this.QuestsToComplete = qd.questsToComplete;
                     if (qd.maxClaim != null) this.MaxClaim = qd.maxClaim;
@@ -1949,11 +2926,41 @@ function __qeRegisterProject(sdk, PROJECT) {
                     if (qd.hackhubPost) {
                         var hp = { content: qd.hackhubPost.content };
                         if (qd.hackhubPost.media) hp.media = qd.hackhubPost.media;
-                        if (qd.hackhubPost.authorName) hp.author = { name: qd.hackhubPost.authorName };
+                        /* r215: the avatar rides along when the author set one.
+                           Blank name/avatar is CONTRACT here - the game fills
+                           both with a generated persona (seen in the r211
+                           probe run: "Kristina Kaczmarek", a drawn avatar).
+                           The editor's quest-settings section explains that. */
+                        /* Only a NAMED author ships. The SDK types make
+                           author.name required whenever author is present, so
+                           an avatar without a name cannot ride alone - the
+                           editor's blurbs say so. Blank post author remains
+                           the proven game-persona route (r211). */
+                        if (qd.hackhubPost.authorName) {
+                            hp.author = { name: qd.hackhubPost.authorName };
+                            if (qd.hackhubPost.authorAvatar) hp.author.avatar = qd.hackhubPost.authorAvatar;
+                        }
                         if (qd.hackhubPost.likes != null) hp.likes = qd.hackhubPost.likes;
                         if (qd.hackhubPost.comments && qd.hackhubPost.comments.length) {
                             hp.comments = qd.hackhubPost.comments.map(function (c) {
-                                return { author: { name: c.authorName }, content: c.content };
+                                var cmt = { content: c.content };
+                                /* The SDK types require a comment author to carry a
+                                   name (author.name is not optional there). A blank
+                                   author used to ride out as an empty author object, which
+                                   breaks that contract - and the only two quests
+                                   that ever failed to surface their feed post both
+                                   carried a blank-author comment, while the one
+                                   post that DID render had no comments at all.
+                                   Blank now means NO author is sent; whether the
+                                   game mints a persona for it is unverified
+                                   (the SDK issue record §20) - a typed name is the proven
+                                   shape. Same rule for an avatar without a name:
+                                   the pair ships only when a name exists. */
+                                if (c.authorName) {
+                                    cmt.author = { name: c.authorName };
+                                    if (c.authorAvatar) cmt.author.avatar = c.authorAvatar;
+                                }
+                                return cmt;
                             });
                         }
                         this.HackhubPost = hp;
@@ -1989,7 +2996,13 @@ function __qeRegisterProject(sdk, PROJECT) {
                        complete objectives, so bind it here rather than trusting
                        whatever the last constructor saw. */
                     questRef = this;
+                    bindBeatFire(this);
                     refillObjectives();
+                    /* The story is starting (or a reload re-ran OnStart): make
+                       sure the characters it needs exist. Idempotent, so a
+                       second call adopts what the first one created. */
+                    twotterQuestLive[qd.id] = true;
+                    ensureDeclaredTwotterAccounts(qd.id);
                     var ctx = { payload: {}, vars: {} };
                     var starts = g.nodes.filter(function (n) { return n.type === "entry.start"; });
                     /* Logged unconditionally. A quest whose OnStart never runs
@@ -2008,7 +3021,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                        whatever the last constructor saw. */
                     questRef = this;
                     var self = this;
+                    bindBeatFire(this);
                     __QE.log("quest \"" + qd.name + "\" objectives started");
+                    /* OnObjectivesStart runs again after every reload, which is
+                       exactly why the accounts are ensured here too: a save
+                       loaded into a session where the account never got made
+                       gets it made now. */
+                    twotterQuestLive[qd.id] = true;
+                    ensureDeclaredTwotterAccounts(qd.id);
                     var ctx = { payload: {}, vars: {} };
                     refillComms();
                     weechatServers.forEach(function (s) {
@@ -2099,32 +3119,31 @@ function __qeRegisterProject(sdk, PROJECT) {
                             fired = true;
                             /* Story beats FIRST, tick the objective LAST.
 
-                               completeObjective on the final objective makes
-                               the engine retire the quest and call OnComplete
-                               synchronously, from inside this very handler -
-                               which is itself running inside the engine's own
-                               event dispatch. QA's log shows the nesting
-                               plainly: "OnComplete: starting" printed BEFORE
-                               "objective send-manifest completed by Mail.Sent".
-                               Anything we did after that call - sending the
-                               closing mail, paying the player - ran three
-                               levels deep inside a dispatch the engine thought
-                               it had finished, and the renderer froze (r82).
+                               completeObjective can synchronously run engine
+                               completion work before it returns. Running the
+                               author's "done" wires first preserves the event
+                               payload they expect and keeps closing mail,
+                               payments and notifications in the same trusted
+                               SDK call stack.
 
-                               Doing the author's wires first means that by the
-                               time the engine re-enters us there is nothing of
-                               ours left on the stack, so the nested OnComplete
-                               unwinds cleanly.
+                               A Complete quest / Retire quest / Unclaim quest
+                               node reached directly from this objective is
+                               deferred until after completeObjective below, so
+                               the visible objective ticks before the quest
+                               entry is formally ended.
 
                                Deliberately NOT deferred to a timer: r45 - the
                                engine only grants this mod permissions inside a
                                call it made, and work moved to a later tick
-                               loses that identity. Nemesis sends mail straight
-                               from a Mail.Sent handler and is fine; what it
-                               never does is call completeObjective there. */
-                            doneEdges.forEach(function (e) {
-                                runFlow(e.target, { payload: data, vars: {} }, 0);
-                            });
+                               loses that identity. */
+                            objectiveDoneDepth++;
+                            try {
+                                doneEdges.forEach(function (e) {
+                                    runFlow(e.target, { payload: data, vars: {} }, 0);
+                                });
+                            } finally {
+                                objectiveDoneDepth--;
+                            }
                             if (n.data.name) {
                                 try {
                                     self.completeObjective(n.data.name);
@@ -2138,6 +3157,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                             if (qd.hideObjectivesWhenDone && objectivesDone >= objectiveNodes.length) {
                                 hideAllObjectives();
                             }
+                            flushQuestEnd();
                         };
                         listenFor.forEach(function (evName) {
                             self.Events.on(evName, function (data) { onEvent(data, evName); });
@@ -2168,11 +3188,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                        whatever the last constructor saw. */
                     questRef = this;
                     var ctx = { payload: {}, vars: {} };
-                    /* These traces exist because a freeze here leaves no other
-                       evidence: the renderer dies mid-hook and the log simply
-                       stops. Whichever line is last tells us the phase (r80). */
+                    /* These traces stay useful for in-game QA: whichever line
+                       appears last tells us which completion phase ran. */
                     __QE.log("OnComplete: starting");
                     runQuestCleanup("complete");
+                    /* Pending scheduled beats belong to a story that is over
+                       now: cancel them so they cannot fire later (r172). */
+                    cancelBeatJobs();
+                    delete liveBeats[qd.id];
                     __QE.log("OnComplete: cleanup done, removing weechat servers");
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
@@ -2191,11 +3214,14 @@ function __qeRegisterProject(sdk, PROJECT) {
                        whatever the last constructor saw. */
                     questRef = this;
                     var ctx = { payload: {}, vars: {} };
-                    /* These traces exist because a freeze here leaves no other
-                       evidence: the renderer dies mid-hook and the log simply
-                       stops. Whichever line is last tells us the phase (r80). */
+                    /* These traces stay useful for in-game QA: whichever line
+                       appears last tells us which abandon phase ran. */
                     __QE.log("OnAbandon: starting");
                     runQuestCleanup("abandon");
+                    /* The player walked away: pending beats go with the
+                       quest (r172). */
+                    cancelBeatJobs();
+                    delete liveBeats[qd.id];
                     __QE.log("OnAbandon: cleanup done, removing weechat servers");
                     weechatServers.forEach(function (s) {
                         if (sdk.WeeChat && sdk.WeeChat.removeServer) sdk.WeeChat.removeServer(s.host, s.password);
@@ -2207,6 +3233,16 @@ function __qeRegisterProject(sdk, PROJECT) {
                     __QE.log("OnAbandon: finished, handing back to the game");
                 }
             };
+            /* A class expression without a name infers it from the variable
+               it is assigned to - every editor quest was class "cls". If the
+               engine keys quest identity (claim memory, and with it the
+               feed's "hasn't been claimed yet" check) on the class name, all
+               editor quests shared ONE identity, and the first claim retired
+               every editor export's feed post on that profile. Name the
+               class after the quest so identity is the quest's own (r221). */
+            if (qd.name) {
+                try { Object.defineProperty(cls, "name", { value: qd.name, configurable: true }); } catch (_e) {}
+            }
             return cls;
         })();
 
@@ -2307,7 +3343,7 @@ function __qeRegisterProject(sdk, PROJECT) {
                    - and an absent abstract member is precisely the kind of
                    thing this build ignores without complaint. */
                 this.Icon = w.icon || "";
-                /* popular is declared on WebsiteDefinition (docs/03 Q12 —
+                /* popular is declared on WebsiteDefinition (the SDK issue record Q12 —
                    purpose unverified; our self-test compares search ranking
                    with one site flagged). Emitted only when set, so sites
                    that don't use it compile exactly as before (r129 rule). */
@@ -2318,6 +3354,295 @@ function __qeRegisterProject(sdk, PROJECT) {
         sdk.RegisterWebsite(cls);
     }
 
+    /* ── pack extras (r203) ──────────────────────────────────────────────
+       The things a pack puts outside its own quests: start-menu items, desktop
+       widgets and right-click items, plus the click actions behind them.
+
+       All four surfaces were verified in game before any of this was authored
+       (r200/r201 probe). Two findings are baked into what follows:
+
+       - Menu.addItem renders items in the bottom strip of the start menu, and
+         the SDK's declared "section" field has NO visible effect - so nothing
+         here passes one.
+       - Desktop.addWidget's "transparent" defaults to TRUE in the SDK, which is
+         why the first probe drew bare text with no background. The editor's own
+         default is opaque, and the flag is always sent explicitly so the
+         behaviour never depends on a default again.
+
+       Every registration is guarded and every click is wrapped: a pack whose
+       extras misbehave must not be able to stop its quests from loading. */
+
+    function extraScope() { return __QE.tokenScope(); }
+
+    function extraText(text) {
+        return __QE.fill(text || "", extraScope());
+    }
+
+    /* Which language the game SAYS it is in. Logged with every registration and
+       every click, because a translation that silently does nothing is
+       indistinguishable on screen from a click that never arrived (r204). */
+    function extraLanguage() {
+        var l = __QE.safe(function () {
+            return sdk.Localization && sdk.Localization.language ? sdk.Localization.language() : null;
+        });
+        return l || "unknown";
+    }
+
+    /* Show the player a line of text, and SAY WHICH API did it.
+       UI.toast is the one this project has watched work in game: every
+       notification QA has ever seen came from a toast. UI.notify is declared by
+       the SDK and has never been observed - so it is the fallback, and the log
+       line records which one was used. A silent one must not look like a click
+       that never happened. */
+    function extraSay(text) {
+        var refused = false;
+        if (sdk.UI && sdk.UI.toast) {
+            try { sdk.UI.toast(text, "info"); return "UI.toast"; }
+            catch (e) {
+                refused = refused || extraPermissionRefusal(e);
+                __QE.log("extras: UI.toast threw: " + (e && e.message ? e.message : e));
+            }
+        }
+        if (sdk.UI && sdk.UI.notify) {
+            try { sdk.UI.notify(text); return "UI.notify"; }
+            catch (e2) {
+                refused = refused || extraPermissionRefusal(e2);
+                __QE.log("extras: UI.notify threw: " + (e2 && e2.message ? e2.message : e2));
+            }
+        }
+        if (refused) {
+            /* Measured 2026-09-19 (r204): the same export, in the same session,
+               shows a quest-context notification without complaint and is refused
+               for one made from a menu click. The refusal names the mod as
+               "null", so it is the permission check being unable to tell WHICH
+               mod is calling - not a permission the manifest is missing. Said
+               out loud here because the message an author would otherwise read
+               sends them to their manifest, where the answers is not. */
+            __QE.log("extras: the game refused a message from a MENU CLICK (it reads the calling mod as null). " +
+                "This is not a missing permission in your manifest - your quests' own notifications are unaffected. " +
+                "This is a game limitation, not a missing quest permission.");
+        }
+        return refused ? "nothing - the game refused it (see the editor handbook)" : "nothing - this build has no UI API";
+    }
+
+    /* True when an SDK error is the click-context permission refusal, whatever
+       API it came from. Matched on the two stable halves of the message rather
+       than the whole string, so a rewording does not turn the explanation off. */
+    function extraPermissionRefusal(e) {
+        var msg = String((e && e.message) ? e.message : e);
+        return msg.indexOf("permission") !== -1 && msg.indexOf("Mod \"null\"") !== -1;
+    }
+
+    /* ── the click-context fix (r206) ─────────────────────────────────────
+       A menu or right-click handler runs with NO mod identity: the permission
+       check reads the calling mod as "null" and refuses every gated call, and
+       the mod's own translation table is invisible from there too (r205, Q14).
+       Measured in game 2026-09-19 with the click probe: from one click,
+       UI.toast, UI.notify, Mail.send and Quest.claim were all refused while
+       SharedVariables.set worked - and the SAME two UI calls made from a 1 ms
+       Scheduler job drew normally. So the engine can give the identity back.
+
+       A click therefore no longer does its own work. It says what was clicked,
+       hands the action to the engine, and the engine calls us back a moment
+       later, where the action runs exactly as before - with the mod's name on
+       it and the translation table in reach again.
+
+       The kind carries the mod id: the SDK's kind registry is SHARED by every
+       installed pack, so two packs using "click" would answer each other's jobs
+       (the same rule the timer follows). The job id travels in the payload as
+       well as into schedule, so a fired job can be matched to its action; the
+       action itself stays in this table, because a payload may be written down
+       and a function cannot go in one. */
+    var CLICK_KIND = "qe/" + String((PROJECT && PROJECT.mod && (PROJECT.mod.id || PROJECT.mod.name)) || "editor-mod") + "/click";
+    var clickJobs = {};
+    var clickJobSeq = 0;
+
+    function clickJobHandler(payload) {
+        var p = payload || {};
+        var work = clickJobs[p.jobId];
+        if (!work) {
+            __QE.log("extras: a click job fired but its action was already gone (" + p.jobId + ")");
+            return;
+        }
+        delete clickJobs[p.jobId];
+        __QE.log("extras: the engine called back for " + p.what + " \"" + p.id + "\" (language " + extraLanguage() + ") - running it here, where the mod has a name");
+        __QE.safe(work);
+    }
+
+    /* Hand the work to the engine. False when this build has no Scheduler, or
+       when handing it over throws - the caller then runs it inside the click,
+       which is what r204 did and which a gated call will be refused for. */
+    function clickDefer(work, what, id) {
+        if (!sdk.Scheduler || !sdk.Scheduler.schedule) return false;
+        clickJobSeq++;
+        var jobId = "click-" + clickJobSeq;
+        clickJobs[jobId] = work;
+        try {
+            sdk.Scheduler.schedule(CLICK_KIND, { jobId: jobId, what: what, id: id }, { ms: 1 }, jobId);
+        } catch (e) {
+            delete clickJobs[jobId];
+            __QE.log("extras: could not hand the click to the engine: " + (e && e.message ? e.message : e));
+            return false;
+        }
+        __QE.log("extras: handed " + what + " \"" + id + "\" to the engine (job " + jobId + ") - a click has no mod identity, so the work runs in the engine's callback instead");
+        return true;
+    }
+
+    /* What a click DOES, per kind - unchanged from r203 apart from who calls it.
+       Every body is run by the engine's job; none of them may assume the click
+       is still on the stack. */
+    function extraWork(a) {
+        if (a.kind === "claim") {
+            return function () {
+                if (!sdk.Quest || !sdk.Quest.claim) {
+                    __QE.log("extras: no Quest.claim in this build - the click did nothing");
+                    return;
+                }
+                /* The NAME the engine knows the quest by, which the compiler
+                   resolves from the author's pick. The editor's own document id
+                   goes nowhere: sending it claimed nothing at all, silently, in
+                   game on 2026-09-19 - while the same call with the name works
+                   (and is what the unclaim node has always used). */
+                if (!a.questName) {
+                    __QE.log("extras: nothing to claim - the quest this item pointed at is not in this pack (id \"" + a.questId + "\")");
+                    return;
+                }
+                __QE.log("extras: claiming quest " + a.questName);
+                __QE.safe(function () { sdk.Quest.claim(a.questName); });
+            };
+        }
+        if (a.kind === "mail") {
+            return function () {
+                if (!sdk.Mail || !sdk.Mail.send) {
+                    __QE.log("extras: no Mail.send in this build - the click did nothing");
+                    return;
+                }
+                var mail = {
+                    subject: extraText(a.mailSubject),
+                    content: __QE.htmlToText(extraText(a.mailContent)),
+                };
+                if (a.mailFrom) mail.from = extraText(a.mailFrom);
+                var to = __QE.safe(function () { return sdk.Mail.getPlayerEmail ? sdk.Mail.getPlayerEmail() : ""; });
+                if (to) mail.to = to;
+                __QE.log("extras: sending mail \"" + mail.subject + "\"");
+                __QE.safe(function () { sdk.Mail.send(mail); });
+            };
+        }
+        if (a.kind === "handbook") {
+            return function () {
+                if (!sdk.Handbook || !sdk.Handbook.open) {
+                    __QE.log("extras: no Handbook.open in this build - the click did nothing");
+                    return;
+                }
+                /* Measured 2026-09-19: the game takes the call and opens the
+                   HANDBOOK, but lands on its own landing page - the article id
+                   that would deep-link is not published anywhere we can see, and
+                   the title is not it. The log says what was asked for, so a
+                   tester is not left wondering whether the click missed. */
+                __QE.log("extras: opening the handbook at article \"" + a.handbookId + "\" - the game lands on its own landing page (see Q15)");
+                __QE.safe(function () {
+                    if (a.handbookCategory) sdk.Handbook.open(a.handbookId, a.handbookCategory);
+                    else sdk.Handbook.open(a.handbookId);
+                });
+            };
+        }
+        /* notify, and the safe default for anything unrecognised: say something
+           rather than doing nothing at all. */
+        return function () {
+            var text = extraText(a.text) || "This item does nothing yet.";
+            var how = extraSay(text);
+            __QE.log("extras: said \"" + text + "\" via " + how);
+        };
+    }
+
+    /* The handler the game clicks. Its whole job is to record the click and put
+       the work where the engine will run it with the mod's identity on. */
+    function extraAction(action, what, id) {
+        /* First line of every handler, and the reason it is first: if the log
+           has no click line for a click the player made, the game never called
+           us - which is a different bug from anything below it. */
+        __QE.log("extras: registering " + what + " \"" + id + "\" (language " + extraLanguage() + ")");
+        var work = extraWork(action || {});
+        return function () {
+            __QE.log("extras: " + what + " \"" + id + "\" clicked (language " + extraLanguage() + ")");
+            if (clickDefer(work, what, id)) return;
+            __QE.log("extras: no Scheduler in this build, so the action runs inside the click - a gated call here will be refused (see the editor handbook)");
+            work();
+        };
+    }
+
+    /* "again" is true when this runs from a language change: the labels have to
+       be replaced, and the API offers no update - only remove and add. */
+    function registerExtras(again) {
+        var extras = PROJECT.extras;
+        if (!extras) return;
+        /* The job handler has to be in place before anything can click, and it
+           is registered on every load (the SDK's registry is shared and a kind
+           that is not registered eats its jobs). Registering a kind twice is a
+           no-op, which is what makes the language-change pass harmless. */
+        if (sdk.Scheduler && sdk.Scheduler.register) {
+            __QE.safe(function () { sdk.Scheduler.register(CLICK_KIND, clickJobHandler); });
+        }
+        var nMenu = 0;
+        var nWidgets = 0;
+        var nCtx = 0;
+        (extras.menuItems || []).forEach(function (item) {
+            if (!sdk.Menu || !sdk.Menu.addItem) return;
+            if (again && sdk.Menu.removeItem) __QE.safe(function () { sdk.Menu.removeItem(item.id); });
+            __QE.safe(function () {
+                /* The LABEL is read when the item is registered, exactly like
+                   a quest's Title - so a {{tr.…}} in it has to be resolved here.
+                   The action's own text waits until the click, which is later
+                   and may legitimately differ. */
+                var def = { id: item.id, label: __QE.fillTranslations(item.label), onClick: extraAction(item.action, "menu item", item.id) };
+                if (item.icon) def.icon = item.icon;
+                sdk.Menu.addItem(def);
+                nMenu++;
+            });
+        });
+        (extras.widgets || []).forEach(function (w) {
+            if (!sdk.Desktop || !sdk.Desktop.addWidget) return;
+            /* A widget's words live in its own file, which the language cannot
+               reach - so a language change leaves the widget alone. Re-adding it
+               would only make it flicker. */
+            if (again) return;
+            __QE.safe(function () {
+                /* Spread the record the compiler built, then add the two fields
+                   the SDK wants in another shape (the position pair and an
+                   always-explicit transparency flag). */
+                var def = {};
+                for (var k in w) def[k] = w[k];
+                def.position = { x: w.x, y: w.y };
+                def.transparent = !!w.transparent;
+                sdk.Desktop.addWidget(def);
+                nWidgets++;
+            });
+        });
+        (extras.contextItems || []).forEach(function (item) {
+            if (!sdk.ContextMenu || !sdk.ContextMenu.register) return;
+            if (again && sdk.ContextMenu.unregister) __QE.safe(function () { sdk.ContextMenu.unregister(item.id); });
+            __QE.safe(function () {
+                var def = { id: item.id, label: __QE.fillTranslations(item.label), target: item.target, onClick: extraAction(item.action, "right-click item", item.id) };
+                if (item.icon) def.icon = item.icon;
+                sdk.ContextMenu.register(def);
+                nCtx++;
+            });
+        });
+        __QE.log("extras: " + (again ? "re-registered" : "registered") + " " + nMenu + " menu item(s), " +
+            nWidgets + " widget(s) and " + nCtx + " right-click item(s) (language " + extraLanguage() + ")");
+    }
+
+    /* Translations go in FIRST, before any quest is registered: a quest's Title
+       is read at registration (the SDK says so), so a translated title has to
+       already exist by the time registerQuest runs. */
+    (function registerTranslations() {
+        var t = PROJECT.translations;
+        if (!t || !sdk.Localization || !sdk.Localization.register) return;
+        Object.keys(t.strings || {}).forEach(function (language) {
+            __QE.safe(function () { sdk.Localization.register(language, t.strings[language]); });
+        });
+    })();
+
     (PROJECT.quests || []).forEach(registerQuest);
 
     /* Websites are registered after the quests, so anything a quest adds to a
@@ -2325,6 +3650,28 @@ function __qeRegisterProject(sdk, PROJECT) {
     (PROJECT.websites || []).forEach(function (w) {
         registerWebsite(w, []);
     });
+    /* Pack extras are registered after the websites, for the same reason the
+       websites come after the quests: everything that wants to add to them has
+       already run. */
+    registerExtras(false);
+
+    /* The SDK is explicit that text read once and kept does not update by
+       itself, and offers this hook for exactly that reason. A menu label is
+       read once (the game draws the item from what it was handed), so a
+       language change has to hand it a new one - otherwise a player who
+       switches language keeps reading the old one until the game restarts.
+       A quest's Title cannot be redone this way: the journal entry was built
+       from the registration-time copy. */
+    (function followLanguage() {
+        if (!sdk.Localization || !sdk.Localization.onLanguageChange) return;
+        __QE.safe(function () {
+            sdk.Localization.onLanguageChange(function (language) {
+                __QE.log("extras: the language is now " + language + " - handing the labels over again in it");
+                registerExtras(true);
+            });
+        });
+    })();
+
     /* The mod package entry point. Every piece of content is registered by the
        quest, website and command classes above, so this class has almost
        nothing to do - except say, in the game's own log, that it loaded.
@@ -2334,10 +3681,67 @@ function __qeRegisterProject(sdk, PROJECT) {
        in which every other installed mod printed a load banner and ours
        printed nothing at all. A mod that announces itself turns "the mail is
        broken" into "the mod never ran", which is a different bug entirely. */
+    /* ── "did this mod load in this session?" (r193) ─────────────────────
+       A cross-mod marker, and the reason it exists: the QA harness has to start
+       quests that live in a DIFFERENT mod (this pack), and the game can leave a
+       mod disabled - it remembers the disabled flag by mod, and it survives both
+       a version change and the mod being removed from disk. Nothing in SDK 0.24
+       lets one mod ask about another: ModInfo is a type with no reader, and
+       Quest.claim() returns void, so a quest that was never registered fails
+       SILENTLY. On 2026-09-19 exactly that cost a tester a session: qe24 run tw1
+       printed "Claimed", nothing appeared, and the log had no line for this pack
+       at all.
+
+       SharedVariables is session-scoped and shared by every mod, so it answers
+       the one question the harness needs: did this pack actually load? Set on
+       load, removed on unload, both guarded - an older game build without the
+       API keeps working, and nothing here is required for the story. */
+    var LOADED_MARKER = "qe.export.loaded";
+
+    function markThisModLoaded() {
+        try {
+            if (sdk.SharedVariables && typeof sdk.SharedVariables.set === "function") {
+                sdk.SharedVariables.set(LOADED_MARKER, PROJECT.mod.version + " (" + __QE_BUILD + ")");
+            }
+        } catch (e) {
+            __QE.log("could not leave the loaded marker (harmless): " + e);
+        }
+    }
+
+    function clearThisModLoaded() {
+        try {
+            if (sdk.SharedVariables && typeof sdk.SharedVariables.remove === "function") {
+                sdk.SharedVariables.remove(LOADED_MARKER);
+            }
+        } catch (e) {
+            /* Nothing to do: the session is ending anyway. */
+        }
+    }
+
     var Mod = class extends sdk.Bootstrap {
+        /* The cleanup moment the SDK offers, and its own example for it is a mod
+           disabled by the user - verified in game 2026-09-19: disabling this mod
+           in the Mods list makes the game unload the package after the restart,
+           this hook runs, and the accounts are gone from the save afterwards.
+           Synchronous, and it returns nothing - the game awaits whatever this
+           hook returns, and r72 is the story of what happens when that promise
+           never settles.
+
+           A plain quit does not call it, and a mod deleted from disk while the
+           game is closed can never call it. See removeAllTwotterAccounts. */
+        OnModPackageUnloaded() {
+            try {
+                __QE.log("unloading: removing the Twotter accounts this mod declared");
+                removeAllTwotterAccounts();
+            } catch (e) {
+                __QE.log("unloading: Twotter cleanup failed (continuing): " + e);
+            }
+            clearThisModLoaded();
+        }
         OnModPackageLoaded() {
             __QE.log(PROJECT.mod.name + " v" + PROJECT.mod.version +
                 " loaded (editor build " + __QE_BUILD + ").");
+            markThisModLoaded();
 
             /* Nothing else happens here, and nothing is returned.
 

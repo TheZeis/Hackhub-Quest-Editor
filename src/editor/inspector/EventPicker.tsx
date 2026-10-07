@@ -1,7 +1,7 @@
 /**
  * The game-event picker.
  *
- * Shows all 92 events with their *real* payload fields (from the generated
+ * Shows all SDK events with their *real* payload fields (from the generated
  * catalogue, not the stale docs table), so the author can see what they are able
  * to test against before writing a condition.
  */
@@ -39,7 +39,7 @@ export function EventPicker({ value, onChange }: { value: string; onChange: (val
                 ? [
                       {
                           group: "community",
-                          label: `Community tools (${community.length})`,
+                          label: `Community addons (${community.length})`,
                           events: community.map((e) => ({ name: e.name, payload: e.payload, group: "community" })),
                       },
                   ]
@@ -135,11 +135,18 @@ export function EventPicker({ value, onChange }: { value: string; onChange: (val
                                             value === event.name && "bg-accent-soft",
                                         )}
                                     >
-                                        <span className="block truncate text-[12px] text-ink">
+                                        <span
+                                            className="block truncate text-[12px] text-ink"
+                                            title={packLabel.get(event.name) ?? humanEventName(event.name)}
+                                        >
                                             {packLabel.get(event.name) ?? humanEventName(event.name)}
                                         </span>
-                                        <span className="block truncate font-mono text-[10.5px] text-ink-4">{event.name}</span>
-                                        <span className="truncate font-mono text-[10px] text-ink-4">{event.payload}</span>
+                                        <span className="block truncate font-mono text-[10.5px] text-ink-4" title={event.name}>
+                                            {event.name}
+                                        </span>
+                                        <span className="truncate font-mono text-[10px] text-ink-4" title={event.payload}>
+                                            {event.payload}
+                                        </span>
                                     </button>
                                 ))}
                             </section>
@@ -194,7 +201,7 @@ function EventPackExplanation({
         <>
             {ev.docs && <p className="field-hint">{ev.docs}</p>}
             <p className="field-hint">
-                Fired by the <strong>{ev.packName}</strong> tool mod. A quest that waits on this event needs{" "}
+                Fired by the <strong>{ev.packName}</strong> addon. A quest that waits on this event needs{" "}
                 <strong>{ev.gameModName}</strong> installed on the player&apos;s machine — say so in the quest description.
             </p>
             <p className="field-hint">

@@ -66,9 +66,27 @@ export function CanvasGridBackground() {
             return (
                 <>
                     {/* Graph paper: fine lines every cell, a heavier line every
-                        fifth — two stacked native layers, no custom SVG. */}
-                    <Background variant={BackgroundVariant.Lines} gap={grid.scale} lineWidth={weight} color={colour} />
+                        fifth — two stacked native layers, no custom SVG.
+                    
+                        The `id`s are load-bearing, not decoration. The library
+                        builds each pattern's id as `pattern-<flow id>` plus this
+                        prop, and its own type docs say so: "When multiple
+                        backgrounds are present on the page, each one should have
+                        a unique id." Without them both layers emit the SAME
+                        pattern id, every `fill="url(#…)"` resolves to the first
+                        pattern in the document, and graph paper renders exactly
+                        as plain squares — which is what Zeis saw and reported on
+                        2026-09-19. The fence for this lives in
+                        `canvasGridRender.test.tsx`. */}
                     <Background
+                        id="graph-fine"
+                        variant={BackgroundVariant.Lines}
+                        gap={grid.scale}
+                        lineWidth={weight}
+                        color={colour}
+                    />
+                    <Background
+                        id="graph-fifth"
                         variant={BackgroundVariant.Lines}
                         gap={grid.scale * 5}
                         lineWidth={weight * 1.75}
@@ -116,7 +134,7 @@ function hexPath(cx: number, cy: number, s: number): string {
  *
  * The colour travels a CSS channel (r144): `var()` and `color-mix()` resolve
  * in real CSS, not in SVG presentation *attributes* — the attribute route
- * rendered these two styles invisible in a real browser, which jsdom cannot
+ * rendered these two styles invisible in a real browser, which a headless DOM cannot
  * see. So the stamps stroke `currentColor` and the colour rides the svg's
  * inline `color` style, the same net mechanism the library's own background
  * uses for its pattern colour.

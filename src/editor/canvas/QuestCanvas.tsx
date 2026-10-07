@@ -26,7 +26,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { GraphNode, type GraphRFNode } from "./GraphNode";
 import { boxSelectionResult, onlyDeselects, resolveSelection } from "./applyChanges";
-import { alignPositions, distributePositions, GRID } from "./arrange";
+import { alignPositions, carryFrameContents, distributePositions, GRID } from "./arrange";
+import { beginGroupDrag, frameAround, stepGroupDrag, type GroupDrag } from "./groupDrag";
 import { nodeSize } from "./nodeSize";
 import { NodeSearchPopover } from "./NodeSearchPopover";
 import { entrySocketFor } from "./nodeSearch";
@@ -68,8 +69,9 @@ import { themeCategoryHex } from "@/editor/settings/theme";
 // the editor on every Windows machine while Linux stayed green.
 import { CanvasGridBackground } from "./CanvasGridBackground.tsx";
 import { HANDLE_STYLE } from "@/schema/edges";
-import type { NodeType } from "@/schema/nodes";
+import type { NodeDoc, NodeType } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
+import { isTypingTarget } from "@/hooks/useKeyboardShortcuts";
 
 const NODE_TYPES: NodeTypes = { qe: GraphNode };
 
@@ -145,13 +147,13 @@ function CanvasInner() {
     const physics = useSyncExternalStore(
         subscribeWirePhysics,
         wirePhysicsEnabled,
-        () => false, // server/jsdom: nothing is animating anyway
+        () => false, // server/a headless DOM: nothing is animating anyway
     );
     // One animation drives every wire's dots; this is only its switch.
     const motion = useSyncExternalStore(
         subscribeWireMotion,
         wireMotionEnabled,
-        () => false, // server/jsdom: nothing is animating anyway
+        () => false, // server/a headless DOM: nothing is animating anyway
     );
 
 
@@ -172,39 +174,23 @@ function CanvasInner() {
         return map;
     }, [analysis]);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    /** Tracks the dragged group frame so children can follow it move by move. */
-    const groupDrag = useRef<{ id: string; x: number; y: number } | null>(null);
+    /** The dragged group frame's live state (r228). `members` is frozen at
+        drag start — the layer-1 rule: for the duration of the drag the group
+        moves as a unit above the rest of the canvas, and nothing the frame
+        sweeps past mid-drag comes along. See groupDrag.ts. */
+    const groupDrag = useRef<GroupDrag | null>(null);
 
     const onGroupAwareDragStart: OnNodeDrag<GraphRFNode> = (_e, node) => {
         beginTransient();
-        if (node.data.doc.type === "layout.group") {
-            groupDrag.current = { id: node.id, x: node.position.x, y: node.position.y };
-        }
+        groupDrag.current = beginGroupDrag(node.data.doc, node.position, quest?.graph.nodes ?? [], sizeOf);
     };
 
     const onGroupAwareDrag: OnNodeDrag<GraphRFNode> = (_e, node) => {
         const drag = groupDrag.current;
-        const gnodes = quest?.graph.nodes ?? [];
         if (!drag || drag.id !== node.id) return;
-        const dx = node.position.x - drag.x;
-        const dy = node.position.y - drag.y;
-        if (dx === 0 && dy === 0) return;
-        groupDrag.current = { id: node.id, x: node.position.x, y: node.position.y };
-        const gd = node.data.doc.data as { w?: number; h?: number };
-        const gw = gd.w ?? 360;
-        const gh = gd.h ?? 240;
-        const rect = { x0: node.position.x, y0: node.position.y, x1: node.position.x + gw, y1: node.position.y + gh };
-        const moves: Record<string, { x: number; y: number }> = {};
-        for (const n of gnodes) {
-            if (n.id === node.id || n.type === "layout.group") continue;
-            const size = measured[n.id] ?? { width: 240, height: 120 };
-            const cx = n.position.x + size.width / 2;
-            const cy = n.position.y + size.height / 2;
-            if (cx >= rect.x0 && cx <= rect.x1 && cy >= rect.y0 && cy <= rect.y1) {
-                moves[n.id] = { x: n.position.x + dx, y: n.position.y + dy };
-            }
-        }
-        if (Object.keys(moves).length) setNodePositions(moves);
+        const moves = stepGroupDrag(drag, node.position, quest?.graph.nodes ?? []);
+        groupDrag.current = { ...drag, x: node.position.x, y: node.position.y };
+        if (moves) setNodePositions(moves);
     };
 
     const onGroupAwareDragStop: OnNodeDrag<GraphRFNode> = () => {
@@ -220,7 +206,7 @@ function CanvasInner() {
      * It has to be window, in the capture phase. React Flow calls
      * `setPointerCapture` on pointerdown, which retargets every later pointer
      * event to the captured element — a listener on our own wrapper sees the
-     * pointerdown and then nothing, so the value goes stale mid-drag. (jsdom
+     * pointerdown and then nothing, so the value goes stale mid-drag. (a headless DOM
      * implements neither PointerEvent nor setPointerCapture, which is why this
      * looked fine in tests while the editor was broken.)
      */
@@ -272,12 +258,81 @@ function CanvasInner() {
     // never part of the saved document, and never a history entry.
     const [measured, setMeasured] = useState<Record<string, { width: number; height: number }>>({});
 
+    /**
+     * A node's size for geometry decisions: measured when React Flow has
+     * measured, computed otherwise. Both the frame-membership test and the
+     * Ctrl+G bounding box need it, and the compute path is the one that
+     * exists at every moment (the editor implementation notes: "compute, don't measure"). The
+     * Twotter card's summary names its account, so the same accounts the
+     * card renders with must feed the size.
+     */
+    const sizeOf = (n: NodeDoc) =>
+        measured[n.id] ?? nodeSize(n, quest ?? undefined, useEditor.getState().project.twotterAccounts);
+
+    /**
+     * Ctrl+G (r228): groups the selection into a new frame — folders, so any
+     * selected frames ride along as members of the new one — or ungroups the
+     * selected frames: exactly those frames are deleted, nested and parent
+     * frames stay, and so do all contained nodes, in place.
+     *
+     * Window-level, like the search key, so it works wherever focus is —
+     * except while typing, where it would eat the author's text.
+     */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "g") return;
+            if (isTypingTarget(event.target)) return;
+            event.preventDefault();
+            const st = useEditor.getState();
+            const active = st.project.quests.find((q) => q.id === st.project.editor.activeQuestId);
+            if (!active) return;
+            const selected = new Set(st.selection.nodeIds);
+            const chosen = active.graph.nodes.filter((n) => selected.has(n.id));
+            const frames = chosen.filter((n) => n.type === "layout.group");
+            const others = chosen.filter((n) => n.type !== "layout.group");
+            if (others.length > 0) {
+                // addNode seeds the frame from its registry defaults and
+                // auto-selects it — one undo step, the frame in hand.
+                const rect = frameAround(chosen, sizeOf);
+                st.addNode("layout.group", { x: rect.x, y: rect.y }, { w: rect.w, h: rect.h });
+            } else if (frames.length > 0) {
+                st.removeNodes(frames.map((f) => f.id));
+                st.select({ nodeIds: [], edgeIds: [] });
+            } else {
+                st.toast("Select some nodes first.", "info");
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+        // `sizeOf` closes over `measured` (the only render-scoped input);
+        // the project, selection and actions are read fresh at keypress.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [measured]);
+
     const nodes = useMemo<GraphRFNode[]>(() => {
         const docs = [...(quest?.graph.nodes ?? [])];
         // Frames first. zIndex handles the canvas, but the MiniMap paints in
         // array order and ignores zIndex — with a frame last, its solid rect
         // covered every node inside it and the map looked empty.
-        docs.sort((a, b) => Number(b.type === "layout.group") - Number(a.type === "layout.group"));
+        // Among frames, largest first: React Flow paints equal-zIndex nodes
+        // in array order, and a frame is created AFTER the frame it contains,
+        // so creation order put the parent's body over the child's title bar
+        // and made the child impossible to select (r230). A nested frame is
+        // always strictly smaller than its parent, so area descending keeps
+        // every child painted above the parent that contains it.
+        docs.sort((a, b) => {
+            const af = a.type === "layout.group" ? 1 : 0;
+            const bf = b.type === "layout.group" ? 1 : 0;
+            if (af !== bf) return bf - af; // frames before cards
+            if (af) {
+                const area = (n: NodeDoc) => {
+                    const s = nodeSize(n);
+                    return s.width * s.height;
+                };
+                return area(b) - area(a); // largest first = deepest
+            }
+            return 0;
+        });
         return docs.map((doc) => ({
             id: doc.id,
             type: "qe" as const,
@@ -686,9 +741,18 @@ function CanvasInner() {
              * height follows the same formula the component renders with. See
              * nodeSize.ts, whose constants are asserted against GraphNode.
              */
-            const chosen = q.graph.nodes
-                .filter((n) => selection.nodeIds.includes(n.id))
-                .map((n) => ({ ...n, size: nodeSize(n, q) }));
+            /* The Twotter card's summary names the account it posts from, so
+               the measuring pass reads the same accounts the card renders
+               with — a mismatch would size the card wrong. */
+            const twotterAccounts = useEditor.getState().project.twotterAccounts;
+            // Size EVERY node, not just the selected ones: carrying a
+            // frame's contents (r231) tests containment against the whole
+            // quest.
+            const all = q.graph.nodes.map((n) => ({
+                ...n,
+                size: nodeSize(n, q, twotterAccounts),
+            }));
+            const chosen = all.filter((n) => selection.nodeIds.includes(n.id));
             if (chosen.length < 2) return;
             /*
              * Snapping is handed to alignPositions so it can snap the shared
@@ -697,14 +761,23 @@ function CanvasInner() {
              * square each — which is precisely how r97's centring came to look
              * as though it had done nothing (r98).
              *
-             * Spreading is left unsnapped: its whole purpose is equal gaps, and
-             * rounding each position to the grid would make them unequal again.
+             * Spreading is left unsnapped: its whole purpose is equal gaps,
+             * and rounding each position to the grid would make them unequal
+             * again.
              */
             const moved =
                 what === "row" || what === "column"
                     ? alignPositions(chosen, what, snapEnabled() ? snapStep() : 0)
                     : distributePositions(chosen, what === "spread-row" ? "row" : "column");
-            arrangeNodes(moved);
+            /*
+             * The selected boxes' slots are not the whole move: a group
+             * frame's unselected contents have to follow it, or the frame
+             * would be left carrying an empty border (r231).
+             */
+            arrangeNodes({
+                ...moved,
+                ...carryFrameContents(all, new Set(selection.nodeIds), moved),
+            });
         },
         [activeQuest, arrangeNodes, measured, rfStore, selection.nodeIds],
     );

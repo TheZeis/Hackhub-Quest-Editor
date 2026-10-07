@@ -5,7 +5,7 @@
  *
  * That is a deliberate reaction to r97–r100, where alignment read sizes back
  * from the DOM, silently received `undefined` in one place and zero in
- * another, and shipped broken three times while every jsdom test passed. The
+ * another, and shipped broken three times while every a headless DOM test passed. The
  * popover's own size is fixed by CSS, so it can be a constant here — and
  * `popoverPlacement.test.ts` asserts these constants against the component,
  * the same guard `nodeSize.test.ts` puts on the node cards.

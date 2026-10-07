@@ -216,10 +216,10 @@ export function TopBar() {
                 type="button"
                 className="btn-default"
                 onClick={() => setUi({ modal: "toolpacks" })}
-                title="Load community tool packs — extra events and data shapes from game mods"
+                title="Load community addons — extra events and data shapes from game mods"
             >
                 <Icon name="package" size={13} />
-                <span className="hidden lg:inline">Tools</span>
+                <span className="hidden lg:inline">Addons</span>
             </button>
 
             <button
@@ -245,6 +245,26 @@ export function TopBar() {
             <button type="button" className="btn-default" onClick={() => setUi({ modal: "websites" })}>
                 <Icon name="globe" size={13} />
                 <span className="hidden lg:inline">Websites</span>
+            </button>
+
+            <button
+                type="button"
+                className="btn-default"
+                onClick={() => setUi({ modal: "twotter" })}
+                title="The characters this mod has on Twotter, and what their profiles look like"
+            >
+                <Icon name="bird" size={13} />
+                <span className="hidden lg:inline">Twotter</span>
+            </button>
+
+            <button
+                type="button"
+                className="btn-default"
+                onClick={() => setUi({ modal: "extras" })}
+                title="What the pack has outside its quests: start-menu entries, desktop widgets, right-click entries and the words in them"
+            >
+                <Icon name="package" size={13} />
+                <span className="hidden lg:inline">Extras</span>
             </button>
 
             <button type="button" className="btn-default" onClick={() => setUi({ modal: "shortcuts" })}>

@@ -13,7 +13,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { simulateProject, type SimObjective, type SimReport } from "@/compiler/simulate";
+import type { CompilerWarning } from "@/compiler/compile";
+import { WarningList } from "@/components/WarningList";
 import { useEditor } from "@/store/editor";
+import { usePacks } from "@/store/packs";
 
 const PROBE_BADGE: Record<NonNullable<SimObjective["probe"]>, { label: string; className: string }> = {
     match: { label: "would tick", className: "bg-ok/15 text-ok" },
@@ -45,7 +48,7 @@ export function SimulatorDialog({ open, onOpenChange }: { open: boolean; onOpenC
     const run = async () => {
         setRunning(true);
         try {
-            setReport(await simulateProject(useEditor.getState().project));
+            setReport(await simulateProject(useEditor.getState().project, usePacks.getState().packs));
         } finally {
             setRunning(false);
         }
@@ -56,7 +59,9 @@ export function SimulatorDialog({ open, onOpenChange }: { open: boolean; onOpenC
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
-    const problems = report ? [...report.errors, ...report.warnings] : [];
+    const problems: CompilerWarning[] = report
+        ? [...report.errors.map((text) => ({ level: "error" as const, text })), ...report.warningDetails]
+        : [];
 
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -81,11 +86,7 @@ export function SimulatorDialog({ open, onOpenChange }: { open: boolean; onOpenC
                     <div className="min-h-0 flex-1 overflow-y-auto">
                         {problems.length > 0 && (
                             <div className="border-b border-line bg-warn/5 px-4 py-2">
-                                {problems.map((p, i) => (
-                                    <p key={i} className="text-[11px] leading-relaxed text-warn">
-                                        ⚠ {p}
-                                    </p>
-                                ))}
+                                <WarningList warnings={problems} />
                             </div>
                         )}
 

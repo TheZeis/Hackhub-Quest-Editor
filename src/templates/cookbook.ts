@@ -9,7 +9,7 @@
  *
  * Source: Zeis's transcriptions of the official quests
  * (reference/Official-Quest/) and the cross-check in
- * docs/plans/r127-official-quest-comparison.md.
+ * the official quest comparison.
  *
  * r127 originally proposed this as a page in `handbookArticles.ts` — wrong
  * surface: that catalogue is the in-game Handbook's jump targets
@@ -197,11 +197,11 @@ export function buildCookbook(): ProjectDocument {
 
     const community = makeNode("flow.note", CARD(0, 7), {
         text: [
-            "Community tools",
+            "Community addons",
             "",
             "Tool mods other authors ship — exploitation frameworks, recon suites — add terminal power any quest can use. Their contract is YOUR TARGET: a framework matches its modules against live network state, reading the port's service and version and the domain's vulnerabilities. Use canonical service names on ports (http, ftp, ssh, database — a port with service \"nginx\" never matches an http module; write version \"nginx 1.18.0\" instead), and put vulnerabilities on the domain (seven types: RCE, LFI, RFI, SSRF, CORS, XSS, SQL_INJECTION).",
             "",
-            "Build it: stand the target with your normal network nodes, then read the tool mod's documentation for its event names (they look like ToolName.Category.Event) — put one in a trigger.event with a condition on the payload field (say, the file path), and the objective completes the moment the player pulls the quest file out of the breached box. The event field takes any name; the Dry run will show third-party events as unknown (it simulates this editor's runtime, honestly). And say in your quest description that the player needs the tool mod installed.",
+            "Build it: stand the target with your normal network nodes, then read the addon's documentation for its event names (they look like ToolName.Category.Event) — put one in a trigger.event with a condition on the payload field (say, the file path), and the objective completes the moment the player pulls the quest file out of the breached box. The event field takes any name; the Dry run will show third-party events as unknown (it simulates this editor's runtime, honestly). And say in your quest description that the player needs the addon installed.",
         ].join("\n"),
         width: 340,
     });
@@ -234,7 +234,7 @@ export function buildCookbook(): ProjectDocument {
             tags: ["reference", "cookbook", "techniques"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         editor: { activeQuestId: quest.id, viewports: {} },

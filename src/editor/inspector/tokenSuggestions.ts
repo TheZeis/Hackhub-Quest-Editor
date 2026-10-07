@@ -57,6 +57,27 @@ export function listTokenSuggestions(
         });
     }
 
+    /* An App Install Check that saves the list stores a value exactly like
+       "Set quest data" does, so it belongs in the same group. An author who
+       cannot pick the tag from the menu will not think to type it, and the
+       whole point of saving the list is that something later reads it. */
+    for (const n of nodes) {
+        if (n.type !== "flow.appcheck" || n.id === currentNodeId) continue;
+        const data = (n.data ?? {}) as { saveList?: unknown; key?: unknown };
+        if (!data.saveList) continue;
+        const key = typeof data.key === "string" ? data.key.trim() : "";
+        if (!key || key.includes(".") || key.includes("{") || key.includes("}")) continue;
+        const token = `{{data.${key}}}`;
+        if (seen.has(token)) continue;
+        seen.add(token);
+        out.push({
+            token,
+            label: key,
+            produces: "the apps this player had installed at that point",
+            group: "Saved values",
+        });
+    }
+
     // The runtime seeds targetIp for any quest with a network or wifi node:
     // ipMode parses to "random" unconditionally (nodes.ts), so the runtime's
     // `n.data.ipMode === "random"` check is really an existence check.

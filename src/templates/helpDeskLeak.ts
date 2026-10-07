@@ -164,11 +164,11 @@ export function buildHelpDeskLeak(): ProjectDocument {
         hint: "Attach it to a mail to m.oyelaran@bcc-desk.net.",
     });
 
-    const t1 = triggerFor(oSite, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: HOST }], { x: 940, y: 200 });
-    const t2 = triggerFor(oPortal, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: "/portal" }], { x: 1260, y: 200 });
+    const t1 = triggerFor(oSite, "Browser.WebsiteOpened", [{ field: "Url", op: "contains", value: HOST }], { x: 940, y: 200 });
+    const t2 = triggerFor(oPortal, "Browser.WebsiteOpened", [{ field: "Url", op: "contains", value: "/portal" }], { x: 1260, y: 200 });
     const t3 = triggerFor(oHunt, "Terminal.Dirhunter", [{ field: "results", op: "contains", value: "/it/helpdesk" }], { x: 1580, y: 200 });
-    const t4 = triggerFor(oRead, "Browser.WebsiteOpened", [{ field: "url", op: "contains", value: "/it/helpdesk" }], { x: 1900, y: 200 });
-    const t5 = triggerFor(oShell, "RemoteConnection.Established", [{ field: "ip", op: "equals", value: BOX_IP }], { x: 2220, y: 200 });
+    const t4 = triggerFor(oRead, "Browser.WebsiteOpened", [{ field: "Url", op: "contains", value: "/it/helpdesk" }], { x: 1900, y: 200 });
+    const t5 = triggerFor(oShell, "RemoteConnection.Established", [{ field: "targetIp", op: "equals", value: BOX_IP }], { x: 2220, y: 200 });
     const t6 = triggerFor(oGrab, "Files.Transfer", [
         { field: "type", op: "equals", value: "DOWNLOAD" },
         { field: "file.name", op: "contains", value: FILE },
@@ -262,7 +262,7 @@ export function buildHelpDeskLeak(): ProjectDocument {
             tags: ["quest", "web", "dirhunter", "osint", "ssh"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         websites: [

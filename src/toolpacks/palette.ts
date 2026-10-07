@@ -6,12 +6,28 @@
  * persistence (AR6, AR10).
  */
 import type { NodeTypeDef } from "@/schema/registry";
-import type { ToolPack } from "./schema";
+import type { PackField, ToolPack } from "./schema";
+
+/**
+ * Starting answers for a pack form.
+ *
+ * Booleans start OFF ("false"): the toggle displays off for an untouched
+ * field, and the runtime skips holes with no value — so an unseeded boolean
+ * would emit the literal string "{{key}}" (truthy!) while showing off. Every
+ * other kind starts empty and fails safe (empty text, 0, "Choose…").
+ */
+export function defaultPackValues(fields: PackField[]): Record<string, string> {
+    const values: Record<string, string> = {};
+    for (const f of fields) {
+        if (f.type === "boolean") values[f.key] = "false";
+    }
+    return values;
+}
 
 /** Deep clone without the JSON.parse(JSON.stringify) dance (A3 DRY). */
 function deepClone<T>(value: T): T {
-    // structuredClone is available in modern browsers and Node 17+; vitest's
-    // jsdom provides it. Fallback only for very old environments.
+    // structuredClone is available in modern browsers and Node 17+; a headless test environment's
+    // a headless DOM provides it. Fallback only for very old environments.
     if (typeof structuredClone === "function") {
         return structuredClone(value);
     }
@@ -54,6 +70,31 @@ export function packEvents(
 }
 
 /**
+ * What a pack node does, in gamer words — no event names, storage keys, or
+ * SDK calls (r150: "fires ExampleTools.Handover.Done" means nothing to a
+ * quest author). Shared by the inspector sentence and the canvas card so the
+ * two can never disagree. The commandData command name stays: the player
+ * types it, so it is player vocabulary like nmap, not plumbing.
+ */
+export function describePackNodeAction(data: {
+    emitter?: string;
+    command?: string;
+}): string {
+    switch (data.emitter) {
+        case "sdk":
+            return "runs the addon's own actions";
+        case "emit":
+            return "sends a signal to the addon";
+        case "storage":
+            return "hands data to the addon";
+        case "commandData":
+            return data.command ? `places a scripted answer for the ${data.command} command` : "places a scripted tool answer";
+        default:
+            return "runs the addon's own actions";
+    }
+}
+
+/**
  * Build the snapshot payload that a palette entry carries when the author
  * adds it. One entry per pack node, all of type `pack.node`.
  */
@@ -65,9 +106,10 @@ function buildAddData(pack: ToolPack, node: ToolPack["nodes"][number]): Record<s
         gameModName: pack.gameMod?.name ?? "",
         nodeId: `${pack.id}/${node.id}`,
         nodeLabel: node.label,
+        nodeDocs: node.docs ?? "",
         emitter: node.emitter,
         fields: deepClone(node.fields ?? []),
-        values: {},
+        values: defaultPackValues(node.fields ?? []),
     };
 
     switch (node.emitter) {
@@ -108,7 +150,7 @@ export function packNodeDefs(packs: ToolPack[]): { def: NodeTypeDef; addData: Re
     return packs.flatMap((pack) =>
         pack.nodes.map((n) => {
             const addData = buildAddData(pack, n);
-            const blurb = n.blurb || (pack.gameMod?.name ? `Needs the ${pack.gameMod.name} game mod` : "From a tool pack");
+            const blurb = n.blurb || (pack.gameMod?.name ? `Needs the ${pack.gameMod.name} game mod` : "From an addon");
 
             const def: NodeTypeDef = {
                 type: "pack.node",

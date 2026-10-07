@@ -1,6 +1,6 @@
 /**
  * Tool packs — the package format that lets community tool-mod authors
- * extend this editor with pure data (docs/ToolPack-Format.md is the
+ * extend this editor with pure data (reference/ToolPack-Format.md is the
  * modder-facing spec). A pack is a `toolpack.json` file: the events its game
  * mod emits, the SharedStorage contracts it reads, the target conventions it
  * matches against, and (reserved) editor nodes.
@@ -63,6 +63,13 @@ export const PackTargetRulesSchema = z.object({
     versionOnPorts: z.boolean().default(false),
     vulnsOnDomain: z.boolean().default(false),
     vulnTypes: z.array(z.string()).default([]),
+    /**
+     * Service names the tool accepts as EQUIVALENT to a canonical one
+     * (r149: Recon-NG matches `https`/`web` as `http`, and
+     * `mysql`/`mariadb`/`postgres` as `database` — verified in its source).
+     * Additive and optional: older packs without it parse unchanged.
+     */
+    serviceAliases: z.record(z.string(), z.array(z.string())).default({}),
 });
 
 /**
@@ -137,15 +144,15 @@ export const ToolPackSchema = z.object({
     id: z
         .string()
         .min(1)
-        .regex(/^[a-z0-9][a-z0-9-]*$/, "the pack id is lowercase letters, numbers and dashes (it names things inside projects)"),
-    name: z.string().min(1, "the pack needs a name — quest authors see it"),
+        .regex(/^[a-z0-9][a-z0-9-]*$/, "the addon id is lowercase letters, numbers and dashes (it names things inside projects)"),
+    name: z.string().min(1, "the addon needs a name — quest authors see it"),
     author: z.string().default(""),
     version: z.string().default("1.0.0"),
     docsUrl: z.string().optional(),
     /** The in-game mod this pack drives — the honesty line the editor shows
         players-facing authors: quests using this pack need it installed. */
     gameMod: z.object({
-        name: z.string().min(1, "name the in-game mod this pack drives (gameMod.name)"),
+        name: z.string().min(1, "name the in-game mod this addon drives (gameMod.name)"),
         note: z.string().optional(),
     }),
     events: z.array(PackEventSchema).default([]),
@@ -171,7 +178,7 @@ export function describePackError(error: z.ZodError): string {
     return error.issues
         .slice(0, 4)
         .map((issue) => {
-            const where = issue.path.length ? issue.path.join(".") : "the pack";
+            const where = issue.path.length ? issue.path.join(".") : "the addon";
             const what = issue.message;
             return `${where}: ${what}.`;
         })
@@ -181,13 +188,13 @@ export function describePackError(error: z.ZodError): string {
 /** Parse raw JSON as a tool pack, with the plain-language error contract. */
 export function parseToolPack(raw: unknown): { ok: true; pack: ToolPack } | { ok: false; error: string } {
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-        return { ok: false, error: "This file is not a tool pack — a pack is one JSON object with a \"format\": 2 field." };
+        return { ok: false, error: "This file is not an addon — an addon is one JSON object with a \"format\": 2 field." };
     }
     const fmt = (raw as { format?: unknown }).format;
     if (fmt !== TOOLPACK_FORMAT) {
         return {
             ok: false,
-            error: `This pack says "format": ${JSON.stringify(fmt) ?? "(none)"} — this editor speaks format ${TOOLPACK_FORMAT}. See docs/ToolPack-Format.md for the current shape.`,
+            error: `This addon says "format": ${JSON.stringify(fmt) ?? "(none)"} — this editor speaks format ${TOOLPACK_FORMAT}. See reference/ToolPack-Format.md for the current shape.`,
         };
     }
     const result = ToolPackSchema.safeParse(raw);

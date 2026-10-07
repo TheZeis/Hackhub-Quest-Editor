@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Start here — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="manual.css" />
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="index.html" aria-current="true">Start here</a></li>
+    <li><a href="tutorial.html">Your first quest</a></li>
+    <li><a href="concepts.html">How a quest works</a></li>
+    <li><a href="nodes.html">Node reference</a></li>
+    <li><a href="guides.html">Feature guides</a></li>
+    <li><a href="how-do-i.html">How do I…</a></li>
+    <li><a href="checking.html">Checking your quest</a></li>
+    <li><a href="export.html">Exporting and installing</a></li>
+    <li><a href="troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+<main>
+<header class="hero">
+  <h1>HackHub Quest Editor — handbook</h1>
+  <p class="tag">Build a quest mod on the node canvas, then export a <code>.zip</code>
+  the game can play. This handbook explains every node, every setting and every
+  message the editor can show you. It helps you build quests without writing code.</p>
+  <div class="facts">
+    <span class="chip"><b>41</b> node types</span>
+    <span class="chip"><b>164</b> settings</span>
+    <span class="chip"><b>99</b> game events</span>
+    <span class="chip">Editor build <b>2026-10-03.r267</b></span>
+  </div>
+</header>
+
+<div class="search hero-search">
+  <input type="search" placeholder="Looking for something specific? Search a field, a node or a warning…" aria-label="Search the handbook" />
+  <div class="results" role="listbox" aria-label="Search results"></div>
+</div>
+
+<div class="cta-row">
+  <a class="cta primary" href="tutorial.html">Start your first quest</a>
+  <a class="cta" href="nodes.html">Browse the node reference</a>
+</div>
+
+<section id="contents">
+<h2>Everything in this handbook</h2>
+<p class="lead">The whole thing, so you can see what exists and where it lives.
+Start to finish, or jump straight to the thing you need.</p>
+
+<h3 id="contents-learn" class="tone-learn">Learn it once</h3>
+<ul class="contents-list tone-learn">
+  <li><a href="tutorial.html">Your first quest</a><span class="cnt">Twenty minutes, start to finish, ending in a mod you install and play.</span></li>
+  <li><a href="concepts.html">How a quest works</a><span class="cnt">The mental model in eight short pieces the rest of the book keeps referring back to.</span></li>
+</ul>
+
+<h3 id="contents-look" class="tone-look">Look things up</h3>
+<ul class="contents-list tone-look">
+  <li><a href="nodes.html">Node reference</a><span class="cnt">Each node has a page for its settings, defaults, and limits. It explains what happens when you leave a setting empty. Pages follow the palette order:</span>
+    <ul class="contents-sub">
+      <li><a href="nodes.html#cat-entry"><span class="cat-dot" style="background:var(--cat-entry)"></span>Quest lifecycle</a><span class="cnt">Quest start · On start &amp; reload · On quest complete · On quest abandoned</span></li>
+      <li><a href="nodes.html#cat-objective"><span class="cat-dot" style="background:var(--cat-objective)"></span>Objectives</a><span class="cnt">Objective</span></li>
+      <li><a href="nodes.html#cat-trigger"><span class="cat-dot" style="background:var(--cat-trigger)"></span>Triggers</a><span class="cnt">When event</span></li>
+      <li><a href="nodes.html#cat-world"><span class="cat-dot" style="background:var(--cat-world)"></span>World building</a><span class="cnt">Create network · Create Wi-Fi · Firewall rule · Change port · Register domain · Create database · Place files · Tool response</span></li>
+      <li><a href="nodes.html#cat-comms"><span class="cat-dot" style="background:var(--cat-comms)"></span>Communication</a><span class="cnt">Dialogue</span></li>
+      <li><a href="nodes.html#cat-reply"><span class="cat-dot" style="background:var(--cat-reply)"></span>Custom terminal</a><span class="cnt">Manual input</span></li>
+      <li><a href="nodes.html#cat-effect"><span class="cat-dot" style="background:var(--cat-effect)"></span>Effects</a><span class="cnt">Pay or charge the player, message them, change quest status, open the handbook, run a terminal command, and more.</span></li>
+      <li><a href="nodes.html#cat-community"><span class="cat-dot" style="background:var(--cat-community)"></span>Community addons</a><span class="cnt">Give data to an addon · Addon node</span></li>
+      <li><a href="nodes.html#cat-flow"><span class="cat-dot" style="background:var(--cat-flow)"></span>Flow control</a><span class="cnt">Branch · Wait · Reroute · Random pick · Sequence · Debug probe</span></li>
+      <li><a href="nodes.html#cat-layout"><span class="cat-dot" style="background:var(--cat-layout)"></span>Layout</a><span class="cnt">Group frame · Sticky note · Story Beat</span></li>
+    </ul>
+  </li>
+  <li><a href="guides.html">Feature guides</a><span class="cnt">The inspector's three tabs, Dialogues, Websites, Templates, Dry run, Extras, Settings and the canvas tools.</span></li>
+  <li><a href="how-do-i.html">How do I…</a><span class="cnt">Seventeen walkthroughs, each one solving a single thing an author actually wants.</span></li>
+</ul>
+
+<h3 id="contents-fix" class="tone-fix">When it goes sideways</h3>
+<ul class="contents-list tone-fix">
+  <li><a href="checking.html">Checking your quest</a><span class="cnt">Find every message the editor shows about a problem. Browse messages from the canvas, inspector, panels, and export report. Paste exact text to search for a fix.</span></li>
+  <li><a href="troubleshooting.html">When something goes wrong</a><span class="cnt">A decision tree that starts from the symptom, not the cause.</span></li>
+  <li><a href="export.html">Exporting and installing</a><span class="cnt">See what the export window checks and what goes in your .zip. Learn where to install the mod, and why export does not save your project.</span></li>
+  <li><a href="appendices.html">Glossary and limits</a><span class="cnt">Every word, every key, and everything this editor cannot do yet.</span></li>
+</ul>
+</section>
+
+<section id="three-things">
+<h2>Three things worth knowing before you start</h2>
+<ul class="plain">
+  <li><b>A quest finishes when your graph says so.</b> Put <a href="nodes/fx-completequest.html">Complete quest</a> at a success ending, or use Behaviour when objectives alone should finish it.</li>
+  <li><b>Your editor settings are not part of the mod.</b> Theme, font, grid and wire feel stay on your machine. See <a href="guides.html#settings">Settings</a>.</li>
+  <li><b>Exporting is not saving.</b> The <code>.zip</code> is the finished mod, not something you can open and edit again. See <a href="export.html#export-is-not-a-save">Export is not a save</a>.</li>
+</ul>
+</section>
+<div class="pagefoot"><span></span><a class="next" href="tutorial.html">Your first quest →</a></div>
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  every figure on these pages is taken from the editor's own source.
+</footer>
+</main>
+</div>
+<script src="search-index.js"></script>
+<script src="manual.js"></script>
+</body>
+</html>

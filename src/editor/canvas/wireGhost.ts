@@ -99,7 +99,7 @@ export interface WireGhostOptions {
 /**
  * The ghost's opacity at a moment in its life.
  *
- * Pure arithmetic on purpose: jsdom cannot show a fade, so the one part of the
+ * Pure arithmetic on purpose: a headless DOM cannot show a fade, so the one part of the
  * ghost that is invisible to tests gets its own testable function (compute,
  * don't measure).
  *
@@ -187,7 +187,7 @@ export function spawnWireGhost(options: WireGhostOptions): () => void {
 
     /*
      * Animate where the platform allows it. `Element.animate` is absent in
-     * jsdom and in older engines; without it the ghost simply holds its shape
+     * a headless DOM and in older engines; without it the ghost simply holds its shape
      * for the same moment and then goes, which still reads as a wire leaving
      * rather than blinking out.
      */

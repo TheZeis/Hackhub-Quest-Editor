@@ -12,6 +12,11 @@
  * (runtimeSource.ts) that walks each quest graph at runtime.
  */
 import type { ProjectDocument } from "@/schema/project";
+import { extrasAreEmpty, translationsAreEmpty } from "@/schema/extras";
+import { widgetHtml, widgetPath, widgetPayload } from "./widgetHtml";
+import type { ToolPack } from "@/toolpacks/schema";
+import { warnTargetMatching } from "@/compiler/targetWarnings";
+import { TWOTTER_HANDLE_PATTERN } from "@/schema/twotter";
 import { seedRemoteFiles } from "./seedRemoteFiles";
 import type { NodeDoc } from "@/schema/nodes";
 import type { EdgeDoc } from "@/schema/edges";
@@ -115,7 +120,20 @@ function planningComments(quests: ProjectDocument["quests"]): string {
  * browser tab / local checkout (the round-21 crash hunt was ambiguous
  * exactly because of this).
  */
-export const EDITOR_BUILD = "2026-09-13.r148";
+export const EDITOR_BUILD = "2026-10-03.r267";
+
+/** Warning severity (r153): info = good to know, warn = could cause issues,
+    error = will break or strand the player. */
+export type WarningLevel = "info" | "warn" | "error";
+export interface CompilerWarning {
+    level: WarningLevel;
+    text: string;
+}
+
+/** Tag a single-level helper's strings at the aggregator. */
+function tag(level: WarningLevel, texts: string[]): CompilerWarning[] {
+    return texts.map((text) => ({ level, text }));
+}
 
 export interface CompiledFile {
     path: string;
@@ -137,6 +155,8 @@ export interface CompileResult {
     files: CompiledFile[];
     permissions: string[];
     warnings: string[];
+    /** Same warnings with severity — the dialogs render this. */
+    warningDetails: CompilerWarning[];
 }
 
 /* ── Permissions ───────────────────────────────────────────────────────── */
@@ -156,6 +176,15 @@ function tokenPermissions(project: ProjectDocument): string[] {
     return perms;
 }
 
+/* `comms.tweet` (Twotter) is deliberately absent from the map below, and this
+   note is here so nobody "fixes" that later: SDK 0.24's `ModPermission` union
+   is `filesystem | network | events | mail | bank | shell | ui` — it has no
+   token for the social APIs at all. The API path was probed in game with no
+   Twotter-specific declaration (the QA harness declares only
+   network/events/mail/shell/ui and its `createUser`/`addUser`/`postTweet` calls
+   work — rows T-01…T-07, 2026-09-18, build 25388883), so there is nothing to
+   add. The same goes for a text token: no Twotter token exists to spot. */
+
 /** Declarative permission map — one entry per node type (AR3, AR17, A3). */
 const PERMISSIONS_BY_NODE_TYPE: Record<string, string[]> = {
     "world.network": ["network"],
@@ -168,9 +197,11 @@ const PERMISSIONS_BY_NODE_TYPE: Record<string, string[]> = {
     "reply.input": ["shell"],
     "trigger.event": ["events"],
     "fx.claimQuest": ["events"],
+    "fx.unclaimQuest": ["events"],
     "fx.pay": ["bank"],
     "fx.withdraw": ["bank"],
     "fx.notify": ["ui"],
+    "fx.prompt": ["ui"],
 };
 
 /** Permissions implied by a pack.node's declarative emitter. */
@@ -242,6 +273,10 @@ export function computePermissions(project: ProjectDocument): string[] {
         if (n.type === "comms.dialogue") {
             for (const p of permissionsForDialogueNode(n.data as never)) perms.add(p);
         }
+
+        if (n.type === "flow.debug" && (n.data as { toast?: boolean }).toast) {
+            perms.add("ui");
+        }
     }
 
     if (project.quests.some((q) => q.dialog.some((b) => b.lines.some((l) => l.input)))) {
@@ -280,8 +315,8 @@ export function packModsUsed(project: ProjectDocument): Map<string, string> {
 
 /* ── Warnings — split into focused helpers (F1, F2) ────────────────────── */
 
-function warnUnstartableQuests(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnUnstartableQuests(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     const claimed = new Set<string>();
     for (const q of project.quests) {
         for (const n of q.graph.nodes) {
@@ -293,11 +328,16 @@ function warnUnstartableQuests(project: ProjectDocument): string[] {
     }
     for (const q of project.quests) {
         if (!q.autoStart && !claimed.has(q.name)) {
-            warnings.push(
-                q.hackhubPost
-                    ? `${q.title || q.name}: the player claims this one from its Hackhub feed post — nothing in it runs until they do. Turn on “Start automatically” in the quest's Behaviour settings if it should begin the moment the mod loads.`
-                    : `${q.title || q.name}: nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed, so the player has no way to claim it. Turn on “Start automatically” in the quest's Behaviour settings, or give it a feed post.`,
-            );
+            if (q.hackhubPost) {
+                /* Deliberate discovery route, not a defect — the r215 playtest
+                   flagged that painting it red made a correct setup look
+                   broken. Info keeps the yellow "Good to know" heading. */
+                warnings.push({ level: "info", text:
+                    `${q.title || q.name}: the player claims this one from its Hackhub feed post — nothing in it runs until they do. Turn on “Start automatically” in the quest's Behaviour settings if it should begin the moment the mod loads. Field evidence (r218): the only feed post we have ever seen render is a bare one — post text only, poster and employer left empty, no comments. If the post never shows up in game, strip it to that (and give the quest an identifier it has never had) before anything else.` });
+            } else {
+                warnings.push({ level: "error", text:
+                    `${q.title || q.name}: nothing can start this quest. It does not start automatically and it is not advertised on the Hackhub feed, so the player has no way to claim it. Turn on “Start automatically” in the quest's Behaviour settings, or give it a feed post.` });
+            }
         }
     }
     return warnings;
@@ -329,8 +369,8 @@ type DeviceNode = {
     ports?: { external?: number; active?: boolean; service?: string; version?: string }[];
 };
 
-function warnNetworkStructure(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnNetworkStructure(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     const LOGIN_SERVICES = ["ssh", "ftp", "telnet", "mysql", "rdp", "smb", "vnc"];
 
     for (const q of project.quests) {
@@ -352,19 +392,19 @@ function warnNetworkStructure(project: ProjectDocument): string[] {
             walkStructure((n.data as { device?: DeviceNode }).device ?? {});
 
             if (domains.length) {
-                warnings.push(
+                warnings.push({ level: "warn", text: 
                     `${q.name}: this network claims the domain ${domains.map((d) => `“${d}”`).join(", ")}. Domain names are shared with the whole game, so if the base game or another installed mod already uses one, that one wins and your server will not answer to it. A name nobody else is likely to pick — something tied to your own story — is the safest choice.`,
-                );
+ });
             }
             if (orphans.length) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${q.name}: ${orphans.join(", ")} has machines behind it, but only a router or a splitter can hold other machines — those machines will not be built. Change the type to Router or Splitter, or move them.`,
-                );
+ });
             }
             if (strays.length) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${q.name}: ${strays.join(", ")} carries firewall rules, but only a firewall device enforces them — they will be ignored. Put the rules on a Firewall device in front of the machine you want to protect.`,
-                );
+ });
             }
 
             const loginless: string[] = [];
@@ -382,9 +422,9 @@ function warnNetworkStructure(project: ProjectDocument): string[] {
             };
             findLoginless((n.data as { device?: DeviceNode }).device ?? {});
             if (loginless.length) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${q.name}: ${loginless.join(", ")} has a login service open but no user accounts, so the player cannot break in — metasploit reports “Attack failed. Port 22 could not be accessed.” Add a user to the device, or close the port.`,
-                );
+ });
             }
 
             const badVersions: string[] = [];
@@ -408,9 +448,9 @@ function warnNetworkStructure(project: ProjectDocument): string[] {
             };
             checkPorts((n.data as { device?: DeviceNode }).device ?? {});
             if (badVersions.length) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${q.name}: ${badVersions.join("; ")}. metasploit needs three numbers (for example "OpenSSH 7.2.0") — it rejects anything else with “Invalid version for option: Version”, and the player cannot run the exploit at all.`,
-                );
+ });
             }
         }
     }
@@ -438,6 +478,22 @@ function warnToolResponse(project: ProjectDocument): string[] {
     return warnings;
 }
 
+function warnPrompt(project: ProjectDocument): string[] {
+    const warnings: string[] = [];
+    for (const q of project.quests) {
+        for (const n of q.graph.nodes) {
+            if (n.type !== "fx.prompt") continue;
+            const d = n.data as { matchMode?: string; expected?: string; label?: string; title?: string };
+            if ((d.matchMode ?? "any") !== "any" && !String(d.expected ?? "").trim()) {
+                warnings.push(
+                    `${q.name}: an “Ask player” node${d.label || d.title ? ` (${d.label || d.title})` : ""} checks the answer, but “Answer to accept” is blank. Fill it in, or change “Accept” to “Any submitted text”.`,
+                );
+            }
+        }
+    }
+    return warnings;
+}
+
 function warnHandbook(project: ProjectDocument): string[] {
     const warnings: string[] = [];
     for (const q of project.quests) {
@@ -454,99 +510,108 @@ function warnHandbook(project: ProjectDocument): string[] {
     return warnings;
 }
 
-function warnWifi(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnWifi(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     for (const q of project.quests) {
         for (const n of q.graph.nodes) {
             if (n.type !== "world.wifi") continue;
-            warnings.push(
-                `${q.name}: the mod SDK (0.21.0) cannot create wireless networks yet — “Create Wi-Fi” exports as a regular router network the player reaches by IP, not through the in-game Wi-Fi list.`,
-            );
+            warnings.push({
+                level: "info",
+                text:
+                    `${q.name}: “Create Wi-Fi” exports as a native access point in HackHub 1.3.0+. ` +
+                    `Current QA found one game display wart: Bettercap may show no network name after targeting the AP by BSSID, but scanning, joining and cracking still worked.`,
+            });
         }
     }
     return warnings;
 }
 
-function warnDialogue(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnDialogue(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     for (const q of project.quests) {
         for (const n of q.graph.nodes) {
             if (n.type !== "comms.dialogue") continue;
             const d = n.data as {
                 kind: string;
-                mail?: { replyable?: boolean; subject?: string };
+                mail?: { replyable?: boolean; subject?: string; from?: string };
                 kisscord?: { messages?: { playerAction?: string }[] };
             };
             const mail = d.mail;
             if (d.kind === "mail" && mail?.replyable) {
-                warnings.push(
-                    `${q.name}: “${mail.subject || "a mail"}” lets the player reply, so it is sent through Quest.sendMail — the only path that carries a reply flag. If the Reply button does not appear in game, turn the setting off and give the player a hackertyper reply page instead, which is the route the other templates use.`,
-                );
+                if (!mail.from) {
+                    warnings.push({ level: "info", text:
+                        `${q.name}: “${mail.subject || "a mail"}” lets the player reply, but its From address is empty — a player's reply arrives addressed to your mail's From, so with no From there is nothing a trigger can match. Set a From, then trigger on Mail.Sent where “to” contains it.`,
+                    });
+                } else {
+                    warnings.push({ level: "info", text:
+                        `${q.name}: “${mail.subject || "a mail"}” lets the player reply. The mail goes out with its reply flag and the Reply button draws (proven in game, 2026-09-20). The player's reply arrives addressed to your From address “${mail.from}” — to react to it, trigger on the Mail.Sent event where “to” contains that address; a reply carries no reference to the mail it answers.`,
+                    });
+                }
             }
             if (d.kind === "phone" && q.dialog.some((b) => b.lines.some((l) => l.input))) {
-                warnings.push(
+                warnings.push({ level: "info", text: 
                     `${q.name}: phone lines with typed answers also register a terminal command (qe-…) the player uses to answer.`,
-                );
+ });
             }
             const live = (n.data as { postLive?: boolean }).postLive === true;
             const wired = q.graph.edges.some((e) => e.kind === "flow" && e.target === n.id);
             if (live && (d.kind === "kisscord" || d.kind === "weechat")) {
                 if (!wired) {
-                    warnings.push(
+                    warnings.push({ level: "warn", text: 
                         `${q.name}: a conversation is set to “play when the story reaches this node” but nothing is wired into it — it stays a normal quest conversation.`,
-                    );
+ });
                 } else {
-                    warnings.push(
+                    warnings.push({ level: "warn", text: 
                         `${q.name}: a conversation set to “play when the story reaches this node” is sent live at that moment. Player replies, uploads and “unlocks after” steps are skipped, and the game does not remove live messages with the quest.`,
-                    );
+ });
                 }
             }
             if (d.kind === "kisscord" && d.kisscord?.messages?.some((m) => m.playerAction === "upload")) {
-                warnings.push(`${q.name}: Kisscord uploads compile to a “[uploaded file …]” message.`);
+                warnings.push({ level: "info", text: `${q.name}: Kisscord uploads compile to a “[uploaded file …]” message.` });
             }
         }
     }
     return warnings;
 }
 
-function warnCommunityNodes(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnCommunityNodes(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     for (const q of project.quests) {
         for (const n of q.graph.nodes) {
             if (n.type === "world.packData") {
                 const d = n.data as { packName?: string; storageKey?: string };
                 if (!d.storageKey) {
-                    warnings.push(
-                        `${q.title || q.name}: a Community data node is not set up yet${d.packName ? ` (${d.packName})` : ""} — open the node and pick the pack and the data shape, or delete it. As it stands it does nothing.`,
-                    );
+                    warnings.push({ level: "warn", text: 
+                        `${q.title || q.name}: a “Give data to an addon” node is not set up yet${d.packName ? ` (${d.packName})` : ""} — open the node and pick the pack and the data shape, or delete it. As it stands it does nothing.`,
+ });
                 }
             }
             if (n.type === "pack.node") {
                 const d = n.data as { packName?: string; nodeLabel?: string; nodeId?: string };
                 if (!d.nodeId) {
-                    warnings.push(
-                        `${q.title || q.name}: a Community node is not set up yet${d.packName ? ` (${d.packName})` : ""} — add it again from the palette's Editor Mods group, or delete it. As it stands it does nothing.`,
-                    );
+                    warnings.push({ level: "warn", text: 
+                        `${q.title || q.name}: an addon node is not set up yet${d.packName ? ` (${d.packName})` : ""} — add it again from the palette's Editor Mods group, or delete it. As it stands it does nothing.`,
+ });
                 }
             }
         }
     }
     for (const [packName, gameModName] of packModsUsed(project)) {
-        warnings.push(
+        warnings.push({ level: "info", text: 
             `${packName} community data is used in this quest. It needs the ${gameModName} game mod installed on the player's machine — say so in your quest description, or the player will not know why it does nothing.`,
-        );
+ });
     }
     return warnings;
 }
 
-function warnWebsites(project: ProjectDocument): string[] {
-    const warnings: string[] = [];
+function warnWebsites(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
     for (const w of project.websites) {
         const hidden = w.pages.filter((p) => !p.seo);
         if (hidden.length) {
-            warnings.push(
+            warnings.push({ level: "info", text: 
                 `${w.host}: ${hidden.length} unlisted page${hidden.length > 1 ? "s" : ""} (${hidden.map((p) => p.path).join(", ")}). Nothing links to ${hidden.length > 1 ? "them" : "it"} and the in-game search will not show ${hidden.length > 1 ? "them" : "it"}, so the player reaches ${hidden.length > 1 ? "them" : "it"} only by typing the address or by running dirhunter on the host — which is exactly what makes a good hiding place for a clue. If you meant ${hidden.length > 1 ? "these" : "this"} to be findable normally, turn on “Listed in search” for the page.`,
-            );
+ });
         }
         const seenPaths = new Map<string, number>();
         for (const p of w.pages) {
@@ -554,16 +619,16 @@ function warnWebsites(project: ProjectDocument): string[] {
         }
         for (const [path, count] of seenPaths) {
             if (count > 1) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${w.host} has ${count} pages at the path ${path}. They ship as two definitions of the same address — give one of them a different path.`,
-                );
+ });
             }
         }
         for (const p of w.pages) {
             if (p.path && !p.path.startsWith("/")) {
-                warnings.push(
+                warnings.push({ level: "error", text: 
                     `${w.host}: the page “${p.title || p.path}” has the path ${p.path}, but paths start at the host root — it should be /${p.path}. The in-game browser and dirhunter address pages from the root.`,
-                );
+ });
             }
         }
     }
@@ -572,39 +637,146 @@ function warnWebsites(project: ProjectDocument): string[] {
     for (const w of project.websites) hosts.set(w.host, (hosts.get(w.host) ?? 0) + 1);
     for (const [host, count] of hosts) {
         if (count > 1) {
-            warnings.push(
+            warnings.push({ level: "error", text: 
                 `${host} is the host of ${count} websites in this mod. Domains are global — two sites on one host will fight over which one answers. Give each site its own distinctive host.`,
-            );
+ });
         }
         if (/^(www\.)?(example\.(com|net|org)|test\.com|localhost)$/i.test(host)) {
-            warnings.push(
+            warnings.push({ level: "warn", text: 
                 `${host} is a placeholder domain, but the export ships it as a real site any player can find (and another mod may already use it). Pick a distinctive host — read it like a domain you would type yourself.`,
-            );
+ });
         }
     }
     return warnings;
 }
 
-export function computeWarnings(project: ProjectDocument): string[] {
+/**
+ * Twotter (r185): the things an author cannot see from the node itself — an
+ * account that does not exist, a handle the game would reject, a node that
+ * posts nothing, and rows the migration could not translate faithfully.
+ */
+function warnTwotter(project: ProjectDocument): CompilerWarning[] {
+    const warnings: CompilerWarning[] = [];
+    const accounts = new Map(project.twotterAccounts.map((a) => [a.id, a]));
+
+    const seenHandles = new Map<string, number>();
+    for (const account of project.twotterAccounts) {
+        const handle = account.handle.replace(/^@/, "");
+        seenHandles.set(handle.toLowerCase(), (seenHandles.get(handle.toLowerCase()) ?? 0) + 1);
+        if (!TWOTTER_HANDLE_PATTERN.test(handle)) {
+            warnings.push({ level: "error", text:
+                `“@${account.handle}” cannot be a Twotter handle: use letters, numbers and underscores, 3 to 15 characters. The game's own search matches on this, so an account with a handle it will not accept cannot be found — and an account nothing can find is a clue the player never gets.` });
+        }
+        if (!account.displayName.trim()) {
+            warnings.push({ level: "info", text:
+                `@${handle || "unnamed"} has no display name. The game shows the display name on the profile and falls back to something generic without it.` });
+        }
+    }
+    for (const [handle, count] of seenHandles) {
+        if (count > 1) {
+            warnings.push({ level: "error", text:
+                `Two Twotter accounts share the handle @${handle}. Handles are what players search for, so only one of them can ever be found — give one a different handle.` });
+        }
+    }
+
+    for (const quest of project.quests) {
+        for (const node of quest.graph.nodes) {
+            if (node.type !== "comms.tweet") continue;
+            const where = `${quest.title}: the Twotter node`;
+            const account = accounts.get(node.data.accountId);
+            if (!node.data.accountId) {
+                warnings.push({ level: "error", text:
+                    `${where} has no account yet. Open the Twotter panel (Manage accounts) and add the character who posts, then pick it here.` });
+            } else if (!account) {
+                warnings.push({ level: "error", text:
+                    `${where} points at a Twotter account that is not in this mod any more. Pick an account, or add one in the Twotter panel.` });
+            }
+            if (!node.data.tweets.length) {
+                warnings.push({ level: "warn", text:
+                    `${where} posts nothing — it has no tweet rows. Add one, or delete the node.` });
+            }
+            for (const row of node.data.tweets) {
+                if (!row.content.trim() && !row.image) {
+                    warnings.push({ level: "warn", text:
+                        `${where} has a tweet with no text and no picture. Twotter renders that as an empty post.` });
+                }
+                if (row.image) {
+                    warnings.push({ level: "warn", text:
+                        `${where} has a tweet with a picture, and the game's posting record has no picture field — this was checked in game (r185) and nothing appeared, in the timeline or on the post's own page. The picture stays in your project and in the editor's preview, but players will not see it: put the clue in the tweet's text, or in a file the player opens.` });
+                }
+            }
+            if (node.data.migratedDate) {
+                warnings.push({ level: "info", text:
+                    `${where} came from an older draft whose tweet time could not be carried over exactly, so it now says “1 month earlier”. That is the one thing worth a look after opening an old file: set the amount and unit to the age you meant.` });
+            }
+        }
+    }
+    return warnings;
+}
+
+export function computeWarningDetails(project: ProjectDocument, packs: ToolPack[] = []): CompilerWarning[] {
     return [
         ...warnUnstartableQuests(project),
-        ...warnFirewallAndPort(project),
+        ...tag("warn", warnFirewallAndPort(project)),
         ...warnNetworkStructure(project),
-        ...warnToolResponse(project),
-        ...warnHandbook(project),
+        ...tag("error", warnToolResponse(project)),
+        ...tag("warn", warnHandbook(project)),
+        ...tag("warn", warnPrompt(project)),
         ...warnWifi(project),
         ...warnDialogue(project),
         ...warnCommunityNodes(project),
         ...warnWebsites(project),
+        ...warnTwotter(project),
+        ...tag("warn", warnTargetMatching(project, packs)),
     ];
+}
+
+/** The text view of the details above — kept so string assertions and the
+    export README need no severity awareness. */
+export function computeWarnings(project: ProjectDocument, packs: ToolPack[] = []): string[] {
+    return computeWarningDetails(project, packs).map((w) => w.text);
 }
 
 /* ── Compile ───────────────────────────────────────────────────────────── */
 
+/**
+ * The name the ENGINE knows a quest by — `Quest.claim` takes this, not the
+ * editor's own document id. Measured in game 2026-09-19 (row I): a claim action
+ * that sent the id claimed nothing at all and said nothing about it, on a build
+ * where the same call with the name works. The runtime's "unclaim a quest" node
+ * has always used the name (`qd.name`); this brings the click action in line.
+ */
+function questNameOf(project: ProjectDocument, id: string): string {
+    const quest = project.quests.find((q) => q.id === id);
+    return quest ? String(quest.name ?? "") : "";
+}
+
+/** The extras record as the runtime receives it: a claim action is resolved to
+ *  the engine's quest name here, where the project is still in reach. */
+function extrasPayload(project: ProjectDocument) {
+    const withClaimNames = <T extends { action: { kind: string; questId: string } }>(items: T[]) =>
+        items.map((item) =>
+            item.action.kind === "claim"
+                ? { ...item, action: { ...item.action, questName: questNameOf(project, item.action.questId) } }
+                : item,
+        );
+    return {
+        menuItems: withClaimNames(project.extras.menuItems ?? []),
+        widgets: (project.extras.widgets ?? []).map(widgetPayload),
+        contextItems: withClaimNames(project.extras.contextItems ?? []),
+    };
+}
+
 function buildModJs(project: ProjectDocument, planningBlock: string): string {
+    /* The runtime gets everything except the markup: a widget's HTML ships as
+       its own file and the registration points at that path (verified in game —
+       a mod-relative path resolves; r201 probe). */
+    const extras = extrasAreEmpty(project.extras) ? null : extrasPayload(project);
+    const translations = translationsAreEmpty(project.translations) ? null : project.translations;
     const PROJECT = {
         mod: project.mod,
         quests: project.quests.map((q) => ({
+            id: q.id,
             name: q.name,
             title: q.title,
             description: q.description,
@@ -626,6 +798,17 @@ function buildModJs(project: ProjectDocument, planningBlock: string): string {
             graph: q.graph,
         })),
         websites: project.websites,
+        /* Twotter accounts are mod-level (r185). They are DATA here, not part
+           of any quest definition: the runtime registers them through the
+           platform API and never emits the declarative TwotterAccounts field,
+           which is the one the engine fills incompletely. The fence tests hold
+           that line. */
+        twotterAccounts: project.twotterAccounts,
+        /* Pack extras (r203) and translations. Emitted ONLY when the pack uses
+           them, so a project without them produces exactly the same mod.js as
+           before — the rule this compiler has followed since r84. */
+        ...(extras ? { extras } : {}),
+        ...(translations ? { translations } : {}),
     };
 
     return [
@@ -646,6 +829,13 @@ function buildModJs(project: ProjectDocument, planningBlock: string): string {
     ].join("\n");
 }
 
+/**
+ * Content API version the editor targets. The game's own runtime reports
+ * "current: v2"; declaring 1 only buys a compatibility-mode warning. Bump
+ * here (and in `ModSchema`/`createProject`) when the SDK moves again.
+ */
+export const MOD_API_VERSION = 2;
+
 function buildManifest(project: ProjectDocument, permissions: string[], iconPath?: string, coverPath?: string) {
     return {
         id: project.mod.id,
@@ -653,7 +843,13 @@ function buildManifest(project: ProjectDocument, permissions: string[], iconPath
         version: project.mod.version,
         author: project.mod.author || "Quest Mod Editor",
         description: project.mod.description || `${project.mod.name} — built with the HackHub Quest Mod Editor`,
-        apiVersion: project.mod.apiVersion,
+        // The game runs on Content API v2 and loads v1 mods in compatibility
+        // mode ("Mod \"…\" uses API v1 (current: v2)"). SteelWaffe confirmed
+        // on 2026-09-28 that this is not a bug and the fix is simply to
+        // declare v2, so every mod the editor emits declares 2 - a project
+        // saved with the older default is upgraded on export rather than
+        // shipping a compatibility-mode mod. (Answered 2026-09-28; item closed.)
+        apiVersion: MOD_API_VERSION,
         dependencies: project.mod.dependencies ?? [],
         permissions,
         ...(project.mod.tags.length ? { tags: project.mod.tags } : {}),
@@ -688,7 +884,7 @@ function buildReadme(project: ProjectDocument, permissions: string[], warnings: 
         `- Websites: ${project.websites.map((w) => w.host).join(", ") || "none"}`,
         ...(packModsUsed(project).size
             ? [
-                  `- Community tools: ${[...packModsUsed(project).keys()].join(", ")} — requires those game mods installed on the player's machine.`,
+                  `- Community addons: ${[...packModsUsed(project).keys()].join(", ")} — requires those game mods installed on the player's machine.`,
               ]
             : []),
         `- Permissions requested: ${permissions.join(", ") || "none"}`,
@@ -700,7 +896,7 @@ function buildReadme(project: ProjectDocument, permissions: string[], warnings: 
     ].join("\n");
 }
 
-export function compileProject(project: ProjectDocument): CompileResult {
+export function compileProject(project: ProjectDocument, packs: ToolPack[] = []): CompileResult {
     const working: ProjectDocument = structuredClone(project);
 
     const seeded = working.quests.map((q) => ({ quest: q, result: seedRemoteFiles(q) }));
@@ -708,16 +904,49 @@ export function compileProject(project: ProjectDocument): CompileResult {
     for (const { result } of seeded) for (const id of result.absorbed) absorbed.add(id);
 
     const permissions = computePermissions(working);
-    const warnings = computeWarnings(working);
+    /* Pack extras (r203): the four surfaces are UI, and a mail action needs the
+       mail permission. The r200/r201 probe declared ui (plus the harness's own
+       network/events/mail/shell) and all four worked; `ui` alone is the honest
+       mapping for the surfaces themselves. */
+    const extrasForPerms = project.extras;
+    if (!extrasAreEmpty(extrasForPerms)) {
+        if (!permissions.includes("ui")) permissions.push("ui");
+        const actions = [
+            ...(extrasForPerms.menuItems ?? []).map((m) => m.action),
+            ...(extrasForPerms.contextItems ?? []).map((c) => c.action),
+        ];
+        if (actions.some((a) => a.kind === "mail") && !permissions.includes("mail")) permissions.push("mail");
+    }
+    const warningDetails = computeWarningDetails(working, packs);
+    const warnings = warningDetails.map((w) => w.text);
 
     for (const { quest, result } of seeded) {
         for (const { reason } of result.unplaced) {
-            warnings.push(
+            const text =
                 `${quest.name}: a “Place files” node could not be placed — ${reason}. ` +
-                    "Point it at a device this quest creates, or target the player's PC instead.",
-            );
+                "Point it at a device this quest creates, or target the player's PC instead.";
+            warnings.push(text);
+            warningDetails.push({ level: "warn", text });
         }
     }
+
+    /* r215 playtest: quest-level images ship as asset FILES, never inline
+       data-URIs. Mod icon/cover were always extracted; the quest slots
+       (employer avatar, feed-post avatar and media, comment avatars, quest
+       icon) were not - a 228 KB data-URI avatar reached the game as a string
+       its feed could not load, and the playtest lost both the post and the
+       player's own avatar to it. Same treatment as icon/cover: a file in
+       assets/, a mod-relative path in PROJECT (a relative path is proven to
+       resolve - r201's widget file). */
+    const questAssetFiles: CompiledFile[] = [];
+    let assetSeq = 0;
+    const extractImage = (url: string | undefined, label: string): string | undefined => {
+        if (!url || !url.startsWith("data:image/")) return url;
+        const asset = imageAsset(url, `q${assetSeq++}-${label}`);
+        if (!asset) return url; /* some other data flavour - pass it through */
+        questAssetFiles.push(asset.file);
+        return asset.path;
+    };
 
     const compiledQuests = working.quests.map((q) => {
         const graph = {
@@ -726,13 +955,35 @@ export function compileProject(project: ProjectDocument): CompileResult {
             edges: q.graph.edges,
         };
         const { nodes, edges } = stripFurniture(graph.nodes, graph.edges);
-        return { q, graph: { ...graph, nodes, edges } };
+        const icon = extractImage(q.icon, "icon");
+        const employer = q.employer?.avatar
+            ? { ...q.employer, avatar: extractImage(q.employer.avatar, "employer") }
+            : q.employer;
+        let hackhubPost = q.hackhubPost;
+        if (hackhubPost && (hackhubPost.authorAvatar || hackhubPost.media || hackhubPost.comments?.some((c) => c.authorAvatar))) {
+            hackhubPost = {
+                ...hackhubPost,
+                authorAvatar: extractImage(hackhubPost.authorAvatar, "post-avatar"),
+                media: extractImage(hackhubPost.media, "post-media"),
+                comments: hackhubPost.comments?.map((c, ci) =>
+                    c.authorAvatar ? { ...c, authorAvatar: extractImage(c.authorAvatar, `comment${ci}`) } : c,
+                ),
+            };
+        }
+        const quest = {
+            ...q,
+            graph: { ...graph, nodes, edges },
+            icon,
+            employer,
+            hackhubPost,
+        };
+        return quest;
     });
 
     // Rebuild working with stripped graphs for the final payload
     const finalWorking: ProjectDocument = {
         ...working,
-        quests: compiledQuests.map(({ q, graph }) => ({ ...q, graph })),
+        quests: compiledQuests,
     };
 
     const planningBlock = planningComments(working.quests);
@@ -780,6 +1031,7 @@ export function compileProject(project: ProjectDocument): CompileResult {
     return {
         permissions,
         warnings,
+        warningDetails,
         files: [
             { path: "manifest.json", content: manifestJson },
             { path: "dist/manifest.json", content: manifestJson },
@@ -791,6 +1043,9 @@ export function compileProject(project: ProjectDocument): CompileResult {
             { path: "tsconfig.json", content: JSON.stringify(tsconfig, null, 2) + "\n" },
             ...(iconAsset ? [iconAsset.file] : []),
             ...(coverAsset ? [coverAsset.file] : []),
+            ...questAssetFiles,
+            /* One file per desktop widget — the path the registration names. */
+            ...(project.extras?.widgets ?? []).map((w) => ({ path: widgetPath(w.id), content: widgetHtml(w) })),
         ],
     };
 }

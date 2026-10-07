@@ -192,7 +192,7 @@ export function importPath(relPath: string): string | null {
 }
 
 /** Read a File as text via FileReader — File.text() is not available in all
-    environments (jsdom among them), and Load HTML already runs on FileReader. */
+    environments (a headless DOM among them), and Load HTML already runs on FileReader. */
 export function readFileText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

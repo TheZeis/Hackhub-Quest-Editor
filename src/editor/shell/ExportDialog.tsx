@@ -8,7 +8,9 @@ import * as Dialog from "@radix-ui/react-dialog";
 import JSZip from "jszip";
 import { compileProject, type CompileResult } from "@/compiler/compile";
 import { Icon } from "@/components/Icon";
+import { WarningList } from "@/components/WarningList";
 import { useEditor } from "@/store/editor";
+import { usePacks } from "@/store/packs";
 
 export async function buildModZip(result: CompileResult, rootName: string): Promise<JSZip> {
     const zip = new JSZip();
@@ -20,9 +22,10 @@ export async function buildModZip(result: CompileResult, rootName: string): Prom
 export function ExportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
     const project = useEditor((s) => s.project);
     const toast = useEditor((s) => s.toast);
+    const packs = usePacks((s) => s.packs);
     const [busy, setBusy] = useState(false);
 
-    const result = useMemo(() => (open ? compileProject(project) : null), [open, project]);
+    const result = useMemo(() => (open ? compileProject(project, packs) : null), [open, project, packs]);
 
     const download = async () => {
         if (!result) return;
@@ -104,16 +107,20 @@ export function ExportDialog({ open, onOpenChange }: { open: boolean; onOpenChan
                                         ))}
                                     </ul>
                                 </div>
-                                {result.warnings.length > 0 && (
+                                {result.warningDetails.length > 0 && (
                                     <div>
-                                        <p className="mb-1 text-[10px] font-semibold tracking-wider text-warn uppercase">
-                                            Good to know
+                                        <p
+                                            className={`mb-1 text-[10px] font-semibold tracking-wider uppercase ${
+                                                result.warningDetails.some((w) => w.level === "error")
+                                                    ? "text-danger"
+                                                    : "text-warn"
+                                            }`}
+                                        >
+                                            {result.warningDetails.some((w) => w.level === "error")
+                                                ? "Needs attention"
+                                                : "Good to know"}
                                         </p>
-                                        <ul className="grid gap-1">
-                                            {result.warnings.map((w, i) => (
-                                                <li key={i}>• {w}</li>
-                                            ))}
-                                        </ul>
+                                        <WarningList warnings={result.warningDetails} />
                                     </div>
                                 )}
                             </div>

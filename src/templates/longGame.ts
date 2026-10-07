@@ -80,7 +80,7 @@ export function buildLongGame(): ProjectDocument {
         { field: "subject", op: "contains", value: "Halvard Freight, 1998" },
     ], { x: 640, y: 200 });
     const tAbout = triggerFor(oAbout, "Browser.WebsiteOpened", [
-        { field: "url", op: "contains", value: "/about" },
+        { field: "Url", op: "contains", value: "/about" },
     ], { x: 960, y: 200 });
     const tFounder = triggerFor(oFounder, "Terminal.Lynx.Search", [
         { field: "query", op: "contains", value: "Vann" },
@@ -435,7 +435,7 @@ export function buildLongGame(): ProjectDocument {
             tags: ["quest", "campaign", "three-acts", "branching", "expert"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [act1, act2, act3],
         websites: [

@@ -123,7 +123,7 @@ export function buildFirstContact(): ProjectDocument {
             tags: ["quest", "osint", "beginner"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
         editor: { activeQuestId: quest.id, viewports: {} },

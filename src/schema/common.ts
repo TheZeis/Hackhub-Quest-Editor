@@ -14,7 +14,7 @@ export const TARGET_IP_TOKEN = "{{data.targetIp}}";
  * Shared primitives for the project document.
  *
  * Everything here is deliberately JSON-serialisable: the document is the single
- * source of truth for the whole app (see docs/01-analysis-and-architecture.md §4.2
+ * source of truth for the whole app (see the editor architecture §4.2
  * rule 1), so it must round-trip through localStorage, a .hackhubqe file, and the
  * `project.json` embedded in every export.
  */
@@ -88,6 +88,8 @@ export const FileEntrySchema: z.ZodType<FileEntry> = z.lazy(() =>
         extension: z.string().optional(),
         hidden: z.boolean().optional(),
         locked: z.boolean().optional(),
+        /** The player may delete this file (rm works on it). Off = protected. SDK 0.24. */
+        deleteable: z.boolean().optional(),
         children: z.array(FileEntrySchema).optional(),
     }),
 );
@@ -99,6 +101,7 @@ export type FileEntry = {
     extension?: string;
     hidden?: boolean;
     locked?: boolean;
+    deleteable?: boolean;
     children?: FileEntry[];
 };
 
@@ -153,6 +156,21 @@ export const VULNERABILITY_TYPES = [
 ] as const;
 export const VulnerabilityTypeSchema = z.enum(VULNERABILITY_TYPES);
 export type VulnerabilityType = z.infer<typeof VulnerabilityTypeSchema>;
+
+/**
+ * Display-only descriptions for the vulnerability dropdown (r155): the
+ * universal meaning of each weakness in gamer words. The option *values*
+ * stay the raw enum, so exports are byte-identical.
+ */
+export const VULNERABILITY_BLURBS: Record<VulnerabilityType, string> = {
+    SQL_INJECTION: "steal from the database",
+    XSS: "script in web pages",
+    CORS: "read other sites' data",
+    SSRF: "make the server fetch",
+    LFI: "read the server's files",
+    RFI: "load a file from your URL",
+    RCE: "run any command",
+};
 
 export const VulnerabilitySchema = z.object({
     id: z.string(),

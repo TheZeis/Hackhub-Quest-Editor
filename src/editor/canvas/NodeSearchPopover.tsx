@@ -76,7 +76,7 @@ export function NodeSearchPopover({ at, wire, onPick, onClose }: NodeSearchPopov
     );
 
     // Keep the highlighted row in view when arrowing past the fold. Guarded:
-    // jsdom has no layout, so scrollIntoView may be absent.
+    // a headless DOM has no layout, so scrollIntoView may be absent.
     useEffect(() => {
         const row = listRef.current?.querySelector<HTMLElement>(`[data-index="${highlight}"]`);
         row?.scrollIntoView?.({ block: "nearest" });

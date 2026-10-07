@@ -11,7 +11,7 @@ import { Icon } from "@/components/Icon";
 import { usePacks } from "@/store/packs";
 
 /** Read a File as text via FileReader — File.text() is not available in all
-    environments (jsdom among them); same helper shape as Load HTML. */
+    environments (a headless DOM among them); same helper shape as Load HTML. */
 function readAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -29,6 +29,7 @@ export function ToolPackManagerDialog({ open, onOpenChange }: { open: boolean; o
     /** The load result shown under the button until the next attempt. */
     const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
     const [confirmId, setConfirmId] = useState<string | null>(null);
+    const [dragOver, setDragOver] = useState(false);
 
     const onFiles = (files: FileList | null) => {
         if (!files || !files.length) return;
@@ -56,11 +57,11 @@ export function ToolPackManagerDialog({ open, onOpenChange }: { open: boolean; o
                 }
             }
             if (!names.length && !errors.length) {
-                setResult({ ok: false, text: "No .json files in that selection — a tool pack is a toolpack.json file." });
+                setResult({ ok: false, text: "No .json files in that selection — an addon is a toolpack.json file." });
                 return;
             }
             const bits: string[] = [];
-            if (loaded) bits.push(`Loaded ${loaded} pack${loaded === 1 ? "" : "s"}.`);
+            if (loaded) bits.push(`Loaded ${loaded} addon${loaded === 1 ? "" : "s"}.`);
             if (errors.length) bits.push(errors.join(" "));
             setResult({ ok: errors.length === 0, text: bits.join(" ") });
         })();
@@ -73,10 +74,10 @@ export function ToolPackManagerDialog({ open, onOpenChange }: { open: boolean; o
                 <Dialog.Content className="fixed top-1/2 left-1/2 z-50 flex h-[76vh] w-[min(680px,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-panel">
                     <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
                         <div>
-                            <Dialog.Title className="text-[14px] font-semibold text-ink">Tool packs</Dialog.Title>
+                            <Dialog.Title className="text-[14px] font-semibold text-ink">Addons</Dialog.Title>
                             <Dialog.Description className="mt-0.5 text-[11.5px] leading-relaxed text-ink-4">
-                                Community tool mods drop in here as data: their events join the trigger picker, their quest
-                                data becomes nodes. Packs are data only — the editor never runs code from them.
+                                Community addons drop in here as data: their events join the trigger picker, their quest
+                                data becomes nodes. Addons are data only — the editor never runs code from them.
                             </Dialog.Description>
                         </div>
                         <Dialog.Close asChild>
@@ -86,14 +87,27 @@ export function ToolPackManagerDialog({ open, onOpenChange }: { open: boolean; o
                         </Dialog.Close>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div
+                        className={`min-h-0 flex-1 overflow-y-auto p-4 ${dragOver ? "bg-accent-soft ring-1 ring-accent ring-inset" : ""}`}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOver(false);
+                            onFiles(e.dataTransfer.files);
+                        }}
+                    >
                         {packs.length === 0 ? (
                             <div className="flex flex-col items-center gap-1.5 py-8 text-center">
                                 <Icon name="package" size={26} className="text-ink-4" />
-                                <p className="text-[13px] font-medium text-ink-2">No tool packs loaded.</p>
+                                <p className="text-[13px] font-medium text-ink-2">No addons loaded.</p>
                                 <p className="max-w-[46ch] text-[11.5px] leading-relaxed text-ink-4">
                                     A pack is a <code className="font-mono">toolpack.json</code> file from a tool-mod author —
                                     the starter pack in the editor's repository is a worked example you can rename and fill.
+                                    Load one below, or drop the file anywhere in here.
                                 </p>
                             </div>
                         ) : (
@@ -175,13 +189,20 @@ export function ToolPackManagerDialog({ open, onOpenChange }: { open: boolean; o
                                 type="file"
                                 accept=".json,application/json"
                                 multiple
-                                aria-label="Load tool pack files"
+                                aria-label="Load addon files"
                                 className="hidden"
                                 onChange={(e) => {
                                     onFiles(e.target.files);
                                     e.target.value = "";
                                 }}
                             />
+                            {/* Loads apply the moment they parse; Save is the
+                                explicit "this is right, close" — the status
+                                line above is the receipt it confirms. */}
+                            <div className="flex-1" />
+                            <button type="button" className="btn-default" onClick={() => onOpenChange(false)}>
+                                Save
+                            </button>
                         </div>
                         {result && (
                             <p

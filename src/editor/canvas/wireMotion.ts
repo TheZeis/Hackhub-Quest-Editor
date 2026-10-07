@@ -5,7 +5,7 @@
  *
  * It was a CSS keyframe, then an SVG SMIL animation. Both were reported as
  * "the dots don't move", and neither could be disproven from a test, because
- * jsdom runs no animations — and both can be switched off from outside the
+ * a headless DOM runs no animations — and both can be switched off from outside the
  * editor by stylesheet order or the OS "reduce animation" setting.
  *
  * r38 drove it from JavaScript: one requestAnimationFrame loop writing

@@ -4,7 +4,7 @@
  * Everything here is a question about the shape of a quest graph, answered from
  * the document alone. The canvas uses it to flag problems, the inspector uses it
  * for the health panel, and the Step 4 export report will reuse it verbatim
- * (docs/01 §4.3: analysis and compilation are pure and side-effect free).
+ * (the editor architecture §4.3: analysis and compilation are pure and side-effect free).
  */
 import type { EdgeDoc } from "@/schema/edges";
 import type { NodeDoc } from "@/schema/nodes";
@@ -100,7 +100,9 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
         // A branch or reply with an unwired outcome is a dead end the player hits.
         if (
             node.type === "flow.branch" ||
+            node.type === "flow.appcheck" ||
             node.type === "reply.input" ||
+            node.type === "fx.prompt" ||
             node.type === "flow.sequence"
         ) {
             const outputs = sourcesOf(node);
@@ -117,17 +119,74 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
                     nodeId: node.id,
                     label: "Dead end",
                     detail:
-                        node.type === "flow.sequence"
+                        node.type === "flow.appcheck"
+                            ? `The “${names}” output goes nowhere, so a player whose desktop takes that path stalls.`
+                            : node.type === "flow.sequence"
                             ? `The “${names}” output goes nowhere, so that step of the sequence does nothing. Wire it up or remove the output.`
                             : node.type === "reply.input"
                               ? `The “${names}” outcome goes nowhere, so a wrong answer just shows the failure message and the player tries again. That retry loop is the usual design — wire it only if a wrong answer should do something more.`
-                              : `The “${names}” outcome goes nowhere, so the quest stalls if the player takes it.`,
+                              : node.type === "fx.prompt"
+                                ? `The “${names}” outcome goes nowhere. That is fine if the story should stop there; wire it if the player should see a follow-up.`
+                                : `The “${names}” outcome goes nowhere, so the quest stalls if the player takes it.`,
                     nextStep:
-                        node.type === "flow.sequence"
+                        node.type === "flow.appcheck"
+                            ? `Wire the “${names}” output to the node that should run for that player, or give them a hint and send both outputs the same way.`
+                            : node.type === "flow.sequence"
                             ? `Wire the “${names}” step to the node that should run at that point, or remove the step.`
                             : node.type === "reply.input"
                               ? `Leave it if retrying is the design, or wire the “${names}” answer to the node that should run on a wrong answer.`
-                              : `Wire the “${names}” outcome to the node that should run down that path.`,
+                              : node.type === "fx.prompt"
+                                ? `Wire the “${names}” outcome to the node that should run next, or leave it empty if stopping there is intentional.`
+                                : `Wire the “${names}” outcome to the node that should run down that path.`,
+                    severity: "warn",
+                });
+            }
+        }
+
+        // A Timer (r172, renamed r173): no time set means it fires the
+        // moment the story reaches it, and an unwired "Out" means the timer
+        // does nothing when it fires.
+        if (node.type === "flow.timer") {
+            const mode = node.data.mode ?? "after";
+            let nothingSet = false;
+            let noTimeDetail = "";
+            let noTimeNext = "";
+            if (mode === "after") {
+                const scheduled =
+                    (Number(node.data.years) || 0) +
+                    (Number(node.data.months) || 0) +
+                    (Number(node.data.weeks) || 0) +
+                    (Number(node.data.days) || 0) +
+                    (Number(node.data.hours) || 0) +
+                    (Number(node.data.minutes) || 0);
+                nothingSet = scheduled <= 0;
+                noTimeDetail = "No years, months, weeks, days, hours or minutes are set, so the timer fires the moment the story reaches it — nothing waits.";
+                noTimeNext = "Set a time in the node's Wait fields, or remove the node if the story should carry on.";
+            } else if (mode === "at") {
+                nothingSet = !(Number(node.data.dateYear) > 0 && Number(node.data.dateMonth) > 0 && Number(node.data.dateDay) > 0);
+                noTimeDetail = "No full date is set, so the timer fires the moment the story reaches it — nothing waits.";
+                noTimeNext = "Set a full in-game date (Year, Month and Day — read them off the in-game clock), or remove the node if the story should carry on.";
+            }
+            /* "daytime" — the relative rule (r176) — needs no check: any
+               amount is legal (0 is "today at HH:MM"), and only the in-game
+               "now" can decide whether that time has already passed. The
+               runtime fails open. */
+            if (nothingSet) {
+                issues.push({
+                    nodeId: node.id,
+                    label: "Nothing scheduled",
+                    detail: noTimeDetail,
+                    nextStep: noTimeNext,
+                    severity: "warn",
+                });
+            }
+            if (wiredOut === 0) {
+                issues.push({
+                    nodeId: node.id,
+                    label: "The timer has nothing to do",
+                    detail: "When the time comes, the timer has nowhere to go — the story stops there.",
+                    nextStep:
+                        "Wire the Out socket to the node that should run when the time comes, or leave it unwired if the story is meant to end there.",
                     severity: "warn",
                 });
             }
@@ -151,19 +210,18 @@ export function analyseGraph(nodes: NodeDoc[], edges: EdgeDoc[]): GraphAnalysis 
         // following an edge that targets it, so it always has an input.
         // Removed in r124 rather than kept as a guard no test can exercise.
 
-        /* A wired "On quest complete" that can never run. Quests ship with
-           auto-complete off and no Complete button, so completion never
-           happens and everything downstream is dead — four shipped templates
-           fell into this before the audit caught it. The copy stays accurate
-           for quests that do turn completion on: the condition is the point. */
-        if (node.type === "entry.complete" && wiredOut > 0) {
+        /* A wired "On quest complete" still needs an actual completion path.
+           The graph analysis can see an explicit Complete quest node; quest
+           Behaviour settings are checked elsewhere, so this rule stays as a
+           gentle reminder only when the graph itself has no formal ending. */
+        if (node.type === "entry.complete" && wiredOut > 0 && !nodes.some((n) => n.type === "fx.completeQuest")) {
             issues.push({
                 nodeId: node.id,
                 label: "Only runs on completion",
                 detail:
-                    "This is wired, but it only runs if the quest completes — with auto-complete off and no Complete button (the default) that never happens. End the story from the last objective's “done” instead.",
+                    "This is wired, but it only runs after the quest is marked complete. This graph has no Complete quest node yet.",
                 nextStep:
-                    "Move these nodes onto the last objective's “done” socket, or turn completion on in the quest's Behaviour settings if you mean it.",
+                    "Add a Complete quest node to the final story beat, or turn on auto-complete or the Complete button in the quest's Behaviour settings.",
                 severity: "warn",
             });
         }

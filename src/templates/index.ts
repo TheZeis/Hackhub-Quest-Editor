@@ -2,7 +2,7 @@
  * Starter templates.
  *
  * Each is a plain `ProjectDocument` factory, which means the templates are
- * themselves exercised by the compiler test suite (docs/01 §5). Ids are generated
+ * themselves exercised by the compiler test suite (the editor architecture §5). Ids are generated
  * deterministically so a template builds byte-identically every time and snapshot
  * tests stay stable.
  *
@@ -19,6 +19,7 @@ import { buildDataGrab } from "@/templates/harbourManifest";
 import { buildHelpDeskLeak } from "@/templates/helpDeskLeak";
 import { buildBadAttachment } from "@/templates/badAttachment";
 import { buildSixTries } from "@/templates/sixTries";
+import { buildDeadAir } from "@/templates/deadAir";
 import { buildColdStorage } from "@/templates/coldStorage";
 import { buildContractHack } from "@/templates/ledgerContract";
 import { buildReference } from "@/templates/reference";
@@ -100,6 +101,15 @@ export const TEMPLATES: Template[] = [
         build: buildSixTries,
     },
     {
+        id: "dead-air",
+        name: "Dead Air",
+        description:
+            "A quest told through its communication modes: a phone brief, drips released as each job is verified, a phreak loop, a Kisscord market where information is the currency, and a social-engineering call whose wrong word costs a day — the line goes dark, a Timer waits an in-game day, the retry call re-checks the word, and both paths converge into the same next drip.",
+        difficulty: "Advanced",
+        nodeCount: 28,
+        build: buildDeadAir,
+    },
+    {
         id: "cold-storage",
         name: "Cold Storage",
         description:
@@ -132,7 +142,7 @@ export const TEMPLATES: Template[] = [
         description:
             "Every node type an author can build on one canvas, filled with example input. Open it to see what a field expects before you build your own.",
         difficulty: "Reference",
-        nodeCount: 43,
+        nodeCount: 51,
         build: buildReference,
     },
     {

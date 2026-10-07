@@ -3,6 +3,8 @@
  * fields, attachment included.
  */
 import { FieldShell, TextArea, TextInput, Toggle } from "@/editor/inspector/primitives";
+import { TextInputWithGenerate } from "@/editor/inspector/GenerateButton";
+import { generateField } from "@/lib/generate";
 import type { MailNodeData } from "@/schema/nodes";
 import { SimFrame } from "./chrome";
 import { mailBodyText } from "@/compiler/mailText";
@@ -43,7 +45,14 @@ export function MailScript({ value, onChange }: { value: MailNodeData; onChange:
                     label="From"
                     hint="The sender address. Make it a domain the player might look up — it is a lead."
                 >
-                    <TextInput ariaLabel="Mail from" value={from} onChange={(f) => onChange({ from: f })} mono />
+                    <TextInputWithGenerate
+                        ariaLabel="Mail from"
+                        value={from}
+                        onChange={(f) => onChange({ from: f })}
+                        onGenerate={() => onChange({ from: generateField("email") })}
+                        generateLabel="e-mail"
+                        mono
+                    />
                 </FieldShell>
                 <FieldShell label="To" hint="Leave blank to send it to the player.">
                     <TextInput ariaLabel="Mail to" value={to ?? ""} onChange={(t) => onChange({ to: t || undefined })} mono />
@@ -61,9 +70,15 @@ export function MailScript({ value, onChange }: { value: MailNodeData; onChange:
                 </FieldShell>
                 <Toggle
                     label="The player can reply"
-                    hint="Adds a Reply button. Untested against the live game — if it does not appear, a hackertyper reply page is the proven way to take a written answer."
+                    hint="Adds a Reply button. Proven in game (the 2026-09-20 mail QA): the button draws on this direct send path, and the player's reply arrives addressed to your From address — trigger on the Mail.Sent event where “to” contains that address to react to it."
                     checked={value.replyable}
                     onChange={(replyable) => onChange({ replyable })}
+                />
+                <Toggle
+                    label="Withdraw the mail when the quest ends"
+                    hint="Removes this mail from the player's inbox when the quest is completed or abandoned. Off by default: a story mail is something the player may want to re-read. Needs no id from you — the send path records it."
+                    checked={value.withdrawOnQuestEnd}
+                    onChange={(withdrawOnQuestEnd) => onChange({ withdrawOnQuestEnd })}
                 />
                 <div className="rounded-md border border-line/70 bg-surface p-2">
                     <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">Attachment</p>

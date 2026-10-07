@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -66,11 +65,5 @@ export default defineConfig({
         // code-splitting would buy nothing but a warning here.
         chunkSizeWarningLimit: 1000,
     },
-    test: {
-        globals: true,
-        environment: "jsdom",
-        setupFiles: ["./vitest.setup.ts"],
-        include: ["src/**/*.test.{ts,tsx}"],
-        css: false,
-    },
+
 });

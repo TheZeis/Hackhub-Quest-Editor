@@ -6,7 +6,7 @@
  * node type means adding an entry here — the palette, the canvas and the
  * inspector all read from it.
  *
- * The descriptors are hand-authored per node type (docs/01 §4.1 deliberately
+ * The descriptors are hand-authored per node type (the editor architecture §4.1 deliberately
  * rejects a JSON-schema-driven form generator), but rendered by one shared
  * inspector engine so every node gets consistent, accessible controls.
  */
@@ -16,11 +16,15 @@ import type { EdgeKind, HandleSpec } from "./edges";
 import {
     DebugNodeDataSchema,
     DialogueNodeDataSchema,
+    AppCheckNodeDataSchema,
     BranchNodeDataSchema,
-ClaimQuestNodeDataSchema,
+    ClaimQuestNodeDataSchema,
+    CompleteQuestNodeDataSchema,
     DatabaseNodeDataSchema,
     DelayNodeDataSchema,
     DomainNodeDataSchema,
+    TWOTTER_AGO_UNITS,
+    TweetNodeDataSchema,
     EntryStartData,
     FilesNodeDataSchema,
     FirewallNodeDataSchema,
@@ -31,13 +35,17 @@ ClaimQuestNodeDataSchema,
     ObjectiveDataSchema,
     PayNodeDataSchema,
     PortNodeDataSchema,
+    PromptNodeDataSchema,
     RandomPickNodeDataSchema,
+    RetireQuestNodeDataSchema,
+    TimerNodeDataSchema,
     SetDataNodeDataSchema,
     SequenceNodeDataSchema,
     ShellExecNodeDataSchema,
     ToolResponseNodeDataSchema,
     TriggerEventDataSchema,
-WifiNodeDataSchema,
+    UnclaimQuestNodeDataSchema,
+    WifiNodeDataSchema,
     NoteNodeDataSchema,
     StoryBeatNodeDataSchema,
     RerouteNodeDataSchema,
@@ -47,7 +55,8 @@ WifiNodeDataSchema,
     type NodeDoc,
     type NodeType,
 } from "./nodes";
-import { TARGET_IP_TOKEN, VULNERABILITY_TYPES } from "./common";
+import { TARGET_IP_TOKEN, VULNERABILITY_BLURBS, VULNERABILITY_TYPES } from "./common";
+import { MONTH_OPTIONS, timerSentence, unitsReadback, WAIT_UNITS } from "./timer";
 
 /* ── Inspector field descriptors ─────────────────────────────────────────── */
 
@@ -57,6 +66,34 @@ import { TARGET_IP_TOKEN, VULNERABILITY_TYPES } from "./common";
  * (e.g. a date picker only when the time mode is "a specific date").
  */
 export type FieldShowWhen = { key: string; equals: string | readonly string[] };
+
+/**
+ * Opt a field into the auto-generate (dice) button (r161). `kind` picks the
+ * generator; `ipFlavour` chooses public vs private for IP fields; `reuse` names
+ * sibling field keys (relative to the field's base path) the generator may read
+ * to stay coherent — e.g. an e-mail built from the first/last name beside it.
+ * The dice only ever writes its own field; siblings are read, never touched.
+ */
+export type FieldGenerate = {
+    kind: import("@/lib/generate").GeneratorKind;
+    ipFlavour?: import("@/lib/generate").IpFlavour;
+    reuse?: readonly string[];
+    /** Short noun for the button's accessible name, e.g. "e-mail". */
+    label?: string;
+};
+
+export type NumberFieldDef = {
+    kind: "number";
+    key: string;
+    label: string;
+    hint?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+    /** A small unit word printed after the box, e.g. "days" (r176). */
+    suffix?: string;
+    showWhen?: FieldShowWhen;
+};
 
 export type FieldDef =
     | {
@@ -68,6 +105,8 @@ export type FieldDef =
           mono?: boolean;
           /** Offer the `{{data.targetIp}}` token menu. */
           tokens?: boolean;
+          /** Offer the auto-generate (dice) button. */
+          generate?: FieldGenerate;
           showWhen?: FieldShowWhen;
       }
     | {
@@ -78,10 +117,11 @@ export type FieldDef =
           placeholder?: string;
           mono?: boolean;
           tokens?: boolean;
+          generate?: FieldGenerate;
           rows?: number;
           showWhen?: FieldShowWhen;
       }
-    | { kind: "number"; key: string; label: string; hint?: string; min?: number; max?: number; step?: number; showWhen?: FieldShowWhen }
+    | NumberFieldDef
     | { kind: "slider"; key: string; label: string; hint?: string; min: number; max: number; step?: number; showWhen?: FieldShowWhen }
     | { kind: "toggle"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | {
@@ -90,6 +130,10 @@ export type FieldDef =
           label: string;
           hint?: string;
           options: readonly { value: string; label: string; hint?: string }[];
+          /** Render as a segmented picker instead of a dropdown (2–4 short choices). */
+          display?: "segmented";
+          /** Store `Number(choice)` — for selects over numeric fields, like months. */
+          numeric?: boolean;
           showWhen?: FieldShowWhen;
       }
     | {
@@ -101,6 +145,8 @@ export type FieldDef =
           mono?: boolean;
           /** Offer the token menu in the custom box. */
           tokens?: boolean;
+          /** Offer the auto-generate (dice) button in the custom box. */
+          generate?: FieldGenerate;
           /**
            * Fixed choices. Anything else falls through to the custom box.
            * `meaning` explains a choice's stored value in words, for when the
@@ -118,7 +164,46 @@ export type FieldDef =
           showWhen?: FieldShowWhen;
       }
     | { kind: "tables"; key: string; label: string; hint?: string }
+    | {
+          /**
+           * Several fields on one line, for values that only make sense read
+           * together: the Wait duration, "in 2 weeks", the date. Children keep
+           * their own labels, hints and warnings — a row is layout, not a
+           * control. Container kinds are transparent to the manual extractor,
+           * so the children are documented exactly as if they were stacked.
+           */
+          kind: "row";
+          label?: string;
+          hint?: string;
+          fields: FieldDef[];
+          /**
+           * Lay the children out in a fixed grid of this many columns, wrapping
+           * onto as many lines as it takes (r177: six unit boxes, three across).
+           * Without it they sit on one line.
+           */
+          columns?: 2 | 3 | 4;
+          /**
+           * A readback line under the row, in the words a human would say it
+           * (r176: 25 hours reads "1 day, 1 hour"). Null hides the line.
+           */
+          readback?: (data: Record<string, unknown>) => string | null;
+          showWhen?: FieldShowWhen;
+      }
+    | {
+          /**
+           * The hour and minute as a digital clock (r176). It reads and writes
+           * two existing number fields; the caption is the clock's own, so the
+           * fields keep their labels for the manual and for screen readers.
+           */
+          kind: "clock";
+          label?: string;
+          hint?: string;
+          hour: NumberFieldDef;
+          minute: NumberFieldDef;
+          showWhen?: FieldShowWhen;
+      }
     | { kind: "handbookArticle"; key: string; label: string; hint?: string }
+    | { kind: "twotterAccount"; key: string; label: string; hint?: string }
     | { kind: "date"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "color"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
     | { kind: "image"; key: string; label: string; hint?: string; showWhen?: FieldShowWhen }
@@ -157,9 +242,9 @@ export const CATEGORIES = [
     { id: "trigger", label: "Triggers", color: "var(--color-cat-trigger)", hex: "#22d3ee", icon: "zap" },
     { id: "world", label: "World building", color: "var(--color-cat-world)", hex: "#34d399", icon: "globe" },
     { id: "comms", label: "Communication", color: "var(--color-cat-comms)", hex: "#f472b6", icon: "message" },
-    { id: "reply", label: "Player replies", color: "var(--color-cat-reply)", hex: "#fb923c", icon: "keyboard" },
+    { id: "reply", label: "Custom terminal", color: "var(--color-cat-reply)", hex: "#fb923c", icon: "keyboard" },
     { id: "effect", label: "Effects", color: "var(--color-cat-effect)", hex: "#60a5fa", icon: "sparkle" },
-    { id: "community", label: "Community tools", color: "var(--color-cat-community)", hex: "#2dd4bf", icon: "package" },
+    { id: "community", label: "Community addons", color: "var(--color-cat-community)", hex: "#2dd4bf", icon: "package" },
     { id: "flow", label: "Flow control", color: "var(--color-cat-flow)", hex: "#94a3b8", icon: "branch" },
     { id: "layout", label: "Layout", color: "var(--color-cat-layout)", hex: "#64748b", icon: "layers" },
 ] as const;
@@ -196,8 +281,63 @@ const unlockIn: HandleSpec = { id: "unlocked-by", kind: "unlock", label: "Unlock
 const doneOut: HandleSpec = { id: "done", kind: "flow", label: "On complete" };
 const successOut: HandleSpec = { id: "success", kind: "flow", label: "Correct" };
 const failureOut: HandleSpec = { id: "failure", kind: "flow", label: "Wrong" };
+const submittedOut: HandleSpec = { id: "success", kind: "flow", label: "Submitted" };
+const cancelledOut: HandleSpec = { id: "cancel", kind: "flow", label: "Cancelled" };
 const trueOut: HandleSpec = { id: "true", kind: "flow", label: "Yes" };
 const falseOut: HandleSpec = { id: "false", kind: "flow", label: "No" };
+
+/**
+ * The desktop's app names, captured from the in-game App Store on 2026-10-02
+ * (Zeis's screenshot and list), stored as data rather than invented — the same
+ * discipline as GAME_LANGUAGES in schema/extras.ts. The SDK gives no name list
+ * (index.d.ts:3893 says the name is "as the desktop knows it, e.g. Kisscord"),
+ * so this is what the game actually offers, grouped as the store did.
+ *
+ * PARTIAL BY DESIGN: the store's sidebar counts more apps than were listed
+ * (Utilities says 8; none were named), so this is a spell-guard for the known
+ * ones, not a closed list. Anything absent falls through to the custom box,
+ * and it is reconciled against getInstalledApps() once a capture exists.
+ */
+/* The desktop's app names, captured from the in-game App Store on 2026-10-02
+   (Zeis's screenshot and list), stored as data rather than invented — the same
+   discipline as GAME_LANGUAGES in schema/extras.ts. The SDK gives no name list
+   (index.d.ts:3893 says the name is "as the desktop knows it, e.g. Kisscord"). */
+const GAME_DESKTOP_APPS: { value: string; category: string }[] = [
+    // Pre-installed on every desktop.
+    { value: "Terminal", category: "pre-installed" },
+    { value: "Firebear Browser", category: "pre-installed" },
+    { value: "Code++", category: "pre-installed" },
+    { value: "File Explorer", category: "pre-installed" },
+    { value: "Handbook", category: "pre-installed" },
+    // Installable or buyable in the store.
+    { value: "Wireshark", category: "installable" },
+    { value: "Skypersky", category: "installable" },
+    { value: "Kisscord", category: "installable" },
+    { value: "Database Manager", category: "installable" },
+];
+
+/* Installed via "apt-get install <name>". Verified in game on 2026-10-02 with
+   a control: isAppInstalled("Kisscord") -> true, but Lynx was INSTALLED on the
+   same save and isAppInstalled("Lynx") and ("apt-get install lynx") both
+   returned false. So terminal commands are simply not in the installed-apps
+   set, and a quest cannot route on them through this node. They are kept as
+   captured data for a future "is this tool installed?" surface, but they are
+   deliberately NOT offered as pickable options, because picking one would
+   always read Missing. */
+export const GAME_TERMINAL_COMMANDS = ["Hydra", "Lynx", "Metasploit", "OpenSSL"] as const;
+
+const APP_OPTIONS = GAME_DESKTOP_APPS.map((a) => ({
+    value: a.value,
+    label: `${a.value} (${a.category})`,
+}));
+
+/* Dedicated output labels for the App Install Check (r259). On a node called
+   "App Install Check", Yes/No leaves "yes what?" hanging, so these say the
+   thing. The ids stay `true`/`false` so every wire, edge rule and the
+   connection validator behave exactly as they do for Branch. */
+const appInstalledOut: HandleSpec = { id: "true", kind: "flow", label: "Installed" };
+const appMissingOut: HandleSpec = { id: "false", kind: "flow", label: "Missing" };
+
 
 const io = { targets: [inFlow], sources: [outFlow] };
 
@@ -206,17 +346,17 @@ const io = { targets: [inFlow], sources: [outFlow] };
 const portFields: FieldDef[] = [
     { kind: "number", key: "external", hint: "The port number as seen from outside. This is what nmap reports and what the player connects to.", label: "External port", min: 0, max: 65535 },
     { kind: "number", key: "internal", hint: "The port the service actually listens on inside the machine. Leave equal to the external port unless you are deliberately redirecting.", label: "Internal port", min: 0, max: 65535 },
-    { kind: "text", key: "service", hint: "What nmap prints next to the port, e.g. http, ssh, ftp, mysql. Free text — it is a label, not a real service.", label: "Service", placeholder: "ssh", mono: true },
-    { kind: "text", key: "version", hint: "The banner nmap -sV prints. Use three numbers and no letters — metasploit refuses \"7.2\" and \"7.2p2\", leaving the player unable to run the exploit. Blank omits the version line.", label: "Version", placeholder: "OpenSSH 8.9.0", mono: true },
+    { kind: "text", key: "service", hint: "What nmap prints next to the port, e.g. http, ssh, ftp, mysql. Free text — it is a label, not a real service.", label: "Service", placeholder: "ssh", mono: true, generate: { kind: "serviceName", label: "service" } },
+    { kind: "text", key: "version", hint: "The banner nmap -sV prints. Use three numbers and no letters — metasploit refuses \"7.2\" and \"7.2p2\", leaving the player unable to run the exploit. Blank omits the version line.", label: "Version", placeholder: "OpenSSH 8.9.0", mono: true, generate: { kind: "serviceVersion", reuse: ["service"], label: "version" } },
     { kind: "toggle", key: "active", label: "Open", hint: "Closed ports show as filtered to nmap." },
 ];
 
 const userFields: FieldDef[] = [
-    { kind: "text", key: "username", hint: "The login name for ssh, ftp or a web login page.", label: "Username", mono: true },
+    { kind: "text", key: "username", hint: "The login name for ssh, ftp or a web login page.", label: "Username", mono: true, generate: { kind: "username", reuse: ["firstName", "lastName"], label: "username" } },
     { kind: "text", key: "password", label: "Password", mono: true, hint: "Leave blank to let the game pick one." },
-    { kind: "text", key: "firstName", hint: "Shown on the account's profile page and in whois results.", label: "First name" },
-    { kind: "text", key: "lastName", hint: "Shown on the account's profile page and in whois results.", label: "Last name" },
-    { kind: "text", key: "emailAddress", hint: "The account's e-mail address. Useful as a lead the player can mail.", label: "E-mail", mono: true },
+    { kind: "text", key: "firstName", hint: "Shown on the account's profile page and in whois results.", label: "First name", generate: { kind: "firstName", label: "first name" } },
+    { kind: "text", key: "lastName", hint: "Shown on the account's profile page and in whois results.", label: "Last name", generate: { kind: "lastName", label: "last name" } },
+    { kind: "text", key: "emailAddress", hint: "The account's e-mail address. Useful as a lead the player can mail.", label: "E-mail", mono: true, generate: { kind: "email", reuse: ["firstName", "lastName"], label: "e-mail" } },
     { kind: "toggle", key: "acceptReverseTCP", hint: "Lets the player open a connection from this account back to their own machine. Turn on only if your quest needs it.", label: "Accepts reverse TCP" },
 ];
 
@@ -225,9 +365,9 @@ const vulnFields: FieldDef[] = [
         kind: "select",
         key: "type", hint: "The kind of weakness this machine has. The in-game scanners report it when the player probes the machine.",
         label: "Type",
-        options: VULNERABILITY_TYPES.map((t) => ({ value: t, label: t })),
+        options: VULNERABILITY_TYPES.map((t) => ({ value: t, label: `${t} (${VULNERABILITY_BLURBS[t]})` })),
     },
-    { kind: "text", key: "version", hint: "The affected component's version, e.g. \"WordPress 5.8\". Cosmetic unless a trigger matches on it.", label: "Version", placeholder: "optional", mono: true },
+    { kind: "text", key: "version", hint: "The affected component's version, e.g. \"WordPress 5.8\". Cosmetic unless a trigger matches on it.", label: "Version", placeholder: "optional", mono: true, generate: { kind: "serviceVersion", label: "version" } },
 ];
 
 /**
@@ -283,6 +423,7 @@ const fileFields: FieldDef[] = [
     { kind: "text", key: "extension", hint: "The extension, e.g. txt, log, conf. Leave blank for folders.", label: "Extension", placeholder: "txt", mono: true },
     { kind: "toggle", key: "isFolder", hint: "Mark this entry as a directory rather than a file.", label: "Folder" },
     { kind: "toggle", key: "hidden", hint: "Prefix the name with a dot so a plain ls does not show it.", label: "Hidden" },
+    { kind: "toggle", key: "deleteable", hint: "The player can delete this file — rm works on it. Off by default, when placed files are protected. Use for evidence a quest tells the player to clean up.", label: "Player can delete" },
     { kind: "textarea", key: "data", hint: "The file's contents. This is where clues live — a config file, a log excerpt, a leaked password.", label: "Contents", mono: true, rows: 4 },
 ];
 
@@ -332,6 +473,8 @@ export interface NodeTypeDef {
     label: string;
     /** One-line description shown in the palette. */
     blurb: string;
+    /** Live sentence above the fields: what the current settings will do. */
+    preview?: (data: Record<string, unknown>) => string | null;
     icon: string;
     targets: HandleSpec[];
     sources: HandleSpec[];
@@ -392,7 +535,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         type: "entry.complete",
         category: "entry",
         label: "On quest complete",
-        blurb: "Only runs if the quest completes — with auto-complete off and no Complete button (the default) that never happens. End the story from the last objective instead.",
+        blurb: "Runs after a Complete quest node, auto-complete, or Complete button finishes the quest.",
         icon: "check",
         targets: [],
         sources: [outFlow],
@@ -443,7 +586,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         sources: [whenOut],
         hook: "declarative",
         fields: [
-            { kind: "event", key: "event", label: "Game event", hint: "All 92 HackHub events, listed with the details each one carries." },
+            { kind: "event", key: "event", label: "Game event", hint: "All supported HackHub events, listed with the details each one carries." },
             { kind: "conditions", key: "conditions", label: "Only when", hint: "Leave empty to fire on any occurrence." },
         ],
         create: () => seed(TriggerEventDataSchema),
@@ -497,11 +640,14 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "note", tone: "warn", text: "The mod SDK (0.21.0) has no wireless API yet, so this node exports as a regular router network: the player reaches it by IP address, not through the in-game Wi-Fi list. The SSID and passphrase are stored in the mod and start working if the game opens that up." },
-            { kind: "text", key: "ssid", hint: "The network name shown in the in-game Wi-Fi list.", label: "Network name (SSID)", mono: true },
-            { kind: "text", key: "password", label: "WPA passphrase", mono: true, hint: "The passphrase the player must discover. Make sure some node in your quest reveals it." },
-            { kind: "slider", key: "signal", label: "Signal strength", min: 0, max: 3, step: 1, hint: "The game's Wi-Fi scale: 0 = weakest, 3 = strongest (it also drives how long joining takes). The current mod SDK does not read it yet — it is kept for when wireless support lands." },
-            { kind: "text", key: "model", label: "Router model", mono: true, hint: "Enables the in-game `fern` recovery route. Leave blank to disable it." },
+            { kind: "note", tone: "info", text: "Game note: Bettercap may show no network name after you pick a mod-created access point by BSSID. Scanning, joining and cracking still worked in QA; use the BSSID as the fixed clue." },
+            { kind: "text", key: "ssid", hint: "The network name shown in the in-game Wi-Fi list.", label: "Network name (SSID)", mono: true, generate: { kind: "ssid", label: "network name" } },
+            { kind: "text", key: "password", label: "WPA passphrase", mono: true, generate: { kind: "wifiPassphrase", label: "passphrase" }, hint: "The passphrase the player must discover. Make sure some node in your quest reveals it." },
+            { kind: "slider", key: "signal", label: "Signal strength", min: 0, max: 3, step: 1, hint: "The game's Wi-Fi scale: 0 = weakest, 3 = strongest. It also drives how long joining takes." },
+            { kind: "text", key: "bssid", label: "BSSID", mono: true, placeholder: "02:24:00:00:24:01", generate: { kind: "bssid", label: "BSSID" }, hint: "Optional MAC address shown for the access point. Leave blank to let the game pick one." },
+            { kind: "number", key: "channel", label: "Channel", min: 1, max: 196, step: 1, hint: "Optional 2.4 GHz or 5 GHz channel shown by scans. Leave blank to let the game pick one for the SSID's band." },
+            { kind: "toggle", key: "wps", label: "Advertises WPS", hint: "Whether Wi-Fi scans show WPS for this access point. Leave off unless your story needs to pin it." },
+            { kind: "text", key: "model", label: "Router model", mono: true, generate: { kind: "routerModel", label: "router model" }, hint: "Enables the in-game `fern` recovery route. Leave blank to disable it." },
             {
                 kind: "list",
                 key: "users", hint: "Accounts on the access point's own system. Their files land in /home/<username>/.",
@@ -542,6 +688,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                 label: "Protected IP",
                 mono: true,
                 tokens: true,
+                generate: { kind: "ip", ipFlavour: "public", label: "IP address" },
                 placeholder: "45.33.32.156",
                 options: [
                     {
@@ -578,7 +725,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [
             { kind: "note", tone: "info", text: "Adjusts a machine that already exists — one your “Create network” node built. To add the machine itself, use “Create network”; to open, close, add or remove one of its ports later in the story, use this." },
-            { kind: "text", key: "ip", label: "Device IP", mono: true, tokens: true, hint: "A router IP or any device behind it." },
+            { kind: "text", key: "ip", label: "Device IP", mono: true, tokens: true, generate: { kind: "ip", ipFlavour: "private", label: "IP address" }, hint: "A router IP or any device behind it." },
             {
                 kind: "select",
                 key: "action",
@@ -593,7 +740,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
             },
             { kind: "number", key: "port.external", hint: "The port number as seen from outside — what nmap reports.", label: "External port", min: 0, max: 65535 },
             { kind: "number", key: "port.internal", hint: "The port the service listens on inside the machine.", label: "Internal port", min: 0, max: 65535 },
-            { kind: "text", key: "port.service", hint: "What nmap prints next to the port, e.g. http, ssh, mysql.", label: "Service", mono: true },
+            { kind: "text", key: "port.service", hint: "What nmap prints next to the port, e.g. http, ssh, mysql.", label: "Service", mono: true, generate: { kind: "serviceName", label: "service" } },
             { kind: "toggle", key: "port.active", hint: "Turn off to make the port appear closed.", label: "Open" },
             { kind: "toggle", key: "restoreOnComplete", hint: "Put the port back the way it was when the quest ends.", label: "Restore when the quest ends" },
         ],
@@ -613,8 +760,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "domain", hint: "The hostname the player types, e.g. vault.corp-internal.net.", label: "Domain", mono: true },
-            { kind: "text", key: "ip", hint: "The address it resolves to. nslookup and dig will report this.", label: "Resolves to", mono: true, tokens: true },
+            { kind: "text", key: "domain", hint: "The hostname the player types, e.g. vault.corp-internal.net.", label: "Domain", mono: true, generate: { kind: "domain", label: "domain" } },
+            { kind: "text", key: "ip", hint: "The address it resolves to. nslookup and dig will report this.", label: "Resolves to", mono: true, tokens: true, generate: { kind: "ip", ipFlavour: "public", label: "IP address" } },
             {
                 kind: "list",
                 key: "vulnerabilities",
@@ -639,8 +786,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "text", key: "host", hint: "The address the player points a database client at.", label: "Host IP", mono: true, tokens: true },
-            { kind: "text", key: "user", hint: "The login sqlmap or a client uses.", label: "Username", mono: true },
+            { kind: "text", key: "host", hint: "The address the player points a database client at.", label: "Host IP", mono: true, tokens: true, generate: { kind: "ip", ipFlavour: "public", label: "IP address" } },
+            { kind: "text", key: "user", hint: "The login sqlmap or a client uses.", label: "Username", mono: true, generate: { kind: "username", label: "username" } },
             { kind: "text", key: "password", hint: "The password. Give the player a way to find it — a config file, a leaked dump, a cracked hash.", label: "Password", mono: true },
             { kind: "tables", key: "tables", hint: "The data inside: tables holding rows of named values, ready for the player's SQL.", label: "Tables" },
             { kind: "toggle", key: "removeOnComplete", hint: "Drop the database when the quest ends.", label: "Remove when the quest ends" },
@@ -666,7 +813,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "device", label: "A remote device" },
                 ],
             },
-            { kind: "text", key: "ip", label: "Device IP", mono: true, tokens: true, hint: "Only used for a remote device. Use the same {{data.targetIp}} token you gave the network, and the files are mounted on that machine before the player ever connects." },
+            { kind: "text", key: "ip", label: "Device IP", mono: true, tokens: true, generate: { kind: "ip", ipFlavour: "private", label: "IP address" }, hint: "Only used for a remote device. Use the same {{data.targetIp}} token you gave the network, and the files are mounted on that machine before the player ever connects." },
             { kind: "text", key: "parentPath", hint: "Where the files are mounted. Folders named etc, home, logs or lib are merged into the existing ones rather than replacing them.", label: "Parent folder", mono: true, placeholder: "~/" },
             {
                 kind: "list",
@@ -684,8 +831,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "world.packData": {
         type: "world.packData",
         category: "community",
-        label: "Community data",
-        blurb: "Hand quest data to a community tool mod",
+        label: "Give data to an addon",
+        blurb: "Pick a data shape from an addon and fill it in",
         icon: "package",
         ...io,
         hook: "onStart",
@@ -699,8 +846,8 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     "pack.node": {
         type: "pack.node",
         category: "community",
-        label: "Community node",
-        blurb: "A node a tool pack provides",
+        label: "Addon node",
+        blurb: "A story node from an addon — find it under Editor Mods",
         icon: "package",
         ...io,
         hook: "onStart",
@@ -774,6 +921,124 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(DialogueNodeDataSchema),
     },
 
+    "comms.tweet": {
+        type: "comms.tweet",
+        category: "comms",
+        label: "Twotter",
+        blurb: "Post tweets from one of the mod's Twotter accounts — one, or a profile's worth of history",
+        icon: "bird",
+        targets: [inFlow],
+        sources: [outFlow],
+        hook: "onStart",
+        fields: [
+            { kind: "twotterAccount", key: "accountId", label: "Account", hint: "Which of the mod's Twotter accounts posts these. Accounts are shared by every quest, so one character can carry a story arc across several of them — make one with “Manage accounts”." },
+            {
+                kind: "note",
+                tone: "info",
+                text: "Tweets are written oldest first, the order they happened. A profile shows them the other way up — the newest at the top — and that is done by the game, not by you.",
+            },
+            {
+                kind: "note",
+                tone: "warn",
+                showWhen: { key: "migratedDate", equals: "true" },
+                text: "This node came from an older draft whose tweet time could not be carried over exactly — either it pinned a calendar date, or that was the draft's default. A fixed date cannot be turned into an age without reading today's clock, which the editor never does before export, so the node now says “1 month earlier”. Set the amount and unit below to the age you meant.",
+            },
+            {
+                kind: "list",
+                key: "tweets",
+                label: "Tweets",
+                hint: "One row is a single post. A handful of rows with “Already on the profile” times is a history the player finds when they look the character up — a month of excitement before a disappearance, say.",
+                addLabel: "Add a tweet",
+                itemTitle: (t, i) => {
+                    const text = String(t.content ?? "").replace(/\s+/g, " ").trim();
+                    const age = t.timeMode === "earlier"
+                        ? `${Number(t.agoAmount ?? 2)} ${String(t.agoUnit ?? "days")} earlier`
+                        : "on arrival";
+                    return `${text ? (text.length > 34 ? `${text.slice(0, 34)}…` : text) : `Tweet ${i + 1}`} — ${age}`;
+                },
+                fields: [
+                    { kind: "textarea", key: "content", label: "Tweet", rows: 3, hint: "What the character wrote. Tags work here, like everywhere else an author writes text." },
+                    /* HIDDEN (r187, Zeis's call): the game cannot show a tweet
+                       picture — `TwotterTweet` has no picture field and the
+                       r185 run saw none in the feed, the profile or the post's
+                       own page, while the same data-URI shape rendered fine as
+                       an account avatar. A control that does nothing is a trap
+                       for authors, so it is gone rather than explained; the
+                       project field stays and keeps migrating, and the export
+                       report still names any picture it finds. A feature
+                       request for the field is filed in
+                       the SDK issue record §10 — this line
+                       goes back the day the API accepts one. */
+                    // { kind: "image", key: "image", label: "Attached picture", hint: "…" },
+                    {
+                        kind: "select",
+                        key: "timeMode",
+                        label: "When",
+                        display: "segmented",
+                        hint: "“When the story arrives” posts the tweet as the flow reaches this node. “Already on the profile” has it sitting there from the start, that far back.",
+                        options: [
+                            { value: "arrival", label: "When the story arrives", hint: "The player sees it appear, reading “a few seconds ago”." },
+                            { value: "earlier", label: "Already on the profile", hint: "Backdated by the amount beside this: the profile reads “a month ago” the moment the player finds it." },
+                        ],
+                    },
+                    {
+                        kind: "row",
+                        label: "Posted",
+                        showWhen: { key: "timeMode", equals: "earlier" },
+                        fields: [
+                            { kind: "number", key: "agoAmount", label: "How long ago", min: 1, step: 1, hint: "Counted back from the moment the story reaches this node, on the in-game clock." },
+                            {
+                                kind: "select",
+                                key: "agoUnit",
+                                label: "Unit",
+                                hint: "Minutes through years, the same units a Timer takes.",
+                                options: TWOTTER_AGO_UNITS.map((u) => ({ value: u, label: u })),
+                            },
+                        ],
+                    },
+                    {
+                        kind: "row",
+                        label: "Shown on the post",
+                        columns: 4,
+                        fields: [
+                            { kind: "number", key: "likes", label: "Likes", min: 0, step: 1, hint: "Cosmetic, but it sells the fiction. A brand-new account with 400 likes reads as fake." },
+                            { kind: "number", key: "comments", label: "Replies", min: 0, step: 1, hint: "How many replies the post shows. The game does not open them — this is the number under the post, nothing more." },
+                            { kind: "number", key: "shares", label: "Reposts", min: 0, step: 1, hint: "How many times the post was shared. Zero is fine and often truest — a small account screaming into the void." },
+                            { kind: "number", key: "views", label: "Views", min: 0, step: 1, hint: "How many people saw it. It has to look plausible next to the likes: thousands of views with two likes reads wrong." },
+                        ],
+                    },
+                    { kind: "toggle", key: "showInTimeline", label: "Also in the main timeline", hint: "Off keeps a year of history on the profile where the player looked for it. On drops it into the public feed too — good for an announcement the whole city should see." },
+                ],
+                newItem: () => ({
+                    id: nanoid(8),
+                    content: "",
+                    timeMode: "arrival",
+                    agoAmount: 2,
+                    agoUnit: "days",
+                    likes: 24,
+                    comments: 3,
+                    shares: 1,
+                    views: 512,
+                    showInTimeline: false,
+                }),
+            },
+        ],
+        create: () => seed(TweetNodeDataSchema, {
+            tweets: [{
+                id: nanoid(8),
+                content: "",
+                timeMode: "arrival",
+                agoAmount: 2,
+                agoUnit: "days",
+                likes: 24,
+                comments: 3,
+                shares: 1,
+                views: 512,
+                showInTimeline: false,
+            }],
+        }),
+    },
+
     "reply.input": {
         type: "reply.input",
         category: "reply",
@@ -822,10 +1087,10 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "number", key: "amount", hint: "Credits deposited into the player's bank account.", label: "Amount", min: 0 },
+            { kind: "number", key: "amount", hint: "Dollars deposited into the player's bank account.", label: "Amount", min: 0 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
-            { kind: "text", key: "fromIBAN", hint: "The sending account, shown in the transfer details.", label: "From IBAN", mono: true },
-            { kind: "text", key: "fromName", hint: "The sender's name on the statement.", label: "From name" },
+            { kind: "text", key: "fromIBAN", hint: "The sending account, shown in the transfer details.", label: "From IBAN", mono: true, generate: { kind: "iban", label: "IBAN" } },
+            { kind: "text", key: "fromName", hint: "The sender's name on the statement.", label: "From name", generate: { kind: "initialName", label: "sender name" } },
             /* Percent-of-balance on a payment was removed from new nodes (it is
                the Charge node's job). Old projects that used it still run as
                written — this note is the only trace left. */
@@ -853,7 +1118,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
                     { value: "percent", label: "Percentage of balance" },
                 ],
             },
-            { kind: "number", key: "amount", hint: "Credits taken from the player's account.", label: "Amount", min: 0 },
+            { kind: "number", key: "amount", hint: "Dollars taken from the player's account.", label: "Amount", min: 0 },
             { kind: "number", key: "percent", hint: "Percentage of the player's current balance, taken when this node runs.", label: "Percent", min: 0, max: 100 },
             { kind: "text", key: "description", hint: "The label on the bank statement line.", label: "Description" },
         ],
@@ -894,6 +1159,52 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(NotifyNodeDataSchema),
     },
 
+    "fx.prompt": {
+        type: "fx.prompt",
+        category: "effect",
+        label: "Ask player",
+        blurb: "Ask for one line of text",
+        icon: "message",
+        targets: [inFlow],
+        sources: [submittedOut, failureOut, cancelledOut],
+        dynamicSources: (data) => promptSockets(data),
+        hook: "onStart",
+        fields: [
+            {
+                kind: "note",
+                tone: "info",
+                text: "Shows one question when the story reaches this node. The top output fires when the player submits text; Cancelled fires when they close it without answering.",
+            },
+            { kind: "text", key: "title", label: "Title", hint: "The heading at the top of the question box. Leave blank if the question itself is enough.", tokens: true, placeholder: "Security check" },
+            { kind: "text", key: "label", label: "Question", hint: "The sentence above the answer box — what you want the player to answer.", tokens: true, placeholder: "Enter the recovery code:" },
+            { kind: "text", key: "placeholder", label: "Example text", hint: "Grey hint inside an empty answer box. It disappears as soon as the player types.", tokens: true, placeholder: "ABCD-1234" },
+            { kind: "text", key: "defaultValue", label: "Starts filled with", hint: "Text already in the answer box when it opens. Leave blank when the player should type from scratch.", tokens: true },
+            { kind: "toggle", key: "password", label: "Mask typing", hint: "Hides what the player types, like a password box. Use for passphrases, keys and private codes." },
+            { kind: "text", key: "storeAs", label: "Save answer as", hint: "Optional name for the answer. If you type playerAnswer here, later nodes can read it with {{data.playerAnswer}}. Leave blank if only this choice matters.", mono: true, placeholder: "playerAnswer" },
+            {
+                kind: "select",
+                key: "matchMode",
+                label: "Accept",
+                hint: "Choose whether any submitted text continues, or whether the answer must match something you set.",
+                options: [
+                    { value: "any", label: "Any submitted text" },
+                    { value: "exact", label: "Exactly this answer" },
+                    { value: "contains", label: "Contains these words" },
+                    { value: "regex", label: "Matches a pattern" },
+                ],
+            },
+            { kind: "text", key: "expected", label: "Answer to accept", hint: "The text that counts as the right answer. Tags are filled before the check, so a saved password can be accepted too.", mono: true, tokens: true, showWhen: { key: "matchMode", equals: ["exact", "contains", "regex"] } },
+            { kind: "toggle", key: "caseSensitive", label: "Case sensitive", hint: "Turn off to accept any capitalisation. Turn on only when upper and lower case are part of the puzzle.", showWhen: { key: "matchMode", equals: ["exact", "contains", "regex"] } },
+            { kind: "note", tone: "warn", showWhen: { key: "matchMode", equals: "regex" }, text: "Pattern matching is powerful but easy to make unfair. Prefer exact or contains unless several different answers should count." },
+        ],
+        create: () =>
+            seed(PromptNodeDataSchema, {
+                title: "Answer needed",
+                label: "Type your answer:",
+                matchMode: "any",
+            }),
+    },
+
     "fx.setData": {
         type: "fx.setData",
         category: "effect",
@@ -921,6 +1232,51 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         create: () => seed(ClaimQuestNodeDataSchema, { questName: "" }),
     },
 
+    "fx.completeQuest": {
+        type: "fx.completeQuest",
+        category: "effect",
+        label: "Complete quest",
+        blurb: "Finish the current quest and run On quest complete",
+        icon: "check",
+        targets: [inFlow],
+        sources: [],
+        hook: "onStart",
+        fields: [
+            { kind: "note", tone: "info", text: "This is a terminal ending. Put closing mail, payments and notifications before it, or place them under On quest complete." },
+        ],
+        create: () => seed(CompleteQuestNodeDataSchema),
+    },
+
+    "fx.retireQuest": {
+        type: "fx.retireQuest",
+        category: "effect",
+        label: "Retire quest",
+        blurb: "Remove the current quest without marking it complete",
+        icon: "trash",
+        targets: [inFlow],
+        sources: [],
+        hook: "onStart",
+        fields: [
+            { kind: "note", tone: "warn", text: "This is a terminal ending. The quest disappears without rewards and without On quest complete." },
+        ],
+        create: () => seed(RetireQuestNodeDataSchema),
+    },
+
+    "fx.unclaimQuest": {
+        type: "fx.unclaimQuest",
+        category: "effect",
+        label: "Unclaim quest",
+        blurb: "Remove a claimed quest from the player's list",
+        icon: "x",
+        targets: [inFlow],
+        sources: [],
+        hook: "onStart",
+        fields: [
+            { kind: "text", key: "questName", hint: "The identifier of the claimed quest to remove. Leave blank to remove this quest.", label: "Quest", mono: true, placeholder: "blank = this quest" },
+        ],
+        create: () => seed(UnclaimQuestNodeDataSchema, { questName: "" }),
+    },
+
     "fx.shell": {
         type: "fx.shell",
         category: "effect",
@@ -945,7 +1301,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ...io,
         hook: "onStart",
         fields: [
-            { kind: "handbookArticle", key: "articleId", hint: "The in-game article the player lands on. Pick a known page, or type any article id.", label: "Article" },
+            { kind: "handbookArticle", key: "articleId", hint: "The page to open. In game 1.3.1 this opens the handbook on its own landing page: reaching a particular page is not possible until the page names the game uses are known (see the manual).", label: "Article" },
             { kind: "text", key: "category", hint: "The handbook section the article sits under.", label: "Category" },
         ],
         create: () => seed(HandbookNodeDataSchema),
@@ -974,6 +1330,36 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         ],
         create: () => seed(BranchNodeDataSchema),
     },
+    "flow.appcheck": {
+        type: "flow.appcheck",
+        category: "flow",
+        label: "App Install Check",
+        blurb: "Route on whether the player has an app",
+        icon: "branch",
+        targets: [inFlow, triggerIn],
+        sources: [appInstalledOut, appMissingOut],
+        hook: "onObjectivesStart",
+        fields: [
+            { kind: "note", tone: "info", text: "Most desktop apps are not installed on a fresh save — the player unlocks them as they go. Check before your quest sends a message to one, or the player gets a notification for an app they cannot open." },
+            {
+                kind: "selectOrCustom",
+                key: "app",
+                label: "App name",
+                hint: "Pick an app the desktop knows, or type another exactly as the desktop spells it — a spelling it does not use never matches. Terminal commands cannot be checked here; the editor says so if you type one.",
+                mono: true,
+                placeholder: "Kisscord",
+                options: APP_OPTIONS,
+            },
+            {
+                kind: "toggle",
+                key: "saveList",
+                label: "Also save the list of installed apps",
+                hint: "Stores every app the player has, so a later Branch can test the list or a message can mention what they actually own. Also the quickest way to see which apps the game counts on your own save — send the list to a Notify and read it in game.",
+            },
+            { kind: "text", key: "key", label: "Save the list as", hint: "The name the list is stored under. Two checks using the same name refresh it, which is what you want after the player unlocks something.", placeholder: "installedApps" },
+        ],
+        create: () => seed(AppCheckNodeDataSchema),
+    },
 
     "flow.delay": {
         type: "flow.delay",
@@ -985,6 +1371,91 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
         hook: "onStart",
         fields: [{ kind: "number", key: "seconds", hint: "How long the story pauses here. Fractions are fine — 0.5 waits half a second.", label: "Seconds", min: 0, step: 0.5 }],
         create: () => seed(DelayNodeDataSchema),
+    },
+
+    "flow.timer": {
+        type: "flow.timer",
+        category: "flow",
+        label: "Timer",
+        blurb: "Do something at a later in-game time",
+        icon: "hourglass",
+        ...io,
+        hook: "onStart",
+        fields: [
+            { kind: "note", tone: "info", text: "Fires the next node at a later in-game time. Wait holds the story for an exact stretch — any mix of years, months, weeks, days, hours and minutes; A coming day counts calendar time from now and rings at a clock time — “in 1 month 2 weeks 2 days, at 18:23” — so it stays right however long the player leaves the quest; An exact date pins a moment in the story's own calendar. A time that has already passed fires as soon as the story reaches the node." },
+            {
+                kind: "select",
+                key: "mode",
+                hint: "A stretch to wait, a clock time counted from now, or a fixed moment in the story's own calendar.",
+                label: "When it fires",
+                display: "segmented",
+                options: [
+                    { value: "after", label: "Wait" },
+                    { value: "daytime", label: "A coming day" },
+                    { value: "at", label: "An exact date" },
+                ],
+            },
+            {
+                kind: "row",
+                label: "Wait",
+                showWhen: { key: "mode", equals: "after" },
+                columns: 3,
+                /* The stored value stays exactly as typed; the readback only
+                   says it in words ("25 hours" -> "1 day, 1 hour"). */
+                readback: (data) => unitsReadback(data, WAIT_UNITS),
+                fields: [
+                    { kind: "number", key: "years", hint: "Whole in-game years to wait, before the shorter units beside it. A target month with fewer days uses its last day.", label: "Years", min: 0, step: 1, suffix: "years" },
+                    { kind: "number", key: "months", hint: "Whole in-game months to wait, on top of the years. 31 January plus one month lands on 28 February, not in March.", label: "Months", min: 0, step: 1, suffix: "months" },
+                    { kind: "number", key: "weeks", hint: "In-game weeks to wait, on top of the months. One week is seven in-game days.", label: "Weeks", min: 0, step: 1, suffix: "weeks" },
+                    { kind: "number", key: "days", hint: "In-game days to wait first. 0 is fine — the units are added up.", label: "Days", min: 0, step: 1, suffix: "days" },
+                    { kind: "number", key: "hours", hint: "In-game hours, on top of the days. 25 hours is a legal value.", label: "Hours", min: 0, step: 1, suffix: "hours" },
+                    { kind: "number", key: "minutes", hint: "In-game minutes, on top of the days and hours. At the default game speed one in-game minute passes every real second.", label: "Minutes", min: 0, step: 1, suffix: "minutes" },
+                ],
+            },
+            {
+                kind: "row",
+                label: "In",
+                showWhen: { key: "mode", equals: "daytime" },
+                columns: 4,
+                /* One box per unit, in the order a person says them — "1 year,
+                   1 month, 2 weeks, 2 days". Hours and minutes are deliberately
+                   absent: the clock below pins the time of day, so a box for
+                   them would be a second way to write the same number. Wait
+                   takes them instead, with no clock to collide with. */
+                fields: [
+                    { kind: "number", key: "offsetYears", hint: "In-game years from now, counted from the day the story reaches this node. A target month with fewer days uses its last day.", label: "Years", min: 0, step: 1, suffix: "years" },
+                    { kind: "number", key: "offsetMonths", hint: "In-game months from now, on top of the years. 31 January plus one month lands on 28 February, not in March.", label: "Months", min: 0, step: 1, suffix: "months" },
+                    { kind: "number", key: "offsetWeeks", hint: "In-game weeks from now, on top of the months. One week is seven in-game days.", label: "Weeks", min: 0, step: 1, suffix: "weeks" },
+                    { kind: "number", key: "offsetDays", hint: "In-game days from now, on top of the weeks and months. 0 means today, so “0 days, at 09:00” fires the next time the clock reads 09:00.", label: "Days", min: 0, step: 1, suffix: "days" },
+                ],
+            },
+            {
+                kind: "row",
+                label: "On",
+                showWhen: { key: "mode", equals: "at" },
+                fields: [
+                    { kind: "number", key: "dateDay", hint: "The in-game day of the month, as the in-game clock shows it. The field warns when that day does not exist.", label: "Day", min: 1, max: 31, step: 1 },
+                    {
+                        kind: "select",
+                        key: "dateMonth",
+                        label: "Month",
+                        numeric: true,
+                        hint: "The in-game month, by name, as the in-game clock shows it.",
+                        options: MONTH_OPTIONS,
+                    },
+                    { kind: "number", key: "dateYear", hint: "The in-game year, e.g. 2026. Read it off the in-game clock, not your own calendar.", label: "Year", min: 1970, max: 9999, step: 1 },
+                ],
+            },
+            {
+                kind: "clock",
+                label: "At",
+                showWhen: { key: "mode", equals: ["daytime", "at"] },
+                hour: { kind: "number", key: "hour", hint: "The hour the in-game clock will show, 0–23. This is the player's clock, not the wall clock.", label: "Hour", min: 0, max: 23, step: 1 },
+                minute: { kind: "number", key: "minute", hint: "The minute the in-game clock will show, 0–59.", label: "Minute", min: 0, max: 59, step: 1 },
+            },
+        ],
+        create: () => seed(TimerNodeDataSchema),
+        preview: (data) => timerSentence(data as Record<string, unknown>),
     },
 
     "flow.reroute": {
@@ -1111,7 +1582,7 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
     },
     "flow.note": {
         type: "flow.note",
-        category: "flow",
+        category: "layout",
         label: "Sticky note",
         blurb: "A comment on the canvas",
         icon: "note",
@@ -1171,16 +1642,13 @@ export const NODE_TYPES_REGISTRY: Record<NodeType, NodeTypeDef> = {
  * Node types that exist in the engine and schema but are deliberately not
  * offered in the editor's palette or add-node search.
  *
- * `world.wifi` is the reservation for the in-game wireless system (the game
- * generates hackable Wi-Fi networks, and switching between them lowers
- * suspicion), but SDK 0.21.0 ships no wireless API — the node falls back to a
- * plain router network and `ssid`/`password`/`signal` are stored but not read.
- * It is kept in `NODE_TYPES_REGISTRY` (and the schema) so legacy projects that
- * already use it still parse, compile and render; it is only hidden from the
- * authoring surface so nobody builds a "Wi-Fi" quest that cannot be validated.
- * Re-enable by removing it from this set once the SDK ships the API.
+ * This is currently empty. `world.wifi` used to live here while the project
+ * waited for a native wireless creator and in-game QA. SDK 0.24.0 now declares
+ * `Network.createWifiNetwork()`, and the r166 QA pass verified creation,
+ * scan fields, connect/disconnect events, reload stability and cracking well
+ * enough to expose Create Wi-Fi to authors.
  */
-export const PALETTE_HIDDEN_TYPES: ReadonlySet<NodeType> = new Set(["world.wifi"]);
+export const PALETTE_HIDDEN_TYPES: ReadonlySet<NodeType> = new Set();
 
 /** Palette order: categories first, then registry order within each. */
 export function paletteGroups(): { category: (typeof CATEGORIES)[number]; types: NodeTypeDef[] }[] {
@@ -1226,6 +1694,13 @@ export function storyBeatSockets(data: unknown): HandleSpec[] {
             label: c.label?.trim() || `Choice ${i + 1}`,
         })),
     ];
+}
+
+/** The Ask player outputs change labels when the author asks for a checked answer. */
+export function promptSockets(data: unknown): HandleSpec[] {
+    const mode = (data as { matchMode?: string })?.matchMode ?? "any";
+    if (mode === "any") return [submittedOut, cancelledOut];
+    return [successOut, failureOut, cancelledOut];
 }
 
 /**

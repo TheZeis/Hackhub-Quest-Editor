@@ -1,0 +1,1188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How do I… — HackHub Quest Editor handbook</title>
+<link rel="stylesheet" href="manual.css" />
+<link rel="stylesheet" href="manual-figures.css" />
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Handbook contents">
+  <div class="brand"><span class="dot"></span><strong>Quest Editor</strong></div>
+  <p class="build">Handbook · build 2026-10-03.r267</p>
+  <div class="search">
+    <input type="search" placeholder="Search the handbook…" aria-label="Search the handbook" />
+    <div class="results" role="listbox" aria-label="Search results"></div>
+  </div>
+  <ol>
+    <li><a href="index.html">Start here</a></li>
+    <li><a href="tutorial.html">Your first quest</a></li>
+    <li><a href="concepts.html">How a quest works</a></li>
+    <li><a href="nodes.html">Node reference</a></li>
+    <li><a href="guides.html">Feature guides</a></li>
+    <li><a href="how-do-i.html">How do I…</a></li>
+    <li><a href="checking.html">Checking your quest</a></li>
+    <li><a href="export.html">Exporting and installing</a></li>
+    <li><a href="troubleshooting.html">When something goes wrong</a></li>
+    <li><a href="appendices.html">Glossary and limits</a></li>
+  </ol>
+</nav>
+<main>
+<header class="hero">
+  <h1>How do I…</h1>
+  <p class="tag">Walkthroughs for practical tasks authors handle in the editor. Each guide solves one job with clear, grounded steps. All 17 guides are written and linked below.</p>
+</header>
+<section id="howto-list">
+<p>These are practical arrangements built from editor features. Each guide names the nodes you need and estimates the time. It explains why the setup works and lists common failure points. Examples draw on built-in templates and the game's own quests.</p>
+<table>
+  <thead><tr><th>Walkthrough</th><th>What it gets you</th></tr></thead>
+  <tbody>
+    <tr><td><a href="#howto-objective-that-ticks">Give the player an objective, and make it tick</a></td><td>The shape almost every quest is built on.</td></tr>
+    <tr><td><a href="#howto-npc-message">Send the player a message from an NPC</a></td><td>An employer briefs the player, in their own words.</td></tr>
+    <tr><td><a href="#howto-gated-message">Make a message arrive only after something else happens</a></td><td>The same conversation, held back until the player earns it.</td></tr>
+    <tr><td><a href="#howto-payment">Pay the player, and charge them</a></td><td>Money in both directions, and what a blank amount really does.</td></tr>
+    <tr><td><a href="#howto-branch">Branch the story on something the player did</a></td><td>One quest, two routes, and no duplicated nodes.</td></tr>
+    <tr><td><a href="#howto-passphrase">Ask the player for a passphrase, with a wrong-answer route</a></td><td>A question box, a masked answer, and somewhere to go when it is wrong.</td></tr>
+    <tr><td><a href="#howto-website">Build a website the player has to find</a></td><td>A public clue on a distinctive host the player can reach.</td></tr>
+    <tr><td><a href="#howto-hidden-page">Hide a page from in-game search</a></td><td>Unlisted from search, but still reachable by URL or dirhunter.</td></tr>
+    <tr><td><a href="#howto-file-drop">Place a file on a remote device</a></td><td>A clue placed on the right device and account.</td></tr>
+    <tr><td><a href="#howto-scan-gate">Gate progress on a target scan</a></td><td>Only a scan of the intended address advances the story.</td></tr>
+    <tr><td><a href="#howto-lead">Give the player a lead to look up</a></td><td>A scripted Whois record the player can request.</td></tr>
+    <tr><td><a href="#howto-tool-match">Match a tool addon to its target</a></td><td>Use target warnings without treating them as proof.</td></tr>
+    <tr><td><a href="#howto-app-check">Route on whether a supported app is installed</a></td><td>A safe path for players who lack the app.</td></tr>
+    <tr><td><a href="#howto-chained-talk">Chain conversations together</a></td><td>Phone calls wait to end; replies can take Wrong.</td></tr>
+    <tr><td><a href="#howto-ending">End the story cleanly with Complete quest</a></td><td>Place the final beat, reward and completion hook in order.</td></tr>
+    <tr><td><a href="#howto-from-template">Customize a template safely</a></td><td>Protect current work before replacing it with a template.</td></tr>
+    <tr><td><a href="#howto-update">Update an exported quest</a></td><td>Edit the source project and export a versioned replacement.</td></tr>
+  </tbody>
+</table>
+<p>All 17 walkthroughs are written and linked above.</p>
+</section>
+
+<section id="howto-objective-that-ticks">
+<h2>Give the player an objective, and make it tick</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/objective.html">Objective</a> · <a href="nodes/trigger-event.html">When event</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>An objective on its own is a line in the player's journal that never ticks.
+It has no idea what completing it means. The node that knows is <b>When
+event</b> — it listens to the game. It fires when the thing you asked about happens. Wire the two together and the objective finishes itself.</p>
+<p>This is the single most common shape in a quest. It is also the one thing the editor refuses to let you forget. An objective with nothing wired into its
+<b class="ui">Trigger</b> socket is flagged as an error. The player can
+never finish the quest.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Drag an <b class="ui">Objective</b> from <b>Objectives</b> onto the canvas.</li>
+  <li>Select it and fill in <b class="ui">Shown to the player</b> — the line that appears in the journal. Write it as an instruction: <code>Download the manifest from the warehouse server</code>.</li>
+  <li>Give it an <b class="ui">Identifier</b> — a short name only other nodes see, like <code>get-manifest</code>. You will not need it here, but later objectives can unlock behind this one.</li>
+  <li>Drag a <b class="ui">When event</b> from <b>Triggers</b> onto the canvas, beside the objective.</li>
+  <li>Select it and open <b class="ui">Game event</b>. Pick the event that means the player did the thing — for a downloaded file over ssh, <code>Terminal.SSH.FileDownload</code>.</li>
+  <li>Add a condition under <b class="ui">Only when</b> so any file download does not count. Set the field to <code>name</code>, the rule to <b class="ui">contains</b>, and the value to <code>manifest</code>.</li>
+  <li>Drag a wire from the <b class="ui">When</b> socket on the trigger into the <b class="ui">Trigger</b> socket on the objective. This wire is a different colour from a flow wire, because it is a different kind of connection.</li>
+  <li>Check the status bar. The error should be gone.</li>
+</ol>
+
+<figure id="figure-howto-01-objective" class="manual-figure" data-manual-figure data-scene-id="howto-01-objective">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-01-objective"
+      data-renderer-src="../figures/renderer.html?scene=howto-01-objective"
+      title="Code-rendered editor illustration: When event connected to an Objective"
+      aria-describedby="figure-caption-howto-01-objective"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-01-objective">
+    <span class="manual-figure__description">A When event connects to the Objective through a condition-coloured wire from When to Trigger.</span>
+    <span class="manual-figure__caption">The finished pair. One wire, and it goes into <b>Trigger</b> —
+  not into <b>In</b>. It is a different kind of connection, and it will refuse the wire.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Several things must happen first.</b> Add a second <b>When event</b> and wire both into the same <b class="ui">Trigger</b> socket. The objective ticks when any one of them fires — so for "do all three", gate them behind each other instead.</li>
+  <li><b>Hide it until later.</b> Turn on <b class="ui">Hidden until unlocked</b> on the objective and wire another objective's <b class="ui">Unlocks</b> socket into its <b class="ui">Unlocked by</b> socket. It stays out of the journal until then.</li>
+  <li><b>Run something when it ticks.</b> Wire the objective's <b class="ui">On complete</b> socket to whatever should happen next — a payment, a phone call, the next objective.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The objective still shows an error.</b> The wire went into <b class="ui">In</b> instead of <b class="ui">Trigger</b>. Delete it and try again — the two sockets are different colours for exactly this reason.</li>
+  <li><b>It ticks too early, or on the wrong file.</b> The condition is too loose, or missing. Narrow it, or add a second clause.</li>
+  <li><b>It never ticks even though the player did the thing.</b> The event you picked is not the one the game fires for that action. A file pulled over ssh raises two events. Listening to only one is a common miss — see <a href="troubleshooting.html#objective-never-ticks">the objective never ticks</a>.</li>
+  <li><b>You still can't see why.</b> Drop a <a href="nodes/flow-debug.html">Debug probe</a> after the objective and run a dry run. It prints what each node does when it fires , and whether it fires at all. So you can tell if the trigger is even going off.</li>
+</ul>
+</section>
+
+<section id="howto-npc-message">
+<h2>Send the player a message from an NPC</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Dialogue node, and one node already in your story to hang it off</dd>
+<dt>Takes</dt><dd>about five minutes for a single message</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>One <a href="nodes/comms-dialogue.html">Dialogue</a> node carries a whole conversation:
+every line spoken, and every reply the player can pick. You write it in the inspector, and
+the game shows it in the player's own phone, chat or inbox.</p>
+<p>Choose the form to match what the story needs. A call interrupts, so it reads as urgent.
+Mail leaves something the player can go back to. Kisscord reads like a chat and suits a
+back-and-forth. WeeChat is a public room, so other characters can be present.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the node down.</b> Dialogue is in the Comms group of the palette.</li>
+  <li><b>Wire it into the story.</b> Drag a Then wire from the node before it into
+  <b class="ui">In</b>. Nothing reaches a node until something points at it, and the node
+  will say <b>Unreachable</b> until you do.</li>
+  <li><b>Choose the form.</b> Open the node and set <b class="ui">Conversation type</b> to
+  Phone call, Kisscord chat, E-Mail or WeeChat. Each one opens its own editor, so pick
+  before you write much.</li>
+  <li><b>Write the script.</b> Every line has a speaker and the words they say. On a call
+  the speaker box reads <b class="ui">Caller</b>. Add a line for everything spoken,
+  including the player's side.</li>
+  <li><b>Decide when the story moves on.</b> On a call, <b class="ui">Out fires</b> chooses
+  between "When the call ends" and "Right after starting the call". Leave it on the first
+  unless something has to happen while the player is still listening.</li>
+</ol>
+<figure id="figure-howto-02-npc-message" class="manual-figure" data-manual-figure data-scene-id="howto-02-npc-message">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:720px;--figure-ratio:1.888889">
+    <iframe
+      data-manual-figure-scene="howto-02-npc-message"
+      data-renderer-src="../figures/renderer.html?scene=howto-02-npc-message"
+      title="Code-rendered editor illustration: Phone call node with a two-line script"
+      aria-describedby="figure-caption-howto-02-npc-message"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-02-npc-message">
+    <span class="manual-figure__description">A Phone call Dialogue node has a Then wire and a two-line script in its inspector.</span>
+    <span class="manual-figure__caption">A two-line call. The node holds the conversation; the inspector is where
+  you write it.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let the player answer, and get it wrong.</b> Give a line a button for the player to
+  pick. The <b class="ui">Wrong</b> socket then carries the story somewhere else. You can write what the character says when the answer misses.</li>
+  <li><b>Make a chat arrive later.</b> Kisscord and WeeChat carry a
+  <b class="ui">Play when the story reaches this node</b> toggle. Left off, the conversation
+  is handed to the game when the quest starts — the safe, normal choice. Switched on, nothing
+  appears until the story arrives, so a chat can land on a timed beat.</li>
+  <li><b>Know what switching that on costs.</b> A live chat is delivered one message at a
+  time. Player replies, uploads and "unlocks after" steps only work in the ordinary script. The game also does not clean live messages up when the quest ends.</li>
+  <li><b>Keep a paper trail.</b> Use E-Mail when the player should be able to find the
+  message again later.</li>
+  <li><b>Attach a file to a Kisscord chat.</b> It does not reach the player as a file. It
+  arrives as a line of text standing in for it, so write around that.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The node says Unreachable.</b> Nothing is wired into <b class="ui">In</b>. Connect
+  it to the chain that should run it — nodes do nothing until something points at them.</li>
+  <li><b>Everything after the call runs straight away.</b> <b class="ui">Out fires</b> is set
+  to "Right after starting the call". Switch it back to "When the call ends".</li>
+  <li><b>You changed the conversation type and the script looks empty.</b> Each form keeps
+  its own script, so nothing is lost. Switch back and yours is still there.</li>
+  <li><b>A timed chat never plays.</b> The toggle is on but nothing is wired into the node,
+  so the story never arrives. Wire it in, or turn the toggle off.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  after the node and run a dry run. It prints what each node does when it fires. So you can tell whether the story reaches the conversation at all.</li>
+</ul>
+</section>
+
+<section id="howto-gated-message">
+<h2>Make a message arrive only after something else happens</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Dialogue node, a Branch, and a When event to gate it on</dd>
+<dt>Takes</dt><dd>about ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A conversation is worth more once the player has earned it. The message that lands after
+the break-in lands harder than the one waiting at the start.</p>
+<p>A conversation has no "wait until" field. You build the wait out of two pieces: something
+that notices the thing happened. The other is a  Branch that only lets the story through when it did.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the conversation down.</b> A Dialogue node, written the way you want it. Wire
+  nothing into it yet.</li>
+  <li><b>Notice the thing.</b> Drop a <a href="nodes/trigger-event.html">When event</a> node
+  and pick the <b class="ui">Game event</b> the game fires for the action you care about.</li>
+  <li><b>Add the gate.</b> Drop a <a href="nodes/flow-branch.html">Branch</a>. Drag a wire
+  from the event node's <b class="ui">When</b> socket into the branch's
+  <b class="ui">Trigger</b> socket. That wire is cyan, because it carries a condition rather
+  than the story.</li>
+  <li><b>Say what has to be true.</b> On the branch, <b class="ui">Test against</b> reads
+  details from the event that fired. It can also read quest data you stored earlier with a Set quest data
+  node. Add your clauses under <b class="ui">Take the "Yes" path when</b>. Every clause has
+  to hold for the Yes path to run.</li>
+  <li><b>Let the story in.</b> Drag a Then wire from the branch's <b class="ui">Yes</b> into
+  the conversation's <b class="ui">In</b>.</li>
+  <li><b>Give No somewhere to go.</b> Both paths need an end. Leave <b class="ui">No</b>
+  hanging and the node says <b>Dead end</b>, because the quest stalls if the player takes it.</li>
+</ol>
+<figure id="figure-howto-03-gated-message" class="manual-figure" data-manual-figure data-scene-id="howto-03-gated-message">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-03-gated-message"
+      data-renderer-src="../figures/renderer.html?scene=howto-03-gated-message"
+      title="Code-rendered editor illustration: Event condition branching to a dialogue"
+      aria-describedby="figure-caption-howto-03-gated-message"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-03-gated-message">
+    <span class="manual-figure__description">A When event feeds a Branch condition. The Yes path reaches Dialogue; the No path continues elsewhere.</span>
+    <span class="manual-figure__caption">The gate. The cyan wire carries a condition; only the blue wires carry the
+  story.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Gate on an objective instead.</b> An Objective has an <b class="ui">On complete</b>
+  socket. Wire that straight into the conversation and the message lands the moment the
+  objective ticks — no branch needed.</li>
+  <li><b>More than two outcomes.</b> Chain branches. Wire the first one's
+  <b class="ui">No</b> into a second branch's <b class="ui">In</b>, and each one splits
+  again. The canvas stays readable.</li>
+  <li><b>Test something that happened earlier.</b> Store it with a
+  <a href="nodes/fx-setdata.html">Set quest data</a> node, then point
+  <b class="ui">Test against</b> at that value instead of at the event.</li>
+  <li><b>Gate the message, not the story.</b> Leave the conversation on the main path and
+  put the gate in front of something else. The player gets the briefing either way, and only
+  the reward waits.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The wire into Trigger will not connect.</b> You are dragging from a flow socket.
+  Wires only join sockets of the same kind, and a condition wire has to come from a
+  <b class="ui">When</b> socket.</li>
+  <li><b>The message never arrives.</b> The event you picked is not the one the game fires
+  for that action. See <a href="troubleshooting.html#objective-never-ticks">the objective
+  never ticks</a>, which covers the same mistake.</li>
+  <li><b>Both paths run.</b> Your clauses are empty or too loose, so the Yes path always
+  holds. Narrow them — every clause has to be true.</li>
+  <li><b>The node says Dead end.</b> One of <b class="ui">Yes</b> or <b class="ui">No</b> has
+  no wire. Both need somewhere to go, even if No leads straight to the end.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  on each side of the branch and run a dry run. It prints what fires, so you can see which
+  way the gate sent the story.</li>
+</ul>
+</section>
+
+<section id="howto-payment">
+<h2>Pay the player, and charge them</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Pay the player node and a Charge the player node, each somewhere on your story path</dd>
+<dt>Takes</dt><dd>about five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Money is how a quest tells the player what the work was worth. A payment at the end says
+it counted. A charge at the start says the tools cost something.</p>
+<p>Two nodes, one for each direction. <a href="nodes/fx-pay.html">Pay the player</a> deposits.
+<a href="nodes/fx-withdraw.html">Charge the player</a> takes. Both sit on the story path, run
+when the story reaches them, and hand it straight on.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Put the node on the path.</b> Both are in the Effect group. Wire a Then wire in and
+  another out.</li>
+  <li><b>Set the amount.</b> On Pay the player, <b class="ui">Amount</b> is the dollars to
+  deposit. A new node starts at <code>100</code>.</li>
+  <li><b>Name it on the statement.</b> <b class="ui">Description</b> is the label the player
+  sees in their bank. Write it the way the client would.</li>
+  <li><b>Say who sent it.</b> <b class="ui">From IBAN</b> and <b class="ui">From name</b> fill
+  in the transfer details. Each has a generator beside it, so you do not have to invent an
+  account number.</li>
+  <li><b>Charging works the same way, with one extra choice.</b> On Charge the player, pick
+  <b class="ui">Amount type</b> first. Fixed amount takes the number you type. Percentage of
+  balance takes a slice of whatever the player has when the node runs.</li>
+</ol>
+<figure id="figure-howto-04-payment" class="manual-figure" data-manual-figure data-scene-id="howto-04-payment">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-04-payment"
+      data-renderer-src="../figures/renderer.html?scene=howto-04-payment"
+      title="Code-rendered editor illustration: Payment node on the story path"
+      aria-describedby="figure-caption-howto-04-payment"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-04-payment">
+    <span class="manual-figure__description">Pay the player sits on the story path, with an amount, description and sender.</span>
+    <span class="manual-figure__caption">One payment. The amount, the statement label, and who it came from.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Charge a slice instead of a sum.</b> Percentage of balance scales to how rich the
+  player is. It works out to whole dollars. A small balance can round down to a much
+  smaller charge than you pictured.</li>
+  <li><b>Put a tag in the description.</b> The statement label is filled in when the node runs. A tag you stored earlier can appear in it — the client's own name, for instance.</li>
+  <li><b>Charge for the tools, not the job.</b> Put the charge before the work rather than
+  after it. The player pays, then finds out what they bought.</li>
+  <li><b>Pay in stages.</b> Two payments read better than one big transfer. Half on the
+  briefing, half when the objective ticks.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>Nothing happens and nothing complains.</b> The amount is <code>0</code> or blank.
+  A payment of nothing is skipped outright, and the story carries on as if the node had run.
+  There is no warning for this, so check the field.</li>
+  <li><b>The player was charged less than you set.</b> You used Percentage of balance and it
+  rounded down to whole dollars.</li>
+  <li><b>The transfer shows no sender.</b> Fill <b class="ui">From IBAN</b> and
+  <b class="ui">From name</b> together, or leave both empty. They travel as a pair.</li>
+  <li><b>You cannot find a percentage option on Pay the player.</b> There is not one. Taking
+  a slice is the Charge node's job. Older projects that had one still run as written.</li>
+  <li><b>You still cannot see why.</b> Put a <a href="nodes/flow-debug.html">Debug probe</a>
+  either side of the node and run a dry run. It prints what fires, so you can tell whether
+  the story reaches the payment at all.</li>
+</ul>
+</section>
+
+<section id="howto-branch">
+<h2>Branch the story on something the player did</h2>
+<dl class="facts-list">
+<dt>You'll need</dt><dd>a Branch node, something to test, and somewhere for both routes to end up</dd>
+<dt>Takes</dt><dd>about ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Two routes through one quest. The player who got in quietly and the player who set off the
+alarm both finish. Neither sees the other's version.</p>
+<p>The two routes do not need two copies of the ending. Only one side of a branch ever runs. Both can walk back into the same node and it runs once.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Choose the moment.</b> Pick the point where the routes part. Everything before it
+  stays shared, and everything after can be shared again.</li>
+  <li><b>Drop the Branch.</b> It is in the Flow group. Wire the story into
+  <b class="ui">In</b>.</li>
+  <li><b>Give it something to test.</b> A branch reads details from the event that fired, or
+  quest data you stored earlier. Drag a When wire from a
+  <a href="nodes/trigger-event.html">When event</a> node into <b class="ui">Trigger</b>, or
+  point <b class="ui">Test against</b> at stored data instead.</li>
+  <li><b>Write the condition.</b> Under <b class="ui">Take the "Yes" path when</b>, add your
+  clauses. Every one has to hold, or the No path runs.</li>
+  <li><b>Build both routes.</b> Wire <b class="ui">Yes</b> and <b class="ui">No</b> into
+  whatever each version needs. Keep them short — the differences are the point.</li>
+  <li><b>Bring them back together.</b> Wire the end of both routes into one shared node. It
+  runs once, because only one route ever got there.</li>
+</ol>
+<figure id="figure-howto-05-branch" class="manual-figure" data-manual-figure data-scene-id="howto-05-branch">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-05-branch"
+      data-renderer-src="../figures/renderer.html?scene=howto-05-branch"
+      title="Code-rendered editor illustration: Two branch paths rejoining one shared node"
+      aria-describedby="figure-caption-howto-05-branch"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-05-branch">
+    <span class="manual-figure__description">A Branch splits into Yes and No routes. Both routes join one shared node.</span>
+    <span class="manual-figure__caption">The shape that avoids duplication: part in the middle, shared at both
+  ends.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Three outcomes or more.</b> Chain branches. Wire the first one's
+  <b class="ui">No</b> into a second branch's <b class="ui">In</b>, and each one splits again.
+  The canvas stays readable.</li>
+  <li><b>Test something from earlier in the quest.</b> Store it with a
+  <a href="nodes/fx-setdata.html">Set quest data</a> node when it happens, then point
+  <b class="ui">Test against</b> at that value. The branch no longer needs an event.</li>
+  <li><b>Tidy wires that cross.</b> Double-click a wire to drop a
+  <a href="nodes/flow-reroute.html">Reroute</a> into it. Wires route through it, and it
+  changes nothing about the story.</li>
+  <li><b>Branch on a wrong answer instead.</b> A Dialogue node's <b class="ui">Wrong</b>
+  socket is already a fork. Use it when the split is about what the player said.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The node says Dead end.</b> One of <b class="ui">Yes</b> or <b class="ui">No</b> has
+  no wire, and the quest stalls if the player takes it. Both need somewhere to go.</li>
+  <li><b>Both routes run.</b> Your clauses are empty or too loose, so the Yes path always
+  holds. Narrow them — every clause has to be true.</li>
+  <li><b>The shared ending plays twice.</b> That node has another wire into it as well. A
+  node runs every time the story reaches it, so give the shared node one way in.</li>
+  <li><b>The wire into Trigger will not connect.</b> Wires only join sockets of the same
+  kind. A condition wire has to come from a <b class="ui">When</b> socket, not a flow one.</li>
+  <li><b>You still cannot see which way it went.</b> Put a
+  <a href="nodes/flow-debug.html">Debug probe</a> on each route and run a dry run. Only the
+  one the story took will print.</li>
+</ul>
+</section>
+
+<section id="howto-passphrase">
+<h2>Ask the player for a passphrase, with a wrong-answer route</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/fx-prompt.html">Ask player</a>, a clue that reveals the passphrase, and three possible follow-ups</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">Ask player</b> opens a question box when the story reaches it. It accepts one line of text.</p>
+<p>Turn on <b class="ui">Mask typing</b> to hide the answer while the player enters it.</p>
+<p>With <b class="ui">Accept</b> set to check an answer, the node shows <b class="ui">Correct</b> and <b class="ui">Wrong</b> outputs. Closing the box uses <b class="ui">Cancelled</b>.</p>
+<p>The player should have a way to discover the passphrase before this question appears.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Choose the moment.</b> Put the question after the player can find the passphrase.</li>
+  <li><b>Add Ask player.</b> Find it under <b>Effects</b>. Connect the previous story step to its <b class="ui">In</b> socket.</li>
+  <li><b>Write the question.</b> Fill <b class="ui">Question</b> with words that tell the player what to enter. Add a <b class="ui">Title</b> only if the question needs a heading.</li>
+  <li><b>Hide the typing.</b> Turn on <b class="ui">Mask typing</b>.</li>
+  <li><b>Set the accepted answer.</b> Set <b class="ui">Accept</b> to <b class="ui">Exactly this answer</b>. Fill <b class="ui">Answer to accept</b> with the passphrase from the clue.</li>
+  <li><b>Set capitalisation.</b> Leave <b class="ui">Case sensitive</b> off unless capital letters matter to the puzzle.</li>
+  <li><b>Connect all three routes.</b> Send <b class="ui">Correct</b> to the success route. Send <b class="ui">Wrong</b> to a hint or other consequence. Connect <b class="ui">Cancelled</b> to what should happen if the player closes the box.</li>
+</ol>
+
+<figure id="figure-howto-06-passphrase" class="manual-figure" data-manual-figure data-scene-id="howto-06-passphrase">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:720px;--figure-ratio:1.888889">
+    <iframe
+      data-manual-figure-scene="howto-06-passphrase"
+      data-renderer-src="../figures/renderer.html?scene=howto-06-passphrase"
+      title="Code-rendered editor illustration: Ask player node with three response routes"
+      aria-describedby="figure-caption-howto-06-passphrase"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-06-passphrase">
+    <span class="manual-figure__description">Ask player with Mask typing on and Exactly this answer selected; Correct, Wrong and Cancelled each lead onward.</span>
+    <span class="manual-figure__caption">Give a match, a miss and a closed question box separate follow-ups.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let capitalisation vary.</b> Leave <b class="ui">Case sensitive</b> off. That is the default.</li>
+  <li><b>Accept extra words.</b> Choose <b class="ui">Contains these words</b> if the player may include other text.</li>
+  <li><b>Use the answer later.</b> Fill <b class="ui">Save answer as</b> only if later messages or branches need the typed text.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>No Wrong output appears.</b> Change <b class="ui">Accept</b> from <b class="ui">Any submitted text</b> to <b class="ui">Exactly this answer</b>.</li>
+  <li><b>Every answer takes Wrong.</b> Check <b class="ui">Answer to accept</b>. An empty accepted answer cannot match, and the editor warns you.</li>
+  <li><b>The right word still fails.</b> Turn off <b class="ui">Case sensitive</b> unless capitals are part of the puzzle.</li>
+  <li><b>Closing runs the wrong reply.</b> Wire <b class="ui">Cancelled</b> separately. Closing does not use <b class="ui">Wrong</b>.</li>
+  <li><b>The dry run chooses the wrong route.</b> A dry run uses the node's default or a simulated answer. Test in-game with a correct answer, a wrong answer and a closed box.</li>
+</ul>
+</section>
+
+<section id="howto-website">
+<h2>Build a website the player has to find</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="guides.html#websites">Websites</a>, one public clue, and a way to tell the player the host</dd>
+  <dt>Takes</dt><dd>About ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A website can carry a clue in plain sight. The player visits it in the game's browser and reads the page.</p>
+<p>The site host is the address the player types. Give the player that host before you ask them to visit.</p>
+<p>A mail, dialogue or earlier clue can provide it. This walkthrough keeps the home page public and searchable.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Start blank.</b> If the builder is empty, click <b class="ui">Blank website</b>. Otherwise click <b class="ui">Add website</b>, then choose <b class="ui">Blank website</b>. It starts with a Home page at <code>/</code> and sample text.</li>
+  <li><b>Choose a host.</b> Replace <code>example.net</code> in <b class="ui">Host</b> with a distinctive address. Give each site in this mod its own host.</li>
+  <li><b>Edit the public page.</b> Select Home at <code>/</code>. Leave the editor on <b class="ui">visual</b>, replace the sample words, and put your clue in visible text. Change <b class="ui">Browser tab title</b> if you want a different tab label.</li>
+  <li><b>Keep it findable.</b> Leave <b class="ui">Listed in the in-game search</b> on. It starts on by default. Turning it off hides the page from search, but its direct address still works.</li>
+  <li><b>Check the result.</b> Select <b class="ui">preview</b>. Check the host and path at the top. Replace any sample text you missed.</li>
+  <li><b>Send the clue.</b> Put the same host in a message the player sees before they need the site. The home page needs no extra path. If you add another page, share its path or link to it from the home page.</li>
+</ol>
+
+<figure id="figure-howto-07-website" class="manual-figure" data-manual-figure data-scene-id="howto-07-website" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="howto-07-website"
+      data-renderer-src="../figures/renderer.html?scene=howto-07-website"
+      title="Code-rendered editor illustration: Website builder preview of the public clue page"
+      aria-describedby="figure-caption-howto-07-website"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-07-website">
+    <span class="manual-figure__description">The website builder shows the Greyline Dispatch host and its listed /p/night-shift article in the preview.</span>
+    <span class="manual-figure__caption">The public article at /p/night-shift carries the byline clue.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Website builder preview of the public clue page" hidden>View larger</button>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Add another page.</b> Use <b class="ui">New page</b> and choose a public layout, such as <b class="ui">Newsletter article</b>. Link it from the home page or tell the player its path.</li>
+  <li><b>Gate progress on a visit.</b> Give the target page its own path. Follow the <a href="#howto-objective-that-ticks">objective walkthrough</a> with <code>Browser.WebsiteOpened</code> and match <code>Url</code> to that path. This detects opening the page, not reading it.</li>
+  <li><b>Make the host a lookup target.</b> Add <a href="nodes/world-domain.html">Register domain</a> only if the player should look up the host with <code>whois</code>. The builder's <b class="ui">Host</b> stays the browser address.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The export flags the host.</b> Replace <code>example.net</code> with a distinctive host. Two sites in this mod cannot share one host.</li>
+  <li><b>The page is missing from search.</b> Turn on <b class="ui">Listed in the in-game search</b>. If it is off, the player needs its direct address.</li>
+  <li><b>The browser cannot find the page.</b> Check <b class="ui">Host</b> and <b class="ui">Path</b>. An in-site link must match a page path on this site.</li>
+</ul>
+</section>
+
+<section id="howto-hidden-page">
+<h2>Hide a page from in-game search</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="guides.html#websites">Websites</a>, a page to unlist, and optionally <a href="nodes/trigger-event.html">When event</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Turning off <b class="ui">Listed in the in-game search</b> removes a page from search. It does not make the page private.</p>
+<p>Players can still type its full address. They can also find its path with <code>dirhunter</code>. Use this for discoverable pages, not secrets.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>In <b class="ui">Websites</b>, select the site and page. Note the site's <b class="ui">Host</b> and the page's <b class="ui">Path</b>.</li>
+  <li>Turn off <b class="ui">Listed in the in-game search</b>. The page leaves search but stays reachable by its address.</li>
+  <li>Give the player the site's host. Include a clue about the site if they must search for its hidden path.</li>
+  <li>To check a completed search, add a <b class="ui">When event</b>. Choose <code>Terminal.Dirhunter</code>.</li>
+  <li>Under <b class="ui">Only when</b>, add a condition. Type <code>results</code> as the event detail, choose <b class="ui">contains</b>, and enter the page path as the value.</li>
+  <li>Connect the trigger's <b class="ui">When</b> wire to an objective's <b class="ui">Trigger</b> socket. This checks discovery, not whether the page was opened.</li>
+  <li>To check a visit, choose <code>Browser.WebsiteOpened</code> instead. Match <code>Url</code> to the page path and connect its <b class="ui">When</b> wire.</li>
+</ol>
+
+<figure id="figure-howto-08-hidden-page" class="manual-figure" data-manual-figure data-scene-id="howto-08-hidden-page" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:820px;--figure-ratio:1.560976">
+    <iframe
+      data-manual-figure-scene="howto-08-hidden-page"
+      data-renderer-src="../figures/renderer.html?scene=howto-08-hidden-page"
+      title="Code-rendered editor illustration: Unlisted page in the website builder"
+      aria-describedby="figure-caption-howto-08-hidden-page"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-08-hidden-page">
+    <span class="manual-figure__description">A selected website page with Listed in the in-game search turned off, plus its host and path.</span>
+    <span class="manual-figure__caption">Unlisted pages leave search, but remain reachable by address.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Unlisted page in the website builder" hidden>View larger</button>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Give the player a direct link.</b> Put the complete address in a message. The search listing does not block that route.</li>
+  <li><b>Keep the rest of the site public.</b> Change the listing setting on the individual page you want to unlist.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The page still appears in search.</b> Check the listing setting on that page, not another page on the site.</li>
+  <li><b>The objective ticks on another result.</b> Match <code>results</code> against the complete path you expect.</li>
+  <li><b>The hidden page opens from a typed address.</b> That is expected. The setting removes search listings; it does not block direct access.</li>
+</ul>
+</section>
+
+<section id="howto-file-drop">
+<h2>Put a file on a remote device</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-network.html">Create network</a> and <a href="nodes/world-files.html">Place files</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>Remote files are included with a matching network device at export. They are there before the player connects.</p>
+<p>The editor places them under the account marked <b class="ui">Accepts reverse TCP</b>. If none is marked, it uses the first account.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Create network</b> node and choose the device that should hold the clue. The game assigns its address.</li>
+  <li>Add <b class="ui">Place files</b>. Set <b class="ui">Where</b> to <b class="ui">A remote device</b>.</li>
+  <li>Set <b class="ui">Device IP</b> to the same address as the target. For the main network device, use <code>{{data.targetIp}}</code>.</li>
+  <li>Set <b class="ui">Parent folder</b>, such as <code>~/docs</code>. Choose a folder the player can find in their account.</li>
+  <li>Click <b class="ui">Add file</b>. Fill in <b class="ui">Name</b>, <b class="ui">Extension</b> and <b class="ui">Contents</b>.</li>
+  <li>Give the player a way into that device and account. See <a href="nodes/world-network.html">Create network</a> for account and port settings.</li>
+</ol>
+
+<figure id="figure-howto-09-file-drop" class="manual-figure" data-manual-figure data-scene-id="howto-09-file-drop">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-09-file-drop"
+      data-renderer-src="../figures/renderer.html?scene=howto-09-file-drop"
+      title="Code-rendered editor illustration: Network and file nodes aimed at the same device"
+      aria-describedby="figure-caption-howto-09-file-drop"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-09-file-drop">
+    <span class="manual-figure__description">Create network and Place files aimed at the same remote device, with a clue file listed.</span>
+    <span class="manual-figure__caption">The same device address ties the file to its target.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Put a folder tree there.</b> Set <b class="ui">Parent folder</b> to a path such as <code>~/docs</code>, or add a folder row.</li>
+  <li><b>Write to the player's PC instead.</b> Set <b class="ui">Where</b> to <b class="ui">The player's PC</b>. That copy is written when the story reaches the node.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The export says the device was not found.</b> Match <b class="ui">Device IP</b> to the address of a device in this quest's network.</li>
+  <li><b>The file is missing after login.</b> Check which account accepts reverse TCP. Otherwise, the first account owns the files.</li>
+  <li><b>The folder is empty.</b> Add at least one file and fill in its contents.</li>
+</ul>
+</section>
+
+<section id="howto-scan-gate">
+<h2>Gate progress on a target scan</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-network.html">Create network</a>, <a href="nodes/objective.html">Objective</a> and <a href="nodes/trigger-event.html">When event</a></dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>An objective can wait for the player to scan one particular address. Its completion can release the next story beat.</p>
+<p>The game assigns the network address. Use <code>{{data.targetIp}}</code> instead of copying an address from an example.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add an <b class="ui">Objective</b> that asks the player to scan the target.</li>
+  <li>Add a <b class="ui">When event</b> node. Choose <code>Terminal.NmapScan</code> under <b class="ui">Game event</b>.</li>
+  <li>Under <b class="ui">Only when</b>, add a condition. Type <code>ip</code> as the event detail, choose <b class="ui">is exactly</b>, and enter <code>{{data.targetIp}}</code> as the value.</li>
+  <li>Connect <b class="ui">When</b> from the trigger to the objective's <b class="ui">Trigger</b> socket. Do not connect it to the flow input.</li>
+  <li>Connect the objective's <b class="ui">On complete</b> output to the next story node. That beat starts after the matching scan.</li>
+</ol>
+
+<figure id="figure-howto-10-scan-gate" class="manual-figure" data-manual-figure data-scene-id="howto-10-scan-gate">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-10-scan-gate"
+      data-renderer-src="../figures/renderer.html?scene=howto-10-scan-gate"
+      title="Code-rendered editor illustration: Nmap scan event wired to an Objective"
+      aria-describedby="figure-caption-howto-10-scan-gate"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-10-scan-gate">
+    <span class="manual-figure__description">A Terminal.NmapScan condition matches the ip field against {{data.targetIp}} and is wired into an Objective's Trigger socket.</span>
+    <span class="manual-figure__caption">The event checks the scanned address, not the command's timing.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Ask for an ordinary scan.</b> Match <code>ip</code> only. A version scan is not required.</li>
+  <li><b>Show a reply after completion.</b> Connect the objective's completion output to a message or another objective.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The objective never ticks.</b> Check that the scan targeted this quest's device and the condition uses <code>ip</code>.</li>
+  <li><b>The address changes between builds.</b> Use <code>{{data.targetIp}}</code> for the game-assigned target instead of a typed example address.</li>
+  <li><b>The next beat starts too soon.</b> Connect it to <b class="ui">On complete</b>, not directly after the trigger.</li>
+</ul>
+</section>
+
+<section id="howto-lead">
+<h2>Give the player a lead to look up</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/world-toolresponse.html">Tool response</a> and a domain the player can investigate</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A clue can name a domain, then let the player ask <code>whois</code> for its record. The reply is text you provide.</p>
+<p><b class="ui">Register domain</b> is separate. Add it only when the player should also resolve that domain to an address.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Tool response</b> node to the quest.</li>
+  <li>Set <b class="ui">Tool</b> to <code>whois</code>. Set <b class="ui">Keyed by</b> to the exact domain the player will type.</li>
+  <li>Write one fact per line under <b class="ui">Response</b>. Use labels such as <code>Domain</code>, <code>IP</code>, <code>Registrant</code> and <code>Email</code>.</li>
+  <li>Give the same domain to the player in a message, website or other clue. Keep its spelling identical to <b class="ui">Keyed by</b>.</li>
+  <li>To count the lookup, add a <b class="ui">When event</b>. Choose <code>Terminal.Whois</code> and match its <code>domain</code> to the clue.</li>
+  <li>Connect the trigger's <b class="ui">When</b> wire to the objective's <b class="ui">Trigger</b> socket.</li>
+</ol>
+
+<figure id="figure-howto-11-lead" class="manual-figure" data-manual-figure data-scene-id="howto-11-lead">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-11-lead"
+      data-renderer-src="../figures/renderer.html?scene=howto-11-lead"
+      title="Code-rendered editor illustration: Whois tool response for a domain"
+      aria-describedby="figure-caption-howto-11-lead"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-11-lead">
+    <span class="manual-figure__description">A Tool response set to whois, keyed to a domain, with labeled response lines.</span>
+    <span class="manual-figure__caption">The lookup returns the facts you wrote for that domain.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let the player use <code>nslookup</code> too.</b> Add <a href="nodes/world-domain.html">Register domain</a> and point <b class="ui">Resolves to</b> at the intended address.</li>
+  <li><b>Use a changing network address.</b> Put <code>{{data.targetIp}}</code> in the response's IP line.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The normal Whois result appears.</b> Check the tool name and exact input in <b class="ui">Keyed by</b>.</li>
+  <li><b>The response is blank.</b> Add labeled lines under <b class="ui">Response</b>.</li>
+  <li><b><code>nslookup</code> cannot resolve the name.</b> A Whois response does not register a domain. Add <b class="ui">Register domain</b> separately.</li>
+</ul>
+</section>
+
+<section id="howto-tool-match">
+<h2>Match a tool addon to its target</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="guides.html#addons">A tool mod's <code>.json</code> pack</a>, a target in your quest, and the matching game mod</dd>
+  <dt>Takes</dt><dd>About ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A loaded pack lets the editor compare your declared targets with a tool mod's stated requirements. It cannot test the mod in the game.</p>
+<p>Target warnings appear only when the pack is loaded, the quest uses it, and the quest declares a target.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Ask the tool mod's author for its <code>.json</code> pack. Open <b class="ui">Addons</b> and choose <b class="ui">Load a pack (<code>.json</code>)</b>.</li>
+  <li>Keep in mind that the pack is stored in this browser, not in your project. Players still need the matching game mod.</li>
+  <li>Read the pack's target requirements. Give your target a listed service and fill in any required port versions or domain weaknesses.</li>
+  <li>For example, the Recon-NG pack accepts services such as <code>http</code>. It also recognizes aliases such as <code>https</code> and <code>web</code>.</li>
+  <li>For that pack, add version text to each service port. Add a supported weakness, such as <code>RCE</code>, to a registered domain.</li>
+  <li>Use an event, data node or addon node from the pack in the quest. The editor checks targets only when the quest shows it uses that pack.</li>
+  <li>Open <b class="ui">Export mod</b> or <b class="ui">Dry run</b>. Read the target warnings and adjust any unmatched services, versions or weaknesses.</li>
+</ol>
+
+<figure id="figure-howto-12-tool-match" class="manual-figure" data-manual-figure data-scene-id="howto-12-tool-match" data-manual-figure-expandable="true">
+  <div class="manual-figure__stage" style="--figure-width:1360px;--figure-height:820px;--figure-ratio:1.658537">
+    <iframe
+      data-manual-figure-scene="howto-12-tool-match"
+      data-renderer-src="../figures/renderer.html?scene=howto-12-tool-match"
+      title="Code-rendered editor illustration: Loaded Recon-NG addon beside an SSH network target"
+      aria-describedby="figure-caption-howto-12-tool-match"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1360"
+      height="820"
+    ></iframe>
+    <div class="manual-figure__click-target" data-manual-figure-open aria-hidden="true" title="Click to open a larger view" hidden></div>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-12-tool-match">
+    <span class="manual-figure__description">The loaded Recon-NG pack lists supported services beside a network target with a fixed SSH port and version.</span>
+    <span class="manual-figure__caption">The pack list and the target details are shown together; this view does not prove compatibility.</span>
+  </figcaption>
+  <button class="manual-figure__expand" type="button" data-manual-figure-open aria-label="View larger illustration: Loaded Recon-NG addon beside an SSH network target" hidden>View larger</button>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Check another pack.</b> Use the rules in that pack instead of copying the Recon-NG example.</li>
+  <li><b>Keep a local checklist.</b> Addons stay in this browser's storage, so load the pack again in another browser.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>No target warnings appear.</b> Confirm the pack is loaded, the quest uses it, and a target is declared.</li>
+  <li><b>A service warning appears.</b> Change the target's service to one accepted by the pack.</li>
+  <li><b>A version warning disappears.</b> That confirms a version value is present. It does not prove that version fits the tool's real requirements.</li>
+</ul>
+</section>
+
+<section id="howto-app-check">
+<h2>Route on whether a supported app is installed</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/flow-appcheck.html">App Install Check</a> and a desktop app your story may require</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">App Install Check</b> checks desktop apps, not terminal commands. It routes the story through <b class="ui">Installed</b> or <b class="ui">Missing</b>.</p>
+<p>It does not install the app. Give players who lack it another way forward.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Place the check.</b> Put <b class="ui">App Install Check</b> before a story beat that assumes the player can open an app. Connect the previous step to its <b class="ui">In</b> socket.</li>
+  <li><b>Choose the app.</b> Select its desktop name under <b class="ui">App name</b>. Supported choices include <code>Kisscord</code>, <code>Wireshark</code> and <code>Database Manager</code>.</li>
+  <li><b>Connect both routes.</b> Send <b class="ui">Installed</b> to the app task. Send <b class="ui">Missing</b> to a fallback or another route.</li>
+  <li><b>Save the full app list only when needed.</b> Leave <b class="ui">Also save the list of installed apps</b> on if a later node needs it. Set <b class="ui">Save the list as</b> to choose its name.</li>
+  <li><b>Keep terminal commands out of this check.</b> Commands such as <code>lynx</code> cannot be checked as desktop apps.</li>
+</ol>
+
+<figure id="figure-howto-13-app-check" class="manual-figure" data-manual-figure data-scene-id="howto-13-app-check">
+  <div class="manual-figure__stage" style="--figure-width:1000px;--figure-height:520px;--figure-ratio:1.923077">
+    <iframe
+      data-manual-figure-scene="howto-13-app-check"
+      data-renderer-src="../figures/renderer.html?scene=howto-13-app-check"
+      title="Code-rendered editor illustration: App Install Check with both outcomes connected"
+      aria-describedby="figure-caption-howto-13-app-check"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1000"
+      height="520"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-13-app-check">
+    <span class="manual-figure__description">App Install Check set to a supported desktop app, with Installed and Missing routes connected.</span>
+    <span class="manual-figure__caption">Give both outcomes a useful destination.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Use another supported app.</b> Select the name shown in the desktop app list.</li>
+  <li><b>Check the full list later.</b> Keep the list-saving option on and use its saved name in a later node.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The Missing route always runs.</b> Select a supported app name. A terminal command cannot match here.</li>
+  <li><b>The story stops on one outcome.</b> Connect both <b class="ui">Installed</b> and <b class="ui">Missing</b> outputs.</li>
+  <li><b>A later node cannot read the app list.</b> Turn on <b class="ui">Also save the list of installed apps</b> and reuse the same name.</li>
+</ul>
+</section>
+
+<section id="howto-chained-talk">
+<h2>Chain conversations together</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/comms-dialogue.html">Dialogue</a> and the next story beat</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>A Dialogue node has an <b class="ui">Out</b> route and a <b class="ui">Wrong</b> route. Phone calls can wait to finish before the next beat.</p>
+<p>A typed reply reaches <b class="ui">Wrong</b> only when its answer setting selects that route.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Add a <b class="ui">Dialogue</b> node and choose <b class="ui">Phone call</b>. Connect the previous story node to its <b class="ui">In</b> socket.</li>
+  <li>Write the call, then set <b class="ui">Out fires</b> to <b class="ui">When the call ends</b>.</li>
+  <li>Add the next conversation. Connect the first node's <b class="ui">Out</b> to the next node's <b class="ui">In</b>.</li>
+  <li>For each typed reply, set <b class="ui">On a wrong answer</b> to <b class="ui">Node's Wrong output</b>. Change this in the script editor.</li>
+  <li>Connect <b class="ui">Wrong</b> to a hint or retry route. Give the wrong answer somewhere useful to go.</li>
+</ol>
+
+<figure id="figure-howto-14-chained-talk" class="manual-figure" data-manual-figure data-scene-id="howto-14-chained-talk">
+  <div class="manual-figure__stage" style="--figure-width:1120px;--figure-height:620px;--figure-ratio:1.806452">
+    <iframe
+      data-manual-figure-scene="howto-14-chained-talk"
+      data-renderer-src="../figures/renderer.html?scene=howto-14-chained-talk"
+      title="Code-rendered editor illustration: Two phone conversations chained in order"
+      aria-describedby="figure-caption-howto-14-chained-talk"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1120"
+      height="620"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-14-chained-talk">
+    <span class="manual-figure__description">Two Dialogue nodes connected in order, with the first call set to continue when it ends.</span>
+    <span class="manual-figure__caption">The second conversation starts after the first call ends.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Start the next beat immediately.</b> Set <b class="ui">Out fires</b> to <b class="ui">Right after starting the call</b>. The call can still be in progress.</li>
+  <li><b>Give a wrong reply a separate ending.</b> Connect <b class="ui">Wrong</b> to a different message or branch.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The next call starts too soon.</b> Set <b class="ui">Out fires</b> to <b class="ui">When the call ends</b>.</li>
+  <li><b>A wrong reply does not branch.</b> Set <b class="ui">On a wrong answer</b> to <b class="ui">Node's Wrong output</b>.</li>
+  <li><b>The wrong route stops.</b> Connect the node's <b class="ui">Wrong</b> output to a follow-up.</li>
+</ul>
+</section>
+
+<section id="howto-ending">
+<h2>End the story cleanly with Complete quest</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="nodes/fx-completequest.html">Complete quest</a>, a final story beat and optional rewards</dd>
+  <dt>Takes</dt><dd>About five minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p><b class="ui">Complete quest</b> is a terminal ending with no output. Put closing story and payments before it, or under <b class="ui">On quest complete</b>.</p>
+<p>Quest <b class="ui">Money</b> and <b class="ui">XP</b> are completion rewards. <b class="ui">Pay the player</b> is a separate transfer node.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>In Quest settings, set the quest's <b class="ui">Money</b> and <b class="ui">XP</b> rewards.</li>
+  <li>Leave <b class="ui">Complete automatically</b> off when this node should control the ending.</li>
+  <li>Place the closing message, payment or notification before <b class="ui">Complete quest</b>.</li>
+  <li>Connect the final story beat to the node's <b class="ui">In</b> socket. Nothing connects after its ending.</li>
+  <li>Put optional follow-up work under the quest's <b class="ui">On quest complete</b> entry.</li>
+</ol>
+
+<figure id="figure-howto-15-ending" class="manual-figure" data-manual-figure data-scene-id="howto-15-ending">
+  <div class="manual-figure__stage" style="--figure-width:1280px;--figure-height:680px;--figure-ratio:1.882353">
+    <iframe
+      data-manual-figure-scene="howto-15-ending"
+      data-renderer-src="../figures/renderer.html?scene=howto-15-ending"
+      title="Code-rendered editor illustration: Story path ending with Complete quest"
+      aria-describedby="figure-caption-howto-15-ending"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="1280"
+      height="680"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-15-ending">
+    <span class="manual-figure__description">A final story message and payment lead into Complete quest, with separate On quest complete work.</span>
+    <span class="manual-figure__caption">Finish the story before the terminal ending.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Let completion pay a reward.</b> Set <b class="ui">Money</b> or <b class="ui">XP</b> in Quest settings.</li>
+  <li><b>Run cleanup afterward.</b> Use <b class="ui">On quest complete</b> for work that should start after the quest ends.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The quest ends before the closing message.</b> Turn off <b class="ui">Complete automatically</b> and use the ending node.</li>
+  <li><b>A payment never happens.</b> Connect it before <b class="ui">Complete quest</b> or under <b class="ui">On quest complete</b>.</li>
+  <li><b>You cannot wire a next beat from the ending.</b> That node has no output. Move the beat before it or into the completion entry.</li>
+</ul>
+</section>
+
+<section id="howto-from-template">
+<h2>Customize a template safely</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="guides.html#templates">Templates</a> and a saved project file if you want to keep your current work</dd>
+  <dt>Takes</dt><dd>About five minutes to load; longer to customize</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>The picker has 14 entries: 12 templates and two Reference sheets. <b class="ui">First Contact</b> is a Beginner template with eight nodes.</p>
+<p>Choosing an entry replaces the current project and clears undo history. Autosave is not a versioned backup.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li><b>Save what you have.</b> Use top-bar <b class="ui">Save</b> or <b class="ui">Export current quest</b> in the picker.</li>
+  <li>Open <b class="ui">Templates</b> in the top bar, or click <b class="ui">Browse 14 templates</b> on the welcome panel.</li>
+  <li>Choose <b class="ui">First Contact</b> to study an eight-node Beginner quest. Read its connections before changing them.</li>
+  <li>Edit the quest's messages, objectives and connections to fit your story. Keep the saved project file as your recovery copy.</li>
+  <li>To reopen saved work, use top-bar <b class="ui">Load</b> or <b class="ui">Import a quest file</b> in the picker.</li>
+</ol>
+
+<figure id="figure-howto-16-from-template" class="manual-figure" data-manual-figure data-scene-id="howto-16-from-template">
+  <div class="manual-figure__stage" style="--figure-width:960px;--figure-height:720px;--figure-ratio:1.333333">
+    <iframe
+      data-manual-figure-scene="howto-16-from-template"
+      data-renderer-src="../figures/renderer.html?scene=howto-16-from-template"
+      title="Code-rendered editor illustration: Template picker with save and import options"
+      aria-describedby="figure-caption-howto-16-from-template"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="960"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-16-from-template">
+    <span class="manual-figure__description">The template picker showing First Contact and the Export current quest and Import a quest file options.</span>
+    <span class="manual-figure__caption">Save current work before choosing a replacement template.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Browse reference sheets.</b> <b class="ui">Node Reference</b> and <b class="ui">Quest Cookbook</b> show examples; they are not starter quests.</li>
+  <li><b>Share your starting project.</b> Use <b class="ui">Export current quest</b> to make a project file another editor can import.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>Your old work is gone.</b> Loading a template replaces the project. Restore it with the saved project file.</li>
+  <li><b>You expected autosave to restore an earlier version.</b> Autosave keeps the current draft, not a version history. Save a separate project file first.</li>
+  <li><b>The reference sheet is not a playable quest.</b> Choose a quest template such as <b class="ui">First Contact</b> instead.</li>
+</ul>
+</section>
+
+<section id="howto-update">
+<h2>Update an exported quest</h2>
+<dl class="facts-list">
+  <dt>You'll need</dt><dd><a href="export.html#export-is-not-a-save">The saved project file</a> and <a href="export.html#installing">the exported mod folder</a></dd>
+  <dt>Takes</dt><dd>About ten minutes</dd>
+</dl>
+
+<h3>The idea</h3>
+<p>The saved project is the editable source. The exported <code>.zip</code> is finished game output, not a project you can reopen.</p>
+<p>Keep the same <b class="ui">Mod id</b> for an update. Increase <b class="ui">Version</b> before you export again.</p>
+
+<h3>Steps</h3>
+<ol class="plain">
+  <li>Open the saved project with top-bar <b class="ui">Load</b>. Do not try to load the exported <code>.zip</code>.</li>
+  <li>Make and save your changes in the editor. Keep the original project file for future edits.</li>
+  <li>Open the inspector's <b class="ui">Mod</b> tab. Leave <b class="ui">Mod id</b> unchanged and increase <b class="ui">Version</b>.</li>
+  <li>Open <b class="ui">Export mod</b>, read its report, then choose <b class="ui">Download .zip</b>.</li>
+  <li>Unzip the new archive. Replace the old extracted mod folder inside the game's <code>mods/</code> folder.</li>
+</ol>
+
+<figure id="figure-howto-17-update" class="manual-figure" data-manual-figure data-scene-id="howto-17-update">
+  <div class="manual-figure__stage" style="--figure-width:440px;--figure-height:720px;--figure-ratio:0.611111">
+    <iframe
+      data-manual-figure-scene="howto-17-update"
+      data-renderer-src="../figures/renderer.html?scene=howto-17-update"
+      title="Code-rendered editor illustration: Mod identity with an increased version"
+      aria-describedby="figure-caption-howto-17-update"
+      tabindex="-1"
+      loading="lazy"
+      sandbox=""
+      referrerpolicy="no-referrer"
+      width="440"
+      height="720"
+    ></iframe>
+  </div>
+  <p class="manual-figure__fallback" role="status" hidden>The illustration is unavailable. Its description and caption remain below.</p>
+  <noscript><p class="manual-figure__noscript">The illustration needs JavaScript to display. Its description and caption remain below.</p></noscript>
+  <figcaption id="figure-caption-howto-17-update">
+    <span class="manual-figure__description">The Mod settings showing the unchanged Mod id and increased Version before exporting a new zip.</span>
+    <span class="manual-figure__caption">Keep the mod identity and raise its version for the new export.</span>
+  </figcaption>
+</figure>
+
+<h3>Variations</h3>
+<ul class="plain">
+  <li><b>Recover the editable project.</b> Use the saved project file, or ask its author for one. The exported archive cannot restore the canvas.</li>
+  <li><b>Ship through the Workshop.</b> Increase <b class="ui">Version</b> before each upload, as the editor's hint says.</li>
+</ul>
+
+<h3>If it doesn't work</h3>
+<ul class="plain">
+  <li><b>The game still loads the old files.</b> Replace the extracted folder under <code>mods/</code>, not the zip beside it.</li>
+  <li><b>The update appears as a different mod.</b> Check that <b class="ui">Mod id</b> still matches the original.</li>
+  <li><b>You only have the exported archive.</b> It is not editable. Find the saved project file or rebuild the quest in the editor.</li>
+</ul>
+</section>
+
+<div class="pagefoot"><a href="guides.html">← Feature guides</a><a class="next" href="checking.html">Checking your quest →</a></div>
+<footer class="colophon">
+  HackHub Quest Editor handbook · documents editor build 2026-10-03.r267 ·
+  every figure on these pages is taken from the editor's own source.
+</footer>
+</main>
+</div>
+<script src="search-index.js"></script>
+<script src="manual.js"></script>
+</body>
+</html>

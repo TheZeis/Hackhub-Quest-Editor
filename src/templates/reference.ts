@@ -1,4 +1,4 @@
-import { createQuest, createProject } from "@/schema/project";
+import { createQuest, createProject, createTwotterAccount } from "@/schema/project";
 import type { ProjectDocument } from "@/schema/project";
 import { NODE_TYPES_REGISTRY, PALETTE_HIDDEN_TYPES, nodeTypeDef } from "@/schema/registry";
 import type { NodeDoc, NodeType } from "@/schema/nodes";
@@ -54,10 +54,35 @@ export const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
         ],
     },
     },
-    /* "world.wifi": hidden from the palette (see PALETTE_HIDDEN_TYPES) because
-       the mod SDK has no wireless API yet; re-add the example here and drop it
-       from PALETTE_HIDDEN_TYPES once the SDK ships one.
-       ssid: "DOCKNET-5G", password: "forklift", signal: 2, model: "TP-Link Archer C6". */
+    "world.wifi": {
+        ssid: "DOCKNET-5G",
+        password: "forklift-1948",
+        signal: 2,
+        bssid: "02:24:00:00:17:48",
+        channel: 44,
+        wps: true,
+        model: "TP-Link Archer C6",
+        ports: [
+            { id: "wp1", external: 80, internal: 80, active: true, service: "http" },
+        ],
+        users: [
+            { id: "wu1", username: "admin", password: "forklift-1948", firstName: "Dock", lastName: "Admin" },
+        ],
+        children: [
+            {
+                id: "wdev1",
+                ip: "10.0.0.21",
+                type: "DEVICE",
+                name: "camera-01",
+                vulnerabilities: [],
+                users: [],
+                ports: [{ id: "wp2", external: 22, internal: 22, active: true, service: "ssh" }],
+                rules: [],
+                rootFiles: [],
+                children: [],
+            },
+        ],
+    },
     "world.firewall": {
         ip: "10.0.0.1",
         removeOnComplete: true,
@@ -142,6 +167,33 @@ export const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
             ],
         },
     },
+    "comms.tweet": {
+        accountId: "acc-harbourmaster",
+        tweets: [
+            {
+                id: "t1",
+                content: "Night shift again. The manifest says 4471 was sealed at 02:40 — nobody signed for it.",
+                timeMode: "earlier",
+                agoAmount: 3,
+                agoUnit: "days",
+                likes: 34,
+                comments: 2,
+                shares: 1,
+                views: 812,
+                showInTimeline: false,
+            },
+            {
+                id: "t2",
+                content: "Someone is asking the right questions about container 4471. That makes two of us.",
+                timeMode: "arrival",
+                likes: 11,
+                comments: 0,
+                shares: 0,
+                views: 240,
+                showInTimeline: true,
+            },
+        ],
+    },
     "reply.input": {
         commandName: "decrypt",
         commandDescription: "Decrypt a sealed manifest archive",
@@ -160,15 +212,28 @@ export const EXAMPLES: Partial<Record<NodeType, Record<string, unknown>>> = {
         variant: "toast",
         tone: "info",
     },
+    "fx.prompt": {
+        title: "Manifest check",
+        label: "Enter the sealed container number:",
+        placeholder: "MSKU-4471",
+        defaultValue: "MSKU-",
+        password: false,
+        storeAs: "containerId",
+        matchMode: "contains",
+        expected: "4471",
+        caseSensitive: false,
+    },
     "fx.setData": { key: "containerId", value: "MSKU-4471" },
     "fx.claimQuest": { questName: "NextQuest" },
+    "fx.unclaimQuest": { questName: "SideQuest" },
     "fx.shell": { command: "echo 'manifest retrieved' >> ~/notes.txt" },
     "fx.handbook": { articleId: "night-shift", category: "Dock Operations" },
     "flow.branch": {
         source: "data",
         conditions: [{ id: "c1", join: "and", field: "containerId", op: "equals", value: "MSKU-4471" }],
     },
-    "flow.delay": { ms: 2500 },
+    "flow.delay": { seconds: 2.5 },
+    "flow.timer": { mode: "daytime", offsetMonths: 1, offsetWeeks: 2, offsetDays: 2, hour: 18, minute: 23 },
     "flow.random": {
         options: [
             { id: "o1", label: "MSKU-4471" },
@@ -223,9 +288,9 @@ export function buildReference(): ProjectDocument {
         { id: "trigger", title: "Triggers" },
         { id: "world", title: "World building" },
         { id: "comms", title: "Communication" },
-        { id: "reply", title: "Player replies" },
+        { id: "reply", title: "Custom terminal" },
         { id: "effect", title: "Effects" },
-        { id: "community", title: "Community tools" },
+        { id: "community", title: "Community addons" },
         { id: "flow", title: "Flow control" },
         { id: "layout", title: "Layout" },
     ];
@@ -288,9 +353,29 @@ export function buildReference(): ProjectDocument {
             tags: ["reference", "documentation"],
             dependencies: [],
             minSdkVersion: "0.21.0",
-            apiVersion: 1,
+            apiVersion: 2,
         },
         quests: [quest],
+        /* The Tweet node above posts from this account. Accounts are mod-level,
+           so the reference sheet ships one for the example to point at. */
+        twotterAccounts: [
+            createTwotterAccount({
+                id: "acc-harbourmaster",
+                handle: "harbourmaster",
+                displayName: "Dana Whitlock",
+                bio: "Harbour master, night shift. Everything that leaves this dock goes through me.",
+                /* Two tiny pictures drawn by hand, so the account's profile
+                   preview shows the whole thing — a banner, and an avatar with
+                   the ring around it. They are the shapes the game's own
+                   profile uses; the twenty-pixel ones would look the same on a
+                   card, but a preview is for seeing the real thing. */
+                avatar: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAEUklEQVR42u1a2VIUQRCsRz/AB8Pwya/zwhtEFERFDT9LEFARBUQRRE4RRBQQDwzDCHMqu2uaXWZndlkCpsOIfJjuuTKrsmpnZ1qOHT9ZakhzL3fi6JFcHDoBRUjvnxg5KOrNkiEHS33vMuQwUN+LDDk81BuTIU1n/+iUAL2nK8H5pmuQprA3xn3AGXmcAezqC/Q0RYPskT2pgxb49QNnZUAxWAXO44B+iikmY68C8qkrG/IePCdPFE+Blir4vTiMSpiTXBmNC6hxUYs6g22kn7XIEHBenlcBk0N6gIlhWiwbjWmQetkjWs4wRp28leUwcEFeZAC7hr0YKqGMfi+jRirqE5DLnoZBIFPqSvHlRRkhLsloAAw5jwOoJJXhTdWYBqmXfb+yZ+BT6gHpMeCyvKoCJscCMTjFZDAVA1rf9WooKsDY0zYMPKMONuQNluPAFXmteBOAM9g1TjFU4rPBVDg71dSQL6AgewaehnHUSfqqTCjetlaC8ziASiiDpmIqGtNQSID53tjT7qPqFgTVqIPoZKtMtSV4F4Azk16Jk6G+wkVYGKbB6qFuAVkdM4s9Aw+HkPpUq6M7fU3eVwGTTozJ8KnI0tBbQEOOAGce9hzve2PPwDPqxnumPcEscF3mFNiYbXfzpoTZYCpMA+sBN8LtcNMsI+0uoEb44Us0uyz2dAupgygYzwMdshAAw3mK8TLoq0wNWgxFkiA54a8yT1K1dI5nz8A76kp38YZ8UCwpuI1JKqEMpsI04IK47EiVkUCgdhKkUPi9edhzUHywb8peA48AkzoYf7yZYLkzBWeWTAY1tAcaWNPal1IjFUiC5Lo/DX9gHpQgfc/Yg9BiRxJm8l7plE9dlVjxSpJsmAZfDxOBkXAjS0JuJWQKsOZj7nfh9+bZlT2pr3bJ51uyFgDDVS9jVw2pkcIk1GxH+QKSXy5tPs79QfjRCqe1aufUOSH7hHq3fOmWr7dTYIhJ7Ao1LGg9zNBIQRJwI1aCa0e5ArJ+vMw/eIRk80ncXxF+9X3IntQ3gDuyqcDGhpcRasCJOL0yCdaOdrooqwwkt//gIT70j7nfwo/SXA7Yryv1b3dlKwCGmFwPNOCUpSAJVgk7XFSgF2UKCAvAuqfzT5vzT+J+H35YfI2xV/bfe+RHj/y8lwAbGFIDDsBhq2ESzEVtzkXWT8MyqE9A2EArCoDd0/xD91v4YRWyB+9f92VbgQ0MnYYgCawEcxH76S5lULOOiwpgA2X7dwXgy5f+Qath+GEYhBykfz+QPwpsYIjJLUuCdxFLGZdKy8Ca6X4LqCgACthUAYg3Ag/qfx8mwMa2JgG7NncKsDL4LyB6C5WsiEvfRkv/Q1ayR4nSP8zF+Thd+j80JftLWfo/9TG8Vin9i60YXi2W/uVuDK/XS/+BI4ZPTKX/yBfDZ9YYPnTHsNQghsUeMSy3iWHBUwxLzmJY9BfJsstIFr5GsvQ4ksXfB4t/E1kscby2JGwAAAAASUVORK5CYII=",
+                banner: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAADHklEQVR42u3SWVJTURhF4f9ZCAmkA8QAoQlNOhKa0ATsRUWxfXMQPjpAx+B4vFVqCVZpce7JwXN3VtU3gr2X3am0ARnGBNAKutoBZCRBdwEZNjG7A8ggaIgFPdcDZNjEfB+QYZPzu4AMm7y7C8hIgt4DZNjkwj4gw3ILB4AMy90bADIsVxsAMmyqdgjIsKnFI0BGEvQxIMOmlo4BGZZfOgFkWH55CMiwfP0UkEHQ0Aq6sHIGyEiCvg/IsMLqA0CGTa89BGQQNMSCXn8EyEiCfgzIsJnGE0AGQUMs6I2ngAyb2XwGyLDi5jkgw4pb54CMJOjngAwrbr8AZFhp+yUgw0rNC0CGlVoXgAwrt14BMqzcfg3ISIK+BGRYuXMJyLBK5w0gwyrdt4AMq+y8A2QQNLSCrvbeAzKSoD8AMqza/wjIsPqnz4AMggZBAwQNEDRA0CBogKCB+IIu1JoI6svXbzfHXJ4ImqAJGgQdcdAtBOUYNIt5scJiC0G5Bc1ifgiaoLWCnl5sIyinoJnLE0ETtFjQS20E5RY0i/lJgu4gKMegWcwLQRM0QYOgow16ZrmLoJyCZi5PBE3QBA2Cjjfo+g6CcguaxfwQNEETNAg62qCL9R6CcgqauTxZcaWHoNyCZjE/BE3QakH3EZRj0CzmhaAJWizo1T6CcguaxfxYaXUXQTkFzVyeCJqgCRoEHW/Qa3sIyi1oFvND0ARN0CDoaIMur+8jKKegmcsTQQesMwUWJmiRlAl6VEEf4N9uJ+VfQTO4Fys3DvA3t5nyz6CZ3Q9Bx5IyQY8m6EpjgKv+V8o/sL8ngo4lZYIeUdAbA8SQ8u+mecRDEvThOIsq5etZHyIFI+WYEShBi6RM1imDrm4ejY/MpXzVWD2VmpEyWRM0KZN1tEFvHauSTPla1rrfpWakTNYETcpkHWvQs1snGsY25atk3kzNZrdPso6O/8w6+5+mZqRM1mJBD7OIXm+c9XCsGCmTtVbQzWFW0KVv1tn5OjWba57GjxZHKBOPp2akTNYETcpkHW3QrbPY0NltZx1fA6kZKUMpayNlKGX9HWDVqH/VB9+iAAAAAElFTkSuQmCC",
+                verified: false,
+                followers: 412,
+                following: 96,
+            }),
+        ],
         editor: { activeQuestId: quest.id, viewports: {} },
     });
 }

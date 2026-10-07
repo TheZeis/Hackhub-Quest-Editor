@@ -4,6 +4,7 @@
  * setting lives.
  */
 import { useEffect, useMemo, useState } from "react";
+import { nanoid } from "nanoid";
 import * as Tabs from "@radix-ui/react-tabs";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/Icon";
@@ -11,9 +12,12 @@ import { categoryOf, nodeTypeDef } from "@/schema/registry";
 import { selectActiveQuest, selectSelectedNode, useEditor } from "@/store/editor";
 import { analyseGraph } from "@/analysis/graph";
 import { Field } from "./Field";
+import { TextInputWithGenerate } from "./GenerateButton";
+import { generateField } from "@/lib/generate";
 import { ImagePickerField, TagInput } from "./ModFields";
 import { FieldShell, NumberInput, SelectInput, TextArea, TextInput, Toggle } from "./primitives";
 import { NODE_SIM_EDITORS } from "./sims";
+import { Modal } from "@/editor/shell/Overlays";
 
 const TABS = [
     { value: "node", label: "Node" },
@@ -83,6 +87,9 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
     const def = nodeTypeDef(node.type);
     const category = categoryOf(node.type);
     const SimEditor = NODE_SIM_EDITORS[node.type];
+
+    // What this node will do with its current settings, in one sentence (r176).
+    const preview = def.preview?.(node.data as Record<string, unknown>) ?? null;
 
     // Node-level "why is this flagged" issues, condensed here so an author sees
     // them next to the fields, not only as a badge on the card. Each carries
@@ -154,6 +161,13 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
 
             {SimEditor && <SimEditor node={node} />}
 
+            {preview && (
+                <p className="mx-3 mt-2 flex items-start gap-1.5 rounded-md border border-accent/25 bg-accent-soft px-2 py-1.5 text-[11.5px] leading-snug text-ink-2">
+                    <Icon name="info" size={13} className="mt-px shrink-0 text-accent" />
+                    <span>{preview}</span>
+                </p>
+            )}
+
             <div className="pt-1">
                 {def.fields.map((field, i) => (
                     <Field
@@ -172,9 +186,28 @@ function NodeInspector({ nodeId }: { nodeId: string }) {
 function QuestInspector() {
     const quest = useEditor(selectActiveQuest);
     const updateQuest = useEditor((s) => s.updateQuest);
+    const project = useEditor((s) => s.project);
+    /* The internal id is load-bearing (save data, generated tweet/account ids),
+       so regenerating it is a deliberate, confirmed act - not a typo away. */
+    const [idConfirmOpen, setIdConfirmOpen] = useState(false);
     if (!quest) return <Empty>No quest selected.</Empty>;
 
     const write = (patch: Parameters<typeof updateQuest>[1]) => updateQuest(quest.id, patch);
+
+    const regenerateId = () => {
+        const base =
+            (quest.name || "quest")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "")
+                .slice(0, 32) || "quest";
+        let candidate = "";
+        do {
+            candidate = "q-" + base + "-" + Math.random().toString(16).slice(2, 6);
+        } while (project.quests.some((qq) => qq.id === candidate));
+        updateQuest(quest.id, { id: candidate });
+        setIdConfirmOpen(false);
+    };
 
     const objectiveCount = quest.graph.nodes.filter((n) => n.type === "objective").length;
     const noCompletionPath = quest.graph.nodes.filter(
@@ -184,13 +217,36 @@ function QuestInspector() {
     return (
         <div className="pb-8">
             <Section>Identity</Section>
-            <FieldShell label="Quest identifier" hint="A unique name for this quest, not shown to players. Other quests use it to unlock only after this one is finished.">
+            <FieldShell
+                label="Quest identifier"
+                hint="A unique name for this quest, not shown to players. Other quests use it to unlock only after this one is finished. The game remembers, per player profile, every identifier it has ever claimed - once claimed there, that quest's feed post never shows on that profile again. When a retest refuses to surface its post, give the quest a fresh identifier first."
+            >
                 <TextInput
                     ariaLabel="Quest identifier"
                     value={quest.name}
                     onChange={(name) => write({ name })}
                     mono
                 />
+            </FieldShell>
+            <FieldShell
+                label="Internal id"
+                hint={
+                    quest.id === "q-blank"
+                        ? "The editor's private key for this quest - used for save data and the ids of generated tweets and accounts. The game never sees it; players know the quest by the identifier above. This one is still the blank-project placeholder - harmless, but a real id keeps exports and saves readable."
+                        : "The editor's private key for this quest - used for save data and the ids of generated tweets and accounts. The game never sees it; players know the quest by the identifier above."
+                }
+            >
+                <div className="flex items-center gap-1.5">
+                    <TextInput ariaLabel="Internal id" value={quest.id} onChange={() => {}} mono disabled />
+                    <button
+                        type="button"
+                        className="btn btn-ghost shrink-0"
+                        onClick={() => setIdConfirmOpen(true)}
+                    >
+                        <Icon name="dice" size={13} />
+                        New id
+                    </button>
+                </div>
             </FieldShell>
             <FieldShell label="Display title">
                 <TextInput ariaLabel="Display title" value={quest.title} onChange={(title) => write({ title })} />
@@ -203,7 +259,10 @@ function QuestInspector() {
                     rows={3}
                 />
             </FieldShell>
-            <FieldShell label="Journal group">
+            <FieldShell
+                label="Journal group"
+                hint="Which folder of the player's journal this quest sits in. Two quests in the same group read as one story — give a sequel the group of its predecessor."
+            >
                 <SelectInput
                     ariaLabel="Journal group"
                     value={quest.group}
@@ -242,6 +301,11 @@ function QuestInspector() {
                 </div>
             </div>
 
+            <p className="px-3 pb-2 text-[10.5px] leading-snug text-ink-4">
+                The game knows about XP on paper, but we have never seen it show XP anywhere —
+                money is the reward a player actually gets.
+            </p>
+
             <Section>Behaviour</Section>
             <Toggle
                 label="Start automatically"
@@ -251,7 +315,7 @@ function QuestInspector() {
             />
             <Toggle
                 label="Complete automatically"
-                hint="Best left off. HackHub 1.1.2 freezes whenever it finishes a quest that came from a mod, whether that happens automatically or through a complete button, so quests are built to end their story without formally completing."
+                hint="The game closes the quest itself once its objectives are all done, with no Complete quest node needed. Leave it off when the ending should be a deliberate story moment."
                 checked={quest.autoComplete}
                 onChange={(autoComplete) => write({ autoComplete })}
             />
@@ -262,7 +326,7 @@ function QuestInspector() {
             />
             <Toggle
                 label="Show a manual complete button"
-                hint="Also best left off, for the same reason: pressing it freezes the game."
+                hint="Puts a Complete button in the player's quest panel, so they decide when the quest is over. The game shows it once every objective is done — an objective left unchecked keeps the button away, so do not leave a deliberate dead end on a quest that ends this way (observed in game, r185)."
                 checked={quest.hasCompleteButton}
                 onChange={(hasCompleteButton) => write({ hasCompleteButton })}
             />
@@ -284,28 +348,234 @@ function QuestInspector() {
             </FieldShell>
 
             <Section>Employer</Section>
+            <p className="px-3 pb-1 text-[10.5px] leading-snug text-ink-4">
+                Who the quest is from — the journal shows them. A feed post's poster is set
+                separately under Behaviour; whether the game treats the two as the same person is
+                not verified yet.
+            </p>
             <FieldShell label="First name" hint="Left blank, the game generates an employer for you.">
-                <TextInput
+                <TextInputWithGenerate
                     ariaLabel="Employer first name"
                     value={quest.employer.firstName ?? ""}
                     onChange={(firstName) => write({ employer: { ...quest.employer, firstName } })}
+                    onGenerate={() => write({ employer: { ...quest.employer, firstName: generateField("firstName") } })}
+                    generateLabel="first name"
                 />
             </FieldShell>
             <FieldShell label="Last name">
-                <TextInput
+                <TextInputWithGenerate
                     ariaLabel="Employer last name"
                     value={quest.employer.lastName ?? ""}
                     onChange={(lastName) => write({ employer: { ...quest.employer, lastName } })}
+                    onGenerate={() => write({ employer: { ...quest.employer, lastName: generateField("lastName") } })}
+                    generateLabel="last name"
                 />
             </FieldShell>
             <FieldShell label="E-mail">
-                <TextInput
+                <TextInputWithGenerate
                     ariaLabel="Employer e-mail"
                     value={quest.employer.email ?? ""}
                     onChange={(email) => write({ employer: { ...quest.employer, email } })}
+                    onGenerate={() =>
+                        write({
+                            employer: {
+                                ...quest.employer,
+                                email: generateField("email", {
+                                    firstName: quest.employer.firstName,
+                                    lastName: quest.employer.lastName,
+                                }),
+                            },
+                        })
+                    }
+                    generateLabel="e-mail"
                     mono
                 />
             </FieldShell>
+            <ImagePickerField
+                label="Employer avatar"
+                hint="Optional. Left blank, the game draws one. The employer is who the quest is from — on a Hackhub feed post this is very likely the face next to it."
+                value={quest.employer.avatar}
+                onChange={(avatar) => write({ employer: { ...quest.employer, avatar } })}
+                ariaLabel="Employer avatar"
+            />
+
+            <Toggle
+                label="Post this quest to the Hackhub feed"
+                hint="Puts the quest on the feed as a job the player can accept right there. Quests accepted from the feed complete from the post itself, not the journal. The Anonymous toggle below decides who the post is from: masked until accepted, or named and out in the open."
+                checked={!!quest.hackhubPost}
+                onChange={(on) =>
+                    write({
+                        hackhubPost: on
+                            ? { content: "", authorName: "", likes: undefined, comments: [] }
+                            : undefined,
+                    })
+                }
+            />
+            {quest.hackhubPost && (
+                <>
+                    <FieldShell label="Post text" hint="The feed body. This is the pitch the player accepts — say what the job is and who wants it done.">
+                        <TextArea
+                            ariaLabel="Hackhub post text"
+                            value={quest.hackhubPost.content}
+                            onChange={(content) => write({ hackhubPost: { ...quest.hackhubPost!, content } })}
+                            rows={4}
+                        />
+                    </FieldShell>
+                    <Toggle
+                        label="Anonymous poster (Hidden User)"
+                        hintTooltip
+                        hint="On: the post has no name on it. The board shows a masked poster — the game calls it “Hidden User” — and the name behind the mask is only shown once the player accepts the job: the quest's employer if you set one, otherwise a person the game makes up. Off: the post shows the name and avatar below right away."
+                        checked={!quest.hackhubPost.authorName && !quest.hackhubPost.authorAvatar}
+                        onChange={(anonymous) =>
+                            write({
+                                hackhubPost: {
+                                    ...quest.hackhubPost!,
+                                    ...(anonymous
+                                        ? { authorName: "", authorAvatar: "" }
+                                        : { authorName: generateField("fullName"), authorAvatar: "" }),
+                                },
+                            })
+                        }
+                    />
+                    {!(!quest.hackhubPost.authorName && !quest.hackhubPost.authorAvatar) && (
+                        <>
+                            <FieldShell label="Poster name" hint="A name with an avatar reads best — a name without an avatar draws a broken-image icon on the post (seen in game).">
+                                <TextInputWithGenerate
+                                    ariaLabel="Hackhub poster name"
+                                    value={quest.hackhubPost.authorName ?? ""}
+                                    onChange={(authorName) => write({ hackhubPost: { ...quest.hackhubPost!, authorName } })}
+                                    onGenerate={() =>
+                                        write({ hackhubPost: { ...quest.hackhubPost!, authorName: generateField("fullName") } })
+                                    }
+                                    generateLabel="full name"
+                                />
+                            </FieldShell>
+                            <ImagePickerField
+                                label="Poster avatar"
+                                hint="Optional, but named posters without one draw a broken-image icon — give the name a face."
+                                value={quest.hackhubPost.authorAvatar}
+                                onChange={(authorAvatar) => write({ hackhubPost: { ...quest.hackhubPost!, authorAvatar } })}
+                                ariaLabel="Hackhub poster avatar"
+                            />
+                        </>
+                    )}
+                    <FieldShell label="Likes" hint="Cosmetic, but it sells the post: a job with 300 likes reads in demand, one with 0 reads desperate — sometimes that is the point.">
+                        <NumberInput
+                            ariaLabel="Hackhub post likes"
+                            value={quest.hackhubPost.likes ?? 0}
+                            min={0}
+                            onChange={(likes) => write({ hackhubPost: { ...quest.hackhubPost!, likes } })}
+                        />
+                    </FieldShell>
+
+                    <div className="px-3 pt-2">
+                        <p className="mb-1 text-[10px] font-semibold tracking-wider text-ink-3 uppercase">Comments</p>
+                        <p className="mb-1.5 text-[10.5px] leading-snug text-ink-4">
+                            Replies on the post, the way the board reads them: a name, an optional
+                            avatar, and a line of text. Two or three short ones sell the post as part
+                            of the board. Give each commenter a name and an avatar — a name
+                            without an avatar draws a broken-image icon next to the comment
+                            (seen in game).
+                        </p>
+                        {(quest.hackhubPost.comments ?? []).map((c, i) => (
+                            <div key={c.id} className="mb-2 grid gap-1.5 rounded-md border border-line/70 bg-surface p-2">
+                                <div className="flex items-center gap-1.5">
+                                    <TextInputWithGenerate
+                                        ariaLabel={`Comment ${i + 1} author`}
+                                        value={c.authorName}
+                                        placeholder="e.g. Riko Voss"
+                                        onChange={(authorName) =>
+                                            write({
+                                                hackhubPost: {
+                                                    ...quest.hackhubPost!,
+                                                    comments: (quest.hackhubPost!.comments ?? []).map((x) =>
+                                                        x.id === c.id ? { ...x, authorName } : x,
+                                                    ),
+                                                },
+                                            })
+                                        }
+                                        onGenerate={() =>
+                                            write({
+                                                hackhubPost: {
+                                                    ...quest.hackhubPost!,
+                                                    comments: (quest.hackhubPost!.comments ?? []).map((x) =>
+                                                        x.id === c.id ? { ...x, authorName: generateField("fullName") } : x,
+                                                    ),
+                                                },
+                                            })
+                                        }
+                                        generateLabel="full name"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="btn-default shrink-0"
+                                        aria-label={`Remove comment ${i + 1}`}
+                                        onClick={() =>
+                                            write({
+                                                hackhubPost: {
+                                                    ...quest.hackhubPost!,
+                                                    comments: (quest.hackhubPost!.comments ?? []).filter((x) => x.id !== c.id),
+                                                },
+                                            })
+                                        }
+                                    >
+                                        <Icon name="trash" size={12} />
+                                    </button>
+                                </div>
+                                <TextArea
+                                    ariaLabel={`Comment ${i + 1} text`}
+                                    value={c.content}
+                                    onChange={(content) =>
+                                        write({
+                                            hackhubPost: {
+                                                ...quest.hackhubPost!,
+                                                comments: (quest.hackhubPost!.comments ?? []).map((x) =>
+                                                    x.id === c.id ? { ...x, content } : x,
+                                                ),
+                                            },
+                                        })
+                                    }
+                                    rows={2}
+                                />
+                                <ImagePickerField
+                                    label="Commenter avatar"
+                                    hint="Optional. Blank = the game draws one."
+                                    value={c.authorAvatar}
+                                    onChange={(authorAvatar) =>
+                                        write({
+                                            hackhubPost: {
+                                                ...quest.hackhubPost!,
+                                                comments: (quest.hackhubPost!.comments ?? []).map((x) =>
+                                                    x.id === c.id ? { ...x, authorAvatar } : x,
+                                                ),
+                                            },
+                                        })
+                                    }
+                                    ariaLabel={`Comment ${i + 1} avatar`}
+                                />
+                            </div>
+                        ))}
+                        <button
+                            type="button"
+                            className="btn-default"
+                            onClick={() =>
+                                write({
+                                    hackhubPost: {
+                                        ...quest.hackhubPost!,
+                                        comments: [
+                                            ...(quest.hackhubPost!.comments ?? []),
+                                            { id: nanoid(8), authorName: "", content: "" },
+                                        ],
+                                    },
+                                })
+                            }
+                        >
+                            <Icon name="plus" size={12} />
+                            Add a comment
+                        </button>
+                    </div>
+                </>
+            )}
 
             <Section>Health</Section>
             <div className="px-3 py-2 text-[11.5px] leading-relaxed text-ink-3">
@@ -321,6 +591,38 @@ function QuestInspector() {
                     </p>
                 )}
             </div>
+
+        <Modal
+            open={idConfirmOpen}
+            onOpenChange={setIdConfirmOpen}
+            title="Give this quest a new internal id?"
+            subtitle={quest.id + " will be replaced"}
+        >
+            <div className="grid gap-3 px-4 py-4">
+                <p className="text-[12px] leading-relaxed text-ink-2">
+                    The internal id keys this quest's save data and the ids of things the editor
+                    generates for it (tweets, accounts, timers). Exports already installed keep
+                    their old id — the moment the quest gets a new one, the game treats what you
+                    ship next as a brand-new quest: old saves forget its claimed and completed
+                    state, and a feed post the profile had retired can appear again.
+                </p>
+                <p className="text-[12px] leading-relaxed text-ink-2">
+                    That last part is the reason this button exists: <strong>when a feed post
+                    refuses to render for a player who has claimed this quest before, a fresh id —
+                    and a fresh identifier above it — is the reset.</strong> Do not use it for
+                    cosmetics mid-project; renaming for looks breaks nothing the game sees, but it
+                    does orphan the old save state.
+                </p>
+                <div className="mt-1 flex items-center justify-end gap-2">
+                    <button type="button" className="btn-ghost" onClick={() => setIdConfirmOpen(false)}>
+                        Keep {quest.id}
+                    </button>
+                    <button type="button" className="btn-primary" onClick={regenerateId}>
+                        Generate a new id
+                    </button>
+                </div>
+            </div>
+        </Modal>
         </div>
     );
 }

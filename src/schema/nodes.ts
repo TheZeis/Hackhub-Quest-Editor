@@ -240,7 +240,13 @@ export const WifiNodeDataSchema = z.object({
     password: z.string().default(""),
     signal: z.number().default(2),
     bssid: z.string().optional(),
-    channel: z.string().optional(),
+    /** Wi-Fi channel shown by scans. Old drafts may have stored it as text. */
+    channel: z.preprocess(
+        (value) => (value === "" || value == null ? undefined : value),
+        z.coerce.number().optional(),
+    ),
+    /** Whether the access point advertises WPS in Wi-Fi scans. */
+    wps: z.boolean().optional(),
     /** Always `random` — see NetworkNodeDataSchema.ipMode (r73). */
     ipMode: z.enum(["fixed", "random"]).catch("random").default("random")
         .transform(() => "random" as const),
@@ -338,13 +344,29 @@ export const MailNodeDataSchema = z.object({
     /** Plain text or HTML — the SDK renders it as HTML. */
     content: z.string().default(""),
     replyable: z.boolean().default(false),
+    /**
+     * Remove this mail from the player's inbox when the quest ends
+     * (completed or abandoned). Works because the direct send path returns
+     * the mail's id (M-02/M-03: remove is trustworthy and persists) and quest
+     * cleanup runs in-session (M-07); the unload hook is refused everything
+     * (M-08), so this is the only withdrawal there is.
+     */
+    withdrawOnQuestEnd: z.boolean().default(false),
     attachment: AttachmentSchema.optional(),
 });
 export type MailNodeData = z.infer<typeof MailNodeDataSchema>;
 
+export const PhoneContinueModeSchema = z.enum(["immediate", "onEnd"]);
+export type PhoneContinueMode = z.infer<typeof PhoneContinueModeSchema>;
+
 export const CallNodeDataSchema = z.object({
     branch: z.string().default("default"),
     startIndex: z.number().default(0),
+    /**
+     * immediate = keep old flow semantics: Out fires after the call starts.
+     * onEnd = wire Out into the phone script's line/choice ending callbacks.
+     */
+    continueMode: PhoneContinueModeSchema.default("onEnd"),
 });
 
 
@@ -362,6 +384,75 @@ export const WeeChatNodeDataSchema = z.object({
     messages: z.array(WeeChatMessageSchema).default([]),
 });
 
+/* ── Twotter (r185) ────────────────────────────────────────────────────────
+   The Tweet node posts from one of the mod's Twotter accounts. Accounts live
+   at MOD level (`project.twotterAccounts`) because a character is
+   world-building — the same account is meant to be usable by several quests —
+   while the node owns only the posts.
+
+   The rows are written oldest → newest, the order things happened, because
+   that is how a history is written. **The game shows a profile newest first**
+   (measured in game, P-01b: three tweets whose time order and posting order
+   disagreed came back sorted by time), so what the author writes and what the
+   player reads are mirror images, and the inspector says so rather than
+   letting it be a surprise.
+
+   Nothing here ever reaches the SDK's declarative `TwotterAccounts`/`Tweets`
+   fields: those are the fields the engine writes with `bio: undefined`, which
+   is what crashed Twotter's search for seven QA rounds (r31). The runtime
+   authors accounts and posts through the API instead — `createUser` +
+   `addUser`, `postTweet` with a `sendedAt` we computed, `removeTweet` /
+   `removeUser` on the way out. The fence set in the compiler's tests holds
+   that line.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/** Ages an "already on the profile" tweet can be given. */
+export const TWOTTER_AGO_UNITS = ["minutes", "hours", "days", "weeks", "months", "years"] as const;
+export const TwotterAgoUnitSchema = z.enum(TWOTTER_AGO_UNITS);
+export type TwotterAgoUnit = z.infer<typeof TwotterAgoUnitSchema>;
+
+export const TweetRowSchema = z.object({
+    id: z.string(),
+    content: z.string().default(""),
+    /**
+     * - `arrival`: posted the moment the story reaches the node. No time is
+     *   sent, so the engine stamps it — the tweet reads "a few seconds ago"
+     *   (P-01a's control row).
+     * - `earlier`: already on the profile, that far back. The runtime computes
+     *   the moment from the in-game clock and sends it as `sendedAt`, which the
+     *   platform keeps (P-01a: all three spellings read back "a month ago").
+     */
+    timeMode: z.enum(["arrival", "earlier"]).default("arrival"),
+    /** How long ago, for `earlier`. A number plus the unit below — never free text. */
+    agoAmount: z.number().default(2),
+    agoUnit: TwotterAgoUnitSchema.default("days"),
+    /** Optional attached picture, embedded as a data URL. */
+    image: z.string().optional(),
+    likes: z.number().default(0),
+    comments: z.number().default(0),
+    shares: z.number().default(0),
+    views: z.number().default(0),
+    /** Surface this one in the main timeline, not just on the profile. */
+    showInTimeline: z.boolean().default(false),
+});
+export type TweetRow = z.infer<typeof TweetRowSchema>;
+
+export const TweetNodeDataSchema = z.object({
+    /** Must match one of the mod's Twotter accounts, by its id. */
+    accountId: z.string().default(""),
+    tweets: z.array(TweetRowSchema).default([]),
+    /**
+     * Set by the r30 → r185 migration when the old node pinned a fixed
+     * calendar date. That has no counterpart now — an age cannot be computed
+     * from a date without the editor reading today's clock, which it
+     * deliberately never does — so the row lands on "already on the profile,
+     * 1 month" and this flag makes the export report and the inspector say so
+     * instead of pretending the migration was lossless.
+     */
+    migratedDate: z.boolean().optional(),
+});
+export type TweetNodeData = z.infer<typeof TweetNodeDataSchema>;
+
 /**
  * The general dialogue node: one node, four flavours. The payload for every
  * flavour lives on the node; `kind` selects which one the editor shows and the
@@ -373,9 +464,9 @@ export type DialogueKind = z.infer<typeof DialogueKindSchema>;
 
 export const DialogueNodeDataSchema = z.object({
     kind: DialogueKindSchema.default("phone"),
-    phone: CallNodeDataSchema.default({ branch: "default", startIndex: 0 }),
+    phone: CallNodeDataSchema.default({ branch: "default", startIndex: 0, continueMode: "onEnd" }),
     kisscord: KisscordNodeDataSchema.default({ contactId: "", messages: [] }),
-    mail: MailNodeDataSchema.default({ from: "", subject: "", content: "", replyable: false }),
+    mail: MailNodeDataSchema.default({ from: "", subject: "", content: "", replyable: false, withdrawOnQuestEnd: false }),
     weechat: WeeChatNodeDataSchema.default({ host: "", password: "", registerServer: true, messages: [] }),
     /**
      * Kisscord/WeeChat only: play the conversation when the story flow arrives
@@ -420,6 +511,21 @@ export const NotifyNodeDataSchema = z.object({
     tone: z.enum(["success", "error", "warning", "info"]).default("info"),
 });
 
+export const PromptMatchModeSchema = z.enum(["any", "exact", "contains", "regex"]);
+export type PromptMatchMode = z.infer<typeof PromptMatchModeSchema>;
+
+export const PromptNodeDataSchema = z.object({
+    title: z.string().default(""),
+    label: z.string().default(""),
+    placeholder: z.string().default(""),
+    defaultValue: z.string().default(""),
+    password: z.boolean().default(false),
+    storeAs: z.string().default(""),
+    matchMode: PromptMatchModeSchema.default("any"),
+    expected: z.string().default(""),
+    caseSensitive: z.boolean().default(false),
+});
+
 export const SetDataNodeDataSchema = z.object({
     key: z.string().default(""),
     value: z.string().default(""),
@@ -429,12 +535,20 @@ export const ClaimQuestNodeDataSchema = z.object({
     questName: IdentifierSchema.optional().or(z.literal("")),
 });
 
+export const CompleteQuestNodeDataSchema = empty;
+export const RetireQuestNodeDataSchema = empty;
+
+export const UnclaimQuestNodeDataSchema = z.object({
+    /** Blank means the quest this node belongs to. */
+    questName: IdentifierSchema.optional().or(z.literal("")),
+});
+
 /**
  * Community data (r137): one SharedStorage write driven by a tool pack's
  * declared contract. The pack's entry template and the author's values are
  * snapshotted INTO the node, so the project stays self-contained — it
  * compiles (and the game mod reads its key) even where the pack is not
- * loaded. See docs/ToolPack-Format.md.
+ * loaded. See reference/ToolPack-Format.md.
  */
 export const PackDataNodeDataSchema = z.object({
     packId: z.string().default(""),
@@ -470,6 +584,8 @@ export const PackNodeDataSchema = z.object({
     gameModName: z.string().default(""),
     nodeId: z.string().default(""),
     nodeLabel: z.string().default(""),
+    /** The pack author's own description — the inspector shows it verbatim (r150). */
+    nodeDocs: z.string().default(""),
     emitter: z.enum(["sdk", "emit", "storage", "commandData"]).default("sdk"),
     fields: z.array(z.record(z.string(), z.unknown())).default([]),
     values: z.record(z.string(), z.string()).default({}),
@@ -504,9 +620,82 @@ export const BranchNodeDataSchema = z.object({
     source: z.enum(["event", "data"]).default("event"),
 });
 
+/**
+ * App Install Check (r259): does this player have a given desktop app?
+ *
+ * The SDK's own doc comment is the reason this node exists — most of the
+ * desktop's apps are unlocked as the player earns them, so a pack that assumes
+ * one is present "produces a notification for something the player cannot open,
+ * which reads as the pack being broken" (`index.d.ts:3885`).
+ *
+ * The node always checks and routes. `saveList` additionally stores every
+ * installed app's name under `key`, so a later Branch or a message can read
+ * it — which is also how an author finds out what the game counts as an app
+ * on their own save.
+ *
+ * A toggle rather than a second mode (Zeis, r260): the check is the node's
+ * job, and saving the list is a side effect an author may want alongside it.
+ * Making it a mode meant the node's outputs changed shape, and it forced a
+ * choice between two things that are not alternatives.
+ *
+ * Deliberately not restricted to one node per quest. The list changes while a
+ * quest runs — the player unlocks apps as they go — so a second check later
+ * in the story legitimately wants a fresh snapshot. Two nodes writing the
+ * same key simply refresh it, which is the useful behaviour; different keys
+ * keep snapshots of two moments.
+ */
+export const AppCheckNodeDataSchema = z.object({
+    /** The app's name as the desktop knows it, e.g. "Kisscord". */
+    app: z.string().default(""),
+    /** Also store the whole installed list, so other nodes can read it. */
+    saveList: z.boolean().default(true),
+    /** Where the list is stored, readable as `{{data.installedApps}}`. */
+    key: z.string().default("installedApps"),
+});
+
 export const DelayNodeDataSchema = z.object({
     /** Seconds — friendlier than ms; halves like 0.5 are fine. */
     seconds: z.number().default(1),
+});
+
+/**
+ * The Timer (r172, renamed r173): a scheduled job on the in-game clock.
+ * Three modes, picked by `mode`:
+ * - `after`: a relative delay — one box per unit, all summed, so "25 hours"
+ *   is a legal value and so is "1 month 2 weeks". Every unit zero means
+ *   "nothing scheduled": the analysis warns, the runtime fires immediately.
+ * - `daytime`: a calendar offset — years, months, weeks and days from now
+ *   (r176; one box per unit since r177), at a set clock time. The whole rule
+ *   is resolved against `Time.date()` at arm time, so it stays right however
+ *   long the player leaves the quest. Month and year maths keeps the day
+ *   number, clamped to the target month's last day (31 Jan + 1 month = 28 Feb,
+ *   and 29 Feb + 1 year = 28 Feb); weeks and days are added after that clamp.
+ * - `at`: a fixed in-game date and clock time (r173).
+ * `hour`/`minute` are shared by `daytime` and `at`: they always mean "the
+ * in-game clock shows HH:MM". In-game seconds are real-world milliseconds,
+ * so no second field (r173 check-in).
+ */
+export const TimerNodeDataSchema = z.object({
+    mode: z.enum(["after", "daytime", "at"]).default("after"),
+    /* mode "after": relative delay, one box per unit, all summed */
+    years: z.number().default(0),
+    months: z.number().default(0),
+    weeks: z.number().default(0),
+    days: z.number().default(0),
+    hours: z.number().default(0),
+    minutes: z.number().default(0),
+    /* mode "daytime": how far from now, one box per unit (r176/r177) */
+    offsetYears: z.number().default(0),
+    offsetMonths: z.number().default(0),
+    offsetWeeks: z.number().default(0),
+    offsetDays: z.number().default(0),
+    /* modes "daytime" and "at": the time the in-game clock will show */
+    hour: z.number().default(0),
+    minute: z.number().default(0),
+    /* mode "at": the fixed in-game date */
+    dateYear: z.number().default(0),
+    dateMonth: z.number().default(0),
+    dateDay: z.number().default(0),
 });
 
 export const RandomPickNodeDataSchema = z.object({
@@ -621,16 +810,23 @@ export const NodeSchema = z.discriminatedUnion("type", [
     node("world.packData", PackDataNodeDataSchema),
     node("pack.node", PackNodeDataSchema),
     node("comms.dialogue", DialogueNodeDataSchema),
+    node("comms.tweet", TweetNodeDataSchema),
     node("reply.input", ManualInputNodeDataSchema),
     node("fx.pay", PayNodeDataSchema),
     node("fx.withdraw", PayNodeDataSchema),
     node("fx.notify", NotifyNodeDataSchema),
+    node("fx.prompt", PromptNodeDataSchema),
     node("fx.setData", SetDataNodeDataSchema),
     node("fx.claimQuest", ClaimQuestNodeDataSchema),
+    node("fx.completeQuest", CompleteQuestNodeDataSchema),
+    node("fx.retireQuest", RetireQuestNodeDataSchema),
+    node("fx.unclaimQuest", UnclaimQuestNodeDataSchema),
     node("fx.shell", ShellExecNodeDataSchema),
     node("fx.handbook", HandbookNodeDataSchema),
     node("flow.branch", BranchNodeDataSchema),
+    node("flow.appcheck", AppCheckNodeDataSchema),
     node("flow.delay", DelayNodeDataSchema),
+    node("flow.timer", TimerNodeDataSchema),
     node("flow.random", RandomPickNodeDataSchema),
     node("flow.sequence", SequenceNodeDataSchema),
     node("flow.debug", DebugNodeDataSchema),

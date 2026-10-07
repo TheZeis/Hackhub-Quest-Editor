@@ -16,9 +16,10 @@
  * Pure module: no React, no DOM (AR1/AR2). `Random.sleep` resolves
  * immediately — a dry run collapses waits.
  */
-import { compileProject, EDITOR_BUILD } from "@/compiler/compile";
-import { PAYLOAD_IS_REALLY_PRIMITIVE, getEvent, payloadFields } from "@/schema/events";
+import { compileProject, EDITOR_BUILD, type CompilerWarning } from "@/compiler/compile";
+import { getEvent, isPrimitivePayload, payloadFields } from "@/schema/events";
 import type { ProjectDocument, QuestDoc } from "@/schema/project";
+import type { ToolPack } from "@/toolpacks/schema";
 
 export interface TraceEntry {
     kind: string;
@@ -52,6 +53,8 @@ export interface SimReport {
     trace: TraceEntry[];
     quests: SimQuestReport[];
     warnings: string[];
+    /** Same warnings with severity — the dialog renders this. */
+    warningDetails: CompilerWarning[];
     errors: string[];
 }
 
@@ -78,6 +81,12 @@ function recordingSdk(entries: TraceEntry[]) {
     const log = (kind: string, text: string) => entries.push({ kind, text, quest: current });
 
     const store: Record<string, unknown> = {};
+
+    /* Scheduled beats (r172): the stub records what the mod arms, and the
+       simulator fires each job through the real registered handler after
+       the quest's lifecycle — a dry run collapses the game clock. */
+    const beatHandlers: Record<string, (payload: unknown, job: unknown) => void> = {};
+    const beatJobs: { id: string; kind: string; payload: Record<string, unknown> }[] = [];
 
     class Quest {
         Data: Record<string, unknown> = {};
@@ -203,6 +212,12 @@ function recordingSdk(entries: TraceEntry[]) {
             UI: {
                 notify: (m: string) => log("notify", `Notification: ${m}`),
                 toast: (m: string) => log("notify", `Toast: ${m}`),
+                prompt: (options: { title?: string; label?: string; placeholder?: string; password?: boolean; defaultValue?: string }) => {
+                    const label = options?.label || options?.title || "question";
+                    const answer = options?.defaultValue ?? "simulated answer";
+                    log("prompt", `Ask player: ${label} → ${answer}`);
+                    return Promise.resolve(answer);
+                },
             },
             Handbook: {
                 open: (id: string) => log("handbook", `Handbook opens "${id}"`),
@@ -242,6 +257,55 @@ function recordingSdk(entries: TraceEntry[]) {
                 },
                 getAll: () => store,
             },
+            Time: {
+                now: () => 0,
+                scale: () => 60,
+                isRunning: () => true,
+                toRealMs: (gameMs: number) => gameMs / 60,
+                toGameMs: (realMs: number) => realMs * 60,
+                date: () => new Date(0),
+                duration: (u: { minutes?: number; hours?: number; days?: number }) =>
+                    ((u?.minutes ?? 0) + 60 * (u?.hours ?? 0) + 24 * 60 * (u?.days ?? 0)) * 60_000,
+            },
+            Scheduler: {
+                register: (kind: string, handler: (p: unknown, job: unknown) => void) => {
+                    beatHandlers[kind] = handler;
+                    log("schedule", `Timer handler registered (${kind})`);
+                },
+                schedule: (kind: string, payload?: Record<string, unknown>, _delay?: unknown) => {
+                    const id = nextId("job");
+                    beatJobs.push({ id, kind, payload: payload ?? {} });
+                    log(
+                        "schedule",
+                        `Timer scheduled for quest ${String(payload?.questId ?? "?")} (node ${String(payload?.nodeId ?? "?")})`,
+                    );
+                    return id;
+                },
+                /* Absolute in-game timestamp (r173): the dry run collapses
+                   the clock, so the timestamp is recorded but not honoured. */
+                scheduleAt: (kind: string, payload?: Record<string, unknown>, _fireAt?: number) => {
+                    const id = nextId("job");
+                    beatJobs.push({ id, kind, payload: payload ?? {} });
+                    log(
+                        "schedule",
+                        `Timer scheduled at in-game ${new Date(_fireAt ?? 0).toISOString()} for quest ${String(payload?.questId ?? "?")} (node ${String(payload?.nodeId ?? "?")})`,
+                    );
+                    return id;
+                },
+                cancel: (id: string) => {
+                    const i = beatJobs.findIndex((j) => j.id === id);
+                    if (i >= 0) beatJobs.splice(i, 1);
+                    log("schedule", `Timer ${id} cancelled`);
+                },
+                cancelKind: (kind: string) => {
+                    for (let i = beatJobs.length - 1; i >= 0; i--) if (beatJobs[i].kind === kind) beatJobs.splice(i, 1);
+                },
+                list: (kind?: string) =>
+                    beatJobs
+                        .filter((j) => !kind || j.kind === kind)
+                        .map((j) => ({ id: j.id, fireAt: 0, kind: j.kind, payload: j.payload, createdAt: 0 })),
+                remaining: () => null,
+            },
             Events: {
                 emit: (e: string, payload?: unknown) =>
                     log("event", `Event fires: ${e}${payload !== undefined ? ` = ${JSON.stringify(payload)}` : ""}`),
@@ -256,6 +320,19 @@ function recordingSdk(entries: TraceEntry[]) {
         },
         endQuest: () => {
             current = -1;
+        },
+        /** Fire this quest's pending beats through the registered handler, in
+         *  arm order. Returns how many fired (for assertions). */
+        fireDueBeats: (questId: string): number => {
+            const mine = beatJobs.filter((j) => j.payload.questId === questId);
+            for (const job of mine) {
+                const handler = beatHandlers[job.kind];
+                if (!handler) continue;
+                    log("schedule", `Timer fired (simulated): quest ${questId}, node ${String(job.payload.nodeId ?? "?")}`);
+                handler(job.payload, { id: job.id, fireAt: 0, kind: job.kind, payload: job.payload, createdAt: 0 });
+                beatJobs.splice(beatJobs.indexOf(job), 1);
+            }
+            return mine.length;
         },
     };
 }
@@ -318,9 +395,9 @@ function buildProbes(
         if (roots.includes(root)) setPath(payload, c.field, resolved(c.value));
     }
     const probes: ProbeProbe[] = [{ label: "the declared shape", payload }];
-    // Primitive-declared events: the game has sent the value bare before
-    // (Terminal.Lynx.Search), and the runtime deliberately matches both.
-    if (PAYLOAD_IS_REALLY_PRIMITIVE.has(event) && conditions.length > 0) {
+    // Primitive-declared events carry the value bare, while old projects may
+    // still name a field from a pre-0.24 declaration. Probe both shapes.
+    if (isPrimitivePayload(event) && conditions.length > 0) {
         probes.push({ label: "the bare value the game actually sends", payload: resolved(conditions[0].value) });
     }
     return probes;
@@ -354,15 +431,15 @@ function objectivesOf(quest: QuestDoc): { node: SimObjective; trigger: { event: 
  * Dry-run the whole project. Never throws: every stage captures its own
  * failures into the report — a sim that dies is a *finding*, not a crash.
  */
-export async function simulateProject(project: ProjectDocument): Promise<SimReport> {
-    const compiled = compileProject(project);
+export async function simulateProject(project: ProjectDocument, packs: ToolPack[] = []): Promise<SimReport> {
+    const compiled = compileProject(project, packs);
     const entries: TraceEntry[] = [];
     const errors: string[] = [];
     const harness = recordingSdk(entries);
 
     const modJs = compiled.files.find((f) => f.path === "dist/mod.js")?.content;
     if (!modJs) {
-        return { build: EDITOR_BUILD, trace: [], quests: [], warnings: compiled.warnings, errors: ["the compiler produced no dist/mod.js — nothing to dry-run"] };
+        return { build: EDITOR_BUILD, trace: [], quests: [], warnings: compiled.warnings, warningDetails: compiled.warningDetails, errors: ["the compiler produced no dist/mod.js — nothing to dry-run"] };
     }
 
     try {
@@ -400,6 +477,11 @@ export async function simulateProject(project: ProjectDocument): Promise<SimRepo
             await q.OnStart?.();
             await settle();
             await q.OnObjectivesStart?.();
+            await settle();
+            /* The game clock is collapsed in a dry run: every beat that armed
+               during the lifecycle is now due, so fire it — through the real
+               registered handler — to show what the beat starts. */
+            harness.fireDueBeats(qd.id);
             await settle();
         } catch (e) {
             errors_q.push(`the quest's own code threw: ${e instanceof Error ? e.message : String(e)}`);
@@ -468,6 +550,7 @@ export async function simulateProject(project: ProjectDocument): Promise<SimRepo
         trace: entries,
         quests: questReports,
         warnings: [...compiled.warnings],
+        warningDetails: [...compiled.warningDetails],
         errors,
     };
 }

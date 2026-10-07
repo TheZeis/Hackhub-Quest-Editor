@@ -5,7 +5,7 @@
  *
  * Deliberately not a Radix popover: this picker is opened and closed in unit
  * tests dozens of times, and Radix's positioning loop turns each of those
- * into seconds under jsdom. A fixed panel in a portal, a backdrop for
+ * into seconds under a headless DOM. A fixed panel in a portal, a backdrop for
  * outside-clicks, Escape to close — everything this picker needs, nothing
  * that spins.
  *
@@ -13,7 +13,7 @@
  * list, and page scrolls re-seat the panel under its button. Closing on
  * scroll made the picker unusable the moment its list overflowed.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icon";
 import { TextArea, TextInput } from "./primitives";
@@ -30,6 +30,7 @@ export function TokenTextInput({
     multiline,
     rows,
     suggestions,
+    trailing,
 }: {
     ariaLabel: string;
     value: string;
@@ -39,6 +40,8 @@ export function TokenTextInput({
     multiline?: boolean;
     rows?: number;
     suggestions: TokenSuggestion[];
+    /** An extra control beside the tag button, e.g. the dice generate button. */
+    trailing?: ReactNode;
 }) {
     const ref = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
     const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -151,6 +154,7 @@ export function TokenTextInput({
             >
                 <Icon name="sparkle" size={12} />
             </button>
+            {trailing}
             {open &&
                 createPortal(
                     <>

@@ -12,8 +12,10 @@
  */
 import { placementFor, type NetworkData, type SeedFilesData } from "@/compiler/seedRemoteFiles";
 import { TARGET_IP_TOKEN } from "@/schema/common";
+import { GAME_TERMINAL_COMMANDS } from "@/schema/registry";
 import type { NodeDoc } from "@/schema/nodes";
 import type { QuestDoc } from "@/schema/project";
+import { daysInMonth, isRealDate, monthName } from "@/schema/timer";
 
 export interface FieldWarning {
     /** Dot-path into the node's data, e.g. "ip" or "choices.0.label". */
@@ -89,6 +91,20 @@ export function fieldWarnings(quest: QuestDoc | undefined, node: NodeDoc): Field
     // or export drops the files. This is the SAME check the compiler runs
     // (placementFor), so the warning appears while editing instead of after
     // export — when the files are already gone.
+    if (node.type === "fx.prompt") {
+        const mode = String(d.matchMode ?? "any");
+        const expected = String(d.expected ?? "").trim();
+        if (mode !== "any" && !expected) {
+            out.push({
+                path: "expected",
+                severity: "warn",
+                detail: "This question is set to check the answer, but no accepted answer is filled in yet.",
+                nextStep:
+                    "Fill in “Answer to accept”, or change “Accept” back to “Any submitted text” if every answer should continue.",
+            });
+        }
+    }
+
     if (node.type === "world.files" && d.target === "device") {
         const files = Array.isArray(d.files) ? d.files : [];
         // Nothing to place, nothing to warn about: an untouched node stays quiet.
@@ -130,6 +146,51 @@ export function fieldWarnings(quest: QuestDoc | undefined, node: NodeDoc): Field
                     nextStep: "Add a user account to the device in your “Create network” node.",
                 });
             }
+        }
+    }
+
+    /* An App Install Check with no name has nothing to look for, so the
+       Missing path would always run — silently, and the author would read it
+       as the game disagreeing with them. */
+    if (node.type === "flow.appcheck") {
+        const typed = String(d.app ?? "").trim();
+        if (!typed) {
+            out.push({
+                path: "app",
+                severity: "warn",
+                detail: "No app name, so this check can never match anything.",
+                nextStep: "Type the app's name as the desktop spells it, e.g. Kisscord.",
+            });
+        } else if ((GAME_TERMINAL_COMMANDS as readonly string[]).some((c) => c.toLowerCase() === typed.toLowerCase())) {
+            /* Verified in game (2026-10-02): Lynx was installed yet the check
+               read Missing, while the control (Kisscord) read Installed. The
+               game does not count terminal commands as apps. */
+            out.push({
+                path: "app",
+                severity: "warn",
+                detail: `The game does not count ${typed} as an app, so this check always reads Missing even when it is installed.`,
+                nextStep: "Terminal commands are installed with apt-get but are not apps the desktop reports. Check a desktop app instead, e.g. Kisscord.",
+            });
+        }
+    }
+
+    // A Timer pinned to a date the calendar never has — 31 June, 30 February —
+    // can never arrive; the runtime fails open, so the warning belongs here,
+    // while the author is looking at the field. An incomplete date stays quiet:
+    // the preview sentence already says what will happen.
+    if (node.type === "flow.timer" && String(d.mode ?? "after") === "at") {
+        const y = Math.round(Number(d.dateYear) || 0);
+        const m = Math.round(Number(d.dateMonth) || 0);
+        const day = Math.round(Number(d.dateDay) || 0);
+        const month = monthName(m);
+        if (y > 0 && month && day >= 1 && !isRealDate(y, m, day)) {
+            const last = daysInMonth(y, m);
+            out.push({
+                path: "dateDay",
+                severity: "warn",
+                detail: `“${day} ${month}” never arrives — ${month} has ${last} day${last === 1 ? "" : "s"}.`,
+                nextStep: `Pick a day from 1 to ${last}, or switch the Month to one that has the day you want.`,
+            });
         }
     }
 
